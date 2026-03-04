@@ -30,6 +30,12 @@
       "description": "Tech startup office",
       "imageUrl": "https://picsum.photos/seed/corp2/400/300",
       "imageHint": "startup office"
+    },
+    {
+      "id": "auth-hero",
+      "description": "Professional skyscraper business meeting",
+      "imageUrl": "https://picsum.photos/seed/auth-hero/1200/1600",
+      "imageHint": "business meeting"
     }
   ]
 }
