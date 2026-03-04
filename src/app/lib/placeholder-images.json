@@ -1,0 +1,35 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "user-1",
+      "description": "Professional business person",
+      "imageUrl": "https://picsum.photos/seed/biz1/200/200",
+      "imageHint": "business person"
+    },
+    {
+      "id": "user-2",
+      "description": "Corporate executive portrait",
+      "imageUrl": "https://picsum.photos/seed/biz2/200/200",
+      "imageHint": "executive portrait"
+    },
+    {
+      "id": "user-3",
+      "description": "Tech entrepreneur",
+      "imageUrl": "https://picsum.photos/seed/biz3/200/200",
+      "imageHint": "entrepreneur"
+    },
+    {
+      "id": "company-1",
+      "description": "Modern office building",
+      "imageUrl": "https://picsum.photos/seed/corp1/400/300",
+      "imageHint": "modern office"
+    },
+    {
+      "id": "company-2",
+      "description": "Tech startup office",
+      "imageUrl": "https://picsum.photos/seed/corp2/400/300",
+      "imageHint": "startup office"
+    }
+  ]
+}
