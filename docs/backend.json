@@ -1,0 +1,49 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores user identity, roles, and platform reputation metrics.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The unique Firebase Auth ID." },
+        "firstName": { "type": "string" },
+        "lastName": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["customer", "business", "admin"], "description": "The user's role in the platform." },
+        "vettingScore": { "type": "number", "description": "Trust score from 0-100." },
+        "connectionsCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "BusinessProfile": {
+      "title": "Business Profile",
+      "description": "Detailed verification data for registered business entities.",
+      "type": "object",
+      "properties": {
+        "ownerUid": { "type": "string" },
+        "companyName": { "type": "string" },
+        "regNumber": { "type": "string" },
+        "industry": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "reviewing", "verified", "rejected"] },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "verificationDocuments": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["ownerUid", "companyName", "status"]
+    }
+  },
+  "auth": {
+    "providers": ["password", "google.com"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Root collection for all user profiles."
+    },
+    "/businesses/{businessId}": {
+      "schema": "BusinessProfile",
+      "description": "Collection for business vetting and verification profiles."
+    }
+  }
+}
