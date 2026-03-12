@@ -5,80 +5,63 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Building2, User, Loader2 } from "lucide-react";
+import { ShieldCheck, Building2, User, Loader2, Crown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { useAuth, useFirestore } from "@/firebase";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function SignupPage() {
-  const [role, setRole] = useState<"customer" | "business">("customer");
+  const [role, setRole] = useState<"customer" | "business" | "shareholder">("customer");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
     companyName: "",
-    regNumber: ""
+    regNumber: "",
+    inviteCode: "",
   });
   const [isLoading, setIsLoading] = useState(false);
-  
-  const auth = useAuth();
-  const db = useFirestore();
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+
   const router = useRouter();
   const { toast } = useToast();
+  const { refresh } = useAuth();
 
   const heroImage = PlaceHolderImages.find(img => img.id === 'auth-hero');
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth || !db) return;
-
     setIsLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
-      const user = userCredential.user;
-
-      // Create User Profile
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        role: role,
-        vettingScore: 0,
-        connectionsCount: 0,
-        createdAt: serverTimestamp()
-      });
-
-      // If business, create initial vetting record
-      if (role === "business") {
-        await setDoc(doc(db, "businesses", user.uid), {
-          ownerUid: user.uid,
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          fullName: `${formData.firstName} ${formData.lastName}`.trim(),
+          role,
           companyName: formData.companyName,
           regNumber: formData.regNumber,
-          status: "pending",
-          submittedAt: serverTimestamp(),
-          verificationDocuments: []
-        });
+          inviteCode: formData.inviteCode,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await refresh();
+        toast({ title: "Account Created!", description: "Welcome to VerifiedBizLink." });
+        router.push("/onboarding");
+      } else {
+        toast({ title: "Signup Failed", description: data.error, variant: "destructive" });
       }
-
-      toast({
-        title: "Account Created!",
-        description: "Welcome to VerifiedBizLink.",
-      });
-      router.push("/");
-    } catch (error: any) {
-      toast({
-        title: "Signup Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Signup Failed", description: "Could not connect to server.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -124,12 +107,12 @@ export default function SignupPage() {
           </div>
 
           <div className="flex flex-col gap-6">
-            <Tabs 
-              defaultValue="customer" 
-              className="w-full" 
+            <Tabs
+              defaultValue="customer"
+              className="w-full"
               onValueChange={(v) => setRole(v as any)}
             >
-              <TabsList className="grid w-full grid-cols-2 p-1 bg-gray-100 h-14 rounded-2xl">
+              <TabsList className="grid w-full grid-cols-3 p-1 bg-gray-100 h-14 rounded-2xl">
                 <TabsTrigger value="customer" className="rounded-xl font-bold flex gap-2">
                   <User className="h-4 w-4" />
                   Customer
@@ -138,6 +121,10 @@ export default function SignupPage() {
                   <Building2 className="h-4 w-4" />
                   Business
                 </TabsTrigger>
+                <TabsTrigger value="shareholder" className="rounded-xl font-bold flex gap-1 text-amber-700">
+                  <Crown className="h-4 w-4" />
+                  Shareholder
+                </TabsTrigger>
               </TabsList>
             </Tabs>
 
@@ -145,10 +132,10 @@ export default function SignupPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="first-name">First Name</Label>
-                  <Input 
-                    id="first-name" 
+                  <Input
+                    id="first-name"
                     required
-                    placeholder="John" 
+                    placeholder="John"
                     className="h-12 rounded-xl"
                     value={formData.firstName}
                     onChange={(e) => updateField("firstName", e.target.value)}
@@ -156,10 +143,10 @@ export default function SignupPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="last-name">Last Name</Label>
-                  <Input 
-                    id="last-name" 
+                  <Input
+                    id="last-name"
                     required
-                    placeholder="Doe" 
+                    placeholder="Doe"
                     className="h-12 rounded-xl"
                     value={formData.lastName}
                     onChange={(e) => updateField("lastName", e.target.value)}
@@ -171,21 +158,21 @@ export default function SignupPage() {
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
                   <div className="space-y-2">
                     <Label htmlFor="company-name">Company Name</Label>
-                    <Input 
-                      id="company-name" 
+                    <Input
+                      id="company-name"
                       required
-                      placeholder="Acme Corp" 
+                      placeholder="Acme Corp"
                       className="h-12 rounded-xl"
                       value={formData.companyName}
                       onChange={(e) => updateField("companyName", e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="reg-number">Registration Number</Label>
-                    <Input 
-                      id="reg-number" 
+                    <Label htmlFor="reg-number">Registration Number (CIPC)</Label>
+                    <Input
+                      id="reg-number"
                       required
-                      placeholder="2024/123456/07" 
+                      placeholder="2024/123456/07"
                       className="h-12 rounded-xl"
                       value={formData.regNumber}
                       onChange={(e) => updateField("regNumber", e.target.value)}
@@ -194,13 +181,36 @@ export default function SignupPage() {
                 </div>
               )}
 
+              {role === "shareholder" && (
+                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 p-4 border border-amber-200 bg-amber-50 rounded-2xl">
+                  <div className="flex items-center gap-2 text-amber-800 font-bold text-sm">
+                    <Crown className="h-4 w-4" />
+                    Shareholder Access — Invite Code Required
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="invite-code">Shareholder Invite Code</Label>
+                    <Input
+                      id="invite-code"
+                      required
+                      placeholder="Enter your invite code"
+                      className="h-12 rounded-xl border-amber-300 bg-white"
+                      value={formData.inviteCode}
+                      onChange={(e) => updateField("inviteCode", e.target.value)}
+                    />
+                  </div>
+                  <p className="text-xs text-amber-700">
+                    This creates a full administrator account with platform-wide access.
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
+                <Input
+                  id="email"
+                  type="email"
                   required
-                  placeholder="name@company.com" 
+                  placeholder="name@company.com"
                   className="h-12 rounded-xl"
                   value={formData.email}
                   onChange={(e) => updateField("email", e.target.value)}
@@ -209,22 +219,51 @@ export default function SignupPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
+                <Input
+                  id="password"
+                  type="password"
                   required
-                  placeholder="Minimum 8 characters" 
+                  placeholder="Minimum 8 characters"
                   className="h-12 rounded-xl"
                   value={formData.password}
                   onChange={(e) => updateField("password", e.target.value)}
                 />
               </div>
 
+              {/* POPI Notice */}
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-start gap-2.5 text-xs text-gray-500">
+                <Lock className="h-3.5 w-3.5 mt-0.5 text-gray-400 flex-shrink-0" />
+                <span>
+                  We collect only your <strong>name, email, contact address</strong>, and (for businesses) <strong>company name & registration number</strong> — as required by the POPI Act. Your password is encrypted and never stored in plain text.
+                </span>
+              </div>
+
+              {/* T&C Checkbox */}
+              <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+                <Checkbox
+                  id="accept-terms"
+                  checked={acceptedTerms}
+                  onCheckedChange={(v) => setAcceptedTerms(Boolean(v))}
+                  className="mt-0.5"
+                />
+                <label htmlFor="accept-terms" className="text-sm text-gray-700 cursor-pointer leading-relaxed">
+                  I have read and agree to the{" "}
+                  <Link href="/terms" target="_blank" className="text-primary font-bold hover:underline">
+                    Terms & Conditions
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" target="_blank" className="text-primary font-bold hover:underline">
+                    Privacy Policy
+                  </Link>
+                  . I understand how my data is collected and used in accordance with the POPI Act.
+                </label>
+              </div>
+
               <div className="pt-2">
-                <Button 
+                <Button
                   type="submit"
-                  disabled={isLoading}
-                  className="w-full h-12 bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl text-base shadow-lg shadow-primary/20"
+                  disabled={isLoading || !acceptedTerms}
+                  className="w-full h-12 bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl text-base shadow-lg shadow-primary/20 disabled:opacity-50"
                 >
                   {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Create Account"}
                 </Button>

@@ -10,52 +10,53 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
-import { useAuth } from "@/firebase";
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const auth = useAuth();
   const router = useRouter();
   const { toast } = useToast();
+  const { refresh } = useAuth();
 
   const heroImage = PlaceHolderImages.find(img => img.id === 'auth-hero');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
-
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      router.push("/");
-    } catch (error: any) {
-      toast({
-        title: "Login Failed",
-        description: error.message || "Invalid credentials. Please try again.",
-        variant: "destructive",
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       });
+      const data = await res.json();
+      if (res.ok) {
+        await refresh();
+        router.push("/");
+      } else {
+        toast({
+          title: "Login Failed",
+          description: data.error || "Invalid credentials. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({ title: "Login Failed", description: "Could not connect to server.", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleGoogleLogin = async () => {
-    if (!auth) return;
-    try {
-      const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      router.push("/");
-    } catch (error: any) {
-      toast({
-        title: "Google Sign-In Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+  const fillDemo = (type: string) => {
+    const creds: Record<string, { email: string; password: string }> = {
+      admin: { email: 'admin@vbl.com', password: 'Admin@123' },
+      banker: { email: 'banker@vbl.com', password: 'Banker@123' },
+      business: { email: 'sarah@nexgen.com', password: 'Pass@123' },
+    };
+    if (creds[type]) { setEmail(creds[type].email); setPassword(creds[type].password); }
   };
 
   return (
@@ -83,6 +84,14 @@ export default function LoginPage() {
           <p className="text-xl text-gray-300 font-medium">
             The world's first verified B2B networking platform powered by transparency.
           </p>
+          <div className="mt-6 p-4 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
+            <p className="text-white/80 text-sm font-bold mb-3 uppercase tracking-wider">Demo Credentials</p>
+            <div className="space-y-1.5 text-sm font-mono text-white/70">
+              <p>🔧 Admin: admin@vbl.com / Admin@123</p>
+              <p>🏦 Banker: banker@vbl.com / Banker@123</p>
+              <p>🏢 Business: sarah@nexgen.com / Pass@123</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -93,15 +102,28 @@ export default function LoginPage() {
             <p className="mt-2 text-gray-600 font-medium">Log in to manage your connections</p>
           </div>
 
+          {/* Quick Demo Fill */}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" className="flex-1 text-xs rounded-xl" onClick={() => fillDemo('admin')}>
+              Admin Login
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1 text-xs rounded-xl" onClick={() => fillDemo('banker')}>
+              Banker Login
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1 text-xs rounded-xl" onClick={() => fillDemo('business')}>
+              Business Login
+            </Button>
+          </div>
+
           <form className="mt-8 space-y-6" onSubmit={handleLogin}>
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  required 
-                  placeholder="name@company.com" 
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  placeholder="name@company.com"
                   className="h-12 rounded-xl"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -114,11 +136,11 @@ export default function LoginPage() {
                     Forgot password?
                   </Link>
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
-                  required 
-                  placeholder="••••••••" 
+                <Input
+                  id="password"
+                  type="password"
+                  required
+                  placeholder="••••••••"
                   className="h-12 rounded-xl"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -126,31 +148,13 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={isLoading}
               className="w-full h-12 bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl text-base shadow-lg shadow-primary/20"
             >
               {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Sign In"}
             </Button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-200" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500 font-bold tracking-wider">Or continue with</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <Button type="button" variant="outline" className="h-11 rounded-xl border-gray-200 font-semibold" onClick={handleGoogleLogin}>
-                Google
-              </Button>
-              <Button type="button" variant="outline" className="h-11 rounded-xl border-gray-200 font-semibold">
-                LinkedIn
-              </Button>
-            </div>
           </form>
 
           <p className="text-center text-sm text-gray-600 font-medium">
@@ -164,3 +168,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+

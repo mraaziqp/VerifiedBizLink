@@ -4,6 +4,8 @@
 import { Info, TrendingUp, Zap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
 
 const NEWS = [
   { id: 1, title: "New Compliance standards for EU 2025 released", reads: "4.5k" },
@@ -12,6 +14,8 @@ const NEWS = [
 ];
 
 export function ComplianceNews() {
+  const { toast } = useToast();
+
   return (
     <div className="flex flex-col gap-6">
       {/* News Widget */}
@@ -22,7 +26,11 @@ export function ComplianceNews() {
         </CardHeader>
         <CardContent className="space-y-4">
           {NEWS.map((item) => (
-            <div key={item.id} className="cursor-pointer group">
+            <div
+              key={item.id}
+              className="cursor-pointer group"
+              onClick={() => toast({ title: item.title, description: "Full article available in the premium news section." })}
+            >
               <p className="text-sm font-semibold text-gray-800 leading-snug group-hover:text-primary group-hover:underline underline-offset-4 decoration-2 decoration-primary/30 transition-all">
                 {item.title}
               </p>
@@ -43,18 +51,29 @@ export function ComplianceNews() {
           </div>
           <h3 className="text-lg font-bold leading-tight">Elevate Your Business Status</h3>
           <p className="text-sm text-gray-300 font-medium">Get the Premium Vetting Badge and appear 5x more often in search results.</p>
-          <Button className="w-full bg-primary text-gray-900 hover:bg-yellow-300 font-bold rounded-xl h-11">
-            Try Premium Free
+          <Button className="w-full bg-primary text-gray-900 hover:bg-yellow-300 font-bold rounded-xl h-11" asChild>
+            <Link href="/vetting">Try Premium Free</Link>
           </Button>
         </CardContent>
       </Card>
 
       {/* Footer Info */}
       <div className="flex flex-wrap gap-x-4 gap-y-2 px-2">
-        {['About', 'Accessibility', 'Help Center', 'Privacy & Terms'].map(link => (
-          <span key={link} className="text-[11px] font-bold text-gray-400 hover:text-gray-600 cursor-pointer uppercase tracking-widest">{link}</span>
+        {[
+          { label: 'About', href: '#' },
+          { label: 'Accessibility', href: '#' },
+          { label: 'Help Center', href: '#' },
+          { label: 'Privacy & Terms', href: '#' },
+        ].map(link => (
+          <span
+            key={link.label}
+            className="text-[11px] font-bold text-gray-400 hover:text-gray-600 cursor-pointer uppercase tracking-widest"
+            onClick={() => toast({ title: link.label, description: "This section is under construction." })}
+          >
+            {link.label}
+          </span>
         ))}
-        <p className="text-[11px] text-gray-300 w-full mt-2 font-medium">VerifiedBizLink © 2024</p>
+        <p className="text-[11px] text-gray-300 w-full mt-2 font-medium">VerifiedBizLink © 2025</p>
       </div>
     </div>
   );

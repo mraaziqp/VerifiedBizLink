@@ -1,65 +1,169 @@
-
-"use client";
+﻿"use client";
 
 import { SidebarLeft } from "@/components/layout/sidebar-left";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ShieldCheck, FileCheck, Building, ArrowRight, AlertCircle, Loader2, Upload } from "lucide-react";
-import { useUser, useFirestore, useDoc } from "@/firebase";
-import { doc, updateDoc, setDoc, serverTimestamp, arrayUnion } from "firebase/firestore";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  ShieldCheck, FileCheck, Building, ArrowRight, AlertCircle,
+  Loader2, Upload, PencilLine, Save,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/auth-context";
+
+interface Document {
+  id: string;
+  name: string;
+  status: string;
+}
+
+interface Business {
+  id: string;
+  company_name: string;
+  industry: string;
+  reg_number: string;
+  vat_number: string;
+  description: string;
+  website: string;
+  phone: string;
+  address: string;
+  status: string;
+  submitted_at: string | null;
+  trust_score?: number;
+  documents?: Document[];
+}
+
+const REQUIRED_DOCS = [
+  { name: "CIPC Registration Certificate", docType: "cipc" },
+  { name: "VAT Compliance Letter", docType: "vat" },
+  { name: "Identity Proof of Directors", docType: "id_proof" },
+  { name: "Proof of Bank Account (Bank Letter / Statement)", docType: "bank_proof" },
+  { name: "Proof Business Exists (Letterhead / Lease / Utility Bill)", docType: "business_proof" },
+];
 
 export default function VettingPage() {
-  const { user, loading: authLoading } = useUser();
-  const db = useFirestore();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [business, setBusiness] = useState<Business | null>(null);
+  const [businessLoading, setBusinessLoading] = useState(true);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
 
-  // Fetch Business Profile
-  const businessRef = (db && user) ? doc(db, "businesses", user.uid) : null;
-  const { data: business, loading: businessLoading } = useDoc(businessRef);
+  const [profileForm, setProfileForm] = useState({
+    companyName: "",
+    industry: "",
+    regNumber: "",
+    vatNumber: "",
+    description: "",
+    website: "",
+    phone: "",
+    address: "",
+  });
+
+  const fetchBusiness = () => {
+    setBusinessLoading(true);
+    fetch("/api/businesses")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.business) {
+          setBusiness(data.business);
+          setProfileForm({
+            companyName: data.business.company_name || "",
+            industry: data.business.industry || "",
+            regNumber: data.business.reg_number || "",
+            vatNumber: data.business.vat_number || "",
+            description: data.business.description || "",
+            website: data.business.website || "",
+            phone: data.business.phone || "",
+            address: data.business.address || "",
+          });
+        }
+      })
+      .finally(() => setBusinessLoading(false));
+  };
+
+  useEffect(() => {
+    if (!user) { setBusinessLoading(false); return; }
+    fetchBusiness();
+  }, [user]);
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingProfile(true);
+    try {
+      const res = await fetch("/api/businesses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: profileForm.companyName,
+          industry: profileForm.industry,
+          regNumber: profileForm.regNumber,
+          vatNumber: profileForm.vatNumber,
+          description: profileForm.description,
+          website: profileForm.website,
+          phone: profileForm.phone,
+          address: profileForm.address,
+        }),
+      });
+      if (res.ok) {
+        fetchBusiness();
+        setShowProfileEditor(false);
+        toast({ title: "Profile Saved", description: "Your business information has been updated." });
+      } else {
+        const d = await res.json();
+        toast({ title: "Error", description: d.error || "Could not save profile.", variant: "destructive" });
+      }
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
 
   const handleStartVetting = async () => {
-    if (!db || !user) return;
+    if (!user) return;
+    if (!business) {
+      toast({ title: "Complete Your Profile First", description: "Please save your business profile before submitting for vetting.", variant: "destructive" });
+      setShowProfileEditor(true);
+      return;
+    }
     setIsSubmitting(true);
     try {
-      await updateDoc(doc(db, "businesses", user.uid), {
-        status: "pending",
-        submittedAt: serverTimestamp()
-      });
-      toast({
-        title: "Vetting Started",
-        description: "Your business is now in the verification queue.",
-      });
-    } catch (e: any) {
-      toast({
-        title: "Error",
-        description: "Could not start vetting. Ensure your profile is complete.",
-        variant: "destructive",
-      });
+      const res = await fetch("/api/businesses/submit", { method: "POST" });
+      if (res.ok) {
+        setBusiness((prev) => prev ? { ...prev, status: "pending", submitted_at: new Date().toISOString() } : prev);
+        toast({ title: "Vetting Started", description: "Your business is now in the verification queue." });
+      } else {
+        const d = await res.json();
+        toast({ title: "Error", description: d.error || "Could not start vetting.", variant: "destructive" });
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleUploadDoc = async (docName: string) => {
-    if (!db || !user) return;
+  const handleUploadDoc = async (docName: string, docType: string) => {
+    if (!user) return;
+    setUploadingDoc(docName);
     try {
-      await updateDoc(doc(db, "businesses", user.uid), {
-        verificationDocuments: arrayUnion(docName),
+      const res = await fetch("/api/businesses/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docName, docType }),
       });
-      toast({
-        title: "Document Uploaded",
-        description: `${docName} has been added to your profile.`,
-      });
-    } catch (e) {
-      toast({
-        title: "Upload Failed",
-        variant: "destructive"
-      });
+      if (res.ok) {
+        fetchBusiness();
+        toast({ title: "Document Recorded", description: `${docName} has been added to your profile.` });
+      } else {
+        toast({ title: "Upload Failed", variant: "destructive" });
+      }
+    } finally {
+      setUploadingDoc(null);
     }
   };
 
@@ -71,59 +175,156 @@ export default function VettingPage() {
     );
   }
 
-  const statusColors: any = {
+  const statusColors: Record<string, string> = {
     verified: "bg-green-100 text-green-700 border-green-200",
     pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
     reviewing: "bg-blue-100 text-blue-700 border-blue-200",
     rejected: "bg-red-100 text-red-700 border-red-200",
+    unregistered: "bg-gray-100 text-gray-600 border-gray-200",
   };
 
-  const progressValue = business?.status === 'verified' ? 100 : business?.status === 'reviewing' ? 60 : 30;
+  const uploadedDocNames = (business?.documents || []).map((d) => d.name);
+  const progressValue =
+    business?.status === "verified" ? 100 :
+    business?.status === "reviewing" ? 65 :
+    business?.status === "pending" ? 35 : 10;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-          <aside className="md:col-span-3 sticky top-6">
+          <aside className="hidden md:block md:col-span-3 sticky top-6">
             <SidebarLeft />
           </aside>
 
           <main className="md:col-span-9 space-y-6">
-            <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            {/* Header */}
+            <div className="bg-primary/10 border border-primary/20 rounded-2xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
                 <div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/20">
                   <ShieldCheck className="h-8 w-8 text-white" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">Vetting Hub</h1>
-                  <p className="text-gray-600 font-medium">
-                    {business ? `Managing ${business.companyName}` : "Register your business to start vetting."}
+                  <p className="text-gray-600 font-medium text-sm">
+                    {business ? business.company_name : "No business profile yet"}
                   </p>
                 </div>
               </div>
-              <Button 
-                onClick={handleStartVetting}
-                disabled={isSubmitting || business?.status === 'pending' || business?.status === 'reviewing'}
-                className="bg-gray-900 text-white hover:bg-black rounded-xl px-8 h-12 font-bold"
-              >
-                {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {business?.status === 'verified' ? "Re-Verify Business" : "Start New Vetting"}
-              </Button>
+              <div className="flex gap-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  className="rounded-xl font-bold gap-2"
+                  onClick={() => setShowProfileEditor((v) => !v)}
+                >
+                  <PencilLine className="h-4 w-4" />
+                  {showProfileEditor ? "Close Editor" : "Edit Profile"}
+                </Button>
+                <Button
+                  onClick={handleStartVetting}
+                  disabled={
+                    isSubmitting ||
+                    business?.status === "pending" ||
+                    business?.status === "reviewing"
+                  }
+                  className="bg-gray-900 text-white hover:bg-black rounded-xl px-6 h-10 font-bold"
+                >
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  {business?.status === "verified" ? "Re-Verify" : "Submit for Vetting"}
+                </Button>
+              </div>
             </div>
+
+            {/* Inline Business Profile Editor */}
+            {showProfileEditor && (
+              <Card className="border-none shadow-sm">
+                <CardHeader className="border-b pb-4">
+                  <CardTitle className="flex items-center gap-2">
+                    <Building className="h-5 w-5 text-primary" />
+                    Business Profile
+                  </CardTitle>
+                  <CardDescription>Fill in your company details accurately. This information is reviewed during vetting.</CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <form onSubmit={handleSaveProfile} className="space-y-5">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Company Name *</Label>
+                        <Input required value={profileForm.companyName}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, companyName: e.target.value }))}
+                          placeholder="Acme Corp (Pty) Ltd" className="rounded-xl h-11" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Industry</Label>
+                        <Input value={profileForm.industry}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, industry: e.target.value }))}
+                          placeholder="Technology & AI" className="rounded-xl h-11" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>CIPC Registration Number *</Label>
+                        <Input required value={profileForm.regNumber}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, regNumber: e.target.value }))}
+                          placeholder="2024/123456/07" className="rounded-xl h-11 font-mono" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>VAT Number</Label>
+                        <Input value={profileForm.vatNumber}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, vatNumber: e.target.value }))}
+                          placeholder="4123456789" className="rounded-xl h-11 font-mono" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Website</Label>
+                        <Input type="url" value={profileForm.website}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, website: e.target.value }))}
+                          placeholder="https://yourcompany.com" className="rounded-xl h-11" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Phone Number</Label>
+                        <Input type="tel" value={profileForm.phone}
+                          onChange={(e) => setProfileForm((p) => ({ ...p, phone: e.target.value }))}
+                          placeholder="+27 21 555 0100" className="rounded-xl h-11" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Business Description</Label>
+                      <Textarea value={profileForm.description}
+                        onChange={(e) => setProfileForm((p) => ({ ...p, description: e.target.value }))}
+                        placeholder="Describe your company products, services, and target market..."
+                        className="rounded-xl min-h-[90px] resize-none" maxLength={500} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Business Address</Label>
+                      <Input value={profileForm.address}
+                        onChange={(e) => setProfileForm((p) => ({ ...p, address: e.target.value }))}
+                        placeholder="15 Innovation Drive, Cape Town, 8001" className="rounded-xl h-11" />
+                    </div>
+                    <div className="flex justify-end">
+                      <Button type="submit" disabled={isSavingProfile}
+                        className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold px-8 h-11 rounded-xl gap-2">
+                        {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Save Business Profile
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
-                {/* Current Status */}
+                {/* Status Card */}
                 <Card className="border-none shadow-sm">
                   <CardHeader>
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
                       <CardTitle>Business Status</CardTitle>
-                      <Badge className={statusColors[business?.status || 'pending']}>
-                        {business?.status?.toUpperCase() || "UNREGISTERED"}
+                      <Badge className={statusColors[business?.status || "unregistered"]}>
+                        {(business?.status || "UNREGISTERED").toUpperCase()}
                       </Badge>
                     </div>
                     <CardDescription>
-                      {business?.submittedAt ? `Last update: ${business.submittedAt.toDate().toLocaleDateString()}` : "No vetting history found."}
+                      {business?.submitted_at
+                        ? `Submitted: ${new Date(business.submitted_at).toLocaleDateString()}`
+                        : "Not yet submitted for vetting."}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
@@ -134,58 +335,64 @@ export default function VettingPage() {
                       </div>
                       <Progress value={progressValue} className="h-2.5 bg-gray-100" />
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="p-4 bg-gray-50 rounded-2xl border border-dashed flex flex-col gap-1">
-                        <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Entity Verification</span>
-                        <span className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                          {business?.status === 'verified' ? <FileCheck className="h-4 w-4 text-green-500" /> : <Loader2 className="h-4 w-4 text-yellow-500 animate-spin" />}
-                          {business?.status === 'verified' ? "Passed" : "Processing"}
-                        </span>
+                    {business && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="p-4 bg-gray-50 rounded-2xl border border-dashed flex flex-col gap-1">
+                          <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Reg. Number</span>
+                          <span className="text-sm font-mono font-bold text-gray-900">{business.reg_number || "—"}</span>
+                        </div>
+                        <div className="p-4 bg-gray-50 rounded-2xl border border-dashed flex flex-col gap-1">
+                          <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">VAT Number</span>
+                          <span className="text-sm font-mono font-bold text-gray-900">{business.vat_number || "—"}</span>
+                        </div>
+                        <div className="p-4 bg-gray-50 rounded-2xl border border-dashed flex flex-col gap-1">
+                          <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Documents</span>
+                          <span className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                            <FileCheck className="h-4 w-4 text-blue-500" />
+                            {uploadedDocNames.length} Uploaded
+                          </span>
+                        </div>
+                        {business.trust_score !== undefined && business.trust_score > 0 && (
+                          <div className="p-4 bg-gray-50 rounded-2xl border border-dashed flex flex-col gap-1">
+                            <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Trust Score</span>
+                            <span className="text-sm font-bold text-primary">{business.trust_score}/100</span>
+                          </div>
+                        )}
                       </div>
-                      <div className="p-4 bg-gray-50 rounded-2xl border border-dashed flex flex-col gap-1">
-                        <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Documents Provided</span>
-                        <span className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                          <FileCheck className="h-4 w-4 text-blue-500" />
-                          {business?.verificationDocuments?.length || 0} Files
-                        </span>
-                      </div>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
 
-                {/* Requirements */}
+                {/* Required Documentation */}
                 <Card className="border-none shadow-sm">
                   <CardHeader>
                     <CardTitle>Required Documentation</CardTitle>
-                    <CardDescription>Upload required files to speed up your verification.</CardDescription>
+                    <CardDescription>Record your documents to speed up verification.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-0">
-                    {[
-                      { name: "CIPC Registration Certificate", key: "cipc" },
-                      { name: "VAT Compliance Letter", key: "vat" },
-                      { name: "Identity Proof of Directors", key: "id" },
-                    ].map((docItem, i) => {
-                      const isUploaded = business?.verificationDocuments?.includes(docItem.name);
+                    {REQUIRED_DOCS.map((docItem, i) => {
+                      const uploaded = uploadedDocNames.includes(docItem.name);
+                      const uploading = uploadingDoc === docItem.name;
                       return (
-                        <div key={i} className="flex items-center justify-between p-6 border-t first:border-t-0 hover:bg-gray-50/50 transition-colors">
+                        <div key={i} className="flex items-center justify-between p-5 border-t first:border-t-0 hover:bg-gray-50/50 transition-colors">
                           <div className="flex items-center gap-3">
-                            <div className="bg-gray-100 p-2 rounded-lg">
-                              <Building className="h-5 w-5 text-gray-500" />
+                            <div className={`p-2 rounded-lg ${uploaded ? "bg-green-50" : "bg-gray-100"}`}>
+                              <Building className={`h-5 w-5 ${uploaded ? "text-green-600" : "text-gray-500"}`} />
                             </div>
                             <div>
                               <p className="text-sm font-bold text-gray-900">{docItem.name}</p>
-                              <p className="text-xs text-gray-500 font-medium">Required for Gold Status</p>
+                              <p className="text-xs text-gray-500 font-medium">Required for Gold Verification</p>
                             </div>
                           </div>
-                          <Button 
-                            variant={isUploaded ? "secondary" : "outline"} 
-                            size="sm" 
-                            className="rounded-xl font-bold gap-2"
-                            onClick={() => handleUploadDoc(docItem.name)}
-                            disabled={isUploaded}
+                          <Button
+                            variant={uploaded ? "secondary" : "outline"}
+                            size="sm"
+                            className="rounded-xl font-bold gap-2 shrink-0"
+                            onClick={() => handleUploadDoc(docItem.name, docItem.docType)}
+                            disabled={uploaded || uploading}
                           >
-                            {isUploaded ? <FileCheck className="h-4 w-4" /> : <Upload className="h-4 w-4" />}
-                            {isUploaded ? "Uploaded" : "Upload"}
+                            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : uploaded ? <FileCheck className="h-4 w-4 text-green-600" /> : <Upload className="h-4 w-4" />}
+                            {uploaded ? "Uploaded" : uploading ? "Uploading..." : "Mark Uploaded"}
                           </Button>
                         </div>
                       );
@@ -194,37 +401,35 @@ export default function VettingPage() {
                 </Card>
               </div>
 
-              {/* Sidebar Info */}
+              {/* Right sidebar */}
               <div className="space-y-6">
                 <Card className="bg-gray-900 text-white border-none shadow-lg">
                   <CardContent className="p-6 space-y-4">
                     <h3 className="text-lg font-bold">Why Vetting Matters</h3>
                     <div className="space-y-3">
-                      {[
-                        "Unlock Global Trade Networks",
-                        "Higher Placement in Search",
-                        "Instant Trust with Partners",
-                        "Exclusive Premium Groups"
-                      ].map((item, i) => (
+                      {["Unlock Global Trade Networks","Higher Placement in Search","Instant Trust with Partners","Exclusive Premium Groups"].map((item, i) => (
                         <div key={i} className="flex items-start gap-2 text-sm text-gray-300">
                           <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                           <span className="font-medium">{item}</span>
                         </div>
                       ))}
                     </div>
-                    <Button variant="outline" className="w-full border-gray-700 text-white hover:bg-gray-800 rounded-xl">
+                    <Button variant="outline" className="w-full border-gray-700 text-white hover:bg-gray-800 rounded-xl"
+                      onClick={() => toast({ title: "Why Vetting Matters", description: "Vetting unlocks premium trust signals, higher placement, and exclusive networks." })}>
                       Learn More <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   </CardContent>
                 </Card>
-
-                <div className="p-6 bg-yellow-50 rounded-2xl border border-yellow-200 flex flex-col gap-3">
+                <div className="p-5 bg-yellow-50 rounded-2xl border border-yellow-200 flex flex-col gap-3">
                   <div className="flex items-center gap-2 text-yellow-700 font-bold text-sm">
                     <AlertCircle className="h-4 w-4" />
                     Help & Support
                   </div>
-                  <p className="text-xs text-yellow-600 font-medium">Need help with registration? Our compliance officers are available 24/7 for business accounts.</p>
-                  <Button variant="link" className="text-xs text-yellow-700 font-bold p-0 h-auto justify-start underline">Contact Agent</Button>
+                  <p className="text-xs text-yellow-600 font-medium">Need help? Our compliance officers are available 24/7 for business accounts.</p>
+                  <Button variant="link" className="text-xs text-yellow-700 font-bold p-0 h-auto justify-start underline"
+                    onClick={() => toast({ title: "Support Request Sent", description: "Our compliance team will contact you within 24 hours." })}>
+                    Contact Agent
+                  </Button>
                 </div>
               </div>
             </div>

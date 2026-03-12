@@ -1,7 +1,10 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
-import { FirebaseClientProvider } from '@/firebase';
+import { AuthProvider } from '@/contexts/auth-context';
+import { MobileNav } from '@/components/layout/mobile-nav';
+import { AdBanner } from '@/components/ads/ad-banner';
+import { ChatWidget } from '@/components/chatbot/chat-widget';
 
 export const metadata: Metadata = {
   title: 'VerifiedBizLink | Trusted B2B Networking',
@@ -21,10 +24,15 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased bg-background text-foreground">
-        <FirebaseClientProvider>
-          {children}
+        <AuthProvider>
+          <div className="pb-16 md:pb-0">
+            {children}
+          </div>
+          <MobileNav />
+          <AdBanner />
+          <ChatWidget />
           <Toaster />
-        </FirebaseClientProvider>
+        </AuthProvider>
       </body>
     </html>
   );
