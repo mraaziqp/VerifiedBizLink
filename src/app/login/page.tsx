@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ShieldCheck, Loader2, Eye, EyeOff, BadgeCheck,
   Users, Building2, Lock,
@@ -16,12 +16,13 @@ import { useAuth } from "@/contexts/auth-context";
 
 const STAFF_ROLES = ["admin", "banker", "lawyer", "shareholder"];
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const { refresh } = useAuth();
 
@@ -38,10 +39,11 @@ export default function LoginPage() {
       if (res.ok) {
         await refresh();
         toast({ title: "Welcome back!", description: `Signed in as ${data.user.email}` });
+        const from = searchParams.get("from");
         if (STAFF_ROLES.includes(data.user.role)) {
           router.push("/admin");
         } else {
-          router.push("/");
+          router.push(from && from !== "/login" ? from : "/");
         }
       } else {
         toast({
@@ -226,6 +228,18 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-yellow-400" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
 

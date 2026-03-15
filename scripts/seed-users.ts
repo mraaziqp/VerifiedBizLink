@@ -14,21 +14,21 @@ const sql = neon(process.env.DATABASE_URL!);
 const users = [
   {
     email: 'ramone8711@gmail.com',
-    password: 'Ramone@VBL2026!',
+    password: 'ramone11',
     fullName: 'Ramone',
     role: 'admin',
     headline: 'Founder & Verifier — VerifiedBizLink',
   },
   {
     email: 'mraaziqp@gmail.com',
-    password: 'DevAdmin@VBL2026!',
+    password: '114477',
     fullName: 'Developer Admin',
     role: 'admin',
     headline: 'Developer Administrator — VerifiedBizLink',
   },
   {
     email: 'wesley.bosman@verifiedbizlink.temp',
-    password: 'WBLawyer@2026!',
+    password: 'wesley11',
     fullName: 'Wesley Bosman',
     role: 'admin',
     headline: 'Legal Counsel & Administrator — VerifiedBizLink',
