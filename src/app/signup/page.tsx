@@ -1,31 +1,56 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Building2, User, Loader2, Crown, Lock } from "lucide-react";
+import {
+  ShieldCheck, Building2, User, Loader2, Crown,
+  Lock, Eye, EyeOff, CheckCircle2, Circle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { cn } from "@/lib/utils";
+
+type AccountRole = "customer" | "business" | "shareholder";
+
+const ROLES: { value: AccountRole; label: string; icon: React.ElementType; desc: string }[] = [
+  { value: "customer", label: "Customer", icon: User, desc: "Browse & connect with verified businesses" },
+  { value: "business", label: "Business", icon: Building2, desc: "Register your company & get vetted" },
+  { value: "shareholder", label: "Shareholder", icon: Crown, desc: "Admin access with invite code" },
+];
+
+function getStrength(pw: string) {
+  let score = 0;
+  if (pw.length >= 8) score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  return score; // 0-5
+}
+
+const strengthLabel = ["", "Very Weak", "Weak", "Fair", "Good", "Strong"];
+const strengthColor = ["", "bg-red-500", "bg-orange-400", "bg-yellow-400", "bg-lime-500", "bg-green-500"];
 
 export default function SignupPage() {
-  const [role, setRole] = useState<"customer" | "business" | "shareholder">("customer");
+  const [role, setRole] = useState<AccountRole>("customer");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
+    confirmPassword: "",
     companyName: "",
     regNumber: "",
     inviteCode: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
@@ -33,15 +58,21 @@ export default function SignupPage() {
   const { toast } = useToast();
   const { refresh } = useAuth();
 
-  const heroImage = PlaceHolderImages.find(img => img.id === 'auth-hero');
+  const strength = useMemo(() => getStrength(formData.password), [formData.password]);
+  const passwordsMatch =
+    formData.confirmPassword.length === 0 || formData.password === formData.confirmPassword;
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      toast({ title: "Passwords do not match", variant: "destructive" });
+      return;
+    }
     setIsLoading(true);
     try {
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
@@ -67,218 +98,354 @@ export default function SignupPage() {
     }
   };
 
-  const updateField = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
+  const update = (field: string, value: string) =>
+    setFormData((prev) => ({ ...prev, [field]: value }));
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="hidden lg:block relative bg-gray-900 overflow-hidden">
-        {heroImage && (
-          <Image
-            src={heroImage.imageUrl}
-            alt={heroImage.description}
-            fill
-            className="object-cover opacity-60"
-            data-ai-hint={heroImage.imageHint}
-          />
-        )}
-        <div className="absolute inset-0 flex flex-col justify-end p-12 bg-gradient-to-t from-gray-900/80 to-transparent">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="bg-primary p-2 rounded-lg">
-              <ShieldCheck className="h-8 w-8 text-gray-900" />
+    <div className="min-h-screen flex">
+      {/* ── Left brand panel ── */}
+      <div
+        className="hidden lg:flex lg:w-[44%] flex-col relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)" }}
+      >
+        <div className="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full border border-yellow-500/10" />
+        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full border border-blue-500/10 -translate-y-1/4 translate-x-1/4" />
+
+        <div className="relative z-10 flex flex-col h-full p-14 justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-yellow-400 p-2.5 rounded-xl shadow-lg shadow-yellow-500/30">
+              <ShieldCheck className="h-7 w-7 text-gray-900" />
             </div>
-            <span className="text-3xl font-bold text-white tracking-tight">VerifiedBizLink</span>
+            <span className="text-2xl font-extrabold text-white tracking-tight">VerifiedBizLink</span>
           </div>
-          <h1 className="text-4xl font-extrabold text-white leading-tight mb-4">
-            Build your professional reputation.
-          </h1>
-          <p className="text-xl text-gray-300 font-medium">
-            Join the network of thousands of vetted companies and secure your business future.
-          </p>
+
+          <div className="space-y-8">
+            <div>
+              <h1 className="text-4xl font-extrabold text-white leading-tight tracking-tight">
+                Build your<br />
+                professional<br />
+                <span className="text-yellow-400">reputation.</span>
+              </h1>
+              <p className="mt-4 text-slate-400 leading-relaxed max-w-xs">
+                Join thousands of vetted professionals and businesses on the most trusted B2B platform in Africa.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {[
+                "Verified business identity — no fakes",
+                "CIPC & SARS document checks",
+                "Transparent trust scores for every member",
+                "POPI Act compliant data handling",
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-3">
+                  <CheckCircle2 className="h-4 w-4 text-yellow-400 shrink-0" />
+                  <span className="text-slate-300 text-sm">{item}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Lock className="h-4 w-4 text-yellow-400" />
+                <span className="text-white font-bold text-sm">Your data is protected</span>
+              </div>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                We collect only what&apos;s needed. Passwords are bcrypt-hashed. All connections are
+                encrypted. Full POPI Act compliance.
+              </p>
+            </div>
+          </div>
+
+          <p className="text-slate-600 text-xs">© 2026 VerifiedBizLink. All rights reserved.</p>
         </div>
       </div>
 
-      <div className="flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md space-y-6">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900">Create account</h2>
-            <p className="mt-2 text-gray-600 font-medium">Join the circle of trust today</p>
-          </div>
+      {/* ── Right form panel ── */}
+      <div className="flex-1 overflow-y-auto bg-white">
+        <div className="min-h-full flex items-center justify-center p-8 lg:p-14">
+          <div className="w-full max-w-[480px] space-y-6">
+            {/* Mobile logo */}
+            <div className="flex lg:hidden items-center gap-2 justify-center">
+              <div className="bg-yellow-400 p-2 rounded-xl">
+                <ShieldCheck className="h-5 w-5 text-gray-900" />
+              </div>
+              <span className="text-xl font-extrabold text-gray-900 tracking-tight">VerifiedBizLink</span>
+            </div>
 
-          <div className="flex flex-col gap-6">
-            <Tabs
-              defaultValue="customer"
-              className="w-full"
-              onValueChange={(v) => setRole(v as any)}
-            >
-              <TabsList className="grid w-full grid-cols-3 p-1 bg-gray-100 h-14 rounded-2xl">
-                <TabsTrigger value="customer" className="rounded-xl font-bold flex gap-2">
-                  <User className="h-4 w-4" />
-                  Customer
-                </TabsTrigger>
-                <TabsTrigger value="business" className="rounded-xl font-bold flex gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Business
-                </TabsTrigger>
-                <TabsTrigger value="shareholder" className="rounded-xl font-bold flex gap-1 text-amber-700">
-                  <Crown className="h-4 w-4" />
-                  Shareholder
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <div>
+              <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Create your account</h2>
+              <p className="mt-1.5 text-gray-500">Join the circle of trust today</p>
+            </div>
+
+            {/* Role selector */}
+            <div className="grid grid-cols-3 gap-3">
+              {ROLES.map(({ value, label, icon: Icon, desc }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setRole(value)}
+                  className={cn(
+                    "flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 text-center transition-all",
+                    role === value
+                      ? "border-yellow-400 bg-yellow-50 shadow-md shadow-yellow-400/20"
+                      : "border-gray-200 hover:border-gray-300 bg-gray-50"
+                  )}
+                >
+                  <div className={cn(
+                    "h-9 w-9 rounded-xl flex items-center justify-center",
+                    role === value ? "bg-yellow-400 text-gray-900" : "bg-gray-200 text-gray-500"
+                  )}>
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <span className={cn(
+                    "text-xs font-bold",
+                    role === value ? "text-gray-900" : "text-gray-500"
+                  )}>{label}</span>
+                  <span className="text-[10px] text-gray-400 leading-tight hidden sm:block">{desc}</span>
+                </button>
+              ))}
+            </div>
 
             <form className="space-y-4" onSubmit={handleSignup}>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="first-name">First Name</Label>
+              {/* Name */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="first-name" className="text-sm font-semibold text-gray-700">First Name</Label>
                   <Input
                     id="first-name"
                     required
                     placeholder="John"
-                    className="h-12 rounded-xl"
+                    className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:bg-white"
                     value={formData.firstName}
-                    onChange={(e) => updateField("firstName", e.target.value)}
+                    onChange={(e) => update("firstName", e.target.value)}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="last-name">Last Name</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="last-name" className="text-sm font-semibold text-gray-700">Last Name</Label>
                   <Input
                     id="last-name"
                     required
                     placeholder="Doe"
-                    className="h-12 rounded-xl"
+                    className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:bg-white"
                     value={formData.lastName}
-                    onChange={(e) => updateField("lastName", e.target.value)}
+                    onChange={(e) => update("lastName", e.target.value)}
                   />
                 </div>
               </div>
 
+              {/* Business fields */}
               {role === "business" && (
-                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <div className="space-y-2">
-                    <Label htmlFor="company-name">Company Name</Label>
+                <div className="space-y-4 p-4 rounded-2xl border border-blue-100 bg-blue-50/50 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <p className="text-xs font-bold text-blue-700 uppercase tracking-wider flex items-center gap-2">
+                    <Building2 className="h-3.5 w-3.5" /> Business Details
+                  </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="company-name" className="text-sm font-semibold text-gray-700">Company Name</Label>
                     <Input
                       id="company-name"
                       required
-                      placeholder="Acme Corp"
-                      className="h-12 rounded-xl"
+                      placeholder="Acme Corp Pty Ltd"
+                      className="h-11 rounded-xl border-gray-200 bg-white"
                       value={formData.companyName}
-                      onChange={(e) => updateField("companyName", e.target.value)}
+                      onChange={(e) => update("companyName", e.target.value)}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-number">Registration Number (CIPC)</Label>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="reg-number" className="text-sm font-semibold text-gray-700">CIPC Registration Number</Label>
                     <Input
                       id="reg-number"
                       required
                       placeholder="2024/123456/07"
-                      className="h-12 rounded-xl"
+                      className="h-11 rounded-xl border-gray-200 bg-white"
                       value={formData.regNumber}
-                      onChange={(e) => updateField("regNumber", e.target.value)}
+                      onChange={(e) => update("regNumber", e.target.value)}
                     />
                   </div>
                 </div>
               )}
 
+              {/* Shareholder invite */}
               {role === "shareholder" && (
-                <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300 p-4 border border-amber-200 bg-amber-50 rounded-2xl">
-                  <div className="flex items-center gap-2 text-amber-800 font-bold text-sm">
-                    <Crown className="h-4 w-4" />
-                    Shareholder Access — Invite Code Required
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="invite-code">Shareholder Invite Code</Label>
+                <div className="space-y-3 p-4 rounded-2xl border border-amber-200 bg-amber-50 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <p className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
+                    <Crown className="h-3.5 w-3.5" /> Shareholder Access
+                  </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="invite-code" className="text-sm font-semibold text-gray-700">Shareholder Invite Code</Label>
                     <Input
                       id="invite-code"
                       required
                       placeholder="Enter your invite code"
-                      className="h-12 rounded-xl border-amber-300 bg-white"
+                      className="h-11 rounded-xl border-amber-200 bg-white"
                       value={formData.inviteCode}
-                      onChange={(e) => updateField("inviteCode", e.target.value)}
+                      onChange={(e) => update("inviteCode", e.target.value)}
                     />
                   </div>
                   <p className="text-xs text-amber-700">
-                    This creates a full administrator account with platform-wide access.
+                    Creates a full administrator account with platform-wide access.
                   </p>
                 </div>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+              {/* Email */}
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-sm font-semibold text-gray-700">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
                   required
+                  autoComplete="email"
                   placeholder="name@company.com"
-                  className="h-12 rounded-xl"
+                  className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:bg-white"
                   value={formData.email}
-                  onChange={(e) => updateField("email", e.target.value)}
+                  onChange={(e) => update("email", e.target.value)}
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  required
-                  placeholder="Minimum 8 characters"
-                  className="h-12 rounded-xl"
-                  value={formData.password}
-                  onChange={(e) => updateField("password", e.target.value)}
-                />
+              {/* Password */}
+              <div className="space-y-1.5">
+                <Label htmlFor="password" className="text-sm font-semibold text-gray-700">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="new-password"
+                    placeholder="Minimum 8 characters"
+                    className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:bg-white pr-11"
+                    value={formData.password}
+                    onChange={(e) => update("password", e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                {/* Strength bar */}
+                {formData.password.length > 0 && (
+                  <div className="space-y-1">
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <div
+                          key={n}
+                          className={cn(
+                            "h-1 flex-1 rounded-full transition-colors duration-300",
+                            n <= strength ? strengthColor[strength] : "bg-gray-200"
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <p className={cn(
+                      "text-xs font-semibold",
+                      strength <= 2 ? "text-red-500" : strength === 3 ? "text-yellow-600" : "text-green-600"
+                    )}>
+                      {strengthLabel[strength]}
+                    </p>
+                  </div>
+                )}
               </div>
 
-              {/* POPI Notice */}
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-start gap-2.5 text-xs text-gray-500">
-                <Lock className="h-3.5 w-3.5 mt-0.5 text-gray-400 flex-shrink-0" />
+              {/* Confirm Password */}
+              <div className="space-y-1.5">
+                <Label htmlFor="confirm-password" className="text-sm font-semibold text-gray-700">Confirm Password</Label>
+                <div className="relative">
+                  <Input
+                    id="confirm-password"
+                    type={showConfirm ? "text" : "password"}
+                    required
+                    autoComplete="new-password"
+                    placeholder="Re-enter your password"
+                    className={cn(
+                      "h-11 rounded-xl bg-gray-50 focus:bg-white pr-11",
+                      !passwordsMatch ? "border-red-400 focus:ring-red-400" : "border-gray-200"
+                    )}
+                    value={formData.confirmPassword}
+                    onChange={(e) => update("confirmPassword", e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((v) => !v)}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label={showConfirm ? "Hide password" : "Show password"}
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                  {formData.confirmPassword.length > 0 && (
+                    <div className="absolute right-10 top-1/2 -translate-y-1/2">
+                      {passwordsMatch ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      ) : (
+                        <Circle className="h-4 w-4 text-red-400" />
+                      )}
+                    </div>
+                  )}
+                </div>
+                {!passwordsMatch && (
+                  <p className="text-xs text-red-500 font-medium">Passwords do not match</p>
+                )}
+              </div>
+
+              {/* POPI notice */}
+              <div className="flex items-start gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500">
+                <Lock className="h-3.5 w-3.5 mt-0.5 text-slate-400 shrink-0" />
                 <span>
-                  We collect only your <strong>name, email, contact address</strong>, and (for businesses) <strong>company name & registration number</strong> — as required by the POPI Act. Your password is encrypted and never stored in plain text.
+                  We collect only your <strong>name & email</strong>
+                  {role === "business" && <>, <strong>company name & CIPC reg number</strong></>}. Passwords
+                  are bcrypt-hashed. POPI Act compliant.
                 </span>
               </div>
 
-              {/* T&C Checkbox */}
+              {/* Terms */}
               <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-xl border border-yellow-200">
                 <Checkbox
                   id="accept-terms"
                   checked={acceptedTerms}
                   onCheckedChange={(v) => setAcceptedTerms(Boolean(v))}
-                  className="mt-0.5"
+                  className="mt-0.5 border-yellow-400 data-[state=checked]:bg-yellow-400 data-[state=checked]:text-gray-900"
                 />
                 <label htmlFor="accept-terms" className="text-sm text-gray-700 cursor-pointer leading-relaxed">
-                  I have read and agree to the{" "}
-                  <Link href="/terms" target="_blank" className="text-primary font-bold hover:underline">
+                  I agree to the{" "}
+                  <Link href="/terms" target="_blank" className="font-bold text-yellow-600 hover:underline">
                     Terms & Conditions
                   </Link>{" "}
                   and{" "}
-                  <Link href="/privacy" target="_blank" className="text-primary font-bold hover:underline">
+                  <Link href="/privacy" target="_blank" className="font-bold text-yellow-600 hover:underline">
                     Privacy Policy
                   </Link>
-                  . I understand how my data is collected and used in accordance with the POPI Act.
+                  . I understand how my data is used under the POPI Act.
                 </label>
               </div>
 
-              <div className="pt-2">
-                <Button
-                  type="submit"
-                  disabled={isLoading || !acceptedTerms}
-                  className="w-full h-12 bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl text-base shadow-lg shadow-primary/20 disabled:opacity-50"
-                >
-                  {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Create Account"}
-                </Button>
-              </div>
+              <Button
+                type="submit"
+                disabled={isLoading || !acceptedTerms || !passwordsMatch}
+                className="w-full h-12 bg-yellow-400 text-gray-900 hover:bg-yellow-300 font-bold rounded-xl text-base shadow-lg shadow-yellow-400/30 disabled:opacity-50 transition-all active:scale-[0.98]"
+              >
+                {isLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4" /> Create Account
+                  </span>
+                )}
+              </Button>
             </form>
-          </div>
 
-          <p className="text-center text-sm text-gray-600 font-medium">
-            Already have an account?{" "}
-            <Link href="/login" className="text-primary font-bold hover:underline">
-              Sign in instead
-            </Link>
-          </p>
+            <p className="text-center text-sm text-gray-500">
+              Already have an account?{" "}
+              <Link href="/login" className="font-bold text-yellow-600 hover:text-yellow-700 hover:underline">
+                Sign in instead
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+

@@ -3,39 +3,46 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import {
+  ShieldCheck, Loader2, Eye, EyeOff, BadgeCheck,
+  Users, Building2, Lock,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+
+const STAFF_ROLES = ["admin", "banker", "lawyer", "shareholder"];
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const { refresh } = useAuth();
 
-  const heroImage = PlaceHolderImages.find(img => img.id === 'auth-hero');
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
       if (res.ok) {
         await refresh();
-        router.push("/");
+        toast({ title: "Welcome back!", description: `Signed in as ${data.user.email}` });
+        if (STAFF_ROLES.includes(data.user.role)) {
+          router.push("/admin");
+        } else {
+          router.push("/");
+        }
       } else {
         toast({
           title: "Login Failed",
@@ -50,119 +57,172 @@ export default function LoginPage() {
     }
   };
 
-  const fillDemo = (type: string) => {
-    const creds: Record<string, { email: string; password: string }> = {
-      admin: { email: 'admin@vbl.com', password: 'Admin@123' },
-      banker: { email: 'banker@vbl.com', password: 'Banker@123' },
-      business: { email: 'sarah@nexgen.com', password: 'Pass@123' },
-    };
-    if (creds[type]) { setEmail(creds[type].email); setPassword(creds[type].password); }
-  };
-
   return (
-    <div className="min-h-screen grid lg:grid-cols-2">
-      <div className="hidden lg:block relative bg-gray-900 overflow-hidden">
-        {heroImage && (
-          <Image
-            src={heroImage.imageUrl}
-            alt={heroImage.description}
-            fill
-            className="object-cover opacity-60"
-            data-ai-hint={heroImage.imageHint}
-          />
-        )}
-        <div className="absolute inset-0 flex flex-col justify-end p-12 bg-gradient-to-t from-gray-900/80 to-transparent">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="bg-primary p-2 rounded-lg">
-              <ShieldCheck className="h-8 w-8 text-gray-900" />
+    <div className="min-h-screen flex">
+      {/* ── Left brand panel ── */}
+      <div className="hidden lg:flex lg:w-[52%] flex-col relative overflow-hidden"
+        style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)" }}>
+        {/* decorative rings */}
+        <div className="absolute -top-32 -left-32 w-[600px] h-[600px] rounded-full border border-yellow-500/10" />
+        <div className="absolute -top-20 -left-20 w-[400px] h-[400px] rounded-full border border-yellow-500/10" />
+        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full border border-blue-500/10 -translate-y-1/4 translate-x-1/4" />
+
+        <div className="relative z-10 flex flex-col h-full p-14 justify-between">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="bg-yellow-400 p-2.5 rounded-xl shadow-lg shadow-yellow-500/30">
+              <ShieldCheck className="h-7 w-7 text-gray-900" />
             </div>
-            <span className="text-3xl font-bold text-white tracking-tight">VerifiedBizLink</span>
+            <span className="text-2xl font-extrabold text-white tracking-tight">VerifiedBizLink</span>
           </div>
-          <h1 className="text-4xl font-extrabold text-white leading-tight mb-4">
-            Where trusted businesses meet customers.
-          </h1>
-          <p className="text-xl text-gray-300 font-medium">
-            The world's first verified B2B networking platform powered by transparency.
-          </p>
-          <div className="mt-6 p-4 bg-white/10 backdrop-blur rounded-2xl border border-white/20">
-            <p className="text-white/80 text-sm font-bold mb-3 uppercase tracking-wider">Demo Credentials</p>
-            <div className="space-y-1.5 text-sm font-mono text-white/70">
-              <p>🔧 Admin: admin@vbl.com / Admin@123</p>
-              <p>🏦 Banker: banker@vbl.com / Banker@123</p>
-              <p>🏢 Business: sarah@nexgen.com / Pass@123</p>
+
+          {/* Hero text */}
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-5xl font-extrabold text-white leading-[1.1] tracking-tight">
+                Where trusted<br />
+                <span className="text-yellow-400">businesses</span><br />
+                connect.
+              </h1>
+              <p className="mt-5 text-lg text-slate-400 leading-relaxed max-w-sm">
+                The world&apos;s first platform where every business is verified before it can network.
+              </p>
+            </div>
+
+            {/* Trust stats */}
+            <div className="grid grid-cols-3 gap-4">
+              {[
+                { icon: BadgeCheck, label: "Verified Businesses", value: "2,400+" },
+                { icon: Users, label: "Active Members", value: "18,000+" },
+                { icon: Building2, label: "Industries", value: "120+" },
+              ].map(({ icon: Icon, label, value }) => (
+                <div key={label}
+                  className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-4 text-center">
+                  <Icon className="h-5 w-5 text-yellow-400 mx-auto mb-2" />
+                  <p className="text-xl font-extrabold text-white">{value}</p>
+                  <p className="text-[11px] text-slate-400 leading-tight mt-1">{label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Testimonial */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-5">
+              <p className="text-slate-300 text-sm leading-relaxed italic">
+                &ldquo;VerifiedBizLink gave our clients the confidence they needed. Knowing every partner is
+                vetted changes everything about B2B trust.&rdquo;
+              </p>
+              <div className="mt-3 flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-yellow-400/20 flex items-center justify-center">
+                  <span className="text-yellow-400 font-bold text-xs">WB</span>
+                </div>
+                <div>
+                  <p className="text-white text-sm font-bold">Wesley Bosman</p>
+                  <p className="text-slate-500 text-xs">Legal Counsel, VerifiedBizLink</p>
+                </div>
+              </div>
             </div>
           </div>
+
+          <p className="text-slate-600 text-xs">© 2026 VerifiedBizLink. All rights reserved.</p>
         </div>
       </div>
 
-      <div className="flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md space-y-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-gray-900">Welcome back</h2>
-            <p className="mt-2 text-gray-600 font-medium">Log in to manage your connections</p>
+      {/* ── Right form panel ── */}
+      <div className="flex-1 flex items-center justify-center bg-white p-8 lg:p-16">
+        <div className="w-full max-w-[420px]">
+          {/* Mobile logo */}
+          <div className="flex lg:hidden items-center gap-2 mb-10 justify-center">
+            <div className="bg-yellow-400 p-2 rounded-xl">
+              <ShieldCheck className="h-5 w-5 text-gray-900" />
+            </div>
+            <span className="text-xl font-extrabold text-gray-900 tracking-tight">VerifiedBizLink</span>
           </div>
 
-          {/* Quick Demo Fill */}
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1 text-xs rounded-xl" onClick={() => fillDemo('admin')}>
-              Admin Login
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1 text-xs rounded-xl" onClick={() => fillDemo('banker')}>
-              Banker Login
-            </Button>
-            <Button variant="outline" size="sm" className="flex-1 text-xs rounded-xl" onClick={() => fillDemo('business')}>
-              Business Login
-            </Button>
+          <div className="mb-8">
+            <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Welcome back</h2>
+            <p className="mt-2 text-gray-500">Sign in to your account to continue</p>
           </div>
 
-          <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  required
-                  placeholder="name@company.com"
-                  className="h-12 rounded-xl"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
+          <form className="space-y-5" onSubmit={handleLogin}>
+            {/* Email */}
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
+                Email Address
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                required
+                autoComplete="email"
+                placeholder="name@company.com"
+                className="h-12 rounded-xl border-gray-200 bg-gray-50 focus:bg-white transition-colors text-gray-900 placeholder:text-gray-400"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
+                  Password
+                </Label>
+                <Link href="/settings" className="text-xs font-semibold text-yellow-600 hover:text-yellow-700 hover:underline">
+                  Change password?
+                </Link>
               </div>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="password">Password</Label>
-                  <Link href="#" className="text-sm font-semibold text-primary hover:underline">
-                    Forgot password?
-                  </Link>
-                </div>
+              <div className="relative">
                 <Input
                   id="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
+                  autoComplete="current-password"
                   placeholder="••••••••"
-                  className="h-12 rounded-xl"
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50 focus:bg-white transition-colors pr-12 text-gray-900"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl text-base shadow-lg shadow-primary/20"
+              className="w-full h-12 bg-yellow-400 text-gray-900 hover:bg-yellow-300 font-bold rounded-xl text-base shadow-lg shadow-yellow-400/30 transition-all active:scale-[0.98]"
             >
-              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Sign In"}
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <span className="flex items-center gap-2">
+                  <Lock className="h-4 w-4" /> Sign In Securely
+                </span>
+              )}
             </Button>
           </form>
 
-          <p className="text-center text-sm text-gray-600 font-medium">
-            Don't have an account?{" "}
-            <Link href="/signup" className="text-primary font-bold hover:underline">
-              Register now
-            </Link>
-          </p>
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-500">
+              Don&apos;t have an account?{" "}
+              <Link href="/signup" className="font-bold text-yellow-600 hover:text-yellow-700 hover:underline">
+                Create one for free
+              </Link>
+            </p>
+          </div>
+
+          <div className="mt-8 p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
+            <p className="text-xs text-slate-400 leading-relaxed">
+              <span className="font-semibold text-slate-500">Staff &amp; Admin accounts</span> are redirected
+              to the Admin Hub automatically upon sign-in.
+            </p>
+          </div>
         </div>
       </div>
     </div>
