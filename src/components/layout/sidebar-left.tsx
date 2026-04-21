@@ -79,7 +79,7 @@ export function SidebarLeft() {
       {/* App Logo */}
       <div className="flex items-center gap-2 px-2">
         <div className="bg-primary rounded-lg p-2">
-          <ShieldCheck className="h-6 w-6 text-white" />
+          <ShieldCheck className="h-6 w-6 text-gray-900" />
         </div>
         <span className="text-xl font-bold tracking-tight text-gray-900">VerifiedBizLink</span>
       </div>
