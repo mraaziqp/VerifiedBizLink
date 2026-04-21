@@ -4,6 +4,7 @@ import db from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await getSession();
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const offset = Math.max(parseInt(searchParams.get('offset') || '0'), 0);
@@ -16,10 +17,12 @@ export async function GET(request: NextRequest) {
         u.headline AS author_headline,
         b.company_name,
         b.status AS business_status,
-        b.trust_score
+        b.trust_score,
+        CASE WHEN pl.id IS NOT NULL THEN TRUE ELSE FALSE END AS is_liked
       FROM posts p
       JOIN users u ON p.user_id = u.id
       LEFT JOIN businesses b ON b.user_id = p.user_id
+      LEFT JOIN post_likes pl ON pl.post_id = p.id AND pl.user_id = ${session?.id ?? null}
       ORDER BY p.created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `;
