@@ -18,6 +18,7 @@ export default function SettingsPage() {
   const { user, refresh } = useAuth();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [deletionConfirm, setDeletionConfirm] = useState("");
   const [deletionRequested, setDeletionRequested] = useState(false);
@@ -51,15 +52,32 @@ export default function SettingsPage() {
   }, []);
 
   useEffect(() => {
+    // Fetch full profile from DB (includes bio, phone, location not stored in JWT)
+    fetch('/api/users/profile')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) {
+          setProfileForm({
+            fullName: data.fullName || "",
+            headline: data.headline || "",
+            location: data.location || "",
+            bio: data.bio || "",
+            phone: data.phone || "",
+            avatarUrl: data.avatarUrl || "",
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (user) {
-      setProfileForm({
-        fullName: user.fullName || "",
-        headline: user.headline || "",
-        location: "",
-        bio: "",
-        phone: "",
-        avatarUrl: user.avatarUrl || "",
-      });
+      setProfileForm(prev => ({
+        ...prev,
+        fullName: prev.fullName || user.fullName || "",
+        headline: prev.headline || user.headline || "",
+        avatarUrl: prev.avatarUrl || user.avatarUrl || "",
+      }));
     }
   }, [user]);
 
@@ -76,7 +94,6 @@ export default function SettingsPage() {
             location: profileForm.location,
             bio: profileForm.bio,
             phone: profileForm.phone,
-            avatarUrl: profileForm.avatarUrl,
           }),
       });
       if (res.ok) {
@@ -174,6 +191,31 @@ export default function SettingsPage() {
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingAvatar(true);
+    try {
+      const form = new FormData();
+      form.append('avatar', file);
+      const res = await fetch('/api/users/avatar', { method: 'POST', body: form });
+      if (res.ok) {
+        const data = await res.json();
+        setProfileForm(p => ({ ...p, avatarUrl: data.avatarUrl }));
+        await refresh();
+        toast({ title: "Avatar Updated", description: "Your profile photo has been saved." });
+      } else {
+        const d = await res.json();
+        toast({ title: "Upload Failed", description: d.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Upload Failed", description: "Could not upload photo.", variant: "destructive" });
+    } finally {
+      setIsUploadingAvatar(false);
+      e.target.value = '';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
@@ -218,7 +260,7 @@ export default function SettingsPage() {
                   </CardHeader>
                   <CardContent className="p-6 md:p-8">
                     <form className="space-y-6" onSubmit={handleSaveProfile}>
-                      {/* Avatar preview */}
+                      {/* Avatar upload */}
                       <div className="flex items-center gap-5">
                         <Avatar className="h-20 w-20 border-4 border-gray-100">
                           <AvatarImage src={profileForm.avatarUrl || user?.avatarUrl} alt={profileForm.fullName} />
@@ -226,15 +268,31 @@ export default function SettingsPage() {
                             {profileForm.fullName?.[0] ?? 'U'}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="space-y-2 flex-1">
-                          <Label className="flex items-center gap-1.5"><Camera className="h-4 w-4" />Avatar URL</Label>
-                          <Input
-                            type="url"
-                            value={profileForm.avatarUrl}
-                            onChange={e => setProfileForm(p => ({ ...p, avatarUrl: e.target.value }))}
-                            placeholder="https://example.com/photo.jpg"
-                            className="rounded-xl h-10"
+                        <div className="space-y-2">
+                          <Label className="flex items-center gap-1.5"><Camera className="h-4 w-4" />Profile Photo</Label>
+                          <label htmlFor="avatar-upload">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="rounded-xl cursor-pointer"
+                              disabled={isUploadingAvatar}
+                              asChild
+                            >
+                              <span>
+                                {isUploadingAvatar ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Uploading…</> : <><Camera className="h-4 w-4 mr-2" />Upload Photo</>}
+                              </span>
+                            </Button>
+                          </label>
+                          <input
+                            id="avatar-upload"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,image/gif"
+                            className="sr-only"
+                            onChange={handleAvatarUpload}
+                            disabled={isUploadingAvatar}
                           />
+                          <p className="text-xs text-gray-500">JPEG, PNG, WebP or GIF · max 2MB</p>
                         </div>
                       </div>
                       <div className="grid md:grid-cols-2 gap-5">

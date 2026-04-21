@@ -1,8 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 
 // POST /api/setup/migrate — add new columns and tables safely (idempotent)
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const incomingSecret = request.headers.get('x-setup-secret');
+  const expectedSecret = process.env.SETUP_SECRET;
+  if (!expectedSecret || !incomingSecret || incomingSecret !== expectedSecret) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     // --- Existing columns (v1) ---
     await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT DEFAULT ''`;

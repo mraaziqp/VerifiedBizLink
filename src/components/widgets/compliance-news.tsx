@@ -1,16 +1,29 @@
 
 "use client";
 
-import { Info, TrendingUp, Zap } from "lucide-react";
+import { Info, Zap, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 
+// Curated compliance & B2B news for South African businesses
 const NEWS = [
-  { id: 1, title: "New Compliance standards for EU 2025 released", reads: "4.5k" },
-  { id: 2, title: "Top 10 Vetted Supply Chain Partners this Quarter", reads: "2.1k" },
-  { id: 3, title: "Upcoming B2B Networking Expo in Berlin", reads: "1.2k" },
+  {
+    id: 1,
+    title: "POPIA Compliance: Key obligations for B2B data processors in 2026",
+    source: "Information Regulator SA",
+  },
+  {
+    id: 2,
+    title: "CIPC company status checks now available via API for verified partners",
+    source: "CIPC Official",
+  },
+  {
+    id: 3,
+    title: "SARS VAT registration threshold remains at R1 million for 2026",
+    source: "SARS",
+  },
 ];
 
 export function ComplianceNews() {
@@ -29,14 +42,16 @@ export function ComplianceNews() {
             <div
               key={item.id}
               className="cursor-pointer group"
-              onClick={() => toast({ title: item.title, description: "Full article available in the premium news section." })}
+              onClick={() =>
+                toast({ title: item.title, description: `Source: ${item.source}` })
+              }
             >
               <p className="text-sm font-semibold text-gray-800 leading-snug group-hover:text-primary group-hover:underline underline-offset-4 decoration-2 decoration-primary/30 transition-all">
                 {item.title}
               </p>
               <div className="flex items-center gap-2 mt-1">
-                <TrendingUp className="h-3 w-3 text-gray-400" />
-                <span className="text-xs text-gray-400 font-medium">{item.reads} reads</span>
+                <ExternalLink className="h-3 w-3 text-gray-400" />
+                <span className="text-xs text-gray-400 font-medium">{item.source}</span>
               </div>
             </div>
           ))}
@@ -50,9 +65,9 @@ export function ComplianceNews() {
             <Zap className="h-6 w-6 text-primary fill-primary" />
           </div>
           <h3 className="text-lg font-bold leading-tight">Elevate Your Business Status</h3>
-          <p className="text-sm text-gray-300 font-medium">Get the Premium Vetting Badge and appear 5x more often in search results.</p>
+          <p className="text-sm text-gray-300 font-medium">Get the Premium Vetting Badge and appear higher in partner search results.</p>
           <Button className="w-full bg-primary text-gray-900 hover:bg-yellow-300 font-bold rounded-xl h-11" asChild>
-            <Link href="/vetting">Try Premium Free</Link>
+            <Link href="/vetting">Start Vetting</Link>
           </Button>
         </CardContent>
       </Card>
@@ -60,21 +75,23 @@ export function ComplianceNews() {
       {/* Footer Info */}
       <div className="flex flex-wrap gap-x-4 gap-y-2 px-2">
         {[
-          { label: 'About', href: '#' },
-          { label: 'Accessibility', href: '#' },
-          { label: 'Help Center', href: '#' },
-          { label: 'Privacy & Terms', href: '#' },
-        ].map(link => (
-          <span
+          { label: "About", href: "/contact" },
+          { label: "Privacy & Terms", href: "/privacy" },
+          { label: "Help Center", href: "/contact" },
+        ].map((link) => (
+          <Link
             key={link.label}
-            className="text-[11px] font-bold text-gray-400 hover:text-gray-600 cursor-pointer uppercase tracking-widest"
-            onClick={() => toast({ title: link.label, description: "This section is under construction." })}
+            href={link.href}
+            className="text-[11px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-widest"
           >
             {link.label}
-          </span>
+          </Link>
         ))}
-        <p className="text-[11px] text-gray-300 w-full mt-2 font-medium">VerifiedBizLink © 2025</p>
+        <p className="text-[11px] text-gray-300 w-full mt-2 font-medium">
+          VerifiedBizLink © {new Date().getFullYear()}
+        </p>
       </div>
     </div>
   );
 }
+

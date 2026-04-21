@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { createSession } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rate-limit';
 import db from '@/lib/db';
 
-const SHAREHOLDER_INVITE_CODE = process.env.SHAREHOLDER_INVITE_CODE || 'VBL2026';
+const SHAREHOLDER_INVITE_CODE = process.env.SHAREHOLDER_INVITE_CODE;
 
 export async function POST(request: NextRequest) {
+  // Rate limit: max 5 signups per IP per 15 minutes
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const rl = checkRateLimit(`signup:${ip}`, 5, 900);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Too many signup attempts. Try again in ${rl.retryAfterSecs} seconds.` },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSecs) } },
+    );
+  }
+
   try {
     const { email, password, fullName, role, companyName, regNumber, inviteCode } = await request.json();
 
@@ -19,6 +30,9 @@ export async function POST(request: NextRequest) {
 
     // Shareholder role requires valid invite code
     if (role === 'shareholder') {
+      if (!SHAREHOLDER_INVITE_CODE) {
+        return NextResponse.json({ error: 'Shareholder registration is currently closed.' }, { status: 403 });
+      }
       if (!inviteCode || inviteCode !== SHAREHOLDER_INVITE_CODE) {
         return NextResponse.json({ error: 'Invalid shareholder invite code' }, { status: 403 });
       }
@@ -44,7 +58,7 @@ export async function POST(request: NextRequest) {
         ${fullName},
         ${userRole},
         ${headline},
-        ${'https://picsum.photos/seed/' + Math.random().toString(36).slice(2) + '/200/200'}
+        ${''}
       )
       RETURNING id, email, full_name, role, avatar_url, headline
     `;

@@ -3,6 +3,13 @@ import db from '@/lib/db';
 import { hash } from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
+  // Require SETUP_SECRET to prevent unauthorized DB resets
+  const incomingSecret = request.headers.get('x-setup-secret');
+  const expectedSecret = process.env.SETUP_SECRET;
+  if (!expectedSecret || !incomingSecret || incomingSecret !== expectedSecret) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     // Create all tables
     await db`

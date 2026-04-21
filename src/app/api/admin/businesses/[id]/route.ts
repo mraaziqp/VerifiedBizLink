@@ -21,6 +21,10 @@ export async function PUT(
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
     }
 
+    if (trustScore !== undefined && trustScore !== null && (trustScore < 0 || trustScore > 100)) {
+      return NextResponse.json({ error: 'Trust score must be between 0 and 100' }, { status: 400 });
+    }
+
     const updated = await db`
       UPDATE businesses SET
         status = ${status},
@@ -49,6 +53,20 @@ export async function PUT(
         ${updated[0].company_name}
       )
     `;
+
+    // Notify the business owner of the status change
+    const statusMessages: Record<string, string> = {
+      verified: `Your business "${updated[0].company_name}" has been verified. You now have a Gold Checkmark!`,
+      rejected: `Your business "${updated[0].company_name}" verification was not successful. Review the feedback in Vetting Hub.`,
+      reviewing: `Your business "${updated[0].company_name}" is now under active review by our compliance team.`,
+    };
+    const message = statusMessages[status];
+    if (message) {
+      await db`
+        INSERT INTO notifications (user_id, type, message, link)
+        VALUES (${updated[0].user_id}, ${'vetting_update'}, ${message}, '/vetting')
+      `.catch(() => {}); // non-fatal
+    }
 
     return NextResponse.json({ business: updated[0] });
   } catch (error) {

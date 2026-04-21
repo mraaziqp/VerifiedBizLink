@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
       lawyer: 'Compliance Officer — VerifiedBizLink',
     };
 
+    const avatarSeed = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
     const newUser = await db`
       INSERT INTO users (email, password_hash, full_name, role, headline, avatar_url)
       VALUES (
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
         ${fullName},
         ${role},
         ${roleHeadlines[role]},
-        ${'https://picsum.photos/seed/' + Math.random().toString(36).slice(2) + '/200/200'}
+        ${'https://picsum.photos/seed/' + avatarSeed + '/200/200'}
       )
       RETURNING id, email, full_name, role
     `;

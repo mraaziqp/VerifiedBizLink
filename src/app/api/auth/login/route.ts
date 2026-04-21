@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { compare } from 'bcryptjs';
 import { createSession, setSessionCookie } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rate-limit';
 import db from '@/lib/db';
 
 export async function POST(request: NextRequest) {
+  // Rate limit: max 10 login attempts per IP per 15 minutes
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const rl = checkRateLimit(`login:${ip}`, 10, 900);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Too many login attempts. Try again in ${rl.retryAfterSecs} seconds.` },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSecs) } },
+    );
+  }
+
   try {
     const { email, password } = await request.json();
 

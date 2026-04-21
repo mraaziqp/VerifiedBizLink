@@ -5,8 +5,8 @@ import db from '@/lib/db';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
+    const offset = Math.max(parseInt(searchParams.get('offset') || '0'), 0);
 
     const posts = await db`
       SELECT 
@@ -41,6 +41,9 @@ export async function POST(request: NextRequest) {
     const { content } = await request.json();
     if (!content?.trim()) {
       return NextResponse.json({ error: 'Content is required' }, { status: 400 });
+    }
+    if (content.trim().length > 5000) {
+      return NextResponse.json({ error: 'Post too long (max 5000 characters)' }, { status: 400 });
     }
 
     const newPost = await db`

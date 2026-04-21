@@ -8,7 +8,9 @@ export async function GET(request: NextRequest) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const url = new URL(request.url);
-    const statusFilter = url.searchParams.get('status');
+    const rawStatusFilter = url.searchParams.get('status');
+    const validStatuses = ['accepted', 'pending', 'declined'];
+    const statusFilter = rawStatusFilter && validStatuses.includes(rawStatusFilter) ? rawStatusFilter : null;
 
     const connections = await db`
       SELECT 
@@ -67,6 +69,14 @@ export async function POST(request: NextRequest) {
         UPDATE connections SET status = 'accepted'
         WHERE requester_id = ${receiverId} AND receiver_id = ${session.id}
       `;
+      // Notify the requester their connection was accepted
+      const accepter = await db`SELECT full_name FROM users WHERE id = ${session.id} LIMIT 1`;
+      if (accepter.length > 0) {
+        await db`
+          INSERT INTO notifications (user_id, type, message, link)
+          VALUES (${receiverId}, 'connection_accepted', ${`${accepter[0].full_name} accepted your connection request.`}, '/network')
+        `.catch(() => {}); // non-fatal
+      }
       return NextResponse.json({ success: true, status: 'accepted' });
     }
 
@@ -86,6 +96,15 @@ export async function POST(request: NextRequest) {
       VALUES (${session.id}, ${receiverId}, 'pending')
       RETURNING *
     `;
+
+    // Notify the receiver of the new request
+    const requester = await db`SELECT full_name FROM users WHERE id = ${session.id} LIMIT 1`;
+    if (requester.length > 0) {
+      await db`
+        INSERT INTO notifications (user_id, type, message, link)
+        VALUES (${receiverId}, 'connection_request', ${`${requester[0].full_name} sent you a connection request.`}, '/network')
+      `.catch(() => {}); // non-fatal
+    }
 
     return NextResponse.json({ connection: conn[0] }, { status: 201 });
   } catch (error) {

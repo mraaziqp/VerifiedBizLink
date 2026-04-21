@@ -32,9 +32,10 @@ export async function PATCH(
     }
 
     await db`
-      INSERT INTO audit_logs (admin_id, action, target_type, target_id, target_name)
-      VALUES (${session.id}, ${'REPORT_' + status.toUpperCase()}, 'compliance_report', ${reportId}, ${'Report #' + reportId})
+      INSERT INTO audit_logs (admin_id, admin_name, action, target_type, target_id, target_name)
+      VALUES (${session.id}, ${session.fullName}, ${'REPORT_' + status.toUpperCase()}, 'compliance_report', ${reportId}, ${'Report #' + reportId})
     `;
+
 
     return NextResponse.json({ report: updated[0] });
   } catch (error) {

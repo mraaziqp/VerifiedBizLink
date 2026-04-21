@@ -1,13 +1,12 @@
-
+﻿
 "use client";
 
 import { useState, useEffect } from "react";
-import { UserPlus, Loader2, CheckCircle2 } from "lucide-react";
+import { UserPlus, Loader2, CheckCircle2, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GoldCheckmark } from "@/components/ui/gold-checkmark";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
@@ -23,13 +22,6 @@ interface Suggestion {
   trust_score: number;
 }
 
-// Fallback for when no verified connections exist in DB yet
-const FALLBACK_SUGGESTIONS = [
-  { id: '1', full_name: 'Apex Dynamics', headline: 'AI Automation', avatar_url: 'https://picsum.photos/seed/sug1/100/100', company_name: 'Apex Dynamics', industry: 'AI Automation', business_status: 'verified', trust_score: 95 },
-  { id: '2', full_name: 'BioGen Lab', headline: 'Pharmaceuticals', avatar_url: 'https://picsum.photos/seed/sug2/100/100', company_name: 'BioGen Lab', industry: 'Pharmaceuticals', business_status: 'verified', trust_score: 90 },
-  { id: '3', full_name: 'Skyline Realty', headline: 'Commercial Real Estate', avatar_url: 'https://picsum.photos/seed/sug3/100/100', company_name: 'Skyline Realty', industry: 'Commercial Real Estate', business_status: 'verified', trust_score: 85 },
-];
-
 export function ConnectionDiscovery() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -38,25 +30,17 @@ export function ConnectionDiscovery() {
   const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const fetchSuggestions = async () => {
-      if (!user) {
-        setSuggestions(FALLBACK_SUGGESTIONS as any);
-        setLoading(false);
-        return;
-      }
-      try {
-        const res = await fetch('/api/connections/suggestions');
-        if (res.ok) {
-          const data = await res.json();
-          setSuggestions(data.suggestions?.length > 0 ? data.suggestions : FALLBACK_SUGGESTIONS as any);
-        }
-      } catch {
-        setSuggestions(FALLBACK_SUGGESTIONS as any);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSuggestions();
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+    fetch('/api/connections/suggestions')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.suggestions) setSuggestions(data.suggestions);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [user]);
 
   const handleConnect = async (id: string, name: string) => {
@@ -71,7 +55,7 @@ export function ConnectionDiscovery() {
         body: JSON.stringify({ receiverId: id }),
       });
       if (res.ok) {
-        setSentRequests(prev => new Set([...prev, id]));
+        setSentRequests((prev) => new Set([...prev, id]));
         toast({ title: "Connection request sent!", description: `Your request to ${name} is pending.` });
       }
     } catch {
@@ -89,6 +73,12 @@ export function ConnectionDiscovery() {
           <div className="flex justify-center py-4">
             <Loader2 className="h-5 w-5 text-primary animate-spin" />
           </div>
+        ) : suggestions.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 py-6 text-center">
+            <Users className="h-8 w-8 text-gray-300" />
+            <p className="text-sm font-medium text-gray-500">No suggestions yet</p>
+            <p className="text-xs text-gray-400">As more businesses join, you&apos;ll see recommendations here.</p>
+          </div>
         ) : (
           suggestions.slice(0, 4).map((sug) => {
             const isSent = sentRequests.has(sug.id);
@@ -98,12 +88,14 @@ export function ConnectionDiscovery() {
               <div key={sug.id} className="flex items-center justify-between group">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-10 w-10 border border-gray-100">
-                    <AvatarImage src={sug.avatar_url || `https://picsum.photos/seed/${sug.id}/100/100`} />
+                    <AvatarImage src={sug.avatar_url || undefined} />
                     <AvatarFallback>{initials}</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1">
-                      <span className="text-sm font-bold text-gray-900 group-hover:text-primary transition-colors">{displayName}</span>
+                      <span className="text-sm font-bold text-gray-900 group-hover:text-primary transition-colors">
+                        {displayName}
+                      </span>
                       {sug.business_status === 'verified' && <GoldCheckmark className="scale-75" />}
                     </div>
                     <span className="text-xs text-gray-500">{sug.industry || sug.headline}</span>
@@ -112,7 +104,11 @@ export function ConnectionDiscovery() {
                 <Button
                   variant={isSent ? "secondary" : "outline"}
                   size="sm"
-                  className={`rounded-full transition-all ${isSent ? 'bg-green-50 text-green-600 border-green-200' : 'border-primary/20 hover:border-primary hover:bg-primary hover:text-white'}`}
+                  className={`rounded-full transition-all ${
+                    isSent
+                      ? 'bg-green-50 text-green-600 border-green-200'
+                      : 'border-primary/20 hover:border-primary hover:bg-primary hover:text-white'
+                  }`}
                   onClick={() => handleConnect(sug.id, displayName)}
                   disabled={isSent}
                 >
@@ -133,3 +129,4 @@ export function ConnectionDiscovery() {
     </Card>
   );
 }
+

@@ -1,37 +1,33 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { SidebarLeft } from "@/components/layout/sidebar-left";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
-  AreaChart, 
-  Area 
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
 } from "recharts";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { TrendingUp, Users, ShieldCheck, Eye } from "lucide-react";
+import { TrendingUp, Users, ShieldCheck, FileText } from "lucide-react";
 
-const connectionData = [
-  { month: "Jan", connections: 400 },
-  { month: "Feb", connections: 520 },
-  { month: "Mar", connections: 680 },
-  { month: "Apr", connections: 840 },
-  { month: "May", connections: 950 },
-  { month: "Jun", connections: 1200 },
-];
-
-const vettingHistory = [
-  { date: "Week 1", score: 85 },
-  { date: "Week 2", score: 88 },
-  { date: "Week 3", score: 92 },
-  { date: "Week 4", score: 95 },
-  { date: "Week 5", score: 98 },
-];
+interface AnalyticsData {
+  stats: {
+    recentPosts: number;
+    totalPosts: number;
+    recentConnections: number;
+    totalConnections: number;
+    trustScore: number;
+    businessStatus: string;
+  };
+  connectionsByMonth: { month: string; connections: number }[];
+}
 
 const chartConfig = {
   connections: {
@@ -41,10 +37,28 @@ const chartConfig = {
   score: {
     label: "Trust Score",
     color: "hsl(var(--primary))",
-  }
+  },
 };
 
 export default function AnalyticsPage() {
+  const [data, setData] = useState<AnalyticsData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/users/analytics")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => setData(d))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const stats = data?.stats;
+  const connectionsByMonth = data?.connectionsByMonth ?? [];
+
+  // Build a single-point bar for the trust score
+  const trustScoreData = stats
+    ? [{ label: "Your Score", score: stats.trustScore }]
+    : [];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
@@ -62,10 +76,30 @@ export default function AnalyticsPage() {
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: "Profile Views", value: "2,482", icon: Eye, trend: "+12%" },
-                { label: "New Connections", value: "142", icon: Users, trend: "+18%" },
-                { label: "Vetting Score", value: "98%", icon: ShieldCheck, trend: "+2%" },
-                { label: "Search Appearances", value: "854", icon: TrendingUp, trend: "+24%" },
+                {
+                  label: "Posts Published",
+                  value: loading ? null : String(stats?.recentPosts ?? 0),
+                  icon: FileText,
+                  sub: `${stats?.totalPosts ?? 0} total`,
+                },
+                {
+                  label: "New Connections",
+                  value: loading ? null : String(stats?.recentConnections ?? 0),
+                  icon: Users,
+                  sub: `${stats?.totalConnections ?? 0} total`,
+                },
+                {
+                  label: "Trust Score",
+                  value: loading ? null : `${stats?.trustScore ?? 0}`,
+                  icon: ShieldCheck,
+                  sub: stats?.businessStatus ?? "unregistered",
+                },
+                {
+                  label: "Total Network",
+                  value: loading ? null : String(stats?.totalConnections ?? 0),
+                  icon: TrendingUp,
+                  sub: "verified connections",
+                },
               ].map((stat, i) => (
                 <Card key={i} className="shadow-sm border-none">
                   <CardContent className="p-6">
@@ -73,10 +107,14 @@ export default function AnalyticsPage() {
                       <div className="p-2 bg-primary/10 rounded-lg">
                         <stat.icon className="h-5 w-5 text-primary" />
                       </div>
-                      <span className="text-xs font-bold text-green-600 bg-green-50 px-2 py-1 rounded-full">{stat.trend}</span>
                     </div>
                     <p className="text-sm font-medium text-gray-500">{stat.label}</p>
-                    <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
+                    {stat.value === null ? (
+                      <Skeleton className="h-8 w-20 mt-1" />
+                    ) : (
+                      <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
+                    )}
+                    <p className="text-xs text-gray-400 mt-1 font-medium capitalize">{stat.sub}</p>
                   </CardContent>
                 </Card>
               ))}
@@ -90,56 +128,59 @@ export default function AnalyticsPage() {
                   <CardDescription>Monthly growth of verified business connections</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[300px]">
-                  <ChartContainer config={chartConfig} className="h-full w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={connectionData}>
-                        <defs>
-                          <linearGradient id="colorConnections" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                        <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} />
-                        <YAxis hide />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Area 
-                          type="monotone" 
-                          dataKey="connections" 
-                          stroke="hsl(var(--primary))" 
-                          fillOpacity={1} 
-                          fill="url(#colorConnections)" 
-                          strokeWidth={3}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
+                  {loading ? (
+                    <Skeleton className="h-full w-full rounded-xl" />
+                  ) : (
+                    <ChartContainer config={chartConfig} className="h-full w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={connectionsByMonth}>
+                          <defs>
+                            <linearGradient id="colorConnections" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                          <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "#9ca3af", fontSize: 12 }} />
+                          <YAxis hide allowDecimals={false} />
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                          <Area
+                            type="monotone"
+                            dataKey="connections"
+                            stroke="hsl(var(--primary))"
+                            fillOpacity={1}
+                            fill="url(#colorConnections)"
+                            strokeWidth={3}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                  )}
                 </CardContent>
               </Card>
 
-              {/* Trust Score History */}
+              {/* Trust Score */}
               <Card className="shadow-sm border-none">
                 <CardHeader>
-                  <CardTitle className="text-lg">Trust Score Trajectory</CardTitle>
-                  <CardDescription>Reputation building over the last 5 weeks</CardDescription>
+                  <CardTitle className="text-lg">Trust Score</CardTitle>
+                  <CardDescription>Your current business verification score (0–100)</CardDescription>
                 </CardHeader>
                 <CardContent className="h-[300px]">
-                  <ChartContainer config={chartConfig} className="h-full w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={vettingHistory}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: '#9ca3af', fontSize: 12}} />
-                        <YAxis domain={[0, 100]} hide />
-                        <ChartTooltip content={<ChartTooltipContent />} />
-                        <Bar 
-                          dataKey="score" 
-                          fill="hsl(var(--primary))" 
-                          radius={[6, 6, 0, 0]} 
-                          barSize={40}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
+                  {loading ? (
+                    <Skeleton className="h-full w-full rounded-xl" />
+                  ) : (
+                    <ChartContainer config={chartConfig} className="h-full w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={trustScoreData}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                          <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#9ca3af", fontSize: 12 }} />
+                          <YAxis domain={[0, 100]} hide />
+                          <ChartTooltip content={<ChartTooltipContent />} />
+                          <Bar dataKey="score" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} barSize={60} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </ChartContainer>
+                  )}
                 </CardContent>
               </Card>
             </div>

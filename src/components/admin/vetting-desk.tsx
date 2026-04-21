@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   FileText, CheckCircle2, XCircle, Clock, Info, Loader2, Eye,
-  FileCheck, AlertCircle, RefreshCw, Star, User2, Building2,
+  FileCheck, AlertCircle, RefreshCw, Star, User2, Building2, Download,
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -27,7 +27,9 @@ interface DocItem {
   grade: number;
   review_notes: string;
   reviewed_at: string | null;
-  uploaded_at: string;
+  uploaded_at: string | null;
+  file_data?: string | null;
+  file_url?: string | null;
 }
 
 interface Business {
@@ -93,6 +95,7 @@ export function VettingDesk() {
   const [docUpdating, setDocUpdating] = useState<string | null>(null);
   const [docGrades, setDocGrades] = useState<Record<string, number>>({});
   const [docNotes, setDocNotes] = useState<Record<string, string>>({});
+  const [previewDoc, setPreviewDoc] = useState<DocItem | null>(null);
 
   const fetchBusinesses = useCallback(async () => {
     setLoading(true);
@@ -425,12 +428,30 @@ export function VettingDesk() {
                             <FileCheck className="h-5 w-5 text-primary shrink-0" />
                             <div>
                               <p className="font-bold text-gray-900 text-sm">{doc.name}</p>
-                              <p className="text-xs text-gray-400">{doc.doc_type} · Uploaded {formatDistanceToNow(new Date(doc.uploaded_at), { addSuffix: true })}</p>
+                              <p className="text-xs text-gray-400">
+                                {doc.doc_type}
+                                {doc.uploaded_at
+                                  ? ` · Uploaded ${formatDistanceToNow(new Date(doc.uploaded_at), { addSuffix: true })}`
+                                  : " · Not yet uploaded"}
+                              </p>
                             </div>
                           </div>
-                          <Badge className={docStatusColors[doc.status] || "bg-gray-100 text-gray-600"}>
-                            {doc.status}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            {doc.file_data && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg font-bold gap-1"
+                                onClick={() => setPreviewDoc(doc)}
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                                View
+                              </Button>
+                            )}
+                            <Badge className={docStatusColors[doc.status] || "bg-gray-100 text-gray-600"}>
+                              {doc.status}
+                            </Badge>
+                          </div>
                         </div>
 
                         <div className="space-y-1.5">
@@ -533,6 +554,50 @@ export function VettingDesk() {
                 </Card>
               </TabsContent>
             </Tabs>
+          )}
+
+          {/* Document Preview Dialog */}
+          {previewDoc && (
+            <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) setPreviewDoc(null); }}>
+              <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
+                <DialogHeader className="px-6 pt-5 pb-4 border-b shrink-0">
+                  <DialogTitle className="flex items-center justify-between">
+                    <span className="truncate pr-4">{previewDoc.name}</span>
+                    {previewDoc.file_data && (
+                      <a
+                        href={previewDoc.file_data}
+                        download={previewDoc.file_url || previewDoc.name}
+                        className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline shrink-0"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        Download
+                      </a>
+                    )}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="flex-1 overflow-auto p-4 bg-gray-50">
+                  {previewDoc.file_data?.startsWith("data:image/") ? (
+                    <img
+                      src={previewDoc.file_data}
+                      alt={previewDoc.name}
+                      className="max-w-full mx-auto rounded-xl shadow-sm object-contain"
+                    />
+                  ) : previewDoc.file_data?.startsWith("data:application/pdf") ? (
+                    <iframe
+                      src={previewDoc.file_data}
+                      title={previewDoc.name}
+                      className="w-full rounded-xl border-0"
+                      style={{ minHeight: "70vh" }}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-48 text-gray-400 gap-2">
+                      <FileText className="h-12 w-12 opacity-30" />
+                      <p className="font-medium">Preview not available</p>
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
           )}
 
           <DialogFooter className="gap-2 pt-2 border-t mt-0 flex-wrap">

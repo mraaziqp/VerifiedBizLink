@@ -8,18 +8,22 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   ShieldCheck, FileCheck, Building, ArrowRight, AlertCircle,
-  Loader2, Upload, PencilLine, Save,
+  Loader2, Upload, PencilLine, Save, Eye, Download, FileText,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/auth-context";
 
 interface Document {
   id: string;
   name: string;
   status: string;
+  doc_type?: string;
+  file_data?: string | null;
+  file_url?: string | null;
 }
 
 interface Business {
@@ -55,6 +59,8 @@ export default function VettingPage() {
   const [businessLoading, setBusinessLoading] = useState(true);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+  const [previewFile, setPreviewFile] = useState<Document | null>(null);
+  const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   const [profileForm, setProfileForm] = useState({
     companyName: "",
@@ -147,20 +153,25 @@ export default function VettingPage() {
     }
   };
 
-  const handleUploadDoc = async (docName: string, docType: string) => {
+  const handleUploadDoc = async (docName: string, docType: string, file: File) => {
     if (!user) return;
     setUploadingDoc(docName);
     try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('docName', docName);
+      formData.append('docType', docType);
+
       const res = await fetch("/api/businesses/documents", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ docName, docType }),
+        body: formData,
       });
       if (res.ok) {
         fetchBusiness();
-        toast({ title: "Document Recorded", description: `${docName} has been added to your profile.` });
+        toast({ title: "Document Uploaded", description: `${docName} has been securely stored.` });
       } else {
-        toast({ title: "Upload Failed", variant: "destructive" });
+        const d = await res.json();
+        toast({ title: "Upload Failed", description: d.error || "Could not upload document.", variant: "destructive" });
       }
     } finally {
       setUploadingDoc(null);
@@ -184,6 +195,7 @@ export default function VettingPage() {
   };
 
   const uploadedDocNames = (business?.documents || []).map((d) => d.name);
+  const uploadedDocsMap = new Map((business?.documents || []).map((d) => [d.name, d]));
   const progressValue =
     business?.status === "verified" ? 100 :
     business?.status === "reviewing" ? 65 :
@@ -371,8 +383,15 @@ export default function VettingPage() {
                   </CardHeader>
                   <CardContent className="p-0">
                     {REQUIRED_DOCS.map((docItem, i) => {
-                      const uploaded = uploadedDocNames.includes(docItem.name);
+                      const uploadedDoc = uploadedDocsMap.get(docItem.name);
+                      const uploaded = !!uploadedDoc;
                       const uploading = uploadingDoc === docItem.name;
+                      const docStatusBadge: Record<string, string> = {
+                        approved: "bg-green-100 text-green-700",
+                        reviewing: "bg-blue-100 text-blue-700",
+                        rejected: "bg-red-100 text-red-700",
+                        uploaded: "bg-gray-100 text-gray-600",
+                      };
                       return (
                         <div key={i} className="flex items-center justify-between p-5 border-t first:border-t-0 hover:bg-gray-50/50 transition-colors">
                           <div className="flex items-center gap-3">
@@ -381,19 +400,59 @@ export default function VettingPage() {
                             </div>
                             <div>
                               <p className="text-sm font-bold text-gray-900">{docItem.name}</p>
-                              <p className="text-xs text-gray-500 font-medium">Required for Gold Verification</p>
+                              <p className="text-xs text-gray-500 font-medium">PDF, JPG or PNG · max 5 MB</p>
                             </div>
                           </div>
-                          <Button
-                            variant={uploaded ? "secondary" : "outline"}
-                            size="sm"
-                            className="rounded-xl font-bold gap-2 shrink-0"
-                            onClick={() => handleUploadDoc(docItem.name, docItem.docType)}
-                            disabled={uploaded || uploading}
-                          >
-                            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : uploaded ? <FileCheck className="h-4 w-4 text-green-600" /> : <Upload className="h-4 w-4" />}
-                            {uploaded ? "Uploaded" : uploading ? "Uploading..." : "Mark Uploaded"}
-                          </Button>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {uploaded && uploadedDoc && (
+                              <>
+                                <Badge className={docStatusBadge[uploadedDoc.status] || "bg-gray-100 text-gray-600"}>
+                                  {uploadedDoc.status.charAt(0).toUpperCase() + uploadedDoc.status.slice(1)}
+                                </Badge>
+                                {uploadedDoc.file_data && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="rounded-xl font-bold gap-1 h-8 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    onClick={() => setPreviewFile(uploadedDoc)}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                    View
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                            {/* Hidden file input tied to ref */}
+                            <input
+                              ref={(el) => {
+                                if (el) fileInputRefs.current.set(docItem.docType, el);
+                                else fileInputRefs.current.delete(docItem.docType);
+                              }}
+                              type="file"
+                              accept=".pdf,.jpg,.jpeg,.png,.webp"
+                              className="sr-only"
+                              disabled={uploading}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleUploadDoc(docItem.name, docItem.docType, file);
+                                e.target.value = '';
+                              }}
+                            />
+                            <Button
+                              variant={uploaded ? "outline" : "outline"}
+                              size="sm"
+                              className="rounded-xl font-bold gap-2"
+                              disabled={uploading}
+                              onClick={() => fileInputRefs.current.get(docItem.docType)?.click()}
+                            >
+                              {uploading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Upload className="h-4 w-4" />
+                              )}
+                              {uploading ? "Uploading…" : uploaded ? "Re-upload" : "Upload"}
+                            </Button>
+                          </div>
                         </div>
                       );
                     })}
@@ -436,6 +495,50 @@ export default function VettingPage() {
           </main>
         </div>
       </div>
+
+      {/* Document Preview Dialog */}
+      {previewFile && (
+        <Dialog open={!!previewFile} onOpenChange={(open) => { if (!open) setPreviewFile(null); }}>
+          <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden">
+            <DialogHeader className="px-6 pt-5 pb-4 border-b shrink-0">
+              <DialogTitle className="flex items-center justify-between">
+                <span className="truncate pr-4">{previewFile.name}</span>
+                {previewFile.file_data && (
+                  <a
+                    href={previewFile.file_data}
+                    download={previewFile.file_url || previewFile.name}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline shrink-0"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download
+                  </a>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-auto p-4 bg-gray-50">
+              {previewFile.file_data?.startsWith("data:image/") ? (
+                <img
+                  src={previewFile.file_data}
+                  alt={previewFile.name}
+                  className="max-w-full mx-auto rounded-xl shadow-sm object-contain"
+                />
+              ) : previewFile.file_data?.startsWith("data:application/pdf") ? (
+                <iframe
+                  src={previewFile.file_data}
+                  title={previewFile.name}
+                  className="w-full rounded-xl border-0"
+                  style={{ minHeight: "70vh" }}
+                />
+              ) : (
+                <div className="flex flex-col items-center justify-center h-48 text-gray-400 gap-2">
+                  <FileText className="h-12 w-12 opacity-30" />
+                  <p className="font-medium">Preview not available</p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
