@@ -473,8 +473,10 @@ export default function VettingPage() {
                         </div>
                       ))}
                     </div>
-                    <Button variant="outline" className="w-full border-gray-700 text-white hover:bg-gray-800 rounded-xl"
-                      onClick={() => toast({ title: "Why Vetting Matters", description: "Vetting unlocks premium trust signals, higher placement, and exclusive networks." })}>
+                    <Button
+                      className="w-full rounded-xl bg-primary text-gray-900 hover:bg-yellow-400 font-bold shadow-lg shadow-primary/20"
+                      onClick={() => toast({ title: "Why Vetting Matters", description: "Vetting unlocks premium trust signals, higher placement, and exclusive networks." })}
+                    >
                       Learn More <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   </CardContent>

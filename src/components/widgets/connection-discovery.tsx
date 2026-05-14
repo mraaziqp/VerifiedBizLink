@@ -28,6 +28,7 @@ export function ConnectionDiscovery() {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
+  const [connectingId, setConnectingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -48,6 +49,7 @@ export function ConnectionDiscovery() {
       toast({ title: "Sign in to connect", variant: "destructive" });
       return;
     }
+    setConnectingId(id);
     try {
       const res = await fetch('/api/connections', {
         method: 'POST',
@@ -56,10 +58,12 @@ export function ConnectionDiscovery() {
       });
       if (res.ok) {
         setSentRequests((prev) => new Set([...prev, id]));
-        toast({ title: "Connection request sent!", description: `Your request to ${name} is pending.` });
+        toast({ title: "🤝 Connection request sent!", description: `Your request to ${name} is pending.` });
       }
     } catch {
       toast({ title: "Failed to send request", variant: "destructive" });
+    } finally {
+      setConnectingId(null);
     }
   };
 
@@ -110,10 +114,12 @@ export function ConnectionDiscovery() {
                       : 'border-primary/20 hover:border-primary hover:bg-primary hover:text-white'
                   }`}
                   onClick={() => handleConnect(sug.id, displayName)}
-                  disabled={isSent}
+                  disabled={isSent || connectingId === sug.id}
                 >
-                  {isSent ? (
-                    <><CheckCircle2 className="h-3 w-3 mr-1.5" />Sent</>
+                  {connectingId === sug.id ? (
+                    <span className="animate-handshake inline-block">🤝</span>
+                  ) : isSent ? (
+                    <><span className="animate-handshake-pop inline-block mr-1">🤝</span>Sent</>
                   ) : (
                     <><UserPlus className="h-3 w-3 mr-1.5" />Connect</>
                   )}

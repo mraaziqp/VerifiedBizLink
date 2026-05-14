@@ -29,6 +29,7 @@ export default function NetworkPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [actioning, setActioning] = useState<string | null>(null);
+  const [justAccepted, setJustAccepted] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchConnections = () => {
@@ -60,8 +61,12 @@ export default function NetworkPage() {
         body: JSON.stringify({ action: 'accept', receiverId: connUserId }),
       });
       if (res.ok) {
-        toast({ title: "Connection Accepted", description: `You are now connected with ${name}.` });
-        fetchConnections();
+        setJustAccepted(connId);
+        toast({ title: "🤝 Connection Accepted!", description: `You are now connected with ${name}.` });
+        setTimeout(() => {
+          setJustAccepted(null);
+          fetchConnections();
+        }, 1200);
       }
     } catch { toast({ title: "Failed to accept", variant: "destructive" }); }
     finally { setActioning(null); }
@@ -201,25 +206,34 @@ export default function NetworkPage() {
                               </div>
                             </div>
                             <div className="flex gap-2">
-                              <Button
-                                size="sm"
-                                className="bg-primary text-gray-900 hover:bg-yellow-400 rounded-xl font-bold gap-1"
-                                onClick={() => handleAccept(conn.id, conn.connected_user_id, conn.full_name)}
-                                disabled={actioning === conn.id}
-                              >
-                                {actioning === conn.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserCheck className="h-3 w-3" />}
-                                Accept
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="rounded-xl font-bold border-red-200 text-red-600 hover:bg-red-50 gap-1"
-                                onClick={() => handleRemove(conn.id, conn.full_name)}
-                                disabled={actioning === conn.id}
-                              >
-                                <UserX className="h-3 w-3" />
-                                Decline
-                              </Button>
+                              {justAccepted === conn.id ? (
+                                <div className="flex items-center gap-2 px-3 py-1 bg-green-50 border border-green-200 rounded-xl">
+                                  <span className="animate-handshake-pop inline-block text-base">🤝</span>
+                                  <span className="text-sm font-bold text-green-700">Connected!</span>
+                                </div>
+                              ) : (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    className="bg-primary text-gray-900 hover:bg-yellow-400 rounded-xl font-bold gap-1"
+                                    onClick={() => handleAccept(conn.id, conn.connected_user_id, conn.full_name)}
+                                    disabled={actioning === conn.id}
+                                  >
+                                    {actioning === conn.id ? <span className="animate-handshake inline-block text-sm">🤝</span> : <UserCheck className="h-3 w-3" />}
+                                    Accept
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="rounded-xl font-bold border-red-200 text-red-600 hover:bg-red-50 gap-1"
+                                    onClick={() => handleRemove(conn.id, conn.full_name)}
+                                    disabled={actioning === conn.id}
+                                  >
+                                    <UserX className="h-3 w-3" />
+                                    Decline
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </div>
                         ))}

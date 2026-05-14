@@ -7,8 +7,8 @@ import { AdBanner } from '@/components/ads/ad-banner';
 import { ChatWidget } from '@/components/chatbot/chat-widget';
 
 export const metadata: Metadata = {
-  title: 'VerifiedBizLink | Trusted B2B Networking',
-  description: 'Verified business networking for professionals and vetted companies.',
+  title: 'VerifiedBizLink | Connecting You to Trusted Businesses',
+  description: 'Find and connect with verified local businesses. Your trusted marketplace for services.',
 };
 
 export default function RootLayout({
@@ -25,7 +25,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         <AuthProvider>
-          <div className="pb-16 md:pb-0">
+          <div className="pb-20 md:pb-0">
             {children}
           </div>
           <MobileNav />

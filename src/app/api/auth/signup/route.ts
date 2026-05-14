@@ -4,8 +4,6 @@ import { createSession } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import db from '@/lib/db';
 
-const SHAREHOLDER_INVITE_CODE = process.env.SHAREHOLDER_INVITE_CODE;
-
 export async function POST(request: NextRequest) {
   // Rate limit: max 5 signups per IP per 15 minutes
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
@@ -18,7 +16,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { email, password, fullName, role, companyName, regNumber, inviteCode } = await request.json();
+    const { email, password, fullName, role, companyName, regNumber } = await request.json();
 
     if (!email || !password || !fullName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -28,14 +26,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
     }
 
-    // Shareholder role requires valid invite code
-    if (role === 'shareholder') {
-      if (!SHAREHOLDER_INVITE_CODE) {
-        return NextResponse.json({ error: 'Shareholder registration is currently closed.' }, { status: 403 });
-      }
-      if (!inviteCode || inviteCode !== SHAREHOLDER_INVITE_CODE) {
-        return NextResponse.json({ error: 'Invalid shareholder invite code' }, { status: 403 });
-      }
+    // Only customer and business roles are allowed via public signup
+    if (role !== 'customer' && role !== 'business') {
+      return NextResponse.json({ error: 'Invalid account type' }, { status: 400 });
     }
 
     const existing = await db`SELECT id FROM users WHERE email = ${email.toLowerCase().trim()} LIMIT 1`;
@@ -48,7 +41,6 @@ export async function POST(request: NextRequest) {
     let userRole = 'user';
     let headline = 'Professional';
     if (role === 'business') { userRole = 'business'; headline = `Owner at ${companyName || 'Company'}`; }
-    if (role === 'shareholder') { userRole = 'admin'; headline = 'Shareholder & Administrator — VerifiedBizLink'; }
 
     const newUsers = await db`
       INSERT INTO users (email, password_hash, full_name, role, headline, avatar_url)
@@ -65,9 +57,21 @@ export async function POST(request: NextRequest) {
     const user = newUsers[0];
 
     if (role === 'business' && companyName) {
+      // 2-week half-premium trial for all new businesses
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 14);
       await db`
-        INSERT INTO businesses (user_id, company_name, reg_number, status)
-        VALUES (${user.id}, ${companyName}, ${regNumber || ''}, 'unregistered')
+        INSERT INTO businesses (user_id, company_name, reg_number, status, package_type, trial_package, trial_ends_at)
+        VALUES (
+          ${user.id},
+          ${companyName},
+          ${regNumber || ''},
+          'unregistered',
+          'free',
+          'premium_half',
+          ${trialEndsAt.toISOString()}
+        )
+        ON CONFLICT DO NOTHING
       `;
     }
 

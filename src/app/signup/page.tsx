@@ -5,7 +5,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ShieldCheck, Building2, User, Loader2, Crown,
+  ShieldCheck, Building2, User, Loader2,
   Lock, Eye, EyeOff, CheckCircle2, Circle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,12 +16,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 
-type AccountRole = "customer" | "business" | "shareholder";
+type AccountRole = "customer" | "business";
 
 const ROLES: { value: AccountRole; label: string; icon: React.ElementType; desc: string }[] = [
-  { value: "customer", label: "Customer", icon: User, desc: "Browse & connect with verified businesses" },
-  { value: "business", label: "Business", icon: Building2, desc: "Register your company & get vetted" },
-  { value: "shareholder", label: "Shareholder", icon: Crown, desc: "Admin access with invite code" },
+  { value: "customer", label: "Customer", icon: User, desc: "Browse and connect with business profiles" },
+  { value: "business", label: "Business", icon: Building2, desc: "Set up your company profile for review" },
 ];
 
 function getStrength(pw: string) {
@@ -47,7 +46,6 @@ export default function SignupPage() {
     confirmPassword: "",
     companyName: "",
     regNumber: "",
-    inviteCode: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -80,7 +78,6 @@ export default function SignupPage() {
           role,
           companyName: formData.companyName,
           regNumber: formData.regNumber,
-          inviteCode: formData.inviteCode,
         }),
       });
       const data = await res.json();
@@ -124,18 +121,18 @@ export default function SignupPage() {
               <h1 className="text-4xl font-extrabold text-white leading-tight tracking-tight">
                 Build your<br />
                 professional<br />
-                <span className="text-yellow-400">reputation.</span>
+                <span className="text-yellow-400">profile.</span>
               </h1>
               <p className="mt-4 text-slate-400 leading-relaxed max-w-xs">
-                Join thousands of vetted professionals and businesses on the most trusted B2B platform in Africa.
+                Start with a business profile designed for verification, discovery, and future partnerships.
               </p>
             </div>
 
             <div className="space-y-3">
               {[
-                "Verified business identity — no fakes",
-                "CIPC & SARS document checks",
-                "Transparent trust scores for every member",
+                "Business identity and document review",
+                "CIPC and supporting file checks",
+                "Profile details that support due diligence",
                 "POPI Act compliant data handling",
               ].map((item) => (
                 <div key={item} className="flex items-center gap-3">
@@ -175,11 +172,11 @@ export default function SignupPage() {
 
             <div>
               <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Create your account</h2>
-              <p className="mt-1.5 text-gray-500">Join the circle of trust today</p>
+              <p className="mt-1.5 text-gray-500">Set up your profile and begin the verification process</p>
             </div>
 
             {/* Role selector */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               {ROLES.map(({ value, label, icon: Icon, desc }) => (
                 <button
                   key={value}
@@ -262,29 +259,6 @@ export default function SignupPage() {
                       onChange={(e) => update("regNumber", e.target.value)}
                     />
                   </div>
-                </div>
-              )}
-
-              {/* Shareholder invite */}
-              {role === "shareholder" && (
-                <div className="space-y-3 p-4 rounded-2xl border border-amber-200 bg-amber-50 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <p className="text-xs font-bold text-amber-700 uppercase tracking-wider flex items-center gap-2">
-                    <Crown className="h-3.5 w-3.5" /> Shareholder Access
-                  </p>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="invite-code" className="text-sm font-semibold text-gray-700">Shareholder Invite Code</Label>
-                    <Input
-                      id="invite-code"
-                      required
-                      placeholder="Enter your invite code"
-                      className="h-11 rounded-xl border-amber-200 bg-white"
-                      value={formData.inviteCode}
-                      onChange={(e) => update("inviteCode", e.target.value)}
-                    />
-                  </div>
-                  <p className="text-xs text-amber-700">
-                    Creates a full administrator account with platform-wide access.
-                  </p>
                 </div>
               )}
 

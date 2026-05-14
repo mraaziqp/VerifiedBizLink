@@ -82,21 +82,21 @@ function LoginForm() {
           <div className="space-y-6">
             <div>
               <h1 className="text-5xl font-extrabold text-white leading-[1.1] tracking-tight">
-                Where trusted<br />
+                Where ambitious<br />
                 <span className="text-yellow-400">businesses</span><br />
                 connect.
               </h1>
               <p className="mt-5 text-lg text-slate-400 leading-relaxed max-w-sm">
-                The world&apos;s first platform where every business is verified before it can network.
+                A verification-first platform for companies that want cleaner introductions and stronger partner trust.
               </p>
             </div>
 
-            {/* Trust stats */}
+            {/* Platform highlights */}
             <div className="grid grid-cols-3 gap-4">
               {[
-                { icon: BadgeCheck, label: "Verified Businesses", value: "2,400+" },
-                { icon: Users, label: "Active Members", value: "18,000+" },
-                { icon: Building2, label: "Industries", value: "120+" },
+                { icon: BadgeCheck, label: "Verification-first", value: "Built in" },
+                { icon: Users, label: "Partner discovery", value: "Focused" },
+                { icon: Building2, label: "Business profiles", value: "Structured" },
               ].map(({ icon: Icon, label, value }) => (
                 <div key={label}
                   className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-4 text-center">
@@ -107,19 +107,18 @@ function LoginForm() {
               ))}
             </div>
 
-            {/* Testimonial */}
+            {/* Positioning note */}
             <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur p-5">
               <p className="text-slate-300 text-sm leading-relaxed italic">
-                &ldquo;VerifiedBizLink gave our clients the confidence they needed. Knowing every partner is
-                vetted changes everything about B2B trust.&rdquo;
+                Built for teams that want a cleaner path to due diligence, profile discovery, and business introductions.
               </p>
               <div className="mt-3 flex items-center gap-3">
                 <div className="h-8 w-8 rounded-full bg-yellow-400/20 flex items-center justify-center">
-                  <span className="text-yellow-400 font-bold text-xs">WB</span>
+                  <span className="text-yellow-400 font-bold text-xs">VB</span>
                 </div>
                 <div>
-                  <p className="text-white text-sm font-bold">Wesley Bosman</p>
-                  <p className="text-slate-500 text-xs">Legal Counsel, VerifiedBizLink</p>
+                  <p className="text-white text-sm font-bold">Verification-first networking</p>
+                  <p className="text-slate-500 text-xs">Built for business accounts</p>
                 </div>
               </div>
             </div>

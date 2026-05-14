@@ -94,7 +94,7 @@ export function AdBanner() {
 
       // Try to load live ads
       try {
-        const res = await fetch("/api/ads");
+        const res = await fetch("/api/ads/targeted");
         if (res.ok) {
           const data = await res.json();
           if (data.ads && data.ads.length > 0) {

@@ -18,7 +18,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow, differenceInDays } from "date-fns";
 
@@ -111,8 +118,8 @@ function UrgencyBadge({
   const days = differenceInDays(new Date(), new Date(submittedAt));
   if (days < 3) return null;
   return (
-    <Badge className="bg-red-100 text-red-700 border-red-200 gap-1 text-[10px] px-1.5 py-0 h-4 font-bold">
-      <AlertTriangle className="h-2.5 w-2.5" />
+    <Badge className="inline-flex items-center self-start bg-red-100 text-red-700 border-red-200 gap-1 text-[11px] px-2 py-0.5 h-5 font-semibold leading-none whitespace-nowrap">
+      <AlertTriangle className="h-3 w-3" />
       {days}d waiting
     </Badge>
   );
@@ -704,8 +711,8 @@ export function VettingDesk() {
 
                   {/* Submitted */}
                   <TableCell>
-                    <div className="flex flex-col">
-                      <span className="text-xs text-gray-500 font-medium">
+                    <div className="flex flex-col items-start gap-1 leading-none">
+                      <span className="text-xs text-gray-500 font-medium leading-tight">
                         {item.submitted_at
                           ? formatDistanceToNow(new Date(item.submitted_at), {
                               addSuffix: true,
@@ -820,6 +827,9 @@ export function VettingDesk() {
                 </Badge>
               )}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Review business details, documents, and scoring before taking status actions.
+            </DialogDescription>
           </DialogHeader>
 
           {selectedBiz && (
@@ -879,10 +889,12 @@ export function VettingDesk() {
                   {selectedBiz.submitted_at && (
                     <div className="col-span-2">
                       <p className="text-xs font-bold text-gray-400 uppercase">Submitted</p>
-                      <p className="font-medium text-gray-900 flex items-center gap-2 flex-wrap">
-                        {formatDistanceToNow(new Date(selectedBiz.submitted_at), {
-                          addSuffix: true,
-                        })}
+                      <div className="font-medium text-gray-900 flex items-center gap-2 flex-wrap">
+                        <span>
+                          {formatDistanceToNow(new Date(selectedBiz.submitted_at), {
+                            addSuffix: true,
+                          })}
+                        </span>
                         {selectedBiz.status === "pending" &&
                           differenceInDays(
                             new Date(),
@@ -898,7 +910,7 @@ export function VettingDesk() {
                               days waiting
                             </Badge>
                           )}
-                      </p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1178,6 +1190,9 @@ export function VettingDesk() {
                       </a>
                     )}
                   </DialogTitle>
+                  <DialogDescription className="sr-only">
+                    Preview and download the selected business verification document.
+                  </DialogDescription>
                 </DialogHeader>
                 <div className="flex-1 overflow-auto p-4 bg-gray-50">
                   {previewDoc.file_data?.startsWith("data:image/") ? (
