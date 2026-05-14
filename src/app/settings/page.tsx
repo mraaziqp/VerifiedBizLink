@@ -218,35 +218,35 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-          <aside className="hidden md:block md:col-span-3 sticky top-6">
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 overflow-x-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <aside className="hidden lg:block lg:col-span-3 sticky top-6">
             <SidebarLeft />
           </aside>
 
-          <main className="md:col-span-9 space-y-6">
+          <main className="lg:col-span-9 space-y-6 min-w-0">
             <h1 className="text-2xl font-bold text-gray-900 px-2">Settings</h1>
 
             <Tabs defaultValue="profile" className="w-full space-y-6">
-              <TabsList className="bg-white border p-1 rounded-2xl h-auto shadow-sm w-full md:w-fit flex overflow-x-auto gap-0">
-                <TabsTrigger value="profile" className="h-11 px-4 md:px-6 rounded-xl font-bold gap-2 shrink-0">
+              <TabsList className="bg-white border p-1 rounded-2xl h-auto shadow-sm w-full lg:w-fit flex overflow-x-auto gap-0">
+                <TabsTrigger value="profile" className="h-11 px-4 lg:px-6 rounded-xl font-bold gap-2 shrink-0">
                   <User className="h-4 w-4" />
                   Profile
                 </TabsTrigger>
-                <TabsTrigger value="security" className="h-11 px-4 md:px-6 rounded-xl font-bold gap-2 shrink-0">
+                <TabsTrigger value="security" className="h-11 px-4 lg:px-6 rounded-xl font-bold gap-2 shrink-0">
                   <Shield className="h-4 w-4" />
                   Security
                 </TabsTrigger>
-                <TabsTrigger value="notifications" className="h-11 px-4 md:px-6 rounded-xl font-bold gap-2 shrink-0">
+                <TabsTrigger value="notifications" className="h-11 px-4 lg:px-6 rounded-xl font-bold gap-2 shrink-0">
                   <Bell className="h-4 w-4" />
                   <span className="hidden sm:inline">Notifications</span>
                   <span className="sm:hidden">Notifs</span>
                 </TabsTrigger>
-                <TabsTrigger value="billing" className="h-11 px-4 md:px-6 rounded-xl font-bold gap-2 shrink-0">
+                <TabsTrigger value="billing" className="h-11 px-4 lg:px-6 rounded-xl font-bold gap-2 shrink-0">
                   <CreditCard className="h-4 w-4" />
                   Billing
                 </TabsTrigger>
-                <TabsTrigger value="privacy" className="h-11 px-4 md:px-6 rounded-xl font-bold gap-2 shrink-0">
+                <TabsTrigger value="privacy" className="h-11 px-4 lg:px-6 rounded-xl font-bold gap-2 shrink-0">
                   <Lock className="h-4 w-4" />
                   Data & Privacy
                 </TabsTrigger>

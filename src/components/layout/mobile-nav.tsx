@@ -27,8 +27,8 @@ export function MobileNav() {
     : navigation;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 md:hidden safe-area-pb">
-      <div className="flex items-center justify-around h-16 px-1">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 lg:hidden safe-area-pb">
+      <div className="flex items-center h-16 px-2 overflow-x-auto">
         {navItems.map((item) => {
           const isActive =
             item.href === "/"
@@ -41,12 +41,12 @@ export function MobileNav() {
               key={item.name}
               href={item.href}
               className={cn(
-                "flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-colors flex-1",
+                "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors flex-1 min-w-[72px]",
                 isActive ? "text-primary" : "text-gray-400"
               )}
             >
-              <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-primary")} />
-              <span className={cn("text-[9px] font-bold leading-tight", isActive ? "text-primary" : "text-gray-400")}>
+              <item.icon className={cn("h-6 w-6 shrink-0", isActive && "text-primary")} />
+              <span className={cn("text-[10px] font-semibold leading-tight", isActive ? "text-primary" : "text-gray-400")}>
                 {item.name}
               </span>
             </Link>

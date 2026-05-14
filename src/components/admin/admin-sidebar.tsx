@@ -20,7 +20,7 @@ export function AdminSidebar() {
   const { logout, user } = useAuth();
 
   return (
-    <aside className="hidden md:flex w-64 bg-gray-900 flex-col h-screen fixed left-0 top-0 border-r border-gray-800">
+    <aside className="hidden lg:flex w-64 bg-gray-900 flex-col h-screen fixed left-0 top-0 border-r border-gray-800">
       <div className="p-6">
         <div className="flex items-center gap-3">
           <div className="bg-primary p-2 rounded-lg">

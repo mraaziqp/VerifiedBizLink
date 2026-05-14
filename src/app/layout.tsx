@@ -25,7 +25,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground">
         <AuthProvider>
-          <div className="pb-20 md:pb-0">
+          <div className="pb-20 lg:pb-0">
             {children}
           </div>
           <MobileNav />

@@ -35,11 +35,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
-      } else {
+      } else if (res.status === 401 || res.status === 403) {
         setUser(null);
       }
     } catch {
-      setUser(null);
+      // Keep the existing session state during transient network failures.
     } finally {
       setLoading(false);
     }

@@ -76,19 +76,19 @@ function AdminPageContent() {
     : 0;
 
   return (
-    <div className="min-h-screen bg-[#06060a] flex">
+    <div className="min-h-screen bg-[#06060a] flex overflow-x-hidden">
       <AdminSidebar />
 
-      <main className="flex-1 md:ml-64 flex flex-col">
+      <main className="flex-1 lg:ml-64 flex flex-col min-w-0">
         {/* Top Hero Bar */}
-        <div className="bg-gradient-to-r from-[#0d0d14] via-[#111118] to-[#0d0d14] border-b border-white/[0.06] px-4 md:px-8 py-5">
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-gradient-to-r from-[#0d0d14] via-[#111118] to-[#0d0d14] border-b border-white/[0.06] px-4 lg:px-8 py-5">
+          <div className="max-w-6xl mx-auto flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-xs font-semibold text-emerald-400 uppercase tracking-widest">Live Dashboard</span>
               </div>
-              <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">Admin Control Centre</h1>
+              <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tight">Admin Control Centre</h1>
               <p className="text-sm text-white/40 font-medium mt-0.5">VerifiedBizLink · Platform Management</p>
             </div>
             <div className="flex items-center gap-3 shrink-0">
@@ -105,7 +105,7 @@ function AdminPageContent() {
         </div>
 
         {/* Stats Grid */}
-        <div className="bg-[#080810] border-b border-white/[0.06] px-4 md:px-8 py-5">
+        <div className="bg-[#080810] border-b border-white/[0.06] px-4 lg:px-8 py-5">
           <div className="max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
             <StatCard icon={Users} label="Users" value={stats?.totalUsers ?? "—"} sub="Total registered" accent="bg-blue-600" />
             <StatCard icon={Building2} label="Businesses" value={stats?.totalBusinesses ?? "—"} sub="On platform" accent="bg-violet-600" />
@@ -119,13 +119,13 @@ function AdminPageContent() {
         </div>
 
         {/* Tab Section */}
-        <div className="flex-1 px-4 md:px-8 py-6">
+        <div className="flex-1 px-4 lg:px-8 py-6">
           <div className="max-w-6xl mx-auto space-y-6">
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full space-y-6">
-              <TabsList className="bg-white/[0.04] border border-white/[0.08] p-1 rounded-xl h-auto w-full md:w-fit flex overflow-x-auto gap-1">
+              <TabsList className="bg-white/[0.04] border border-white/[0.08] p-1 rounded-xl h-auto w-full lg:w-fit flex overflow-x-auto gap-1">
                 <TabsTrigger
                   value="vetting"
-                  className="h-11 px-5 md:px-7 rounded-lg font-bold flex gap-2.5 shrink-0 text-white/50 data-[state=active]:bg-amber-400 data-[state=active]:text-gray-900 transition-all"
+                  className="h-11 px-5 lg:px-7 rounded-lg font-bold flex gap-2.5 shrink-0 text-white/50 data-[state=active]:bg-amber-400 data-[state=active]:text-gray-900 transition-all"
                 >
                   <Building2 className="h-4 w-4" />
                   <span>Vetting Desk</span>
@@ -137,7 +137,7 @@ function AdminPageContent() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="compliance"
-                  className="h-11 px-5 md:px-7 rounded-lg font-bold flex gap-2.5 shrink-0 text-white/50 data-[state=active]:bg-amber-400 data-[state=active]:text-gray-900 transition-all"
+                  className="h-11 px-5 lg:px-7 rounded-lg font-bold flex gap-2.5 shrink-0 text-white/50 data-[state=active]:bg-amber-400 data-[state=active]:text-gray-900 transition-all"
                 >
                   <Scale className="h-4 w-4" />
                   <span>Compliance</span>
@@ -149,7 +149,7 @@ function AdminPageContent() {
                 </TabsTrigger>
                 <TabsTrigger
                   value="ops"
-                  className="h-11 px-5 md:px-7 rounded-lg font-bold flex gap-2.5 shrink-0 text-white/50 data-[state=active]:bg-amber-400 data-[state=active]:text-gray-900 transition-all"
+                  className="h-11 px-5 lg:px-7 rounded-lg font-bold flex gap-2.5 shrink-0 text-white/50 data-[state=active]:bg-amber-400 data-[state=active]:text-gray-900 transition-all"
                 >
                   <Terminal className="h-4 w-4" />
                   <span>System Ops</span>
@@ -178,7 +178,7 @@ function AdminPageContent() {
         </div>
 
         {/* Footer bar */}
-        <div className="border-t border-white/[0.05] bg-[#08080f] px-4 md:px-8 py-3">
+        <div className="border-t border-white/[0.05] bg-[#08080f] px-4 lg:px-8 py-3">
           <div className="max-w-6xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-2 text-xs text-white/25 font-medium">
               <Wifi className="h-3 w-3 text-emerald-500" />
