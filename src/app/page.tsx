@@ -15,6 +15,8 @@ import { PostCreator } from "@/components/feed/post-creator";
 import { ActivityFeed } from "@/components/feed/activity-feed";
 import { ConnectionDiscovery } from "@/components/widgets/connection-discovery";
 import { ComplianceNews } from "@/components/widgets/compliance-news";
+import { HowItWorks } from "@/components/widgets/how-it-works";
+import { TrustPillars } from "@/components/widgets/trust-pillars";
 
 const EMPTY_OVERVIEW: HomeOverviewResponse = {
   stats: {
@@ -230,6 +232,9 @@ export default function Home() {
         {/* Verified Banner */}
         <VerifiedBanner />
 
+        {/* How It Works */}
+        <HowItWorks />
+
         {/* Top Rated Businesses */}
         <TopRatedBusinesses
           businesses={topBusinesses}
@@ -237,6 +242,9 @@ export default function Home() {
           connectingId={connectingId}
           onConnect={handleConnect}
         />
+
+        {/* Why Businesses Trust VBL */}
+        <TrustPillars />
 
         {/* Live product features restored */}
         <section className="px-4 pb-8 pt-2">

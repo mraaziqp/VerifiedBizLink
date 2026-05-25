@@ -38,8 +38,17 @@ export function FeaturedBusinesses({
         )}
 
         {!loading && businesses.length === 0 && (
-          <div className="rounded-xl border border-primary/20 bg-card p-4 text-sm text-foreground/70">
-            Sign in and complete your profile to discover verified businesses in your network.
+          <div className="rounded-xl border border-primary/20 bg-gradient-gold-dark p-5 text-center space-y-2">
+            <p className="text-sm font-bold text-foreground">Be the first verified business here</p>
+            <p className="text-xs text-foreground/70">
+              Complete your business profile and get vetted to appear in Trending This Week.
+            </p>
+            <a
+              href="/onboarding"
+              className="inline-block mt-1 text-xs font-bold text-primary underline underline-offset-4 hover:text-primary/80 transition-colors"
+            >
+              Start your profile →
+            </a>
           </div>
         )}
 

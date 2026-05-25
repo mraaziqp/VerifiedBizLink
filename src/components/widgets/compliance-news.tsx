@@ -13,16 +13,37 @@ const NEWS = [
     id: 1,
     title: "POPIA Compliance: Key obligations for B2B data processors in 2026",
     source: "Information Regulator SA",
+    tag: "Privacy",
   },
   {
     id: 2,
     title: "CIPC company status checks now available via API for verified partners",
     source: "CIPC Official",
+    tag: "Regulatory",
   },
   {
     id: 3,
     title: "SARS VAT registration threshold remains at R1 million for 2026",
     source: "SARS",
+    tag: "Tax",
+  },
+  {
+    id: 4,
+    title: "B-BBEE verification agencies reminded of updated scorecard criteria for 2026",
+    source: "DTIC South Africa",
+    tag: "B-BBEE",
+  },
+  {
+    id: 5,
+    title: "NCC updates consumer goods sector compliance guidelines for e-commerce",
+    source: "National Consumer Commission",
+    tag: "Consumer",
+  },
+  {
+    id: 6,
+    title: "Companies Act Amendment: New disclosure requirements for close corporations",
+    source: "CIPC Official",
+    tag: "Corporate",
   },
 ];
 
@@ -46,10 +67,15 @@ export function ComplianceNews() {
                 toast({ title: item.title, description: `Source: ${item.source}` })
               }
             >
-              <p className="text-sm font-semibold text-gray-800 leading-snug group-hover:text-primary group-hover:underline underline-offset-4 decoration-2 decoration-primary/30 transition-all">
-                {item.title}
-              </p>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-start gap-2">
+                <span className="mt-0.5 shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary/80 uppercase tracking-wide">
+                  {item.tag}
+                </span>
+                <p className="text-sm font-semibold text-gray-800 leading-snug group-hover:text-primary group-hover:underline underline-offset-4 decoration-2 decoration-primary/30 transition-all">
+                  {item.title}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 mt-1 pl-[calc(theme(spacing.2)+theme(spacing.10))]">
                 <ExternalLink className="h-3 w-3 text-gray-400" />
                 <span className="text-xs text-gray-400 font-medium">{item.source}</span>
               </div>

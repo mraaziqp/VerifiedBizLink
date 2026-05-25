@@ -39,8 +39,11 @@ export function TopRatedBusinesses({
         )}
 
         {!loading && businesses.length === 0 && (
-          <div className="rounded-xl border border-primary/20 bg-card p-4 text-sm text-foreground/70 md:col-span-2 lg:col-span-3">
-            No verified businesses match your filter yet.
+          <div className="rounded-xl border border-dashed border-primary/30 bg-amber-50/30 p-5 text-center space-y-1.5 md:col-span-2 lg:col-span-3">
+            <p className="text-sm font-bold text-slate-700">No rated businesses yet</p>
+            <p className="text-xs text-slate-500">
+              Once verified businesses collect reviews, the top-rated list populates here automatically.
+            </p>
           </div>
         )}
 
@@ -64,9 +67,12 @@ export function TopRatedBusinesses({
 
       {/* CTA Section */}
       <div className="pt-4">
-        <button className="w-full py-3 px-4 bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/30 rounded-lg hover:from-primary/15 hover:to-primary/10 hover:border-primary/50 transition-all duration-300 text-foreground font-semibold text-sm hover:text-primary">
-          Explore More Premium Businesses →
-        </button>
+        <Link
+          href="/network"
+          className="block w-full py-3 px-4 text-center bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/30 rounded-lg hover:from-primary/15 hover:to-primary/10 hover:border-primary/50 transition-all duration-300 text-foreground font-semibold text-sm hover:text-primary"
+        >
+          Explore All Verified Businesses →
+        </Link>
       </div>
     </div>
   );

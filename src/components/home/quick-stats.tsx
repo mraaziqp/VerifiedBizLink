@@ -18,7 +18,7 @@ export function QuickStats({ stats, loading }: QuickStatsProps) {
     },
     {
       icon: Check,
-      value: loading ? "..." : `${stats.avgTrustScore}%`,
+      value: loading ? "..." : stats.avgTrustScore > 0 ? `${stats.avgTrustScore}%` : "—",
       label: "Avg Trust Score",
       color: "from-green-500/20 to-green-600/20",
     },
