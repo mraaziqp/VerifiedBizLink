@@ -12,6 +12,7 @@ export interface HomeStats {
 
 export interface HomeBusiness {
   userId: string;
+  businessId: string;
   displayName: string;
   headline: string;
   companyName: string;
@@ -19,6 +20,8 @@ export interface HomeBusiness {
   trustScore: number;
   connectionCount: number;
   avatarUrl: string;
+  avgRating: number;
+  reviewCount: number;
 }
 
 export interface HomeOverviewResponse {

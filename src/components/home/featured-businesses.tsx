@@ -1,7 +1,9 @@
 "use client";
 
 import { Shield, TrendingUp, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { RatingSummary } from "@/components/ui/star-rating";
 import { HomeBusiness } from "@/components/home/types";
 
 interface FeaturedBusinessesProps {
@@ -17,6 +19,7 @@ export function FeaturedBusinesses({
   connectingId,
   onConnect,
 }: FeaturedBusinessesProps) {
+  const router = useRouter();
   return (
     <div className="px-4 py-5 space-y-4">
       <div className="space-y-1">
@@ -43,6 +46,7 @@ export function FeaturedBusinesses({
         {!loading && businesses.map((business, idx) => (
           <div
             key={business.userId}
+            onClick={() => business.businessId && router.push(`/business/${business.businessId}`)}
             className="group relative overflow-hidden rounded-xl border border-primary/40 bg-gradient-gold-dark hover:border-primary/60 transition-all duration-300 cursor-pointer active:scale-95 shadow-gold"
             style={{
               animation: `slide-up 0.5s ease-out ${idx * 0.15}s both`,
@@ -86,6 +90,10 @@ export function FeaturedBusinesses({
                   <span className="font-semibold text-foreground">{business.connectionCount} connections</span>
                 </div>
               </div>
+
+              {business.reviewCount > 0 && (
+                <RatingSummary average={business.avgRating} count={business.reviewCount} size="sm" />
+              )}
 
               <button
                 type="button"

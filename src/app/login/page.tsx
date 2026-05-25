@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { VBLLogo } from "@/components/ui/vbl-logo";
 
 const STAFF_ROLES = ["admin", "banker", "lawyer", "shareholder"];
 
@@ -71,11 +72,8 @@ function LoginForm() {
 
         <div className="relative z-10 flex flex-col h-full p-14 justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <div className="bg-yellow-400 p-2.5 rounded-xl shadow-lg shadow-yellow-500/30">
-              <ShieldCheck className="h-7 w-7 text-gray-900" />
-            </div>
-            <span className="text-2xl font-extrabold text-white tracking-tight">VerifiedBizLink</span>
+          <div>
+            <VBLLogo variant="full" size="lg" theme="light" />
           </div>
 
           {/* Hero text */}
@@ -133,10 +131,7 @@ function LoginForm() {
         <div className="w-full max-w-[420px]">
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center gap-2 mb-10 justify-center">
-            <div className="bg-yellow-400 p-2 rounded-xl">
-              <ShieldCheck className="h-5 w-5 text-gray-900" />
-            </div>
-            <span className="text-xl font-extrabold text-gray-900 tracking-tight">VerifiedBizLink</span>
+            <VBLLogo variant="full" size="sm" theme="dark" />
           </div>
 
           <div className="mb-8">

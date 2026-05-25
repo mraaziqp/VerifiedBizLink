@@ -1,7 +1,9 @@
 "use client";
 
 import { Shield, ChevronRight, Users } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { RatingSummary } from "@/components/ui/star-rating";
 import { HomeBusiness } from "@/components/home/types";
 
 interface BusinessCardProps {
@@ -17,14 +19,18 @@ export function BusinessCard({
   onConnect,
   connectingId,
 }: BusinessCardProps) {
+  const router = useRouter();
   const initials = (business.displayName || "?").slice(0, 1).toUpperCase();
 
   return (
-    <div className={`group relative overflow-hidden rounded-xl border transition-all duration-300 cursor-pointer active:scale-95 ${
-      featured 
-        ? "border-primary/60 shadow-gold-lg bg-card hover:bg-card hover:shadow-card-hover" 
-        : "border-primary/25 shadow-card-dark bg-card hover:border-primary/50 hover:bg-card/90 hover:shadow-card-hover"
-    }`}>
+    <div
+      onClick={() => business.businessId && router.push(`/business/${business.businessId}`)}
+      className={`group relative overflow-hidden rounded-xl border transition-all duration-300 cursor-pointer active:scale-95 ${
+        featured 
+          ? "border-primary/60 shadow-gold-lg bg-card hover:bg-card hover:shadow-card-hover" 
+          : "border-primary/25 shadow-card-dark bg-card hover:border-primary/50 hover:bg-card/90 hover:shadow-card-hover"
+      }`}
+    >
       {/* Content */}
       <div className="p-4 space-y-3">
         <div className="flex items-center gap-3">
@@ -53,6 +59,15 @@ export function BusinessCard({
             <span className="font-semibold">{business.connectionCount} connections</span>
           </div>
         </div>
+
+        {/* Star Rating */}
+        {business.reviewCount > 0 && (
+          <RatingSummary
+            average={business.avgRating}
+            count={business.reviewCount}
+            size="sm"
+          />
+        )}
 
         {/* Divider */}
         <div className="h-px bg-border" />

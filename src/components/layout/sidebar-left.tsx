@@ -9,6 +9,7 @@ import { GoldCheckmark } from "@/components/ui/gold-checkmark";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { VBLLogo } from "@/components/ui/vbl-logo";
 import {
   Popover,
   PopoverContent,
@@ -77,11 +78,8 @@ export function SidebarLeft() {
   return (
     <div className="flex flex-col gap-6">
       {/* App Logo */}
-      <div className="flex items-center gap-2 px-2">
-        <div className="bg-primary rounded-lg p-2">
-          <ShieldCheck className="h-6 w-6 text-gray-900" />
-        </div>
-        <span className="text-xl font-bold tracking-tight text-gray-900">VerifiedBizLink</span>
+      <div className="flex items-center px-2">
+        <VBLLogo variant="full" size="sm" theme="dark" />
       </div>
 
       {/* Profile Card */}

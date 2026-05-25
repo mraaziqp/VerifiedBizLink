@@ -55,8 +55,12 @@ const FAQ: Array<{ patterns: string[]; response: string }> = [
     response: "VerifiedBizLink is South Africa's verified B2B professional network.\n\n**Network tab** lets you:\n• View all connections\n• Accept or decline incoming requests\n• Remove connections\n\nThe **right sidebar** on your feed shows business recommendations. Click **Connect** to send a request.\n\nOnly **Gold Verified** businesses appear in top recommendations.",
   },
   {
-    patterns: ["trust score", "vetting score", "score", "rating", "how scored"],
+    patterns: ["trust score", "vetting score", "score", "how scored"],
     response: "Your **Trust Score (0–100)** reflects the authenticity of your business verification.\n\nIt's calculated based on:\n• Document quality & completeness\n• CIPC registration status\n• VAT compliance\n• Director ID verification\n• Business existence proof\n\nHigher score = higher placement in search results. Verified businesses typically score **85+**.",
+  },
+  {
+    patterns: ["review", "rating", "star rating", "leave a review", "customer review", "rate a business"],
+    response: "Customers can **rate and review** any verified business on VerifiedBizLink!\n\n⭐ **How to leave a review:**\n1. Visit a business profile\n2. Click **Write a Review**\n3. Select your star rating (1–5)\n4. Add a title and detailed comments\n5. Submit — done!\n\n**Rating scale:**\n• ⭐⭐⭐⭐⭐ Excellent\n• ⭐⭐⭐⭐ Very Good\n• ⭐⭐⭐ Good\n• ⭐⭐ Fair\n• ⭐ Poor\n\nReviews are public and help other users make informed decisions. You can mark reviews as 'Helpful' to boost useful feedback.",
   },
   {
     patterns: ["terms", "conditions", "agreement", "rules", "terms of service"],
@@ -83,10 +87,10 @@ const FAQ: Array<{ patterns: string[]; response: string }> = [
 // Quick reply chips shown before the user's first message
 const QUICK_REPLIES = [
   { label: "Get verified 🏅", text: "How do I get my business verified?" },
+  { label: "Leave a review ⭐", text: "How do I leave a review for a business?" },
   { label: "Upload docs 📄", text: "How do I upload my verification documents?" },
   { label: "Privacy & POPI 🔒", text: "How does VerifiedBizLink protect my data under POPI?" },
   { label: "Contact support 📧", text: "How do I contact support?" },
-  { label: "Delete account 🗑️", text: "How do I delete my account?" },
   { label: "Pricing 💰", text: "What does VerifiedBizLink cost?" },
 ];
 

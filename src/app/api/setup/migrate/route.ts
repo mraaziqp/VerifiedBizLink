@@ -84,9 +84,28 @@ export async function POST(request: NextRequest) {
       ON CONFLICT (key) DO NOTHING
     `;
 
+    // --- v3: Business reviews ---
+    await db`
+      CREATE TABLE IF NOT EXISTS business_reviews (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        business_id UUID REFERENCES businesses(id) ON DELETE CASCADE NOT NULL,
+        reviewer_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        title VARCHAR(120) NOT NULL DEFAULT '',
+        body TEXT DEFAULT '',
+        helpful_count INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(business_id, reviewer_id)
+      )
+    `;
+
+    await db`CREATE INDEX IF NOT EXISTS idx_business_reviews_business_id ON business_reviews (business_id)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_business_reviews_reviewer_id ON business_reviews (reviewer_id)`;
+
     return NextResponse.json({
       success: true,
-      message: 'Migration v2 applied: support_tickets, deletion_requests, ads, ad_settings tables created.',
+      message: 'Migration v3 applied: business_reviews table created.',
     });
   } catch (error) {
     console.error('Migration error:', error);

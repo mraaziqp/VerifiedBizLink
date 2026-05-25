@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
+import { VBLLogo } from "@/components/ui/vbl-logo";
 
 type AccountRole = "customer" | "business";
 
@@ -109,11 +110,8 @@ export default function SignupPage() {
         <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full border border-blue-500/10 -translate-y-1/4 translate-x-1/4" />
 
         <div className="relative z-10 flex flex-col h-full p-14 justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-yellow-400 p-2.5 rounded-xl shadow-lg shadow-yellow-500/30">
-              <ShieldCheck className="h-7 w-7 text-gray-900" />
-            </div>
-            <span className="text-2xl font-extrabold text-white tracking-tight">VerifiedBizLink</span>
+          <div>
+            <VBLLogo variant="full" size="lg" theme="light" />
           </div>
 
           <div className="space-y-8">
@@ -164,10 +162,7 @@ export default function SignupPage() {
           <div className="w-full max-w-[480px] space-y-6">
             {/* Mobile logo */}
             <div className="flex lg:hidden items-center gap-2 justify-center">
-              <div className="bg-yellow-400 p-2 rounded-xl">
-                <ShieldCheck className="h-5 w-5 text-gray-900" />
-              </div>
-              <span className="text-xl font-extrabold text-gray-900 tracking-tight">VerifiedBizLink</span>
+              <VBLLogo variant="full" size="sm" theme="dark" />
             </div>
 
             <div>

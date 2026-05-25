@@ -43,14 +43,23 @@ export async function GET() {
     const businesses = session
       ? await db`
           SELECT
-            u.id AS user_id,
+            b.id          AS business_id,
+            u.id          AS user_id,
             COALESCE(u.full_name, '') AS full_name,
             COALESCE(u.headline, '') AS headline,
             COALESCE(u.avatar_url, '') AS avatar_url,
             COALESCE(b.company_name, '') AS company_name,
             COALESCE(b.industry, '') AS industry,
             COALESCE(b.trust_score, 0)::int AS trust_score,
-            COUNT(DISTINCT c.id)::int AS connection_count
+            COUNT(DISTINCT c.id)::int AS connection_count,
+            COALESCE(
+              (SELECT ROUND(AVG(r.rating)::numeric, 1)::float FROM business_reviews r WHERE r.business_id = b.id),
+              0
+            ) AS avg_rating,
+            COALESCE(
+              (SELECT COUNT(*)::int FROM business_reviews r WHERE r.business_id = b.id),
+              0
+            )::int AS review_count
           FROM businesses b
           JOIN users u ON u.id = b.user_id
           LEFT JOIN connections c
@@ -59,21 +68,30 @@ export async function GET() {
           WHERE b.status = 'verified'
             AND b.user_id <> ${session.id}
           GROUP BY
-            u.id, u.full_name, u.headline, u.avatar_url,
+            b.id, u.id, u.full_name, u.headline, u.avatar_url,
             b.company_name, b.industry, b.trust_score, b.created_at
           ORDER BY b.trust_score DESC NULLS LAST, COUNT(DISTINCT c.id) DESC, b.created_at DESC
           LIMIT 12
         `
       : await db`
           SELECT
-            u.id AS user_id,
+            b.id          AS business_id,
+            u.id          AS user_id,
             COALESCE(u.full_name, '') AS full_name,
             COALESCE(u.headline, '') AS headline,
             COALESCE(u.avatar_url, '') AS avatar_url,
             COALESCE(b.company_name, '') AS company_name,
             COALESCE(b.industry, '') AS industry,
             COALESCE(b.trust_score, 0)::int AS trust_score,
-            COUNT(DISTINCT c.id)::int AS connection_count
+            COUNT(DISTINCT c.id)::int AS connection_count,
+            COALESCE(
+              (SELECT ROUND(AVG(r.rating)::numeric, 1)::float FROM business_reviews r WHERE r.business_id = b.id),
+              0
+            ) AS avg_rating,
+            COALESCE(
+              (SELECT COUNT(*)::int FROM business_reviews r WHERE r.business_id = b.id),
+              0
+            )::int AS review_count
           FROM businesses b
           JOIN users u ON u.id = b.user_id
           LEFT JOIN connections c
@@ -81,7 +99,7 @@ export async function GET() {
            AND c.status = 'accepted'
           WHERE b.status = 'verified'
           GROUP BY
-            u.id, u.full_name, u.headline, u.avatar_url,
+            b.id, u.id, u.full_name, u.headline, u.avatar_url,
             b.company_name, b.industry, b.trust_score, b.created_at
           ORDER BY b.trust_score DESC NULLS LAST, COUNT(DISTINCT c.id) DESC, b.created_at DESC
           LIMIT 12
@@ -99,6 +117,7 @@ export async function GET() {
         count: row.count,
       })),
       businesses: businesses.map((row) => ({
+        businessId: row.business_id,
         userId: row.user_id,
         displayName: row.company_name || row.full_name,
         headline: row.headline,
@@ -107,6 +126,8 @@ export async function GET() {
         trustScore: row.trust_score,
         connectionCount: row.connection_count,
         avatarUrl: row.avatar_url,
+        avgRating: row.avg_rating,
+        reviewCount: row.review_count,
       })),
     });
   } catch (error) {

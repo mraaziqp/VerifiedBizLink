@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Bell, Menu, CheckCheck } from "lucide-react";
+import { VBLLogo } from "@/components/ui/vbl-logo";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -120,16 +121,8 @@ export function HomeHeader() {
         </button>
 
         {/* Logo & Title */}
-        <div className="flex-1 text-center">
-          <div className="inline-flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-amber-300 via-yellow-400 to-amber-500 shadow-lg shadow-amber-400/30 flex items-center justify-center">
-              <span className="text-[11px] font-black tracking-tight text-gray-900">VBL</span>
-            </div>
-            <div className="text-left">
-              <h1 className="text-[13px] leading-tight font-extrabold tracking-wide text-white">VerifiedBizLink</h1>
-              <p className="text-[10px] text-white/55 font-semibold tracking-wide uppercase">Trusted Network</p>
-            </div>
-          </div>
+        <div className="flex-1 flex justify-center">
+          <VBLLogo variant="full" size="sm" theme="light" />
         </div>
 
         {/* Notification Button */}

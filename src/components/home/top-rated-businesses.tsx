@@ -2,6 +2,7 @@
 
 import { BusinessCard } from "./business-card";
 import { HomeBusiness } from "@/components/home/types";
+import Link from "next/link";
 
 interface TopRatedBusinessesProps {
   businesses: HomeBusiness[];
@@ -24,9 +25,9 @@ export function TopRatedBusinesses({
           <h3 className="text-lg font-black tracking-tight text-slate-900">Top Rated Businesses</h3>
           <p className="text-[11px] text-slate-500 mt-0.5">Trusted by thousands</p>
         </div>
-        <button className="text-primary text-sm font-semibold hover:text-primary/80 transition-colors active:scale-95">
+        <Link href="/network" className="text-primary text-sm font-semibold hover:text-primary/80 transition-colors active:scale-95">
           View all →
-        </button>
+        </Link>
       </div>
 
       {/* Business Cards Grid */}
