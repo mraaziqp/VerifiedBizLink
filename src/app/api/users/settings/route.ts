@@ -36,12 +36,13 @@ export async function PUT(request: NextRequest) {
       RETURNING id, email, full_name, role, avatar_url, headline, email_verified
     `;
 
+    // Keep avatarUrl out of the JWT — /api/auth/me fetches it fresh from DB.
     const token = await createSession({
       id: updated[0].id,
       email: updated[0].email,
       fullName: updated[0].full_name,
       role: updated[0].role,
-      avatarUrl: updated[0].avatar_url || '',
+      avatarUrl: '',
       headline: updated[0].headline || '',
       emailVerified: updated[0].email_verified ?? session.emailVerified ?? false,
     });

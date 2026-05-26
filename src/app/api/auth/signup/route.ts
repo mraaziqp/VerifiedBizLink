@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       email: user.email,
       fullName: user.full_name,
       role: user.role,
-      avatarUrl: user.avatar_url || '',
+      avatarUrl: '',
       headline: user.headline || '',
       emailVerified: user.email_verified ?? false,
     };

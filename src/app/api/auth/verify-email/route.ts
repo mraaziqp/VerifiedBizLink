@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       email: u.email,
       fullName: u.full_name,
       role: u.role,
-      avatarUrl: u.avatar_url || '',
+      avatarUrl: '',
       headline: u.headline || '',
       emailVerified: true,
     };

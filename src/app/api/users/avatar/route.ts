@@ -35,12 +35,14 @@ export async function POST(request: NextRequest) {
       RETURNING id, email, full_name, role, avatar_url, headline, email_verified
     `;
 
+    // Store empty string in JWT — /api/auth/me always fetches avatar_url fresh from DB
+    // to avoid exceeding the 4KB cookie limit with a large base64 data URI.
     const token = await createSession({
       id: updated[0].id,
       email: updated[0].email,
       fullName: updated[0].full_name,
       role: updated[0].role,
-      avatarUrl: updated[0].avatar_url || '',
+      avatarUrl: '',
       headline: updated[0].headline || '',
       emailVerified: updated[0].email_verified ?? session.emailVerified ?? false,
     });
