@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"k:\\\\Projects\\\\VerifiedBizLink\" -Force)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(del \"k:\\\\Projects\\\\VerifiedBizLink\\\\src\\\\components\\\\layout\\\\bottom-nav.tsx\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
+    ]
+  }
+}
