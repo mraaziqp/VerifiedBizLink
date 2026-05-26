@@ -7,7 +7,9 @@
       "Bash(del \"k:\\\\Projects\\\\VerifiedBizLink\\\\src\\\\components\\\\layout\\\\bottom-nav.tsx\")",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(Test-Path \"k:\\\\Projects\\\\VerifiedBizLink\\\\src\\\\app\\\\verify-email\\\\page.tsx\")",
+      "Bash(node -e ' *)"
     ]
   }
 }
