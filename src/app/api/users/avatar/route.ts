@@ -32,10 +32,9 @@ export async function POST(request: NextRequest) {
     const updated = await db`
       UPDATE users SET avatar_url = ${dataUri}, updated_at = NOW()
       WHERE id = ${session.id}
-      RETURNING id, email, full_name, role, avatar_url, headline
+      RETURNING id, email, full_name, role, avatar_url, headline, email_verified
     `;
 
-    // Refresh JWT with new avatar
     const token = await createSession({
       id: updated[0].id,
       email: updated[0].email,
@@ -43,6 +42,7 @@ export async function POST(request: NextRequest) {
       role: updated[0].role,
       avatarUrl: updated[0].avatar_url || '',
       headline: updated[0].headline || '',
+      emailVerified: updated[0].email_verified ?? session.emailVerified ?? false,
     });
 
     const response = NextResponse.json({ avatarUrl: dataUri, success: true });

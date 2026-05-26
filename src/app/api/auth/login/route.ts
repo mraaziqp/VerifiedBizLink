@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     const rows = await db`
-      SELECT id, email, password_hash, full_name, role, avatar_url, headline
+      SELECT id, email, password_hash, full_name, role, avatar_url, headline, email_verified
       FROM users WHERE email = ${email.toLowerCase().trim()}
       LIMIT 1
     `;
@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       role: user.role,
       avatarUrl: user.avatar_url || '',
       headline: user.headline || '',
+      emailVerified: user.email_verified ?? false,
     };
 
     const token = await createSession(sessionUser);

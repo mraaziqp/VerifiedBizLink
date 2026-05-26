@@ -9,6 +9,7 @@ export interface AuthUser {
   role: string;
   avatarUrl: string;
   headline: string;
+  emailVerified: boolean;
 }
 
 interface AuthContextType {

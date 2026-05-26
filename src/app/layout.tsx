@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { AdBanner } from '@/components/ads/ad-banner';
 import { ChatWidget } from '@/components/chatbot/chat-widget';
+import { EmailVerificationBanner } from '@/components/ui/email-verification-banner';
 
 export const metadata: Metadata = {
   title: 'VerifiedBizLink | Connecting You to Trusted Businesses',
@@ -41,6 +42,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground overflow-x-hidden">
         <AuthProvider>
+          <EmailVerificationBanner />
           <div className="pb-20 lg:pb-0">
             {children}
           </div>

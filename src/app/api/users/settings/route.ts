@@ -33,7 +33,7 @@ export async function PUT(request: NextRequest) {
         avatar_url = ${avatarUrl || session.avatarUrl},
         updated_at = NOW()
       WHERE id = ${session.id}
-      RETURNING id, email, full_name, role, avatar_url, headline
+      RETURNING id, email, full_name, role, avatar_url, headline, email_verified
     `;
 
     const token = await createSession({
@@ -43,6 +43,7 @@ export async function PUT(request: NextRequest) {
       role: updated[0].role,
       avatarUrl: updated[0].avatar_url || '',
       headline: updated[0].headline || '',
+      emailVerified: updated[0].email_verified ?? session.emailVerified ?? false,
     });
 
     const response = NextResponse.json({ user: updated[0], success: true });

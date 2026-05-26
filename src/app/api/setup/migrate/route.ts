@@ -103,9 +103,13 @@ export async function POST(request: NextRequest) {
     await db`CREATE INDEX IF NOT EXISTS idx_business_reviews_business_id ON business_reviews (business_id)`;
     await db`CREATE INDEX IF NOT EXISTS idx_business_reviews_reviewer_id ON business_reviews (reviewer_id)`;
 
+    // --- v4: Email verification ---
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token TEXT`;
+
     return NextResponse.json({
       success: true,
-      message: 'Migration v3 applied: business_reviews table created.',
+      message: 'Migration v4 applied: email verification columns added.',
     });
   } catch (error) {
     console.error('Migration error:', error);

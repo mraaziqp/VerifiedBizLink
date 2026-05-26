@@ -15,6 +15,7 @@ export interface SessionUser {
   role: string;
   avatarUrl: string;
   headline: string;
+  emailVerified: boolean;
 }
 
 export async function createSession(user: SessionUser): Promise<string> {

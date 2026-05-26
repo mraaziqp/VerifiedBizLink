@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { createSession } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { sendVerificationEmail } from '@/lib/email';
 import db from '@/lib/db';
 
 export async function POST(request: NextRequest) {
-  // Rate limit: max 5 signups per IP per 15 minutes
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
   const rl = checkRateLimit(`signup:${ip}`, 5, 900);
   if (!rl.allowed) {
@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
     }
 
-    // Only customer and business roles are allowed via public signup
     if (role !== 'customer' && role !== 'business') {
       return NextResponse.json({ error: 'Invalid account type' }, { status: 400 });
     }
@@ -37,27 +36,28 @@ export async function POST(request: NextRequest) {
     }
 
     const passwordHash = await hash(password, 12);
+    const verificationToken = crypto.randomUUID();
 
     let userRole = 'user';
     let headline = 'Professional';
     if (role === 'business') { userRole = 'business'; headline = `Owner at ${companyName || 'Company'}`; }
 
     const newUsers = await db`
-      INSERT INTO users (email, password_hash, full_name, role, headline, avatar_url)
+      INSERT INTO users (email, password_hash, full_name, role, headline, avatar_url, email_verification_token)
       VALUES (
         ${email.toLowerCase().trim()},
         ${passwordHash},
         ${fullName},
         ${userRole},
         ${headline},
-        ${''}
+        ${''},
+        ${verificationToken}
       )
-      RETURNING id, email, full_name, role, avatar_url, headline
+      RETURNING id, email, full_name, role, avatar_url, headline, email_verified
     `;
     const user = newUsers[0];
 
     if (role === 'business' && companyName) {
-      // 2-week half-premium trial for all new businesses
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + 14);
       await db`
@@ -75,6 +75,9 @@ export async function POST(request: NextRequest) {
       `;
     }
 
+    // Send verification email (non-blocking — don't fail signup if email fails)
+    sendVerificationEmail(user.email, user.full_name, verificationToken).catch(() => {});
+
     const sessionUser = {
       id: user.id,
       email: user.email,
@@ -82,6 +85,7 @@ export async function POST(request: NextRequest) {
       role: user.role,
       avatarUrl: user.avatar_url || '',
       headline: user.headline || '',
+      emailVerified: user.email_verified ?? false,
     };
 
     const token = await createSession(sessionUser);
