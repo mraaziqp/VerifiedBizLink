@@ -12,6 +12,7 @@ const items = [
   { name: "Compliance", icon: ShieldAlert, tab: "compliance" },
   { name: "System Ops", icon: Terminal, tab: "ops" },
   { name: "Back to Feed", icon: LayoutDashboard, href: "/" },
+  { name: "Settings", icon: Settings, href: "/settings" },
 ];
 
 export function AdminSidebar() {
