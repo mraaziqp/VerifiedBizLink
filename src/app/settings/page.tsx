@@ -462,12 +462,21 @@ export default function SettingsPage() {
                     <CardDescription>Manage your membership plan and payment methods.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-8">
-                    <div className="p-6 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-between">
-                      <div>
-                        <p className="font-bold text-gray-900 text-lg">Professional Plan</p>
-                        <p className="text-sm text-gray-500 font-medium">R799/month · Renews April 1, 2027</p>
+                    <div className="flex flex-col items-center justify-center py-10 gap-4 text-center">
+                      <div className="p-4 rounded-2xl bg-primary/10">
+                        <CreditCard className="h-10 w-10 text-primary" />
                       </div>
-                      <Button variant="outline" className="rounded-xl font-bold" onClick={() => toast({ title: "Coming Soon", description: "Plan management will be available in the billing portal." })}>Manage Plan</Button>
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-lg">Billing Portal Coming Soon</h3>
+                        <p className="text-sm text-gray-500 font-medium mt-1 max-w-sm">
+                          Subscription and payment management will be available here. Contact us to learn about available plans.
+                        </p>
+                      </div>
+                      <a href="/contact">
+                        <Button variant="outline" className="rounded-xl font-bold">
+                          Contact Us About Plans
+                        </Button>
+                      </a>
                     </div>
                   </CardContent>
                 </Card>

@@ -9,13 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { VerificationCelebration } from "@/components/ui/verification-celebration";
 import {
-  ShieldCheck, FileCheck, Building, ArrowRight, AlertCircle,
+  ShieldCheck, FileCheck, Building, AlertCircle,
   Loader2, Upload, PencilLine, Save, Eye, Download, FileText,
 } from "lucide-react";
+
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/auth-context";
+import Link from "next/link";
 
 interface Document {
   id: string;
@@ -60,6 +63,7 @@ export default function VettingPage() {
   const [showProfileEditor, setShowProfileEditor] = useState(false);
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<Document | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
   const fileInputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   const [profileForm, setProfileForm] = useState({
@@ -73,7 +77,7 @@ export default function VettingPage() {
     address: "",
   });
 
-  const fetchBusiness = () => {
+  const fetchBusiness = (showCelebrationIfVerified = false) => {
     setBusinessLoading(true);
     fetch("/api/businesses")
       .then((r) => (r.ok ? r.json() : null))
@@ -90,6 +94,13 @@ export default function VettingPage() {
             phone: data.business.phone || "",
             address: data.business.address || "",
           });
+          if (showCelebrationIfVerified && data.business.status === "verified") {
+            const key = `vbl_celebrated_${data.business.id}`;
+            if (!sessionStorage.getItem(key)) {
+              sessionStorage.setItem(key, "1");
+              setShowCelebration(true);
+            }
+          }
         }
       })
       .finally(() => setBusinessLoading(false));
@@ -97,7 +108,7 @@ export default function VettingPage() {
 
   useEffect(() => {
     if (!user) { setBusinessLoading(false); return; }
-    fetchBusiness();
+    fetchBusiness(true);
   }, [user]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -466,19 +477,18 @@ export default function VettingPage() {
                   <CardContent className="p-6 space-y-4">
                     <h3 className="text-lg font-bold">Why Vetting Matters</h3>
                     <div className="space-y-3">
-                      {["Unlock Global Trade Networks","Higher Placement in Search","Instant Trust with Partners","Exclusive Premium Groups"].map((item, i) => (
+                      {["Unlock Trade Networks","Higher Placement in Search","Instant Trust with Partners","Exclusive Verified Groups"].map((item, i) => (
                         <div key={i} className="flex items-start gap-2 text-sm text-gray-300">
                           <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                           <span className="font-medium">{item}</span>
                         </div>
                       ))}
                     </div>
-                    <Button
-                      className="w-full rounded-xl bg-primary text-gray-900 hover:bg-yellow-400 font-bold shadow-lg shadow-primary/20"
-                      onClick={() => toast({ title: "Why Vetting Matters", description: "Vetting unlocks premium trust signals, higher placement, and exclusive networks." })}
-                    >
-                      Learn More <ArrowRight className="h-4 w-4 ml-2" />
-                    </Button>
+                    <Link href="/contact" className="block">
+                      <Button className="w-full rounded-xl bg-primary text-gray-900 hover:bg-yellow-400 font-bold shadow-lg shadow-primary/20">
+                        Learn More
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
                 <div className="p-5 bg-yellow-50 rounded-2xl border border-yellow-200 flex flex-col gap-3">
@@ -486,17 +496,25 @@ export default function VettingPage() {
                     <AlertCircle className="h-4 w-4" />
                     Help & Support
                   </div>
-                  <p className="text-xs text-yellow-600 font-medium">Need help? Our compliance officers are available 24/7 for business accounts.</p>
-                  <Button variant="link" className="text-xs text-yellow-700 font-bold p-0 h-auto justify-start underline"
-                    onClick={() => toast({ title: "Support Request Sent", description: "Our compliance team will contact you within 24 hours." })}>
-                    Contact Agent
-                  </Button>
+                  <p className="text-xs text-yellow-600 font-medium">Need help? Our compliance officers are available for business accounts.</p>
+                  <Link href="/contact" className="text-xs text-yellow-700 font-bold underline hover:text-yellow-800 transition-colors">
+                    Contact Compliance Agent
+                  </Link>
                 </div>
               </div>
             </div>
           </main>
         </div>
       </div>
+
+      {/* Verification Celebration Modal */}
+      {showCelebration && business && (
+        <VerificationCelebration
+          companyName={business.company_name}
+          trustScore={business.trust_score}
+          onClose={() => setShowCelebration(false)}
+        />
+      )}
 
       {/* Document Preview Dialog */}
       {previewFile && (

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoldCheckmark } from "@/components/ui/gold-checkmark";
-import { MessageSquare, Search, Loader2, UserCheck, UserX, UserMinus } from "lucide-react";
+import { Search, Loader2, UserCheck, UserX, UserMinus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -88,10 +88,6 @@ export default function NetworkPage() {
     finally { setActioning(null); }
   };
 
-  const handleMessage = (name: string) => {
-    toast({ title: "Coming Soon", description: `Direct messaging with ${name} will be available soon.` });
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
@@ -163,14 +159,6 @@ export default function NetworkPage() {
                               </div>
                             </div>
                             <div className="flex gap-1">
-                              <Button
-                                variant="ghost" size="icon"
-                                className="rounded-full text-gray-400 hover:text-primary hover:bg-primary/5"
-                                onClick={() => handleMessage(conn.full_name)}
-                                title="Send message"
-                              >
-                                <MessageSquare className="h-5 w-5" />
-                              </Button>
                               <Button
                                 variant="ghost" size="icon"
                                 className="rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50"
