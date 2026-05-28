@@ -15,6 +15,8 @@ import { VBLLogo } from "@/components/ui/vbl-logo";
 import { RatingSummary } from "@/components/ui/star-rating";
 import { ReviewsList } from "@/components/reviews/reviews-list";
 import { GoldCheckmark } from "@/components/ui/gold-checkmark";
+import { Certificate } from "@/components/ui/certificate";
+import { ApprovalCelebrationModal } from "@/components/ui/approval-celebration-modal";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -60,15 +62,27 @@ export default function BusinessProfilePage() {
   const [business, setBusiness] = useState<BusinessProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [previousStatus, setPreviousStatus] = useState<string | null>(null);
 
   const fetchBusiness = useCallback(async () => {
     setLoading(true);
     const res = await fetch(`/api/businesses/${id}`).catch(() => null);
     if (!res?.ok) { setLoading(false); return; }
     const data = await res.json().catch(() => null);
-    setBusiness(data?.business ?? null);
+    const fetchedBusiness = data?.business ?? null;
+
+    if (fetchedBusiness) {
+      // Check if status changed from non-verified to verified
+      if (previousStatus && previousStatus !== "verified" && fetchedBusiness.status === "verified") {
+        setShowCelebration(true);
+      }
+      setPreviousStatus(fetchedBusiness.status);
+    }
+
+    setBusiness(fetchedBusiness);
     setLoading(false);
-  }, [id]);
+  }, [id, previousStatus]);
 
   useEffect(() => { fetchBusiness(); }, [fetchBusiness]);
 
@@ -115,6 +129,12 @@ export default function BusinessProfilePage() {
 
   return (
     <div className="min-h-screen bg-background">
+      <ApprovalCelebrationModal
+        isOpen={showCelebration}
+        businessName={business?.companyName || ""}
+        onClose={() => setShowCelebration(false)}
+      />
+
       {/* Top nav bar */}
       <header
         className="sticky top-0 z-30 border-b border-border/50"
@@ -297,6 +317,19 @@ export default function BusinessProfilePage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Certificate */}
+            {isVerified && business.verifiedAt && (
+              <Card className="border-border">
+                <CardContent className="p-5">
+                  <Certificate
+                    businessName={business.companyName}
+                    verifiedDate={format(new Date(business.verifiedAt), "d MMMM yyyy")}
+                    certificateNumber={business.id.slice(0, 8).toUpperCase()}
+                  />
+                </CardContent>
+              </Card>
+            )}
 
             {/* Contact */}
             {(business.website || business.phone || business.address || business.location) && (
