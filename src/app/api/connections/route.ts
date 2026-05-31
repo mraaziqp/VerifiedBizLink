@@ -80,8 +80,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, status: 'accepted' });
     }
 
+    if (receiverId === session.id) {
+      return NextResponse.json({ error: 'Cannot connect to yourself' }, { status: 400 });
+    }
+
     const existing = await db`
-      SELECT id FROM connections 
+      SELECT id FROM connections
       WHERE (requester_id = ${session.id} AND receiver_id = ${receiverId})
          OR (requester_id = ${receiverId} AND receiver_id = ${session.id})
       LIMIT 1
