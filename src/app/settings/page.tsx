@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Shield, Bell, CreditCard, Loader2, Camera, Trash2, Download, AlertTriangle, Lock, CheckCircle2, LogOut } from "lucide-react";
+import { User, Shield, Bell, CreditCard, Loader2, Camera, Trash2, Download, AlertTriangle, Lock, CheckCircle2, LogOut, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -30,6 +30,7 @@ export default function SettingsPage() {
     postInteractions: false,
     complianceAlerts: false,
   });
+  const [aiAssistantEnabled, setAiAssistantEnabled] = useState(true);
 
   const [profileForm, setProfileForm] = useState({
     fullName: "",
@@ -465,6 +466,19 @@ export default function SettingsPage() {
                         />
                       </div>
                     ))}
+                    <div className="p-6 border-b last:border-b-0 flex items-center justify-between hover:bg-blue-50 transition-colors bg-blue-50/30">
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <p className="font-bold text-gray-900">AI Assistant</p>
+                          <p className="text-xs text-gray-500 font-medium">Enable smart support and research features</p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={aiAssistantEnabled}
+                        onCheckedChange={setAiAssistantEnabled}
+                      />
+                    </div>
                     <div className="p-6 flex justify-end border-t bg-gray-50/50">
                       <Button
                         onClick={handleSaveNotifications}

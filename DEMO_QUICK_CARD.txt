@@ -1,0 +1,237 @@
+════════════════════════════════════════════════════════════════════
+         VERIFIEDBIZLINK DEMO - QUICK REFERENCE CARD
+════════════════════════════════════════════════════════════════════
+
+TOTAL DEMO TIME: 13 MINUTES
+
+OPENING (1 min) - WHAT TO SAY:
+────────────────────────────────────────────────────────────────────
+"Thank you for being here. When you want to partner with a business,
+you ask: 'Are they real? Can I trust them?'
+
+VerifiedBizLink solves that. We're the first verification-first B2B
+networking platform for South Africa. Every business goes through
+government verification before they can participate.
+
+CIPC registration checks. SARS tax verification. Real proof."
+
+[Point to screen]
+
+
+STEP 1 - SHOW LOGIN PAGE (0:30)
+────────────────────────────────────────────────────────────────────
+WHAT TO SAY:
+"Black and gold branding. Professional. Trustworthy. This is our
+verification-first promise - built in from day one."
+
+WHAT TO POINT TO:
+- Gold/black color scheme
+- "Where ambitious businesses connect" headline
+- Three feature boxes (Verification, Discovery, Profiles)
+- Clean login form
+
+
+STEP 2 - LOGIN (0:45)
+────────────────────────────────────────────────────────────────────
+WHAT TO DO:
+1. Click Email field → type: demo@example.com
+2. Click Password field → type: Demo123!
+3. Click "Sign In Securely" button
+4. Wait for page to load
+
+WHAT TO SAY:
+"Secure authentication. Hashed passwords. JWT tokens. Production-grade
+security."
+
+
+STEP 3 - HOME PAGE TOUR (1.5 min)
+────────────────────────────────────────────────────────────────────
+WHAT TO POINT TO (DON'T CLICK YET):
+1. Left sidebar - navigation
+2. Center feed - posts with gold checkmarks (VERIFIED)
+3. Right sidebar - featured businesses with trust scores
+4. Compliance news widget
+
+WHAT TO SAY:
+"Three columns. Left: navigation. Center: professional activity feed
+where verified businesses connect. Right: featured verified partners.
+
+See the GOLD CHECKMARK? That means verified. CIPC checked. SARS
+verified. Real business. No catfish."
+
+
+STEP 4 - SEARCH & FILTER (1 min)
+────────────────────────────────────────────────────────────────────
+WHAT TO CLICK:
+1. Search box → type: "Manufacturing"
+2. Category filter → click a category
+
+WHAT TO SAY:
+"Instant search across verified businesses. Filter by industry. All
+results are verified."
+
+
+STEP 5 - CLICK BUSINESS PROFILE (1.5 min)
+────────────────────────────────────────────────────────────────────
+WHAT TO CLICK:
+1. Click featured business card (or business name in feed)
+
+WHAT TO POINT TO:
+- Company name & logo
+- Trust score (95/100)
+- Industry tag
+- Verified badge (GREEN)
+- Website, phone, address
+- CONNECT button
+
+WHAT TO SAY:
+"Full verified profile. Trust score of 95 - that's verified status.
+Green badge. Real business. Real reviews from real verified partners.
+
+Click Connect to send a connection request."
+
+THEN CLICK:
+2. "Connect" button
+
+WHAT TO SAY:
+"Connection request sent. Both people verified. Real trust."
+
+
+STEP 6 - VETTING HUB (2 min)
+────────────────────────────────────────────────────────────────────
+WHAT TO CLICK:
+1. Sidebar → "Verify Your Business"
+
+WHAT TO SAY:
+"The heart of our platform. Business verification. Here's how we
+build trust from day one.
+
+Businesses enter their info, then upload five documents:
+
+1. CIPC Registration Certificate
+2. VAT Compliance Letter
+3. Identity Proof of Directors
+4. Proof of Bank Account
+5. Proof Business Exists
+
+NOT OPTIONAL. All five. Always."
+
+WHAT TO POINT TO:
+- Business info form
+- Five document upload boxes
+- Status indicator
+
+WHAT TO SAY:
+"Admin team reviews. Checks against CIPC. Verifies with SARS. Within
+48-72 hours: Verified (gold checkmark) or Rejected (with feedback).
+
+This is what separates us from LinkedIn."
+
+
+STEP 7 - NETWORK TAB (1 min)
+────────────────────────────────────────────────────────────────────
+WHAT TO CLICK:
+1. Sidebar → "Network"
+
+WHAT TO POINT TO:
+- Pending requests
+- Accepted connections
+- Search filter
+- Accept/Reject buttons
+
+WHAT TO SAY:
+"Professional network built on verified relationships. Accept or
+reject requests. Search connections. Message partners.
+
+All verified. All trusted."
+
+
+STEP 8 - MOBILE VIEW (1.5 min)
+────────────────────────────────────────────────────────────────────
+WHAT TO DO:
+1. Press F12 (open DevTools)
+2. Press Ctrl+Shift+M (device emulation)
+3. Select "iPhone 12 Pro"
+
+WHAT TO SAY:
+"Mobile first design. Over 50% of users on mobile.
+
+Watch the layout change. Sidebar disappears. Bottom nav appears:
+Home, Network, Vetting, Settings.
+
+Touch-friendly buttons. Everything works perfectly on mobile."
+
+WHAT TO CLICK:
+- Bottom nav buttons
+- Scroll the feed
+- Tap buttons
+
+THEN:
+4. Press F12 (close DevTools)
+
+
+STEP 9 - CLOSING (0:30)
+────────────────────────────────────────────────────────────────────
+WHAT TO SAY:
+
+"Verification-first B2B networking platform for South Africa.
+
+Every business verified. Every connection trusted. Every review real.
+
+Production-ready. Can go live in 1-2 weeks.
+
+Freemium model. Premium for verified badge, analytics, messaging.
+
+50,000+ businesses in year one.
+
+Questions?"
+
+════════════════════════════════════════════════════════════════════
+
+KEY PHRASES TO USE:
+• "Verification-first"
+• "Government verified"
+• "CIPC and SARS"
+• "Gold checkmark = verified"
+• "Trust at scale"
+• "Production ready"
+• "48-72 hours"
+
+KEY THINGS TO AVOID SAYING:
+✗ "Sorry if it's slow"
+✗ "Usually this works"
+✗ "This is just a demo"
+✗ "We're still working on..."
+
+IF SOMETHING BREAKS:
+Say: "Let me try that again" or "Let me refresh this"
+Don't: Apologize or make excuses
+
+════════════════════════════════════════════════════════════════════
+
+TIMING CHECKLIST:
+☐ 0:00 - 1:00   Opening statement
+☐ 1:00 - 1:30   Show login page
+☐ 1:30 - 2:15   Login
+☐ 2:15 - 3:45   Home page tour
+☐ 3:45 - 4:45   Search & filter
+☐ 4:45 - 6:15   Business profile & connect
+☐ 6:15 - 8:15   Vetting hub
+☐ 8:15 - 9:15   Network tab
+☐ 9:15 - 11:15  Admin panel (OPTIONAL)
+☐ 11:15 - 12:45 Mobile view
+☐ 12:45 - 13:15 Closing statement
+
+════════════════════════════════════════════════════════════════════
+
+BEFORE YOU PRESENT:
+☐ Browser open to http://localhost:9002
+☐ Logged in (test account ready)
+☐ DevTools working (press F12)
+☐ Phone on silent
+☐ Water nearby
+☐ This card visible
+
+YOU'VE GOT THIS! 🚀
+
+════════════════════════════════════════════════════════════════════

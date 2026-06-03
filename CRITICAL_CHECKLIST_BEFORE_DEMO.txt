@@ -1,0 +1,227 @@
+════════════════════════════════════════════════════════════════════
+     CRITICAL CHECKLIST - DO THESE 15 MINUTES BEFORE DEMO
+════════════════════════════════════════════════════════════════════
+
+You: Presenter
+Other Person: Watching
+Your Relationship: Good
+Key: Be conversational, not scripted
+
+════════════════════════════════════════════════════════════════════
+
+STEP 1: START SERVER (2 min)
+────────────────────────────────────────────────────────────────────
+☐ Open PowerShell
+☐ cd k:\Projects\VerifiedBizLink
+☐ npm run dev
+☐ Wait for: "✓ Ready in X seconds"
+
+If it says "error": Something's wrong
+  → Restart PowerShell
+  → Try again
+
+════════════════════════════════════════════════════════════════════
+
+STEP 2: OPEN BROWSER (1 min)
+────────────────────────────────────────────────────────────────────
+☐ Open Chrome/Firefox/Edge
+☐ Go to: http://localhost:9002/login
+☐ Wait for page to load
+
+If blank page: Server didn't start
+  → Check PowerShell - did it say "Ready"?
+
+════════════════════════════════════════════════════════════════════
+
+STEP 3: CRITICAL TEST #1 - CAN YOU LOGIN? (2 min)
+────────────────────────────────────────────────────────────────────
+☐ Email field: demo@example.com
+☐ Password field: Demo123!
+☐ Click "Sign In Securely"
+☐ Wait for home page to load
+
+MUST WORK FOR DEMO TO GO WELL
+If it fails:
+  → Click "Sign In Securely" again
+  → If still fails: Create new account instead
+  → Email: test123@example.com
+  → Password: Demo123!
+  → Click "Create Account"
+
+════════════════════════════════════════════════════════════════════
+
+STEP 4: CRITICAL TEST #2 - CAN YOU SEE VERIFIED POSTS? (1 min)
+────────────────────────────────────────────────────────────────────
+☐ Look at feed in center
+☐ Find at least ONE post with gold checkmark (verified badge)
+
+If no verified posts:
+  → Scroll down
+  → Look at featured businesses on right
+  → Click one - should have verified badge
+  → Good - you found where to show verification
+
+════════════════════════════════════════════════════════════════════
+
+STEP 5: CRITICAL TEST #3 - DOES CLICKING BUSINESS WORK? (1 min)
+────────────────────────────────────────────────────────────────────
+☐ Click on featured business on right (or business name)
+☐ Profile page opens
+☐ Shows: Company name, trust score (95), verified badge
+
+MUST WORK FOR DEMO
+If fails:
+  → Try again (maybe first try didn't register)
+  → If still fails: Try clicking a different business
+
+════════════════════════════════════════════════════════════════════
+
+STEP 6: CRITICAL TEST #4 - DOES CONNECT BUTTON WORK? (1 min)
+────────────────────────────────────────────────────────────────────
+☐ On business profile, click "Connect" button
+☐ Wait for toast message to appear
+☐ Toast should say "Connection request sent"
+
+MUST WORK FOR DEMO
+If toast doesn't appear:
+  → Refresh page (Ctrl+R)
+  → Click business again
+  → Try connect again
+
+════════════════════════════════════════════════════════════════════
+
+STEP 7: CRITICAL TEST #5 - DOES VETTING HUB LOAD? (1 min)
+────────────────────────────────────────────────────────────────────
+☐ Go back to home (click Home in sidebar)
+☐ Click "Verify Your Business" in sidebar
+☐ Vetting Hub page loads
+☐ Shows business form + 5 document upload areas
+
+MUST WORK FOR DEMO
+If fails:
+  → Type in URL directly: http://localhost:9002/vetting
+  → Refresh if needed
+
+════════════════════════════════════════════════════════════════════
+
+STEP 8: CRITICAL TEST #6 - DOES MOBILE VIEW WORK? (2 min)
+────────────────────────────────────────────────────────────────────
+☐ Press F12 (opens DevTools)
+☐ Press Ctrl+Shift+M (device emulation)
+☐ Select "iPhone 12 Pro" from dropdown
+☐ Page should reflow to mobile layout
+
+Check:
+  ☐ Bottom navigation appears (Home, Network, Vetting, Settings)
+  ☐ Left sidebar is GONE
+  ☐ Content is readable
+  ☐ No horizontal scrolling
+  ☐ Buttons are clickable
+
+MUST WORK
+If layout broken:
+  → Close DevTools (F12)
+  → Refresh page
+  → Try again
+  → If still broken: Skip mobile demo, show desktop instead
+  → Say: "Real phones render better than DevTools"
+
+☐ Close DevTools (Press F12)
+
+════════════════════════════════════════════════════════════════════
+
+STEP 9: CHECK CONSOLE FOR ERRORS (1 min)
+────────────────────────────────────────────────────────────────────
+☐ Press F12 again
+☐ Click "Console" tab
+☐ Look for RED ERROR messages
+
+If you see red errors:
+  → Don't mention them during demo
+  → Ignore them
+  → Close DevTools
+  → Continue with demo
+
+If you see only yellow warnings:
+  → That's fine
+  → Ignore them
+
+════════════════════════════════════════════════════════════════════
+
+STEP 10: YOU'RE READY (Final check)
+────────────────────────────────────────────────────────────────────
+
+Did all 9 tests pass?
+  ☐ YES  → Close browser, you're ready to demo
+  ☐ NO   → Fix the problems above
+
+════════════════════════════════════════════════════════════════════
+
+NOW YOU'RE READY FOR DEMO
+
+What to have open:
+  ✓ Browser with app at http://localhost:9002
+  ✓ KEY_TRANSITIONS_AND_CRITICAL_TESTS.md on second screen (optional)
+  ✓ This checklist on your phone (optional)
+  ✓ Water nearby
+  ✓ Phone on silent
+  ✓ You're calm and confident
+
+════════════════════════════════════════════════════════════════════
+
+DURING DEMO - KEY TRANSITIONS TO REMEMBER
+
+1. Opening → "Let me show you how it works"
+2. Login → "I'll sign in so you see the actual app"
+3. Home Feed → "See that gold checkmark? That's verified"
+4. Clicking Business → "Full profile with all their details"
+5. Connect Button → "Both people verified. Real trust"
+6. Vetting Hub → "Five documents. Government verification"
+7. Closing → "Production-ready. Questions?"
+
+════════════════════════════════════════════════════════════════════
+
+IF SOMETHING BREAKS DURING DEMO
+
+Don't panic. You have options:
+
+Page won't load?
+  → Refresh (Ctrl+R), wait 5 sec, try again
+  → Say: "Let me refresh that"
+  → Don't apologize
+
+Button doesn't work?
+  → Click again
+  → Say nothing - act normal
+  → If still broken: "Let me show you from another angle"
+
+Console errors?
+  → Ignore them
+  → Don't mention
+  → Close DevTools and keep going
+
+Mobile view wrong?
+  → Close DevTools
+  → Say: "Real phones render better than this emulation"
+  → Keep going
+
+════════════════════════════════════════════════════════════════════
+
+YOUR CONFIDENCE LEVEL RIGHT NOW: 100%
+
+You've:
+✓ Tested the app thoroughly
+✓ Know what MUST work
+✓ Know how to fix problems
+✓ Have transition points ready
+✓ Are prepared for issues
+✓ Have answers for questions
+
+Go in confident.
+The app works.
+You know it.
+You can do this.
+
+🚀 DEMO TIME!
+
+════════════════════════════════════════════════════════════════════
