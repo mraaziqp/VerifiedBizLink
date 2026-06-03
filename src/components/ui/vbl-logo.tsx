@@ -1,4 +1,5 @@
-﻿import { cn } from "@/lib/utils";
+﻿import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 interface VBLLogoProps {
   /** "icon" = square monogram only; "full" = icon + text; "text" = text only */
@@ -33,42 +34,17 @@ const subTextSizes = {
   xl: "text-sm",
 };
 
-/** Inline SVG - the VBL icon mark (no image load required) */
+/** Image-based VBL icon mark */
 function VBLIcon({ size }: { size: number }) {
   return (
-    <svg
+    <Image
+      src="/vbl-logo.png"
+      alt="VerifiedBizLink logo"
       width={size}
       height={size}
-      viewBox="0 0 200 200"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-label="VerifiedBizLink logo mark"
-      role="img"
       style={{ display: "block", flexShrink: 0 }}
-    >
-      {/* Outer rounded square */}
-      <rect width="200" height="200" rx="36" fill="#0a0a0a" />
-      {/* Gold border ring */}
-      <rect x="4" y="4" width="192" height="192" rx="33" stroke="#F5A800" strokeWidth="3" fill="none" opacity="0.85" />
-      {/* White V chevron */}
-      <path
-        d="M42 55 L78 138 L100 85 L122 138 L158 55"
-        stroke="white"
-        strokeWidth="16"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
-      {/* Gold location pin body */}
-      <path
-        d="M100 150 C82 150 70 138 70 124 C70 105 100 84 100 84 C100 84 130 105 130 124 C130 138 118 150 100 150Z"
-        fill="#F5A800"
-      />
-      {/* Pin hole */}
-      <circle cx="100" cy="122" r="9" fill="#0a0a0a" />
-      {/* Soft glow shadow under pin */}
-      <ellipse cx="100" cy="166" rx="22" ry="6" fill="#F5A800" opacity="0.25" />
-    </svg>
+      priority
+    />
   );
 }
 
