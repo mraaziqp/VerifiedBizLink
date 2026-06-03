@@ -1,0 +1,68 @@
+{
+  "name": "VerifiedBizLink - Connecting Trusted Businesses",
+  "short_name": "VerifiedBizLink",
+  "description": "Business verification and networking platform for South Africa",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#FCC200",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/vbl-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/vbl-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/vbl-icon-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-540.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshot-1280.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
+  "categories": ["business", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Home Feed",
+      "short_name": "Feed",
+      "description": "View your business feed",
+      "url": "/?utm_source=shortcut",
+      "icons": [{ "src": "/vbl-icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Network",
+      "short_name": "Network",
+      "description": "Manage your connections",
+      "url": "/network?utm_source=shortcut",
+      "icons": [{ "src": "/vbl-icon-96.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "Manage your profile",
+      "url": "/settings?utm_source=shortcut",
+      "icons": [{ "src": "/vbl-icon-96.png", "sizes": "96x96" }]
+    }
+  ]
+}

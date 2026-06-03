@@ -6,11 +6,13 @@ import { MobileNav } from '@/components/layout/mobile-nav';
 import { AdBanner } from '@/components/ads/ad-banner';
 import { ChatWidget } from '@/components/chatbot/chat-widget';
 import { EmailVerificationBanner } from '@/components/ui/email-verification-banner';
+import { ServiceWorkerRegister } from '@/components/pwa/sw-register';
 
 export const metadata: Metadata = {
   title: 'VerifiedBizLink | Connecting You to Trusted Businesses',
   description: 'Find and connect with verified local businesses. CIPC and SARS verified. Your trusted business marketplace.',
   applicationName: 'VerifiedBizLink',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -42,6 +44,7 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground overflow-x-hidden">
         <AuthProvider>
+          <ServiceWorkerRegister />
           <EmailVerificationBanner />
           <div className="pb-20 lg:pb-0">
             {children}
