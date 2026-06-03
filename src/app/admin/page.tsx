@@ -64,7 +64,7 @@ export default function AdminDashboard() {
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black text-white">
       {/* Command Palette Backdrop */}
       {showAI && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" />
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-none z-40" />
       )}
 
       {/* Main Admin Layout */}
