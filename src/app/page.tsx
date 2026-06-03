@@ -71,7 +71,6 @@ export default function Home() {
       setHomeData({ stats: data.stats || EMPTY_OVERVIEW.stats, categories: data.categories || [], businesses: data.businesses || [] });
       setLoading(false);
     });
-    setLoading(false);
     return () => { active = false; };
   }, []);
 

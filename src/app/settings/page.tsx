@@ -10,13 +10,15 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Shield, Bell, CreditCard, Loader2, Camera, Trash2, Download, AlertTriangle, Lock, CheckCircle2 } from "lucide-react";
+import { User, Shield, Bell, CreditCard, Loader2, Camera, Trash2, Download, AlertTriangle, Lock, CheckCircle2, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 export default function SettingsPage() {
   const { user, refresh } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -191,6 +193,18 @@ export default function SettingsPage() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      const res = await fetch('/api/auth/logout', { method: 'POST' });
+      if (res.ok) {
+        toast({ title: "Signed Out", description: "You have been signed out." });
+        router.push('/login');
+      }
+    } catch {
+      toast({ title: "Error", description: "Could not sign out.", variant: "destructive" });
+    }
+  };
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -225,7 +239,17 @@ export default function SettingsPage() {
           </aside>
 
           <main className="lg:col-span-9 space-y-6 min-w-0">
-            <h1 className="text-2xl font-bold text-gray-900 px-2">Settings</h1>
+            <div className="flex items-center justify-between px-2">
+              <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+              <Button
+                onClick={handleSignOut}
+                variant="outline"
+                className="rounded-xl font-bold border-red-200 text-red-600 hover:bg-red-50 gap-2"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
+            </div>
 
             <Tabs defaultValue="profile" className="w-full space-y-6">
               <TabsList className="bg-white border p-1 rounded-2xl h-auto shadow-sm w-full lg:w-fit flex overflow-x-auto gap-0">

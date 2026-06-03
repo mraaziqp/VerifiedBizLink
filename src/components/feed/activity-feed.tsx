@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   ThumbsUp, MessageSquare, Share2, MoreHorizontal,
-  Loader2, Send, Flag, ChevronDown, ChevronUp,
+  Loader2, Send, Flag, ChevronDown, ChevronUp, Edit2, Trash2,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -58,6 +58,9 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
   const [commentsLoading, setCommentsLoading] = useState<Record<string, boolean>>({});
   const [commentText, setCommentText] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [deletingPostId, setDeletingPostId] = useState<string | null>(null);
 
   const fetchPosts = useCallback(async () => {
     try {
@@ -204,6 +207,47 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
     toast({ title: "Post reported", description: "Our team will review this content shortly." });
   };
 
+  const handleDeletePost = async (postId: string) => {
+    setDeletingPostId(postId);
+    try {
+      const res = await fetch(`/api/posts/${postId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setPosts(prev => prev.filter(p => p.id !== postId));
+        toast({ title: "Post deleted", description: "Your post has been removed." });
+      } else {
+        toast({ title: "Failed to delete post", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Failed to delete post", variant: "destructive" });
+    } finally {
+      setDeletingPostId(null);
+    }
+  };
+
+  const handleEditPost = async (postId: string) => {
+    if (!editText.trim()) return;
+    try {
+      const res = await fetch(`/api/posts/${postId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editText.trim() }),
+      });
+      if (res.ok) {
+        const { post } = await res.json();
+        setPosts(prev =>
+          prev.map(p => p.id === postId ? { ...p, content: post.content } : p)
+        );
+        setEditingPostId(null);
+        setEditText("");
+        toast({ title: "Post updated", description: "Your changes have been saved." });
+      } else {
+        toast({ title: "Failed to update post", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Failed to update post", variant: "destructive" });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -235,7 +279,7 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
             <CardHeader className="flex flex-row items-center justify-between pb-4">
               <div className="flex items-center gap-3 min-w-0">
                 <Avatar className="h-12 w-12 ring-2 ring-primary/10 shrink-0">
-                  <AvatarImage src={post.author_avatar || `https://picsum.photos/seed/${post.id}/200/200`} />
+                  <AvatarImage src={post.author_avatar || `https://picsum.photos/seed/${post.id}/200/200`} alt={post.author_name} />
                   <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
                 <div className="flex flex-col min-w-0">
@@ -260,6 +304,25 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  {user?.id === post.user_id && (
+                    <>
+                      <DropdownMenuItem
+                        className="gap-2 text-blue-600 cursor-pointer"
+                        onClick={() => { setEditingPostId(post.id); setEditText(post.content); }}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                        Edit Post
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="gap-2 text-red-600 cursor-pointer"
+                        onClick={() => handleDeletePost(post.id)}
+                        disabled={deletingPostId === post.id}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        {deletingPostId === post.id ? 'Deleting...' : 'Delete Post'}
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuItem className="gap-2 text-red-600 cursor-pointer" onClick={() => handleReport(post)}>
                     <Flag className="h-4 w-4" />
                     Report Post
@@ -269,7 +332,34 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
             </CardHeader>
 
             <CardContent className="pb-4">
-              <p className="text-gray-700 leading-relaxed text-[15px]">{post.content}</p>
+              {editingPostId === post.id ? (
+                <div className="space-y-3">
+                  <Textarea
+                    value={editText}
+                    onChange={e => setEditText(e.target.value)}
+                    className="min-h-[100px] rounded-xl resize-none"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingPostId(null)}
+                      className="rounded-xl"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleEditPost(post.id)}
+                      className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl"
+                    >
+                      Save Changes
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-700 leading-relaxed text-[15px]">{post.content}</p>
+              )}
             </CardContent>
 
             <CardFooter className="flex flex-col pt-0 gap-0">
@@ -340,7 +430,7 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
                         return (
                           <div key={comment.id} className="flex gap-2.5 items-start">
                             <Avatar className="h-7 w-7 shrink-0">
-                              <AvatarImage src={comment.author_avatar || `https://picsum.photos/seed/${comment.id}/100/100`} />
+                              <AvatarImage src={comment.author_avatar || `https://picsum.photos/seed/${comment.id}/100/100`} alt={comment.author_name} />
                               <AvatarFallback className="text-[10px]">{cInitials}</AvatarFallback>
                             </Avatar>
                             <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 min-w-0">
@@ -363,7 +453,7 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
                   {/* New comment input */}
                   <div className="flex gap-2.5 items-start">
                     <Avatar className="h-8 w-8 shrink-0">
-                      <AvatarImage src={user?.avatarUrl || `https://picsum.photos/seed/${user?.id || 'me'}/100/100`} />
+                      <AvatarImage src={user?.avatarUrl || `https://picsum.photos/seed/${user?.id || 'me'}/100/100`} alt={user?.fullName || 'Your avatar'} />
                       <AvatarFallback>{user?.fullName?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                     </Avatar>
                     <div className="flex-1 flex gap-2">
