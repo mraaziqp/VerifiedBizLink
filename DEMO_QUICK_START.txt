@@ -1,0 +1,104 @@
+═══════════════════════════════════════════════════════════════
+        VERIFIEDBIZLINK - DEMO QUICK START (Print This!)
+═══════════════════════════════════════════════════════════════
+
+⚡ PRE-DEMO (5 MINUTES BEFORE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. Open: http://localhost:9002
+2. Login test: test1@verifiedbizlink.com / password123
+3. Test one feature quickly (create a post)
+4. Press F11 (full screen mode)
+
+🎬 DEMO FLOW (10 MINUTES)
+━━━━━━━━━━━━━━━━━━━━━━━━
+1. LOGIN (30 sec)
+   - Email: test1@verifiedbizlink.com
+   - Password: password123
+
+2. HOME FEED (1 min)
+   - Point out posts with gold checkmarks ✓
+   - Mention verified businesses
+
+3. CREATE POST (1 min)
+   - Click "What's on your mind?"
+   - Type message
+   - Click Post
+   - Show it appears instantly
+
+4. EDIT & DELETE (1 min)
+   - Click three dots on post
+   - Click "Edit Post"
+   - Update text
+   - Click "Save Changes"
+   - Show "Delete Post" exists
+
+5. NETWORK (1 min)
+   - Click Network tab
+   - Show business connections
+   - Mention request feature
+
+6. SETTINGS (1 min)
+   - Click avatar/menu
+   - Click Settings
+   - Show all tabs (Profile, Security, etc.)
+   - Point out "Sign Out" button (red, top right)
+
+7. MOBILE VIEW (1 min)
+   - Press F12 (DevTools)
+   - Press Ctrl+Shift+M (Mobile)
+   - Show responsive design
+   - Press F12 (close DevTools)
+
+8. CLOSING (1 min)
+   - Recap: "Production-ready, secure, verified businesses"
+   - "Next: App stores in 4-6 weeks"
+
+⚠️  TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━
+Problem: Won't load
+→ Check: http://localhost:9002 running
+→ Refresh page (Ctrl+R)
+
+Problem: Login fails
+→ Email: test1@verifiedbizlink.com
+→ Password: password123
+→ Try again
+
+Problem: Feature broken
+→ Skip it, move to next
+→ Say: "This feature is in development"
+
+TEST ACCOUNTS
+━━━━━━━━━━━━━
+Account 1: test1@verifiedbizlink.com / password123 → USE THIS
+Account 2: test2@verifiedbizlink.com / password123 → Optional
+Admin:     admin@verifiedbizlink.com / password123 → Advanced demo
+
+KEY POINTS TO MENTION
+━━━━━━━━━━━━━━━━━━━
+✓ CIPC verified businesses
+✓ Trust score algorithm
+✓ Real-time features
+✓ Document verification
+✓ Fully responsive
+✓ Production ready
+✓ Secure (JWT, bcrypt)
+
+DON'T MENTION
+━━━━━━━━━━━
+✗ Technical debt
+✗ Future features
+✗ Known issues
+✗ Bugs
+
+KEYBOARD SHORTCUTS
+━━━━━━━━━━━━━━━━
+F11          = Full screen mode
+F12          = Open DevTools
+Ctrl+Shift+M = Mobile view
+Ctrl+R       = Refresh page
+Ctrl+Shift+Delete = Clear cache
+
+═══════════════════════════════════════════════════════════════
+Ready? Press F11 and go! Good luck! 🚀
+═══════════════════════════════════════════════════════════════
