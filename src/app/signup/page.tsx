@@ -42,6 +42,7 @@ export default function SignupPage() {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
+    dateOfBirth: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -76,6 +77,7 @@ export default function SignupPage() {
           email: formData.email,
           password: formData.password,
           fullName: `${formData.firstName} ${formData.lastName}`.trim(),
+          dateOfBirth: formData.dateOfBirth,
           role,
           companyName: formData.companyName,
           regNumber: formData.regNumber,
@@ -224,6 +226,21 @@ export default function SignupPage() {
                     onChange={(e) => update("lastName", e.target.value)}
                   />
                 </div>
+              </div>
+
+              {/* Date of Birth */}
+              <div className="space-y-1.5">
+                <Label htmlFor="dob" className="text-sm font-semibold text-gray-700">Date of Birth</Label>
+                <Input
+                  id="dob"
+                  type="date"
+                  required
+                  className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:bg-white"
+                  value={formData.dateOfBirth}
+                  onChange={(e) => update("dateOfBirth", e.target.value)}
+                  max={new Date().toISOString().split('T')[0]}
+                />
+                <p className="text-xs text-gray-500">We use this to verify eligibility for age-restricted promotions</p>
               </div>
 
               {/* Business fields */}

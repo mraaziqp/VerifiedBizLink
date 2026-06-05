@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { email, password, fullName, role, companyName, regNumber } = await request.json();
+    const { email, password, fullName, dateOfBirth, role, companyName, regNumber } = await request.json();
 
     if (!email || !password || !fullName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     if (role === 'business') { userRole = 'business'; headline = `Owner at ${companyName || 'Company'}`; }
 
     const newUsers = await db`
-      INSERT INTO users (email, password_hash, full_name, role, headline, avatar_url, email_verification_token)
+      INSERT INTO users (email, password_hash, full_name, role, headline, avatar_url, email_verification_token, date_of_birth)
       VALUES (
         ${email.toLowerCase().trim()},
         ${passwordHash},
@@ -51,9 +51,10 @@ export async function POST(request: NextRequest) {
         ${userRole},
         ${headline},
         ${''},
-        ${verificationToken}
+        ${verificationToken},
+        ${dateOfBirth || null}
       )
-      RETURNING id, email, full_name, role, avatar_url, headline, email_verified
+      RETURNING id, email, full_name, role, avatar_url, headline, email_verified, date_of_birth
     `;
     const user = newUsers[0];
 
