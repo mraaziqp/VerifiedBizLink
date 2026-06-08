@@ -60,14 +60,12 @@ Help with verification, privacy (POPI), accounts, networking, and features. Be f
 Key facts: Verification takes 3-7 days, free for all, POPI compliant.
 Support: support@verifiedbizlink.co.za`;
 
-        const response = await ai.generate({
-          model: 'googleai/gemini-2.5-flash',
-          systemPrompt: SYSTEM_PROMPT,
-          prompt: message.trim(),
-        });
+        const fullPrompt = `${SYSTEM_PROMPT}\n\nUser question: ${message.trim()}`;
+        const response = await ai.generate(fullPrompt);
         responseText = response.text || 'Unable to process your request.';
-      } catch {
+      } catch (error) {
         // Fall back to FAQ if AI fails
+        console.error('Genkit error:', error);
         responseText = findResponse(message);
       }
     } else {

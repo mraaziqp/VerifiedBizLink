@@ -82,24 +82,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No changes provided' }, { status: 400 });
     }
 
-    // Build dynamic SQL
-    const setClause = Object.keys(updates)
-      .map((key, i) => `${key} = $${i + 1}`)
-      .join(', ');
-    const values = Object.values(updates);
-
-    const result = await db(
-      db`UPDATE users SET ${setClause} WHERE id = ${session.id} RETURNING id, email, full_name, role, headline`,
-      ...values
-    ).catch(async () => {
-      // Fallback: update one field at a time
-      for (const [key, value] of Object.entries(updates)) {
-        if (key !== 'updated_at') {
-          await db`UPDATE users SET ${key} = ${value} WHERE id = ${session.id}`;
-        }
+    // Update fields one at a time for safety
+    for (const [key, value] of Object.entries(updates)) {
+      if (key === 'email') {
+        await db`UPDATE users SET email = ${value} WHERE id = ${session.id}`;
+      } else if (key === 'password_hash') {
+        await db`UPDATE users SET password_hash = ${value} WHERE id = ${session.id}`;
+      } else if (key === 'updated_at') {
+        await db`UPDATE users SET updated_at = ${value} WHERE id = ${session.id}`;
       }
-      return db`SELECT id, email, full_name, role, headline FROM users WHERE id = ${session.id} LIMIT 1`;
-    });
+    }
+
+    const result = await db`SELECT id, email, full_name, role, headline FROM users WHERE id = ${session.id} LIMIT 1`;
 
     return NextResponse.json({
       success: true,
