@@ -59,7 +59,10 @@ export async function POST(request: NextRequest) {
     });
     return response;
   } catch (error) {
-    console.error('Login error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : '';
+    console.error('Login error:', errorMsg);
+    if (errorStack) console.error('Stack:', errorStack);
+    return NextResponse.json({ error: 'Internal server error', detail: errorMsg }, { status: 500 });
   }
 }

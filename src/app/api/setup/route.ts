@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
         location VARCHAR(255) DEFAULT '',
         avatar_url VARCHAR(500) DEFAULT '',
         role VARCHAR(50) DEFAULT 'user',
+        date_of_birth DATE,
         connections_count INTEGER DEFAULT 0,
         vetting_score INTEGER DEFAULT 0,
         created_at TIMESTAMPTZ DEFAULT NOW(),
