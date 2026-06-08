@@ -1,76 +1,129 @@
-
 "use client";
 
-import { LayoutDashboard, Users, ShieldAlert, Terminal, Settings, LogOut, ChevronRight, ShieldCheck } from "lucide-react";
-import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/contexts/auth-context";
+import { useState } from "react";
+import {
+  LayoutDashboard,
+  DollarSign,
+  Users,
+  CreditCard,
+  BarChart3,
+  Settings,
+  Menu,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-const items = [
-  { name: "Vetting Desk", icon: ShieldCheck, tab: "vetting" },
-  { name: "Compliance", icon: ShieldAlert, tab: "compliance" },
-  { name: "System Ops", icon: Terminal, tab: "ops" },
-  { name: "Back to Feed", icon: LayoutDashboard, href: "/" },
-  { name: "Settings", icon: Settings, href: "/settings" },
+const menuItems = [
+  {
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    id: "overview",
+  },
+  {
+    label: "Tier Management",
+    icon: DollarSign,
+    id: "tiers",
+  },
+  {
+    label: "Users",
+    icon: Users,
+    id: "users",
+  },
+  {
+    label: "Payment Gateway",
+    icon: CreditCard,
+    id: "payment",
+  },
+  {
+    label: "Analytics",
+    icon: BarChart3,
+    id: "analytics",
+  },
+  {
+    label: "Settings",
+    icon: Settings,
+    id: "settings",
+  },
 ];
 
-export function AdminSidebar() {
-  const searchParams = useSearchParams();
-  const activeTab = searchParams.get("tab") || "vetting";
-  const { logout, user } = useAuth();
+export default function AdminSidebar({
+  onNavigate,
+  activeTab,
+}: {
+  onNavigate: (tab: string) => void;
+  activeTab: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <aside className="hidden lg:flex w-64 bg-gray-900 flex-col h-screen fixed left-0 top-0 border-r border-gray-800">
-      <div className="p-6">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary p-2 rounded-lg">
-            <ShieldAlert className="h-6 w-6 text-gray-900" />
-          </div>
-          <span className="text-xl font-bold text-white tracking-tight">Admin Hub</span>
+    <>
+      {/* Mobile Menu Button */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="fixed top-4 left-4 md:hidden z-50 text-white hover:bg-gray-800"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+      </Button>
+
+      {/* Sidebar */}
+      <div
+        className={`fixed left-0 top-0 h-full w-64 bg-gradient-to-br from-gray-900 to-gray-950 border-r border-gray-800 p-6 transition-transform md:translate-x-0 z-40 ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Logo */}
+        <div className="mb-8 pt-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
+              <span className="text-gray-900 font-bold text-sm">⚙</span>
+            </div>
+            Admin
+          </h2>
         </div>
-        {user && (
-          <div className="mt-4 px-1">
-            <p className="text-xs text-gray-400 font-medium truncate">{user.email}</p>
-            <span className="text-xs font-bold text-primary uppercase tracking-wider">{user.role}</span>
-          </div>
-        )}
+
+        {/* Menu Items */}
+        <nav className="space-y-2">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  onNavigate(item.id);
+                  setIsOpen(false);
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-left ${
+                  isActive
+                    ? "bg-yellow-400/10 text-yellow-400 border border-yellow-400/30"
+                    : "text-gray-400 hover:text-white hover:bg-gray-800/50"
+                }`}
+              >
+                <Icon className="h-5 w-5 flex-shrink-0" />
+                <span className="font-medium">{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Help Section */}
+        <div className="mt-auto pt-8 border-t border-gray-800">
+          <Button className="w-full bg-gray-800/50 text-gray-300 hover:bg-gray-700/50 justify-start text-sm">
+            📚 Docs
+          </Button>
+        </div>
       </div>
 
-      <nav className="flex-1 px-4 space-y-1 mt-4">
-        {items.map((item) => {
-          const isActive = item.tab ? activeTab === item.tab : false;
-          const href = item.tab ? `/admin?tab=${item.tab}` : (item.href || '/');
-          return (
-            <Link
-              key={item.name}
-              href={href}
-              className={cn(
-                "flex items-center justify-between px-4 py-3 rounded-xl transition-all group",
-                isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-gray-400 hover:text-white hover:bg-gray-800"
-              )}
-            >
-              <div className="flex items-center gap-3">
-                <item.icon className="h-5 w-5" />
-                <span className="font-semibold">{item.name}</span>
-              </div>
-              <ChevronRight className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="p-4 border-t border-gray-800">
-        <button
-          onClick={logout}
-          className="flex items-center gap-3 w-full px-4 py-3 text-red-400 hover:bg-red-400/10 rounded-xl transition-all font-semibold"
-        >
-          <LogOut className="h-5 w-5" />
-          <span>Sign Out</span>
-        </button>
-      </div>
-    </aside>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 md:hidden z-30"
+          onClick={() => setIsOpen(false)}
+        />
+      )}
+    </>
   );
 }
