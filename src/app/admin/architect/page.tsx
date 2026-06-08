@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Settings, Code2, Zap, Database, LogOut, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AdminProfilePanel } from "@/components/admin/admin-profile-panel";
 
 export default function ArchitectDashboard() {
   const { user, logout } = useAuth();
@@ -81,7 +82,10 @@ export default function ArchitectDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Admin Profile Panel */}
+        <AdminProfilePanel />
+
         {/* System Health */}
         <div className="mb-8">
           <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">

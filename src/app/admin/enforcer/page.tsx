@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Shield, AlertTriangle, CheckCircle2, XCircle, LogOut, Eye, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AdminProfilePanel } from "@/components/admin/admin-profile-panel";
 
 export default function EnforcerDashboard() {
   const { user, logout } = useAuth();
@@ -67,7 +68,10 @@ export default function EnforcerDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Admin Profile Panel */}
+        <AdminProfilePanel />
+
         {/* Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="p-4 rounded-xl bg-red-900/20 border border-red-800/40">

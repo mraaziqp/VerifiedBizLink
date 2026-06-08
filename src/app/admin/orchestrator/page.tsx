@@ -8,6 +8,7 @@ import { TrendingUp, Users, Building2, DollarSign, Activity, Settings, LogOut, C
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
+import { AdminProfilePanel } from "@/components/admin/admin-profile-panel";
 import TierManagement from "@/components/admin/tier-management";
 import UserSubscriptionManager from "@/components/admin/user-subscription-manager";
 import PaymentGatewayConfig from "@/components/admin/payment-gateway-config";
@@ -94,6 +95,11 @@ export default function OrchestratorDashboard() {
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* Admin Profile Section */}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <AdminProfilePanel />
       </div>
 
       {/* Tabs Navigation */}
