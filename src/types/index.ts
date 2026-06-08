@@ -5,9 +5,11 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  accountType: "business" | "customer"; // Business or customer account
   business_name?: string;
+  businessName?: string;
   current_tier?: string;
-  status: "active" | "pending" | "suspended" | "deleted";
+  status: "active" | "pending" | "suspended" | "deleted" | "verified";
   created_at: string;
   updated_at?: string;
 }
