@@ -1,68 +1,41 @@
 {
-  "name": "VerifiedBizLink - Connecting Trusted Businesses",
+  "name": "VerifiedBizLink - Trusted Business Network",
   "short_name": "VerifiedBizLink",
-  "description": "Business verification and networking platform for South Africa",
+  "description": "Connect with verified businesses. Build trust. Grow together.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#FCC200",
   "orientation": "portrait-primary",
+  "theme_color": "#000000",
+  "background_color": "#000000",
+  "categories": ["business", "productivity"],
   "icons": [
     {
-      "src": "/vbl-icon-192.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/vbl-icon-512.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/vbl-icon-maskable.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
     }
   ],
-  "screenshots": [
-    {
-      "src": "/screenshot-540.png",
-      "sizes": "540x720",
-      "type": "image/png",
-      "form_factor": "narrow"
-    },
-    {
-      "src": "/screenshot-1280.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide"
-    }
-  ],
-  "categories": ["business", "productivity"],
   "shortcuts": [
     {
-      "name": "Home Feed",
-      "short_name": "Feed",
-      "description": "View your business feed",
-      "url": "/?utm_source=shortcut",
-      "icons": [{ "src": "/vbl-icon-96.png", "sizes": "96x96" }]
+      "name": "Find Businesses",
+      "short_name": "Discover",
+      "description": "Find trusted businesses near you",
+      "url": "/discover"
     },
     {
-      "name": "Network",
+      "name": "My Network",
       "short_name": "Network",
-      "description": "Manage your connections",
-      "url": "/network?utm_source=shortcut",
-      "icons": [{ "src": "/vbl-icon-96.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Settings",
-      "short_name": "Settings",
-      "description": "Manage your profile",
-      "url": "/settings?utm_source=shortcut",
-      "icons": [{ "src": "/vbl-icon-96.png", "sizes": "96x96" }]
+      "description": "View your business network",
+      "url": "/network"
     }
-  ]
+  ],
+  "prefer_related_applications": false
 }
