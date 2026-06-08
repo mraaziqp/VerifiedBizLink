@@ -13,6 +13,7 @@ const PUBLIC_PATHS = [
 const PUBLIC_PREFIXES = [
   '/api/auth/',
   '/api/setup',
+  '/api/chat',
   '/_next/',
   '/favicon',
 ];

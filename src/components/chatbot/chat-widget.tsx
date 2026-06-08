@@ -172,7 +172,7 @@ export function ChatWidget() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isTyping]);
 
-  const sendMessage = useCallback((textOverride?: string) => {
+  const sendMessage = useCallback(async (textOverride?: string) => {
     const text = (textOverride ?? input).trim();
     if (!text) return;
 
@@ -181,14 +181,29 @@ export function ChatWidget() {
     if (!textOverride) setInput("");
     setIsTyping(true);
 
-    const delay = 700 + Math.random() * 500;
-    setTimeout(() => {
-      const response = findResponse(text);
-      const botMsg: Message = { id: Date.now() + 1, role: "bot", text: response, timestamp: new Date() };
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to get response');
+      }
+
+      const data = await res.json();
+      const botResponse = data.message || 'Sorry, I encountered an error. Please try again.';
+      const botMsg: Message = { id: Date.now() + 1, role: "bot", text: botResponse, timestamp: new Date() };
       setMessages((m) => [...m, botMsg]);
-      setIsTyping(false);
       if (!open) setUnread((u) => u + 1);
-    }, delay);
+    } catch (error) {
+      const errorMsg = 'Sorry, I\'m having trouble connecting. Please check your internet or try again later.';
+      const botMsg: Message = { id: Date.now() + 1, role: "bot", text: errorMsg, timestamp: new Date() };
+      setMessages((m) => [...m, botMsg]);
+    } finally {
+      setIsTyping(false);
+    }
   }, [input, open]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
