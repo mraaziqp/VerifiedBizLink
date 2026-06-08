@@ -54,8 +54,8 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// GET Stripe products (for tier management)
-export async function GET_STRIPE_PRODUCTS(req: NextRequest) {
+// Helper to fetch Stripe products (used internally)
+async function getStripeProducts(req: NextRequest) {
   try {
     // This would call Stripe API to fetch available products
     const stripeKey = process.env.STRIPE_SECRET_KEY;

@@ -4,9 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 // GET single tier with features
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const tier = await db`
       SELECT
         id, name, description, price_usd, price_zar,
@@ -15,7 +16,7 @@ export async function GET(
         features, permissions,
         created_at, updated_at
       FROM subscription_tiers
-      WHERE id = ${params.id}
+      WHERE id = ${id}
     `;
 
     if (tier.length === 0) {
@@ -25,7 +26,7 @@ export async function GET(
     const features = await db`
       SELECT id, feature_name, feature_description, is_enabled, monthly_limit
       FROM tier_features
-      WHERE tier_id = ${params.id}
+      WHERE tier_id = ${id}
       ORDER BY feature_name ASC
     `;
 
@@ -42,14 +43,15 @@ export async function GET(
 // PUT update tier
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const { name, description, price_usd, price_zar, billing_interval, is_active, display_order, features, permissions } = body;
 
     // Check if tier exists
-    const existing = await db`SELECT id FROM subscription_tiers WHERE id = ${params.id}`;
+    const existing = await db`SELECT id FROM subscription_tiers WHERE id = ${id}`;
     if (existing.length === 0) {
       return NextResponse.json({ error: 'Tier not found' }, { status: 404 });
     }
@@ -67,7 +69,7 @@ export async function PUT(
         features = ${JSON.stringify(features || {})},
         permissions = ${JSON.stringify(permissions || {})},
         updated_at = NOW()
-      WHERE id = ${params.id}
+      WHERE id = ${id}
       RETURNING *
     `;
 
@@ -81,15 +83,16 @@ export async function PUT(
 // DELETE tier
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const existing = await db`SELECT id FROM subscription_tiers WHERE id = ${params.id}`;
+    const { id } = await params;
+    const existing = await db`SELECT id FROM subscription_tiers WHERE id = ${id}`;
     if (existing.length === 0) {
       return NextResponse.json({ error: 'Tier not found' }, { status: 404 });
     }
 
-    await db`DELETE FROM subscription_tiers WHERE id = ${params.id}`;
+    await db`DELETE FROM subscription_tiers WHERE id = ${id}`;
 
     return NextResponse.json({ success: true });
   } catch (error) {

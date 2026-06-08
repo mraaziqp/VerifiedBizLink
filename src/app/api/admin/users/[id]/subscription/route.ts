@@ -4,9 +4,10 @@ import { NextRequest, NextResponse } from 'next/server';
 // GET user's current subscription
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const subscription = await db`
       SELECT
         us.id,
@@ -25,7 +26,7 @@ export async function GET(
         us.updated_at
       FROM user_subscriptions us
       JOIN subscription_tiers st ON us.tier_id = st.id
-      WHERE us.user_id = ${params.id} AND us.status = 'active'
+      WHERE us.user_id = ${id} AND us.status = 'active'
       ORDER BY us.started_at DESC
       LIMIT 1
     `;
@@ -47,9 +48,10 @@ export async function GET(
 // POST create or update subscription
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const { tier_id, status = 'active', renews_at, permission_overrides } = body;
 
@@ -61,7 +63,7 @@ export async function POST(
     }
 
     // Check if user exists
-    const user = await db`SELECT id FROM users WHERE id = ${params.id}`;
+    const user = await db`SELECT id FROM users WHERE id = ${id}`;
     if (user.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
@@ -76,7 +78,7 @@ export async function POST(
     await db`
       UPDATE user_subscriptions
       SET status = 'replaced'
-      WHERE user_id = ${params.id} AND status = 'active'
+      WHERE user_id = ${id} AND status = 'active'
     `;
 
     // Create new subscription
@@ -84,7 +86,7 @@ export async function POST(
       INSERT INTO user_subscriptions
         (user_id, tier_id, status, started_at, renews_at, permission_overrides)
       VALUES
-        (${params.id}, ${tier_id}, ${status}, NOW(), ${renews_at || null}, ${JSON.stringify(permission_overrides || {})})
+        (${id}, ${tier_id}, ${status}, NOW(), ${renews_at || null}, ${JSON.stringify(permission_overrides || {})})
       RETURNING *
     `;
 
@@ -98,9 +100,10 @@ export async function POST(
 // PUT update subscription status
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const { subscription_id, status, permission_overrides } = body;
 
@@ -111,27 +114,10 @@ export async function PUT(
       );
     }
 
-    const updateData: Record<string, any> = {
-      status,
-      updated_at: 'NOW()',
-    };
-
-    if (status === 'cancelled') {
-      updateData.cancelled_at = 'NOW()';
-    }
-
-    if (permission_overrides) {
-      updateData.permission_overrides = JSON.stringify(permission_overrides);
-    }
-
-    const fields = Object.keys(updateData)
-      .map((key) => `${key} = ${key === 'updated_at' || key === 'cancelled_at' ? 'NOW()' : `$${key}`}`)
-      .join(', ');
-
     const result = await db`
       UPDATE user_subscriptions
       SET status = ${status}, permission_overrides = ${JSON.stringify(permission_overrides || {})}
-      WHERE id = ${subscription_id} AND user_id = ${params.id}
+      WHERE id = ${subscription_id} AND user_id = ${id}
       RETURNING *
     `;
 
