@@ -4,9 +4,10 @@ import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { TrendingUp, Users, Building2, DollarSign, Activity, Settings, LogOut, CreditCard, Shield } from "lucide-react";
+import { TrendingUp, Users, Building2, DollarSign, Activity, Settings, LogOut, CreditCard, Shield, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Link from "next/link";
 import TierManagement from "@/components/admin/tier-management";
 import UserSubscriptionManager from "@/components/admin/user-subscription-manager";
 import PaymentGatewayConfig from "@/components/admin/payment-gateway-config";
@@ -60,13 +61,23 @@ export default function OrchestratorDashboard() {
             <h1 className="text-2xl font-bold text-white">Orchestrator Portal</h1>
             <p className="text-gray-400 text-sm mt-1">Business intelligence & tier management</p>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Link href="/">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-cyan-500/30 text-cyan-400 hover:border-cyan-500/50 hover:bg-cyan-500/10"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to App
+              </Button>
+            </Link>
             <span className="text-gray-400">{user?.email}</span>
             <Button
               variant="outline"
               size="sm"
               onClick={handleLogout}
-              className="gap-2"
+              className="gap-2 border-red-500/30 text-red-400 hover:border-red-500/50"
             >
               <LogOut className="h-4 w-4" />
               Logout

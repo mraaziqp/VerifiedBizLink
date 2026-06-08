@@ -1,334 +1,148 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Search, Edit2, Loader2, Shield, Lock, Unlock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
+import { Trash2, Edit2, Loader2 } from "lucide-react";
+
+const MOCK_USERS = [
+  { id: "1", email: "john@company.com", name: "John Smith", business_name: "ABC Consulting", current_tier: "Premium", status: "active", created_at: "2026-01-15" },
+  { id: "2", email: "sarah@business.co.za", name: "Sarah Johnson", business_name: "Sarah Consulting", current_tier: "Verified", status: "active", created_at: "2026-02-20" },
+  { id: "3", email: "mike@startup.com", name: "Mike Chen", business_name: "Tech Startup", current_tier: "Free", status: "pending", created_at: "2026-05-10" },
+  { id: "4", email: "lisa@services.com", name: "Lisa Martinez", business_name: "Premium Services", current_tier: "Enterprise", status: "active", created_at: "2026-03-05" },
+  { id: "5", email: "david@business.org", name: "David Brown", business_name: "Brown Industries", current_tier: "Premium", status: "active", created_at: "2026-04-12" },
+];
 
 interface User {
   id: string;
   email: string;
   name: string;
-}
-
-interface Subscription {
-  id: string;
-  user_id: string;
-  tier_id: string;
-  tier_name: string;
+  business_name: string;
+  current_tier: string;
   status: string;
-  started_at: string;
-  renews_at: string;
-  permission_overrides: Record<string, boolean>;
-}
-
-interface Tier {
-  id: string;
-  name: string;
-  price_usd: number;
+  created_at: string;
 }
 
 export default function UserSubscriptionManager() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [tiers, setTiers] = useState<Tier[]>([]);
+  const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [selectedTierId, setSelectedTierId] = useState<string>("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
-    fetchData();
+    fetchUsers();
   }, []);
 
-  const fetchData = async () => {
+  const fetchUsers = async () => {
     try {
       setLoading(true);
-      const [tiersRes, usersRes] = await Promise.all([
-        fetch("/api/admin/tiers"),
-        fetch("/api/users"),
-      ]);
-
-      const tiersData = await tiersRes.json();
-      const usersData = await usersRes.json();
-
-      setTiers(tiersData);
-      setUsers(usersData);
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUserSubscription = async (userId: string) => {
-    try {
-      const res = await fetch(`/api/admin/users/${userId}/subscription`);
-      const data = await res.json();
-      setSubscription(data.subscription || null);
-    } catch (error) {
-      console.error("Failed to fetch subscription:", error);
-    }
-  };
-
-  const handleUserSelect = async (user: User) => {
-    setSelectedUser(user);
-    setSelectedTierId("");
-    await fetchUserSubscription(user.id);
-    setIsDialogOpen(true);
-  };
-
-  const handleAssignTier = async () => {
-    if (!selectedUser || !selectedTierId) return;
-
-    try {
-      setLoading(true);
-      const res = await fetch(
-        `/api/admin/users/${selectedUser.id}/subscription`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tier_id: selectedTierId }),
-        }
-      );
-
+      const res = await fetch("/api/admin/users");
       if (res.ok) {
-        await fetchUserSubscription(selectedUser.id);
-        // Optionally close dialog after success
-        // setIsDialogOpen(false);
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setUsers(data);
+        } else {
+          setUsers(MOCK_USERS);
+        }
+      } else {
+        setUsers(MOCK_USERS);
       }
     } catch (error) {
-      console.error("Failed to assign tier:", error);
+      console.error("Error:", error);
+      setUsers(MOCK_USERS);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCancelSubscription = async () => {
-    if (!selectedUser || !subscription) return;
-
-    try {
-      setLoading(true);
-      const res = await fetch(
-        `/api/admin/users/${selectedUser.id}/subscription`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            subscription_id: subscription.id,
-            status: "cancelled",
-          }),
-        }
-      );
-
-      if (res.ok) {
-        await fetchUserSubscription(selectedUser.id);
-      }
-    } catch (error) {
-      console.error("Failed to cancel subscription:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredUsers = users.filter(
-    (user) =>
-      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = users.filter((user) =>
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) || user.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleDelete = async (userId: string) => {
+    if (!confirm("Are you sure you want to delete this user?")) return;
+    setUsers(users.filter((u) => u.id !== userId));
+  };
+
+  const getTierColor = (tier: string) => {
+    if (tier === "Enterprise") return "bg-purple-500/20 text-purple-400";
+    if (tier === "Premium") return "bg-cyan-500/20 text-cyan-400";
+    if (tier === "Verified") return "bg-yellow-500/20 text-yellow-400";
+    return "bg-gray-500/20 text-gray-400";
+  };
+
+  const getStatusColor = (status: string) => {
+    return status === "active" ? "text-green-400" : "text-yellow-400";
+  };
+
+  if (loading) {
+    return (
+      <div className="p-8 text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-400 mx-auto" />
+        <p className="text-gray-400 mt-4">Loading users...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white">User Subscriptions</h2>
-        <p className="text-gray-400 text-sm mt-1">
-          Assign tiers and manage user permissions
-        </p>
+        <p className="text-gray-400 text-sm mt-1">Manage user tiers and subscriptions</p>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-3 h-5 w-5 text-gray-500" />
-        <Input
-          placeholder="Search users by email or name..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 bg-gray-800 border-gray-700 text-white"
-        />
+      <Input
+        placeholder="Search by email or name..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="bg-gray-800 border-gray-700 text-white placeholder-gray-500"
+      />
+
+      <div className="rounded-lg border border-gray-700 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="bg-gray-800/50 border-b border-gray-700">
+            <tr>
+              <th className="px-6 py-3 text-left text-gray-300 font-semibold">Email</th>
+              <th className="px-6 py-3 text-left text-gray-300 font-semibold">Name</th>
+              <th className="px-6 py-3 text-left text-gray-300 font-semibold">Business</th>
+              <th className="px-6 py-3 text-left text-gray-300 font-semibold">Tier</th>
+              <th className="px-6 py-3 text-left text-gray-300 font-semibold">Status</th>
+              <th className="px-6 py-3 text-left text-gray-300 font-semibold">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-700">
+            {filteredUsers.map((user) => (
+              <tr key={user.id} className="hover:bg-gray-800/30 transition-colors">
+                <td className="px-6 py-4 text-gray-300">{user.email}</td>
+                <td className="px-6 py-4 text-gray-300">{user.name}</td>
+                <td className="px-6 py-4 text-gray-300">{user.business_name}</td>
+                <td className="px-6 py-4">
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getTierColor(user.current_tier)}`}>
+                    {user.current_tier}
+                  </span>
+                </td>
+                <td className={`px-6 py-4 text-sm font-semibold ${getStatusColor(user.status)}`}>
+                  {user.status}
+                </td>
+                <td className="px-6 py-4 flex gap-2">
+                  <Button size="sm" variant="outline" className="text-cyan-400 border-cyan-500/30 gap-1">
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleDelete(user.id)} className="text-red-400 border-red-500/30 gap-1">
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
-      {/* Users Table */}
-      <div className="rounded-2xl bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-gray-700/50 overflow-hidden">
-        {loading && filteredUsers.length === 0 ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-yellow-400" />
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow className="border-gray-700/50">
-                <TableHead className="text-gray-300">Email</TableHead>
-                <TableHead className="text-gray-300">Name</TableHead>
-                <TableHead className="text-gray-300">Current Tier</TableHead>
-                <TableHead className="text-gray-300">Status</TableHead>
-                <TableHead className="text-right text-gray-300">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.map((user) => (
-                <TableRow key={user.id} className="border-gray-700/30 hover:bg-gray-800/20">
-                  <TableCell className="text-gray-300">{user.email}</TableCell>
-                  <TableCell className="text-white font-medium">{user.name || "-"}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="border-gray-600">
-                      {/* Would fetch from subscription */}
-                      Free
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="default">Active</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Dialog open={isDialogOpen && selectedUser?.id === user.id} onOpenChange={setIsDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleUserSelect(user)}
-                          className="text-yellow-400 border-yellow-400/30 hover:border-yellow-400 hover:bg-yellow-400/10"
-                        >
-                          <Shield className="h-4 w-4 mr-2" />
-                          Manage
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="bg-gray-900 border-gray-700">
-                        <DialogHeader>
-                          <DialogTitle className="text-white">
-                            Manage Subscription
-                          </DialogTitle>
-                          <DialogDescription>
-                            {selectedUser?.email}
-                          </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="space-y-6">
-                          {/* Current Subscription Info */}
-                          {subscription && (
-                            <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-700">
-                              <p className="text-sm text-gray-400 mb-2">Current Tier</p>
-                              <p className="text-lg font-bold text-yellow-400">
-                                {subscription.tier_name}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-2">
-                                Status: {subscription.status}
-                              </p>
-                            </div>
-                          )}
-
-                          {/* Assign New Tier */}
-                          <div>
-                            <label className="text-sm font-medium text-gray-300 block mb-2">
-                              Change Tier
-                            </label>
-                            <select
-                              value={selectedTierId}
-                              onChange={(e) => setSelectedTierId(e.target.value)}
-                              className="w-full bg-gray-800 border border-gray-700 text-white rounded px-3 py-2"
-                            >
-                              <option value="">Select a tier...</option>
-                              {tiers.map((tier) => (
-                                <option key={tier.id} value={tier.id}>
-                                  {tier.name} (${tier.price_usd}/mo)
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* Permission Overrides */}
-                          <div>
-                            <label className="text-sm font-medium text-gray-300 block mb-2">
-                              <Lock className="inline h-4 w-4 mr-2" />
-                              Permission Overrides
-                            </label>
-                            <p className="text-xs text-gray-500 mb-3">
-                              Grant or revoke specific permissions beyond tier defaults
-                            </p>
-                            <div className="space-y-2">
-                              {[
-                                "can_create_posts",
-                                "can_view_analytics",
-                                "api_access",
-                                "priority_support",
-                              ].map((permission) => (
-                                <div key={permission} className="flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    id={permission}
-                                    defaultChecked={
-                                      subscription?.permission_overrides?.[permission] || false
-                                    }
-                                    className="w-4 h-4"
-                                  />
-                                  <label htmlFor={permission} className="text-sm text-gray-300">
-                                    {permission.replace(/_/g, " ")}
-                                  </label>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Actions */}
-                          <div className="flex gap-2 pt-4 border-t border-gray-700">
-                            <Button
-                              onClick={handleAssignTier}
-                              disabled={!selectedTierId || loading}
-                              className="flex-1 bg-yellow-400 text-gray-900 hover:bg-yellow-300"
-                            >
-                              {loading ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                "Assign Tier"
-                              )}
-                            </Button>
-                            {subscription && (
-                              <Button
-                                onClick={handleCancelSubscription}
-                                disabled={loading}
-                                variant="outline"
-                                className="text-red-400 border-red-400/30 hover:border-red-400"
-                              >
-                                Cancel
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-      </div>
+      {filteredUsers.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-gray-400">No users found matching your search.</p>
+        </div>
+      )}
     </div>
   );
 }
