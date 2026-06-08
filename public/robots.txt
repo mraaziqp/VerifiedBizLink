@@ -1,0 +1,33 @@
+# VerifiedBizLink Robots.txt
+# Search Engine Crawling Instructions
+
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+Disallow: /settings/
+Disallow: /verify-email/
+Disallow: /*.json$
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /settings
+
+# Specific crawlers
+User-agent: Googlebot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+
+User-agent: Bingbot
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard/
+
+# Crawl delay (in seconds)
+Crawl-delay: 1
+
+# Sitemap
+Sitemap: https://www.verifiedbizlink.co.za/sitemap.xml

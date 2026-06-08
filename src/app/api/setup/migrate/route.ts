@@ -108,9 +108,40 @@ export async function POST(request: NextRequest) {
     await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE`;
     await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token TEXT`;
 
+    // --- v5: Payments ---
+    await db`
+      CREATE TABLE IF NOT EXISTS payments (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        plan_type VARCHAR(50) NOT NULL,
+        amount INTEGER NOT NULL,
+        currency VARCHAR(10) DEFAULT 'ZAR',
+        status VARCHAR(50) DEFAULT 'pending',
+        stripe_intent_id VARCHAR(255),
+        transaction_id VARCHAR(255),
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        completed_at TIMESTAMPTZ
+      )
+    `;
+
+    // --- v5: User Preferences ---
+    await db`
+      CREATE TABLE IF NOT EXISTS user_preferences (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE UNIQUE,
+        email_notifications BOOLEAN DEFAULT TRUE,
+        push_notifications BOOLEAN DEFAULT TRUE,
+        marketing_emails BOOLEAN DEFAULT FALSE,
+        dark_mode BOOLEAN DEFAULT FALSE,
+        language VARCHAR(10) DEFAULT 'en',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+
     return NextResponse.json({
       success: true,
-      message: 'Migration v4 applied: email verification columns added.',
+      message: 'Migration v5 applied: payments and user preferences tables added.',
     });
   } catch (error) {
     console.error('Migration error:', error);
