@@ -19,17 +19,18 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Determine user role based on email or role field
-    // In production, this would come from the user object
-    let role: 'admin' | 'banker' | 'lawyer' | 'ceo' = 'admin';
+    // Determine user role based on email
+    let role: 'admin' | 'banker' | 'lawyer' | 'ceo' = 'ceo'; // Default to CEO for super users
 
-    if (user.email?.includes('ramoen')) {
+    const email = user.email?.toLowerCase() || '';
+
+    if (email.includes('ramoen')) {
       role = 'admin'; // Orchestrator
-    } else if (user.email?.includes('wesley')) {
+    } else if (email.includes('wesley')) {
       role = 'banker'; // Banking Specialist
-    } else if (user.email?.includes('legal')) {
+    } else if (email.includes('legal')) {
       role = 'lawyer'; // Legal Officer
-    } else if (user.email?.includes('mraaziq')) {
+    } else if (email.includes('mraaziq')) {
       role = 'ceo'; // CEO/Founder
     }
 

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Edit2, Loader2 } from "lucide-react";
+import { Trash2, Edit2, Loader2, X, Save } from "lucide-react";
 
 const MOCK_USERS = [
   { id: "1", email: "john@company.com", name: "John Smith", business_name: "ABC Consulting", current_tier: "Premium", status: "active", created_at: "2026-01-15" },
@@ -28,6 +28,8 @@ export default function UserSubscriptionManager() {
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<User | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -59,8 +61,25 @@ export default function UserSubscriptionManager() {
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) || user.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleEdit = (user: User) => {
+    setEditingId(user.id);
+    setEditData({ ...user });
+  };
+
+  const handleSaveEdit = () => {
+    if (!editData) return;
+    setUsers(users.map((u) => (u.id === editingId ? editData : u)));
+    setEditingId(null);
+    setEditData(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditData(null);
+  };
+
   const handleDelete = async (userId: string) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
+    if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;
     setUsers(users.filter((u) => u.id !== userId));
   };
 
@@ -125,7 +144,7 @@ export default function UserSubscriptionManager() {
                   {user.status}
                 </td>
                 <td className="px-6 py-4 flex gap-2">
-                  <Button size="sm" variant="outline" className="text-cyan-400 border-cyan-500/30 gap-1">
+                  <Button size="sm" variant="outline" onClick={() => handleEdit(user)} className="text-cyan-400 border-cyan-500/30 gap-1">
                     <Edit2 className="h-3 w-3" />
                   </Button>
                   <Button size="sm" variant="outline" onClick={() => handleDelete(user.id)} className="text-red-400 border-red-500/30 gap-1">
@@ -141,6 +160,108 @@ export default function UserSubscriptionManager() {
       {filteredUsers.length === 0 && (
         <div className="text-center py-12">
           <p className="text-gray-400">No users found matching your search.</p>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {editingId && editData && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-2xl w-full p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-white">Edit User</h3>
+              <button
+                onClick={handleCancelEdit}
+                className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Email
+                </label>
+                <Input
+                  value={editData.email}
+                  onChange={(e) => setEditData({ ...editData, email: e.target.value })}
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Name
+                </label>
+                <Input
+                  value={editData.name}
+                  onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Business Name
+                </label>
+                <Input
+                  value={editData.business_name}
+                  onChange={(e) => setEditData({ ...editData, business_name: e.target.value })}
+                  className="bg-gray-800 border-gray-600 text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Tier
+                  </label>
+                  <select
+                    value={editData.current_tier}
+                    onChange={(e) => setEditData({ ...editData, current_tier: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-600 bg-gray-800 text-white focus:border-blue-500 focus:outline-none"
+                  >
+                    <option>Free</option>
+                    <option>Premium</option>
+                    <option>Enterprise</option>
+                    <option>Verified</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Status
+                  </label>
+                  <select
+                    value={editData.status}
+                    onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-600 bg-gray-800 text-white focus:border-blue-500 focus:outline-none"
+                  >
+                    <option value="active">Active</option>
+                    <option value="pending">Pending</option>
+                    <option value="suspended">Suspended</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-6">
+                <Button
+                  onClick={handleSaveEdit}
+                  className="flex-1 bg-green-600 hover:bg-green-700 gap-2"
+                >
+                  <Save className="w-4 h-4" />
+                  Save Changes
+                </Button>
+                <Button
+                  onClick={handleCancelEdit}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
