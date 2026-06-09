@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
+import { logAction, logError, LOG_ACTIONS, LOG_RESOURCES } from '@/lib/audit-logger';
 
 export async function DELETE(
   request: NextRequest,
@@ -23,6 +24,17 @@ export async function DELETE(
     }
 
     await db`DELETE FROM posts WHERE id = ${id}`;
+
+    // Log the deletion
+    await logAction(
+      session.id,
+      LOG_ACTIONS.POST_DELETED,
+      LOG_RESOURCES.POST,
+      id,
+      null,
+      null,
+      `Post deleted by user`
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -65,6 +77,17 @@ export async function PUT(
       WHERE id = ${id}
       RETURNING id, content, likes_count, comments_count, created_at
     `;
+
+    // Log the update
+    await logAction(
+      session.id,
+      LOG_ACTIONS.POST_UPDATED,
+      LOG_RESOURCES.POST,
+      id,
+      { content: post[0].content },
+      { content: content.trim() },
+      `Post content updated`
+    );
 
     return NextResponse.json({ post: updated[0] });
   } catch (error) {
