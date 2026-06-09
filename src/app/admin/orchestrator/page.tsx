@@ -74,6 +74,16 @@ export default function OrchestratorDashboard() {
               </Button>
             </Link>
             <span className="text-gray-400">{user?.email}</span>
+            <Link href="/admin/team">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-2 border-purple-500/30 text-purple-400 hover:border-purple-500/50 hover:bg-purple-500/10"
+              >
+                <Users className="h-4 w-4" />
+                Team
+              </Button>
+            </Link>
             <Link href="/admin/settings">
               <Button
                 variant="outline"
