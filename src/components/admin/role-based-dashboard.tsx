@@ -12,7 +12,12 @@ import {
   Lock,
   TrendingUp,
   AlertCircle,
+  X,
 } from 'lucide-react';
+import { TrafficMonitoring } from '@/components/admin-tools/traffic-monitoring';
+import { NetworkStatus } from '@/components/admin-tools/network-status';
+import { AuditLogs } from '@/components/admin-tools/audit-logs';
+import { ComplianceTracker } from '@/components/admin-tools/compliance-tracker';
 
 interface DashboardTool {
   id: string;
@@ -20,7 +25,7 @@ interface DashboardTool {
   description: string;
   icon: React.ReactNode;
   color: string;
-  action: () => void;
+  component?: React.ReactNode;
 }
 
 interface RoleConfig {
@@ -46,7 +51,6 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Manage business verification workflow and vetting status',
           icon: <ShieldCheck className="w-6 h-6" />,
           color: 'from-blue-500 to-cyan-500',
-          action: () => setActiveSection('verification'),
         },
         {
           id: 'traffic',
@@ -54,7 +58,7 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Real-time platform traffic and user activity analytics',
           icon: <Activity className="w-6 h-6" />,
           color: 'from-green-500 to-emerald-500',
-          action: () => setActiveSection('traffic'),
+          component: <TrafficMonitoring />,
         },
         {
           id: 'network',
@@ -62,7 +66,7 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Monitor server health, API performance, and system uptime',
           icon: <Network className="w-6 h-6" />,
           color: 'from-purple-500 to-pink-500',
-          action: () => setActiveSection('network'),
+          component: <NetworkStatus />,
         },
         {
           id: 'analytics',
@@ -70,7 +74,6 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Comprehensive analytics and business intelligence',
           icon: <BarChart3 className="w-6 h-6" />,
           color: 'from-orange-500 to-red-500',
-          action: () => setActiveSection('analytics'),
         },
         {
           id: 'team',
@@ -78,7 +81,6 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Manage admin team members and permissions',
           icon: <Users className="w-6 h-6" />,
           color: 'from-indigo-500 to-blue-500',
-          action: () => setActiveSection('team'),
         },
       ],
     },
@@ -93,7 +95,7 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Track regulatory compliance and legal adherence',
           icon: <BookOpen className="w-6 h-6" />,
           color: 'from-blue-500 to-indigo-500',
-          action: () => setActiveSection('compliance'),
+          component: <ComplianceTracker />,
         },
         {
           id: 'team',
@@ -101,7 +103,6 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Manage admin team members and permissions',
           icon: <Users className="w-6 h-6" />,
           color: 'from-green-500 to-teal-500',
-          action: () => setActiveSection('team'),
         },
         {
           id: 'vetting',
@@ -109,7 +110,6 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Review and process business verification requests',
           icon: <ShieldCheck className="w-6 h-6" />,
           color: 'from-yellow-500 to-orange-500',
-          action: () => setActiveSection('vetting'),
         },
       ],
     },
@@ -124,7 +124,7 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'View all platform activities and changes',
           icon: <AlertCircle className="w-6 h-6" />,
           color: 'from-red-500 to-pink-500',
-          action: () => setActiveSection('audit'),
+          component: <AuditLogs />,
         },
         {
           id: 'compliance',
@@ -132,7 +132,7 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Monitor regulatory compliance status',
           icon: <Lock className="w-6 h-6" />,
           color: 'from-purple-500 to-indigo-500',
-          action: () => setActiveSection('compliance'),
+          component: <ComplianceTracker />,
         },
         {
           id: 'team',
@@ -140,7 +140,6 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Manage admin team members and permissions',
           icon: <Users className="w-6 h-6" />,
           color: 'from-cyan-500 to-blue-500',
-          action: () => setActiveSection('team'),
         },
       ],
     },
@@ -155,7 +154,7 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Real-time platform traffic and user metrics',
           icon: <Activity className="w-6 h-6" />,
           color: 'from-green-500 to-emerald-500',
-          action: () => setActiveSection('traffic'),
+          component: <TrafficMonitoring />,
         },
         {
           id: 'network',
@@ -163,7 +162,7 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Monitor infrastructure health and performance',
           icon: <Network className="w-6 h-6" />,
           color: 'from-blue-500 to-purple-500',
-          action: () => setActiveSection('network'),
+          component: <NetworkStatus />,
         },
         {
           id: 'team',
@@ -171,7 +170,6 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Manage all admin team members',
           icon: <Users className="w-6 h-6" />,
           color: 'from-orange-500 to-red-500',
-          action: () => setActiveSection('team'),
         },
       ],
     },
@@ -216,7 +214,7 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           {config.tools.map((tool) => (
             <button
               key={tool.id}
-              onClick={tool.action}
+              onClick={() => setActiveSection(tool.id)}
               className={`group rounded-xl border border-gray-700 bg-gradient-to-br ${tool.color} opacity-10 hover:opacity-20 transition-all p-6 text-left hover:border-gray-600`}
             >
               <div className="flex items-start justify-between mb-3">
@@ -246,30 +244,15 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
             </h3>
             <button
               onClick={() => setActiveSection(null)}
-              className="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
+              className="p-2 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors"
             >
-              Close
+              <X className="w-6 h-6" />
             </button>
           </div>
 
-          {/* Tool Content Placeholder */}
-          <div className="min-h-96 rounded-lg border border-gray-700 bg-gray-800/30 p-6 flex items-center justify-center">
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-8 h-8 text-blue-400" />
-              </div>
-              <p className="text-gray-400 text-lg">
-                {config.tools.find((t) => t.id === activeSection)?.name} Tool
-              </p>
-              <p className="text-gray-500 text-sm mt-2">
-                {config.tools.find((t) => t.id === activeSection)?.description}
-              </p>
-              <div className="mt-6 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                <p className="text-blue-400 text-sm">
-                  ✓ This tool is fully accessible to your role
-                </p>
-              </div>
-            </div>
+          {/* Tool Content */}
+          <div>
+            {config.tools.find((t) => t.id === activeSection)?.component}
           </div>
         </div>
       )}
