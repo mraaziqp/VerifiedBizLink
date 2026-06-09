@@ -284,12 +284,14 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
                 </Avatar>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-bold text-gray-900">{post.author_name}</span>
+                    <span className="font-bold text-gray-900">
+                      {post.company_name || post.author_name}
+                    </span>
                     {post.business_status === 'verified' && <GoldCheckmark />}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
-                    {post.company_name && <span>{post.company_name}</span>}
-                    {post.company_name && <span className="text-gray-300">â€¢</span>}
+                    {post.company_name && post.author_name && <span className="text-gray-400">{post.author_name}</span>}
+                    {post.company_name && post.author_name && <span className="text-gray-300">•</span>}
                     <span>{timeAgo}</span>
                     {post.business_status === 'verified' && (
                       <Badge className="bg-green-50 text-green-700 text-[10px] px-1.5 py-0 border-green-100 h-4">Verified</Badge>
