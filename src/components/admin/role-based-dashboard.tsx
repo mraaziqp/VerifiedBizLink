@@ -18,6 +18,7 @@ import { TrafficMonitoring } from '@/components/admin-tools/traffic-monitoring';
 import { NetworkStatus } from '@/components/admin-tools/network-status';
 import { AuditLogs } from '@/components/admin-tools/audit-logs';
 import { ComplianceTracker } from '@/components/admin-tools/compliance-tracker';
+import { VettingPortal } from '@/components/admin-tools/vetting-portal';
 
 interface DashboardTool {
   id: string;
@@ -110,6 +111,7 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
           description: 'Review and process business verification requests',
           icon: <ShieldCheck className="w-6 h-6" />,
           color: 'from-yellow-500 to-orange-500',
+          component: <VettingPortal />,
         },
       ],
     },
@@ -215,7 +217,7 @@ export function RoleBasedDashboard({ role }: { role: 'admin' | 'banker' | 'lawye
             <button
               key={tool.id}
               onClick={() => setActiveSection(tool.id)}
-              className={`group rounded-xl border border-gray-700 bg-gradient-to-br ${tool.color} opacity-10 hover:opacity-20 transition-all p-6 text-left hover:border-gray-600`}
+              className={`group rounded-xl border border-gray-700 bg-gradient-to-br ${tool.color} opacity-25 hover:opacity-40 transition-all p-6 text-left hover:border-gray-500 shadow-lg hover:shadow-xl`}
             >
               <div className="flex items-start justify-between mb-3">
                 <div className={`p-3 rounded-lg bg-gradient-to-br ${tool.color} text-white`}>
