@@ -23,35 +23,35 @@ export function VerificationHero() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-green-100">
-          <Shield className="h-5 w-5 text-green-600 flex-shrink-0" />
-          <div>
-            <p className="text-xs font-semibold text-green-900">Verified</p>
-            <p className="text-sm text-green-700">CIPC & SARS</p>
+        <div className="flex flex-col items-center justify-center gap-2 p-4 md:p-5 bg-white rounded-lg border border-green-100 min-h-24">
+          <Shield className="h-6 w-6 text-green-600" />
+          <div className="text-center">
+            <p className="text-xs md:text-sm font-semibold text-green-900">Verified</p>
+            <p className="text-xs md:text-sm text-green-700">CIPC & SARS</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-green-100">
-          <Award className="h-5 w-5 text-green-600 flex-shrink-0" />
-          <div>
-            <p className="text-xs font-semibold text-green-900">Trusted</p>
-            <p className="text-sm text-green-700">Official Records</p>
+        <div className="flex flex-col items-center justify-center gap-2 p-4 md:p-5 bg-white rounded-lg border border-green-100 min-h-24">
+          <Award className="h-6 w-6 text-green-600" />
+          <div className="text-center">
+            <p className="text-xs md:text-sm font-semibold text-green-900">Trusted</p>
+            <p className="text-xs md:text-sm text-green-700">Official Records</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-green-100">
-          <TrendingUp className="h-5 w-5 text-green-600 flex-shrink-0" />
-          <div>
-            <p className="text-xs font-semibold text-green-900">Growing</p>
-            <p className="text-sm text-green-700">Active Connections</p>
+        <div className="flex flex-col items-center justify-center gap-2 p-4 md:p-5 bg-white rounded-lg border border-green-100 min-h-24">
+          <TrendingUp className="h-6 w-6 text-green-600" />
+          <div className="text-center">
+            <p className="text-xs md:text-sm font-semibold text-green-900">Growing</p>
+            <p className="text-xs md:text-sm text-green-700">Active Connections</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-green-100">
-          <Shield className="h-5 w-5 text-green-600 flex-shrink-0" />
-          <div>
-            <p className="text-xs font-semibold text-green-900">Secure</p>
-            <p className="text-sm text-green-700">Encrypted Data</p>
+        <div className="flex flex-col items-center justify-center gap-2 p-4 md:p-5 bg-white rounded-lg border border-green-100 min-h-24">
+          <Shield className="h-6 w-6 text-green-600" />
+          <div className="text-center">
+            <p className="text-xs md:text-sm font-semibold text-green-900">Secure</p>
+            <p className="text-xs md:text-sm text-green-700">Encrypted Data</p>
           </div>
         </div>
       </div>
