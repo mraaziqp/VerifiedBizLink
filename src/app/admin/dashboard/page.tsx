@@ -37,28 +37,21 @@ export default function AdminDashboard() {
     return null;
   }
 
-  // Determine if user is admin or banker
-  const isAdmin = user.email?.toLowerCase().includes('ramoen');
-  const isBanker = user.email?.toLowerCase().includes('wesley');
-  const isAuthorized = isAdmin || isBanker;
+  // Determine user role - anyone with the app has admin access
+  const userEmail = user.email?.toLowerCase() || '';
+  const userFullName = user.fullName?.toLowerCase() || '';
 
-  if (!isAuthorized) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <Card className="bg-gray-800/50 border-red-500/50">
-          <CardContent className="p-8">
-            <p className="text-red-400">Access Denied. This page is for admins only.</p>
-            <Button onClick={() => router.push('/')} className="mt-4">
-              Go Home
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const isRamoen = userEmail.includes('ramoen') || userFullName.includes('ramoen');
+  const isWesley = userEmail.includes('wesley') || userFullName.includes('wesley');
+  const isSuperAdmin = userEmail.includes('mraaziq') || userEmail.includes('backupe9'); // Super admin - you
 
-  // Admin tools for Ramoen (CEO/Admin)
-  const adminTools: AdminTool[] = isAdmin ? [
+  // Everyone who can access the app can access admin tools
+  // Different roles see different tools
+  const isAdmin = isRamoen || isSuperAdmin;
+  const isBanker = isWesley || isSuperAdmin;
+
+  // All admin tools - Ramoen & Super Admin
+  const adminTools: AdminTool[] = [
     {
       id: 'business-verification',
       name: 'Business Verification',
@@ -112,10 +105,10 @@ export default function AdminDashboard() {
       href: '/admin/settings',
       color: 'from-gray-600 to-gray-700',
     },
-  ] : [];
+  ];
 
-  // Banking tools for Wesley (Banker)
-  const bankingTools: AdminTool[] = isBanker ? [
+  // Banking tools for Wesley
+  const bankingTools: AdminTool[] = [
     {
       id: 'business-vetting',
       name: 'Business Vetting Portal',
@@ -141,9 +134,27 @@ export default function AdminDashboard() {
       href: '/admin/team',
       color: 'from-purple-500 to-pink-500',
     },
-  ] : [];
+  ];
 
-  const tools = isAdmin ? adminTools : bankingTools;
+  // Determine which tools to show
+  let tools: AdminTool[] = [];
+  let dashboardTitle = '';
+  let dashboardDescription = '';
+
+  if (isRamoen) {
+    tools = adminTools;
+    dashboardTitle = '👑 Admin Control Center';
+    dashboardDescription = 'Manage platform, businesses, and verification';
+  } else if (isWesley) {
+    tools = bankingTools;
+    dashboardTitle = '🏦 Banking Portal';
+    dashboardDescription = 'Review and approve business vetting requests';
+  } else if (isSuperAdmin) {
+    // Super admin sees everything
+    tools = [...adminTools, ...bankingTools.filter(t => !adminTools.find(a => a.id === t.id))];
+    dashboardTitle = '⭐ Super Admin Dashboard';
+    dashboardDescription = 'Full platform access and control';
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
@@ -152,14 +163,8 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-4xl font-bold text-white">
-                {isAdmin ? '👑 Admin Control Center' : '🏦 Banking Portal'}
-              </h1>
-              <p className="text-gray-400 mt-2">
-                {isAdmin
-                  ? 'Manage platform, businesses, and verification'
-                  : 'Review and approve business vetting requests'}
-              </p>
+              <h1 className="text-4xl font-bold text-white">{dashboardTitle}</h1>
+              <p className="text-gray-400 mt-2">{dashboardDescription}</p>
             </div>
             <div className="flex gap-2">
               <Link href="/admin/orchestrator">
@@ -187,7 +192,9 @@ export default function AdminDashboard() {
                 <p className="text-gray-400 text-sm">Logged in as</p>
                 <p className="text-white text-lg font-semibold">{user.fullName || user.email}</p>
                 <p className="text-gray-400 text-sm mt-1">
-                  Role: <span className="text-blue-400 font-semibold">{isAdmin ? 'Admin' : 'Banker'}</span>
+                  Role: <span className={`font-semibold ${isSuperAdmin ? 'text-yellow-400' : isRamoen ? 'text-green-400' : 'text-blue-400'}`}>
+                    {isSuperAdmin ? 'Super Admin' : isRamoen ? 'Admin' : 'Banker'}
+                  </span>
                 </p>
               </div>
               <div className="text-right">
@@ -240,7 +247,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Stats */}
-        {isAdmin && (
+        {(isRamoen || isSuperAdmin) && (
           <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="bg-gray-800/40 border-gray-700">
               <CardContent className="p-6">
@@ -269,7 +276,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {isBanker && (
+        {(isWesley || isSuperAdmin) && isWesley && (
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="bg-gray-800/40 border-gray-700">
               <CardContent className="p-6">
