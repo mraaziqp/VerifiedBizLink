@@ -6,6 +6,7 @@ import { HomeHeader } from "@/components/layout/home-header";
 import { SearchInterface } from "@/components/home/search-interface";
 import { PopularCategories } from "@/components/home/popular-categories";
 import { FeaturedBusinesses } from "@/components/home/featured-businesses";
+import { VerificationHero } from "@/components/home/verification-hero";
 import { HomeOverviewResponse } from "@/components/home/types";
 import { useToast } from "@/hooks/use-toast";
 import { PostCreator } from "@/components/feed/post-creator";
@@ -129,6 +130,9 @@ export default function Home() {
 
           {/* Main feed column */}
           <main className="md:col-span-6 space-y-4">
+            {/* Verification Hero */}
+            <VerificationHero />
+
             {/* Search + location */}
             <SearchInterface
               query={query}
