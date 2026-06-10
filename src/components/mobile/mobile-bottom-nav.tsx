@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Search, MessageSquare, User, Menu,
+  Home, Search, MessageSquare, User, Menu, TrendingUp,
 } from "lucide-react";
 
 interface NavItem {
@@ -28,6 +28,12 @@ export function MobileBottomNav() {
       label: "Discover",
       href: "/discover",
       active: pathname === "/discover",
+    },
+    {
+      icon: <TrendingUp className="h-6 w-6" />,
+      label: "Market",
+      href: "/marketplace",
+      active: pathname === "/marketplace",
     },
     {
       icon: <MessageSquare className="h-6 w-6" />,
