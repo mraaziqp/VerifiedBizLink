@@ -7,7 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PriceCard } from '@/components/market/price-card';
 import { MarketNewsCard } from '@/components/market/market-news-card';
 import { PriceChart } from '@/components/market/price-chart';
-import { Loader2, Search, ArrowLeft, AlertCircle } from 'lucide-react';
+import { MarketStats } from '@/components/market/market-stats';
+import { PriceComparator } from '@/components/market/price-comparator';
+import { Loader2, Search, ArrowLeft, AlertCircle, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
 
 interface Price {
@@ -36,12 +38,11 @@ interface MarketNews {
   relatedCommodities: string[];
 }
 
-// Mock historical data for charts (24 hours)
 const generateHistoricalData = (currentPrice: number) => {
   const data = [];
   for (let i = 23; i >= 0; i--) {
     const time = `${i}h ago`;
-    const variance = (Math.random() - 0.5) * 2 * currentPrice * 0.05; // 5% variance
+    const variance = (Math.random() - 0.5) * 2 * currentPrice * 0.05;
     data.push({
       time,
       price: parseFloat((currentPrice + variance).toFixed(2))
@@ -51,6 +52,7 @@ const generateHistoricalData = (currentPrice: number) => {
 };
 
 const CATEGORIES = ['Precious Metals', 'Industrial Metals', 'Energy', 'Agriculture'];
+type SortOption = 'name' | 'price' | 'change' | 'changePercent';
 
 export default function MarketplacePage() {
   const [prices, setPrices] = useState<Price[]>([]);
@@ -61,6 +63,26 @@ export default function MarketplacePage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedCommodity, setSelectedCommodity] = useState<Price | null>(null);
   const [watchlist, setWatchlist] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+
+  // Load watchlist from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('marketplace-watchlist');
+    if (saved) {
+      try {
+        setWatchlist(JSON.parse(saved));
+      } catch (e) {
+        console.error('Error loading watchlist:', e);
+      }
+    }
+  }, []);
+
+  // Save watchlist to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('marketplace-watchlist', JSON.stringify(watchlist));
+  }, [watchlist]);
 
   // Fetch commodity prices
   useEffect(() => {
@@ -70,6 +92,7 @@ export default function MarketplacePage() {
         const response = await fetch('/api/market/prices');
         const data = await response.json();
         setPrices(data.data || []);
+        setLastUpdated(new Date());
       } catch (error) {
         console.error('Error fetching prices:', error);
       } finally {
@@ -77,6 +100,8 @@ export default function MarketplacePage() {
       }
     };
     fetchPrices();
+    const interval = setInterval(fetchPrices, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // Fetch market news
@@ -94,15 +119,36 @@ export default function MarketplacePage() {
       }
     };
     fetchNews();
+    const interval = setInterval(fetchNews, 60000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Filter prices
-  const filteredPrices = prices.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.symbol.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || p.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  // Filter and sort prices
+  const filteredPrices = prices
+    .filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.symbol.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = !selectedCategory || p.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      let compareValue = 0;
+      switch (sortBy) {
+        case 'name':
+          compareValue = a.name.localeCompare(b.name);
+          break;
+        case 'price':
+          compareValue = a.price - b.price;
+          break;
+        case 'change':
+          compareValue = a.change - b.change;
+          break;
+        case 'changePercent':
+          compareValue = a.changePercent - b.changePercent;
+          break;
+      }
+      return sortOrder === 'asc' ? compareValue : -compareValue;
+    });
 
   const handleWatchlistToggle = (symbol: string, isWatched: boolean) => {
     setWatchlist(prev =>
@@ -113,6 +159,7 @@ export default function MarketplacePage() {
   };
 
   const chartData = selectedCommodity ? generateHistoricalData(selectedCommodity.price) : [];
+  const watchedPrices = prices.filter(p => watchlist.includes(p.symbol));
 
   return (
     <div className="min-h-screen bg-black pt-20">
@@ -125,8 +172,16 @@ export default function MarketplacePage() {
               Back to App
             </Button>
           </Link>
-          <h1 className="text-4xl font-bold text-white mb-2">Marketplace</h1>
-          <p className="text-zinc-400">Real-time commodity prices, market news, and insights</p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-4xl font-bold text-white mb-2">Marketplace</h1>
+              <p className="text-zinc-400">Real-time commodity prices, market news, and analysis</p>
+            </div>
+            <div className="text-right text-xs text-zinc-500">
+              <p>Updated {lastUpdated.toLocaleTimeString()}</p>
+              <p className="text-zinc-600">Auto-refresh every 30s</p>
+            </div>
+          </div>
         </div>
 
         <Tabs defaultValue="prices" className="w-full">
@@ -138,8 +193,14 @@ export default function MarketplacePage() {
 
           {/* Prices Tab */}
           <TabsContent value="prices" className="space-y-6">
+            {/* Market Stats */}
+            {!loadingPrices && <MarketStats prices={prices} />}
+
+            {/* Price Comparator */}
+            {!loadingPrices && <PriceComparator prices={prices} />}
+
+            {/* Search, Filter, and Sort */}
             <div className="space-y-4">
-              {/* Search and Filter */}
               <div className="flex gap-4 flex-col sm:flex-row">
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-zinc-500" />
@@ -163,62 +224,88 @@ export default function MarketplacePage() {
                 </select>
               </div>
 
-              {/* Selected Commodity Chart */}
-              {selectedCommodity && (
-                <div className="border border-zinc-800 rounded-lg p-6 bg-zinc-900/50">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h3 className="text-xl font-bold text-white">{selectedCommodity.name}</h3>
-                      <p className="text-zinc-400">${selectedCommodity.price.toFixed(2)} {selectedCommodity.unit}</p>
-                    </div>
-                    <Button
-                      onClick={() => setSelectedCommodity(null)}
-                      variant="outline"
-                      className="border-zinc-800 hover:border-zinc-700"
-                    >
-                      Close
-                    </Button>
-                  </div>
-                  <PriceChart
-                    data={chartData}
-                    commodity={selectedCommodity.symbol}
-                    color={selectedCommodity.change >= 0 ? '#22c55e' : '#ef4444'}
-                    height={300}
-                  />
-                </div>
-              )}
-
-              {/* Price Cards Grid */}
-              {loadingPrices ? (
-                <div className="flex justify-center items-center py-12">
-                  <Loader2 className="h-8 w-8 text-zinc-400 animate-spin" />
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredPrices.map(price => (
-                    <div
-                      key={price.symbol}
-                      onClick={() => setSelectedCommodity(price)}
-                      className="cursor-pointer hover:scale-105 transition-transform"
-                    >
-                      <PriceCard
-                        symbol={price.symbol}
-                        name={price.name}
-                        price={price.price}
-                        change={price.change}
-                        changePercent={price.changePercent}
-                        unit={price.unit}
-                        high24h={price.high24h}
-                        low24h={price.low24h}
-                        trend={price.trend}
-                        category={price.category}
-                        onWatchlistToggle={handleWatchlistToggle}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Sort Options */}
+              <div className="flex gap-2 flex-wrap items-center">
+                <span className="text-xs text-zinc-400">Sort:</span>
+                {(['name', 'price', 'change', 'changePercent'] as SortOption[]).map(option => (
+                  <button
+                    key={option}
+                    onClick={() => {
+                      if (sortBy === option) {
+                        setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+                      } else {
+                        setSortBy(option);
+                        setSortOrder('asc');
+                      }
+                    }}
+                    className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                      sortBy === option
+                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                        : 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 border border-zinc-700'
+                    }`}
+                  >
+                    {option === 'name' ? 'Name' : option === 'price' ? 'Price' : option === 'change' ? 'Change $' : 'Change %'}
+                    {sortBy === option && (sortOrder === 'asc' ? ' ↑' : ' ↓')}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {/* Selected Commodity Chart */}
+            {selectedCommodity && (
+              <div className="border border-zinc-800 rounded-lg p-6 bg-zinc-900/50">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-white">{selectedCommodity.name}</h3>
+                    <p className="text-zinc-400">${selectedCommodity.price.toFixed(2)} {selectedCommodity.unit}</p>
+                  </div>
+                  <Button
+                    onClick={() => setSelectedCommodity(null)}
+                    variant="outline"
+                    className="border-zinc-800 hover:border-zinc-700"
+                  >
+                    Close
+                  </Button>
+                </div>
+                <PriceChart
+                  data={chartData}
+                  commodity={selectedCommodity.symbol}
+                  color={selectedCommodity.change >= 0 ? '#22c55e' : '#ef4444'}
+                  height={300}
+                />
+              </div>
+            )}
+
+            {/* Price Cards Grid */}
+            {loadingPrices ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="h-8 w-8 text-zinc-400 animate-spin" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredPrices.map(price => (
+                  <div
+                    key={price.symbol}
+                    onClick={() => setSelectedCommodity(price)}
+                    className="cursor-pointer hover:scale-105 transition-transform"
+                  >
+                    <PriceCard
+                      symbol={price.symbol}
+                      name={price.name}
+                      price={price.price}
+                      change={price.change}
+                      changePercent={price.changePercent}
+                      unit={price.unit}
+                      high24h={price.high24h}
+                      low24h={price.low24h}
+                      trend={price.trend}
+                      category={price.category}
+                      onWatchlistToggle={handleWatchlistToggle}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
 
           {/* Market News Tab */}
@@ -245,10 +332,14 @@ export default function MarketplacePage() {
                 <p className="text-sm text-zinc-500">Click the heart icon on commodity cards to add to your watchlist</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {prices
-                  .filter(p => watchlist.includes(p.symbol))
-                  .map(price => (
+              <div>
+                <div className="mb-4 p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
+                  <p className="text-sm text-zinc-400">
+                    <strong>Your Watchlist:</strong> {watchedPrices.length} commodities tracked
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {watchedPrices.map(price => (
                     <div
                       key={price.symbol}
                       onClick={() => setSelectedCommodity(price)}
@@ -269,6 +360,7 @@ export default function MarketplacePage() {
                       />
                     </div>
                   ))}
+                </div>
               </div>
             )}
           </TabsContent>
