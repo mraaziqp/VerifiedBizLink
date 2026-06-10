@@ -284,9 +284,12 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
                 </Avatar>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-bold text-gray-900">
+                    <a
+                      href={`/business/${post.user_id}`}
+                      className="font-bold text-gray-900 hover:text-primary hover:underline transition-colors"
+                    >
                       {post.company_name || post.author_name}
-                    </span>
+                    </a>
                     {post.business_status === 'verified' && <GoldCheckmark />}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">
@@ -460,8 +463,8 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
                     </Avatar>
                     <div className="flex-1 flex gap-2">
                       <Textarea
-                        placeholder="Write a commentâ€¦ (Ctrl+Enter to post)"
-                        className="min-h-[68px] text-sm rounded-xl resize-none bg-gray-50 border-gray-200 focus-visible:ring-primary flex-1"
+                        placeholder="Write a comment"
+                        className="min-h-[68px] text-sm rounded-xl resize-none bg-white border-gray-200 focus-visible:ring-primary flex-1"
                         value={commentText}
                         onChange={e => setCommentText(e.target.value)}
                         onKeyDown={e => {

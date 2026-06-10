@@ -122,24 +122,30 @@ export function SidebarLeft() {
 
       {/* Main Navigation */}
       <nav className="flex flex-col gap-1">
-        {navigation.map((item) => (
-          <Link
-            key={item.name}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
-              pathname === item.href
-                ? "bg-primary/10 text-primary font-semibold"
-                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            )}
-          >
-            <item.icon className={cn(
-              "h-5 w-5",
-              pathname === item.href ? "text-primary" : "text-gray-400 group-hover:text-gray-600"
-            )} />
-            <span>{item.name}</span>
-          </Link>
-        ))}
+        {navigation.map((item) => {
+          // Hide Vetting Hub from customers (only show for admins/bankers/lawyers)
+          if (item.name === "Vetting Hub" && !isAdmin) {
+            return null;
+          }
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
+                pathname === item.href
+                  ? "bg-primary/10 text-primary font-semibold"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              )}
+            >
+              <item.icon className={cn(
+                "h-5 w-5",
+                pathname === item.href ? "text-primary" : "text-gray-400 group-hover:text-gray-600"
+              )} />
+              <span>{item.name}</span>
+            </Link>
+          );
+        })}
 
         {isAdmin && (
           <Link
