@@ -37,13 +37,13 @@ export default function AdminDashboard() {
     return null;
   }
 
-  // Determine user role - anyone with the app has admin access
+  // Determine user role - Ramoen, Wesley, and you are super admins
   const userEmail = user.email?.toLowerCase() || '';
   const userFullName = user.fullName?.toLowerCase() || '';
 
   const isRamoen = userEmail.includes('ramoen') || userFullName.includes('ramoen');
   const isWesley = userEmail.includes('wesley') || userFullName.includes('wesley');
-  const isSuperAdmin = userEmail.includes('mraaziq') || userEmail.includes('backupe9'); // Super admin - you
+  const isSuperAdmin = userEmail.includes('mraaziq') || userEmail.includes('backupe9') || isRamoen || isWesley;
 
   // Everyone who can access the app can access admin tools
   // Different roles see different tools

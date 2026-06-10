@@ -53,9 +53,12 @@ export default function AdminVerificationPortal() {
   }
 
   const currentUserEmail = user.email?.toLowerCase() || '';
+  const currentUserName = user.fullName?.toLowerCase() || '';
+  const isRamoen = currentUserEmail.includes('ramoen') || currentUserName.includes('ramoen');
+  const isWesley = currentUserEmail.includes('wesley') || currentUserName.includes('wesley');
+  const isSuperAdmin = currentUserEmail.includes('mraaziq') || currentUserEmail.includes('backupe9') || isRamoen || isWesley;
+
   const currentUser = ADMIN_USERS.find((u) => u.email.toLowerCase().includes(currentUserEmail.split('@')[0])) || ADMIN_USERS[2];
-  const isRamoen = currentUserEmail.includes('ramoen') || user.fullName?.toLowerCase().includes('ramoen');
-  const isWesley = currentUserEmail.includes('wesley') || user.fullName?.toLowerCase().includes('wesley');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
