@@ -63,16 +63,15 @@ export default function OrchestratorDashboard() {
             <p className="text-gray-400 text-sm mt-1">Business intelligence & tier management</p>
           </div>
           <div className="flex items-center gap-3">
-            <Link href="/">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 border-cyan-500/30 text-cyan-400 hover:border-cyan-500/50 hover:bg-cyan-500/10"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to App
-              </Button>
-            </Link>
+            <Button
+              onClick={() => router.push("/")}
+              variant="outline"
+              size="sm"
+              className="gap-2 border-cyan-500/30 text-cyan-400 hover:border-cyan-500/50 hover:bg-cyan-500/10"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to App
+            </Button>
             <span className="text-gray-400">{user?.email}</span>
             <Link href="/admin/dashboard">
               <Button

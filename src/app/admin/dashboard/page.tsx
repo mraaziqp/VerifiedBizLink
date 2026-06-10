@@ -10,8 +10,7 @@ import { RoleBasedDashboard } from '@/components/admin/role-based-dashboard';
 export default function AdminDashboard() {
   const { user } = useAuth();
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [userRole, setUserRole] = useState<'admin' | 'banker' | 'lawyer' | 'ceo'>('admin');
+  const [userRole, setUserRole] = useState<'admin' | 'banker' | 'lawyer' | 'ceo'>('ceo');
 
   useEffect(() => {
     if (!user) {
@@ -20,7 +19,7 @@ export default function AdminDashboard() {
     }
 
     // Determine user role based on email
-    let role: 'admin' | 'banker' | 'lawyer' | 'ceo' = 'ceo'; // Default to CEO for super users
+    let role: 'admin' | 'banker' | 'lawyer' | 'ceo' = 'ceo'; // Default to CEO
 
     const email = user.email?.toLowerCase() || '';
 
@@ -35,18 +34,11 @@ export default function AdminDashboard() {
     }
 
     setUserRole(role);
-    setIsLoading(false);
   }, [user, router]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-blue-400 mx-auto mb-4" />
-          <p className="text-gray-400">Loading your dashboard...</p>
-        </div>
-      </div>
-    );
+  // Show nothing while user is loading
+  if (!user) {
+    return null;
   }
 
   return (
