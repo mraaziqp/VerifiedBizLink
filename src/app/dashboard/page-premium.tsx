@@ -26,7 +26,7 @@ import UserAccountSettings from "@/components/dashboard/account-settings";
 import SubscriptionManager from "@/components/dashboard/subscription-manager";
 import PerformanceAnalytics from "@/components/dashboard/performance-analytics";
 
-export default function Dashboard() {
+export default function DashboardPremium() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
