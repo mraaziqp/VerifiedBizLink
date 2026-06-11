@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { compare } from 'bcryptjs';
-import { createSession, setSessionCookie } from '@/lib/auth';
-import { checkRateLimit } from '@/lib/rate-limit';
-import db from '@/lib/db';
+import { createClient } from '@supabase/supabase-js';
+import { createSession } from '@/lib/auth';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+);
 
 export async function POST(request: NextRequest) {
-  // Rate limit: max 10 login attempts per IP per 15 minutes
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const rl = checkRateLimit(`login:${ip}`, 10, 900);
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { error: `Too many login attempts. Try again in ${rl.retryAfterSecs} seconds.` },
-      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSecs) } },
-    );
-  }
-
   try {
     const { email, password } = await request.json();
 
@@ -22,30 +15,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
-    const rows = await db`
-      SELECT id, email, password_hash, full_name, role, avatar_url, headline, email_verified
-      FROM users WHERE email = ${email.toLowerCase().trim()}
-      LIMIT 1
-    `;
+    // Authenticate with Supabase Auth
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.toLowerCase().trim(),
+      password,
+    });
 
-    const user = rows[0];
-    if (!user) {
+    if (error || !data?.user) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    const valid = await compare(password, user.password_hash);
-    if (!valid) {
-      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    // Get user profile from Neon
+    let fullName = data.user.user_metadata?.full_name || '';
+    let role = 'customer';
+    let avatarUrl = '';
+    let headline = '';
+    let emailVerified = !!data.user.email_confirmed_at;
+
+    try {
+      const { supabase: supabaseClient } = await import('@/lib/supabase');
+      const { data: userData } = await supabaseClient
+        .from('users')
+        .select('full_name, role, avatar_url, headline, email_verified')
+        .eq('id', data.user.id)
+        .single();
+
+      if (userData) {
+        fullName = userData.full_name || fullName;
+        role = userData.role || role;
+        avatarUrl = userData.avatar_url || avatarUrl;
+        headline = userData.headline || headline;
+        emailVerified = userData.email_verified !== null ? userData.email_verified : emailVerified;
+      }
+    } catch (dbError) {
+      // Continue with defaults if profile fetch fails
+      console.log('Profile fetch skipped - new user');
     }
 
     const sessionUser = {
-      id: user.id,
-      email: user.email,
-      fullName: user.full_name,
-      role: user.role,
-      avatarUrl: '',
-      headline: user.headline || '',
-      emailVerified: user.email_verified ?? false,
+      id: data.user.id,
+      email: data.user.email || '',
+      fullName,
+      role,
+      avatarUrl,
+      headline,
+      emailVerified,
     };
 
     const token = await createSession(sessionUser);
@@ -60,9 +74,7 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : '';
     console.error('Login error:', errorMsg);
-    if (errorStack) console.error('Stack:', errorStack);
     return NextResponse.json({ error: 'Internal server error', detail: errorMsg }, { status: 500 });
   }
 }
