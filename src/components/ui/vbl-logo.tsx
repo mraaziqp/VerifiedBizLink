@@ -1,5 +1,6 @@
 ﻿import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 
 interface VBLLogoProps {
   /** "icon" = square monogram only; "full" = icon + text; "text" = text only */
@@ -34,8 +35,44 @@ const subTextSizes = {
   xl: "text-sm",
 };
 
-/** Image-based VBL icon mark */
-function VBLIcon({ size }: { size: number }) {
+/** SVG-based VBL icon fallback */
+function VBLIconSVG({ size, theme }: { size: number; theme?: "light" | "dark" }) {
+  const color = theme === "dark" ? "#1f2937" : "#FCD34D";
+  const bgColor = theme === "dark" ? "#FCD34D" : "#1f2937";
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 52 52"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      style={{ display: "block", flexShrink: 0 }}
+    >
+      <rect width="52" height="52" rx="8" fill={bgColor} />
+      <text
+        x="26"
+        y="32"
+        fontSize="28"
+        fontWeight="bold"
+        textAnchor="middle"
+        fill={color}
+        fontFamily="sans-serif"
+      >
+        VB
+      </text>
+    </svg>
+  );
+}
+
+/** Image-based VBL icon mark with fallback */
+function VBLIcon({ size, theme }: { size: number; theme?: "light" | "dark" }) {
+  const [imageError, setImageError] = useState(false);
+
+  if (imageError) {
+    return <VBLIconSVG size={size} theme={theme} />;
+  }
+
   return (
     <Image
       src="/vbl-logo.png"
@@ -44,6 +81,7 @@ function VBLIcon({ size }: { size: number }) {
       height={size}
       style={{ display: "block", flexShrink: 0 }}
       priority
+      onError={() => setImageError(true)}
     />
   );
 }
@@ -56,7 +94,7 @@ export function VBLLogo({
 }: VBLLogoProps) {
   const px = iconSizes[size];
 
-  const Icon = <VBLIcon size={px} />;
+  const Icon = <VBLIcon size={px} theme={theme} />;
 
   if (variant === "icon") return <div className={cn("inline-flex", className)}>{Icon}</div>;
 
