@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Image as ImageIcon, Link as LinkIcon, Paperclip, Send, Loader2 } from "lucide-react";
+import { Sparkles, Image as ImageIcon, Link as LinkIcon, Paperclip, Send, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -10,9 +10,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { aiAssistedPostDrafting } from "@/ai/flows/ai-assisted-post-drafting";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
+import { ImageUploader } from "@/components/media/image-uploader";
 
 export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
   const [content, setContent] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isDrafting, setIsDrafting] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const { toast } = useToast();
@@ -63,11 +65,15 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
       const res = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: content.trim() }),
+        body: JSON.stringify({
+          content: content.trim(),
+          ...(imageUrl && { image_url: imageUrl })
+        }),
       });
 
       if (res.ok) {
         setContent("");
+        setImageUrl(null);
         toast({ title: "Post published!", description: "Your update has been shared with your network." });
         onPostCreated?.();
       } else {
@@ -96,15 +102,33 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
             onChange={(e) => setContent(e.target.value)}
           />
           <div className="flex items-center justify-between pt-2 flex-wrap gap-2">
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-gray-500 hover:text-primary hover:bg-primary/10 rounded-full"
-                onClick={() => toast({ title: "Coming Soon", description: "Image attachments will be available in the next update." })}
-              >
-                <ImageIcon className="h-5 w-5" />
-              </Button>
+            <div className="flex gap-1 items-center">
+              <ImageUploader
+                onImageSelect={(url) => {
+                  setImageUrl(url);
+                  toast({
+                    title: "Image selected",
+                    description: "Your image will be uploaded with the post.",
+                  });
+                }}
+                buttonClassName="text-gray-500 hover:text-primary hover:bg-primary/10 rounded-full p-2"
+              />
+              {imageUrl && (
+                <div className="relative w-12 h-12 bg-gray-200 rounded-lg overflow-hidden">
+                  <img
+                    src={imageUrl}
+                    alt="Selected"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    onClick={() => setImageUrl(null)}
+                    className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full"
+                    title="Remove image"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
               <Button
                 variant="ghost"
                 size="icon"
