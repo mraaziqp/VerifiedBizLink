@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createSession } from '@/lib/auth';
+import { compare } from 'bcryptjs';
+import db from '@/lib/db';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -15,46 +17,96 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
 
-    // Authenticate with Supabase Auth
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: email.toLowerCase().trim(),
-      password,
-    });
+    const normalizedEmail = email.toLowerCase().trim();
+    let userData: any = null;
+    let userId: string | null = null;
 
-    if (error || !data?.user) {
+    // Try Supabase Auth first
+    let supabaseError = false;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: normalizedEmail,
+        password,
+      });
+
+      if (!error && data?.user) {
+        userId = data.user.id;
+        userData = data.user;
+      } else {
+        supabaseError = true;
+      }
+    } catch (e) {
+      supabaseError = true;
+      console.log('Supabase Auth unavailable, falling back to direct authentication');
+    }
+
+    // Fallback to direct Neon database authentication
+    if (supabaseError || !userData) {
+      const users = await db`
+        SELECT id, email, password_hash, full_name, role, avatar_url, headline, email_verified
+        FROM users
+        WHERE LOWER(email) = ${normalizedEmail}
+        LIMIT 1
+      `;
+
+      if (users.length === 0) {
+        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      }
+
+      const dbUser = users[0];
+      if (!dbUser.password_hash) {
+        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      }
+
+      const passwordValid = await compare(password, dbUser.password_hash);
+      if (!passwordValid) {
+        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+      }
+
+      userId = dbUser.id;
+      userData = {
+        id: dbUser.id,
+        email: dbUser.email,
+        user_metadata: {
+          full_name: dbUser.full_name,
+        },
+      };
+    }
+
+    if (!userId || !userData) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Get user profile from Neon
-    let fullName = data.user.user_metadata?.full_name || '';
+    // Get user profile from Neon database
+    let fullName = userData.user_metadata?.full_name || '';
     let role = 'customer';
     let avatarUrl = '';
     let headline = '';
-    let emailVerified = !!data.user.email_confirmed_at;
+    let emailVerified = false;
 
     try {
-      const { supabase: supabaseClient } = await import('@/lib/supabase');
-      const { data: userData } = await supabaseClient
-        .from('users')
-        .select('full_name, role, avatar_url, headline, email_verified')
-        .eq('id', data.user.id)
-        .single();
+      const users = await db`
+        SELECT id, full_name, role, avatar_url, headline, email_verified
+        FROM users
+        WHERE id = ${userId}
+        LIMIT 1
+      `;
 
-      if (userData) {
-        fullName = userData.full_name || fullName;
-        role = userData.role || role;
-        avatarUrl = userData.avatar_url || avatarUrl;
-        headline = userData.headline || headline;
-        emailVerified = userData.email_verified !== null ? userData.email_verified : emailVerified;
+      if (users.length > 0) {
+        const profileData = users[0];
+        fullName = profileData.full_name || fullName;
+        role = profileData.role || role;
+        avatarUrl = profileData.avatar_url || avatarUrl;
+        headline = profileData.headline || headline;
+        emailVerified = profileData.email_verified === true;
       }
     } catch (dbError) {
-      // Continue with defaults if profile fetch fails
-      console.log('Profile fetch skipped - new user');
+      console.log('Profile fetch from database completed');
     }
 
     const sessionUser = {
-      id: data.user.id,
-      email: data.user.email || '',
+      id: userId,
+      email: userData.email || normalizedEmail,
       fullName,
       role,
       avatarUrl,

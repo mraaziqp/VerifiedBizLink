@@ -12,7 +12,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import db from '@/lib/db';
+import { hash } from 'bcryptjs';
 
 const adminAccounts = [
   {
@@ -48,51 +49,32 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden - Invalid setup secret' }, { status: 403 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !serviceRoleKey) {
-      return NextResponse.json(
-        { error: 'Server error: Supabase credentials not configured' },
-        { status: 500 }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
     const results = [];
 
-    // Create admin accounts in Neon via Supabase
+    // Create admin accounts directly in Neon database
     for (const account of adminAccounts) {
       try {
-        const { data, error } = await supabase
-          .from('users')
-          .upsert(
-            {
-              id: account.id,
-              email: account.email,
-              full_name: account.fullName,
-              role: account.role,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: 'email' }
-          )
-          .select();
+        // Use password that matches the user's email pattern or a default
+        const defaultPassword = 'Admin@123';
+        const passwordHash = await hash(defaultPassword, 12);
 
-        if (error) {
-          results.push({
-            email: account.email,
-            status: 'error',
-            message: error.message,
-          });
-        } else {
-          results.push({
-            email: account.email,
-            role: account.role,
-            status: 'created',
-            description: account.description,
-          });
-        }
+        const result = await db`
+          INSERT INTO users (id, email, full_name, role, password_hash, vetting_score, created_at, updated_at)
+          VALUES (${account.id}, ${account.email}, ${account.fullName}, ${account.role}, ${passwordHash}, 100, NOW(), NOW())
+          ON CONFLICT (email) DO UPDATE SET
+            role = ${account.role},
+            full_name = ${account.fullName},
+            vetting_score = 100,
+            updated_at = NOW()
+          RETURNING id, email, role
+        `;
+
+        results.push({
+          email: account.email,
+          role: account.role,
+          status: 'created',
+          description: account.description,
+        });
       } catch (error: any) {
         results.push({
           email: account.email,
@@ -113,20 +95,21 @@ export async function POST(request: NextRequest) {
             email: 'ramoen@verifiedbizlink.co.za',
             role: 'admin',
             access: 'All vetting and verification tools',
+            password: 'Admin@123',
           },
           wesley: {
             email: 'wesley@verifiedbizlink.co.za',
             role: 'banker',
             access: 'Banking and compliance tools',
+            password: 'Admin@123',
           },
           superAdmin: {
             email: 'mraaziqp@gmail.com',
             role: 'admin',
             access: 'All tools and full access',
+            password: 'Admin@123',
           },
         },
-        rls_enabled: true,
-        policies_created: true,
       },
       { status: 200 }
     );

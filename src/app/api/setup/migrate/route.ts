@@ -10,6 +10,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // --- Core schema fixes ---
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255)`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS location VARCHAR(255) DEFAULT ''`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS connections_count INTEGER DEFAULT 0`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS vetting_score INTEGER DEFAULT 0`;
+
     // --- Existing columns (v1) ---
     await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT DEFAULT ''`;
     await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50) DEFAULT ''`;
@@ -18,7 +24,6 @@ export async function POST(request: NextRequest) {
     await db`ALTER TABLE documents ADD COLUMN IF NOT EXISTS review_notes TEXT DEFAULT ''`;
     await db`ALTER TABLE documents ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ`;
     await db`ALTER TABLE documents ADD COLUMN IF NOT EXISTS reviewed_by UUID`;
-    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS vetting_score INTEGER DEFAULT 0`;
 
     // --- v2: Support tickets ---
     await db`
@@ -84,6 +89,24 @@ export async function POST(request: NextRequest) {
       VALUES ('ads_enabled', 'true', NOW())
       ON CONFLICT (key) DO NOTHING
     `;
+
+    // --- Vetting & Admin Tables ---
+    // Ensure businesses table has all required columns for vetting
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS company_name VARCHAR(255)`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS industry VARCHAR(255) DEFAULT ''`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS reg_number VARCHAR(255) DEFAULT ''`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS vat_number VARCHAR(255) DEFAULT ''`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'unregistered'`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS trust_score INTEGER DEFAULT 0`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS description TEXT DEFAULT ''`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS website VARCHAR(255) DEFAULT ''`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS phone VARCHAR(50) DEFAULT ''`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS address TEXT DEFAULT ''`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMPTZ`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS reviewed_by UUID`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS review_notes TEXT DEFAULT ''`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS connections_count INTEGER DEFAULT 0`;
 
     // --- v3: Business reviews ---
     await db`
