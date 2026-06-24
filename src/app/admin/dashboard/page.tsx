@@ -53,20 +53,11 @@ export default function AdminDashboard() {
   // All admin tools - Ramoen & Super Admin
   const adminTools: AdminTool[] = [
     {
-      id: 'business-verification',
-      name: 'Business Verification',
-      description: 'Verify and approve businesses, manage CIPC & SARS status',
-      icon: CheckCircle,
-      href: '/admin/business-verification',
-      color: 'from-green-500 to-emerald-500',
-      badge: 'Pending: 12',
-    },
-    {
-      id: 'vetting-queue',
-      name: 'Vetting Queue',
-      description: 'Manage business vetting requests and approvals',
+      id: 'business-vetting',
+      name: 'Business Vetting Desk',
+      description: 'Review and grade business documents, manage verification status',
       icon: FileText,
-      href: '/vetting',
+      href: '/admin/vetting',
       color: 'from-blue-500 to-cyan-500',
       badge: 'In Review: 8',
     },
@@ -110,15 +101,6 @@ export default function AdminDashboard() {
   // Banking tools for Wesley
   const bankingTools: AdminTool[] = [
     {
-      id: 'business-vetting',
-      name: 'Business Vetting Portal',
-      description: 'Review and approve business vetting requests',
-      icon: Shield,
-      href: '/vetting',
-      color: 'from-blue-500 to-cyan-500',
-      badge: 'Pending: 8',
-    },
-    {
       id: 'compliance',
       name: 'Legal Compliance',
       description: 'Monitor compliance status and regulatory requirements',
@@ -127,7 +109,7 @@ export default function AdminDashboard() {
       color: 'from-green-500 to-emerald-500',
     },
     {
-      id: 'user-management',
+      id: 'team-management',
       name: 'Team Management',
       description: 'Manage team members and their permissions',
       icon: Users,

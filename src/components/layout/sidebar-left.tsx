@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell } from "lucide-react";
+import { Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell, MapPin } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { GoldCheckmark } from "@/components/ui/gold-checkmark";
@@ -32,6 +32,7 @@ interface Notification {
 const navigation = [
   { name: "Home", href: "/", icon: Home },
   { name: "My Network", href: "/network", icon: Users },
+  { name: "Explore", href: "/explore", icon: MapPin },
   { name: "Vetting Hub", href: "/vetting", icon: ShieldCheck },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: Settings },
