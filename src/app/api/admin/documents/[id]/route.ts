@@ -40,7 +40,63 @@ export async function PATCH(
       return NextResponse.json({ error: 'Document not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ document: updated[0] });
+    const doc = updated[0];
+
+    // Get the business this document belongs to and recalculate trust score
+    const businesses = await db`
+      SELECT id, company_name, user_id FROM businesses WHERE id = ${doc.business_id}
+    `;
+
+    if (businesses.length > 0) {
+      const biz = businesses[0];
+
+      // Calculate new trust score based on all documents with grades
+      const docs = await db`
+        SELECT grade FROM documents WHERE business_id = ${doc.business_id} AND grade > 0
+      `;
+
+      let newTrustScore = 0;
+      if (docs.length > 0) {
+        const avgGrade = docs.reduce((sum, d) => sum + d.grade, 0) / docs.length;
+        newTrustScore = Math.round((avgGrade / 100) * 95); // Cap at 95% for non-perfect docs
+      }
+
+      // Update business trust score if documents have been graded
+      if (newTrustScore > 0) {
+        await db`
+          UPDATE businesses
+          SET trust_score = ${newTrustScore}, updated_at = NOW()
+          WHERE id = ${doc.business_id}
+        `;
+      }
+
+      // Log the action
+      await db`
+        INSERT INTO audit_logs (admin_id, admin_name, action, target_type, target_id, target_name)
+        VALUES (
+          ${session.id},
+          ${session.fullName},
+          ${'Graded document: ' + doc.name + ' (' + (grade ?? 0) + '/100)'},
+          'document',
+          ${id},
+          ${biz.company_name}
+        )
+      `;
+
+      // Notify business owner
+      if (status === 'approved' || status === 'rejected') {
+        const message = status === 'approved'
+          ? `Document "${doc.name}" has been approved (Grade: ${grade ?? 0}/100)`
+          : `Document "${doc.name}" needs revision. Please resubmit.`;
+
+        await db`
+          INSERT INTO notifications (user_id, type, message, link)
+          VALUES (${biz.user_id}, 'document_graded', ${message}, '/vetting')
+        `.catch(() => {});
+      }
+    }
+
+    return NextResponse.json({ document: doc });
   } catch (error) {
     console.error('Document review PATCH error:', error);
     return NextResponse.json({ error: 'Failed to update document' }, { status: 500 });
