@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Users, ShieldCheck, BarChart3, Settings, Shield } from "lucide-react";
+import { Home, Users, ShieldCheck, BarChart3, Settings, Shield, Compass } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -8,9 +8,9 @@ import { useAuth } from "@/contexts/auth-context";
 
 const navigation = [
   { name: "Home", href: "/", icon: Home },
+  { name: "Explore", href: "/explore", icon: Compass },
   { name: "Network", href: "/network", icon: Users },
   { name: "Vetting", href: "/vetting", icon: ShieldCheck },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
