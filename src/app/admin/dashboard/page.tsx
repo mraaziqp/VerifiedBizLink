@@ -37,20 +37,20 @@ export default function AdminDashboard() {
     return null;
   }
 
-  // Determine user role - Ramoen, Wesley, and you are super admins
+  // Determine user role - Ramone, Wesley, and you are super admins
   const userEmail = user.email?.toLowerCase() || '';
   const userFullName = user.fullName?.toLowerCase() || '';
 
-  const isRamoen = userEmail.includes('ramoen') || userFullName.includes('ramoen');
+  const isRamone = userEmail.includes('ramone') || userFullName.includes('ramone');
   const isWesley = userEmail.includes('wesley') || userFullName.includes('wesley');
-  const isSuperAdmin = userEmail.includes('mraaziq') || userEmail.includes('backupe9') || isRamoen || isWesley;
+  const isSuperAdmin = userEmail.includes('mraaziq') || userEmail.includes('backupe9') || isRamone || isWesley;
 
   // Everyone who can access the app can access admin tools
   // Different roles see different tools
-  const isAdmin = isRamoen || isSuperAdmin;
+  const isAdmin = isRamone || isSuperAdmin;
   const isBanker = isWesley || isSuperAdmin;
 
-  // All admin tools - Ramoen & Super Admin
+  // All admin tools - Ramone & Super Admin
   const adminTools: AdminTool[] = [
     {
       id: 'business-vetting',
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
   let dashboardTitle = '';
   let dashboardDescription = '';
 
-  if (isRamoen) {
+  if (isRamone) {
     tools = adminTools;
     dashboardTitle = '👑 Admin Control Center';
     dashboardDescription = 'Manage platform, businesses, and verification';
@@ -174,8 +174,8 @@ export default function AdminDashboard() {
                 <p className="text-gray-400 text-sm">Logged in as</p>
                 <p className="text-white text-lg font-semibold">{user.fullName || user.email}</p>
                 <p className="text-gray-400 text-sm mt-1">
-                  Role: <span className={`font-semibold ${isSuperAdmin ? 'text-yellow-400' : isRamoen ? 'text-green-400' : 'text-blue-400'}`}>
-                    {isSuperAdmin ? 'Super Admin' : isRamoen ? 'Admin' : 'Banker'}
+                  Role: <span className={`font-semibold ${isSuperAdmin ? 'text-yellow-400' : isRamone ? 'text-green-400' : 'text-blue-400'}`}>
+                    {isSuperAdmin ? 'Super Admin' : isRamone ? 'Admin' : 'Banker'}
                   </span>
                 </p>
               </div>
@@ -229,7 +229,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Quick Stats */}
-        {(isRamoen || isSuperAdmin) && (
+        {(isRamone || isSuperAdmin) && (
           <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="bg-gray-800/40 border-gray-700">
               <CardContent className="p-6">

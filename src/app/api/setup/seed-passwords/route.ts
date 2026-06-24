@@ -12,8 +12,8 @@ import db from '@/lib/db';
 
 const adminAccounts = [
   {
-    email: 'ramoen@verifiedbizlink.co.za',
-    password: 'Ramoen@123456',
+    email: 'ramone@verifiedbizlink.co.za',
+    password: 'Ramone@123456',
   },
   {
     email: 'wesley@verifiedbizlink.co.za',
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
       results,
       credentials: {
         admins: [
-          { email: 'ramoen@verifiedbizlink.co.za', password: 'Ramoen@123456', role: 'admin' },
+          { email: 'ramone@verifiedbizlink.co.za', password: 'Ramone@123456', role: 'admin' },
           { email: 'wesley@verifiedbizlink.co.za', password: 'Wesley@123456', role: 'banker' },
           { email: 'mraaziqp@gmail.com', password: 'SuperAdmin@123456', role: 'admin' },
         ],

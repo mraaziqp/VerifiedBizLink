@@ -17,8 +17,8 @@ interface AdminUser {
 
 const ADMIN_USERS: AdminUser[] = [
   {
-    name: 'Ramoen (Lead Admin)',
-    email: 'ramoen@verifiedbizlink.co.za',
+    name: 'Ramone (Lead Admin)',
+    email: 'ramone@verifiedbizlink.co.za',
     role: 'admin',
     tools: [
       'Business Verification',
@@ -54,9 +54,9 @@ export default function AdminVerificationPortal() {
 
   const currentUserEmail = user.email?.toLowerCase() || '';
   const currentUserName = user.fullName?.toLowerCase() || '';
-  const isRamoen = currentUserEmail.includes('ramoen') || currentUserName.includes('ramoen');
+  const isRamone = currentUserEmail.includes('ramone') || currentUserName.includes('ramone');
   const isWesley = currentUserEmail.includes('wesley') || currentUserName.includes('wesley');
-  const isSuperAdmin = currentUserEmail.includes('mraaziq') || currentUserEmail.includes('backupe9') || isRamoen || isWesley;
+  const isSuperAdmin = currentUserEmail.includes('mraaziq') || currentUserEmail.includes('backupe9') || isRamone || isWesley;
 
   const currentUser = ADMIN_USERS.find((u) => u.email.toLowerCase().includes(currentUserEmail.split('@')[0])) || ADMIN_USERS[2];
 
@@ -89,14 +89,14 @@ export default function AdminVerificationPortal() {
               </div>
               <div>
                 <p className="text-gray-400 text-sm">Current Role</p>
-                <p className={`text-lg font-semibold ${isRamoen ? 'text-green-400' : isWesley ? 'text-blue-400' : 'text-yellow-400'}`}>
-                  {isRamoen ? '👑 Admin' : isWesley ? '🏦 Banker' : '⭐ Super Admin (You)'}
+                <p className={`text-lg font-semibold ${isRamone ? 'text-green-400' : isWesley ? 'text-blue-400' : 'text-yellow-400'}`}>
+                  {isRamone ? '👑 Admin' : isWesley ? '🏦 Banker' : '⭐ Super Admin (You)'}
                 </p>
               </div>
               <div>
                 <p className="text-gray-400 text-sm">Access Level</p>
-                <p className={`text-lg font-semibold ${isRamoen ? 'text-green-400' : isWesley ? 'text-blue-400' : 'text-green-400'}`}>
-                  {isRamoen ? 'Full Admin Access' : isWesley ? 'Banking Access' : 'Super Admin (All Tools)'}
+                <p className={`text-lg font-semibold ${isRamone ? 'text-green-400' : isWesley ? 'text-blue-400' : 'text-green-400'}`}>
+                  {isRamone ? 'Full Admin Access' : isWesley ? 'Banking Access' : 'Super Admin (All Tools)'}
                 </p>
               </div>
             </div>
