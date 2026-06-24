@@ -17,7 +17,11 @@ import {
   Award,
   Menu,
   X,
+  User,
+  MessageSquare,
+  Megaphone,
 } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
@@ -202,6 +206,57 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Link href="/dashboard/profile">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group">
+              <div className="flex items-start justify-between">
+                <div className="bg-white/20 p-3 rounded-lg group-hover:scale-110 transition-transform">
+                  <User className="h-6 w-6" />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold mt-4">Profile</h3>
+              <p className="text-blue-100 text-sm mt-1">Edit your profile & bio</p>
+            </div>
+          </Link>
+
+          <Link href="/dashboard/posts">
+            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group">
+              <div className="flex items-start justify-between">
+                <div className="bg-white/20 p-3 rounded-lg group-hover:scale-110 transition-transform">
+                  <MessageSquare className="h-6 w-6" />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold mt-4">Posts</h3>
+              <p className="text-purple-100 text-sm mt-1">Manage your content</p>
+            </div>
+          </Link>
+
+          <Link href="/business/ads">
+            <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group">
+              <div className="flex items-start justify-between">
+                <div className="bg-white/20 p-3 rounded-lg group-hover:scale-110 transition-transform">
+                  <Megaphone className="h-6 w-6" />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold mt-4">Ads Manager</h3>
+              <p className="text-red-100 text-sm mt-1">Manage your ads</p>
+            </div>
+          </Link>
+
+          <Link href="/dashboard/profile">
+            <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group">
+              <div className="flex items-start justify-between">
+                <div className="bg-white/20 p-3 rounded-lg group-hover:scale-110 transition-transform">
+                  <Settings className="h-6 w-6" />
+                </div>
+              </div>
+              <h3 className="text-lg font-bold mt-4">Settings</h3>
+              <p className="text-green-100 text-sm mt-1">Account & Privacy</p>
+            </div>
+          </Link>
+        </div>
+
         {/* Premium Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat, idx) => {
