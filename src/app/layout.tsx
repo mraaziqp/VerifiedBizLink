@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { AdBanner } from '@/components/ads/ad-banner';
 import { ChatWidget } from '@/components/chatbot/chat-widget';
+import MessagesWidget from '@/components/chat/chat-widget';
 import { EmailVerificationBanner } from '@/components/ui/email-verification-banner';
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register';
 
@@ -58,6 +59,7 @@ export default function RootLayout({
           <MobileNav />
           <AdBanner />
           <ChatWidget />
+          <MessagesWidget />
           <Toaster />
         </AuthProvider>
       </body>
