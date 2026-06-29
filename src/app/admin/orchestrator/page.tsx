@@ -3,8 +3,14 @@
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { TrendingUp, Users, Building2, DollarSign, Activity, Settings, LogOut, CreditCard, Shield, ArrowLeft } from "lucide-react";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend,
+} from "recharts";
+import {
+  TrendingUp, Users, Building2, Activity, Settings, LogOut, CreditCard,
+  Shield, ArrowLeft, CheckCircle2, Clock, FileText, Link2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Link from "next/link";
@@ -12,11 +18,28 @@ import { AdminProfilePanel } from "@/components/admin/admin-profile-panel";
 import TierManagement from "@/components/admin/tier-management";
 import UserSubscriptionManager from "@/components/admin/user-subscription-manager";
 import PaymentGatewayConfig from "@/components/admin/payment-gateway-config";
+import {
+  AdminBackground, AdminCard, AdminPageHeader, StatCard, SectionTitle,
+} from "@/components/admin/ui";
+
+interface AdminStats {
+  totalUsers: number;
+  totalBusinesses: number;
+  verifiedBusinesses: number;
+  pendingBusinesses: number;
+  reviewingBusinesses: number;
+  rejectedBusinesses: number;
+  totalPosts: number;
+  totalConnections: number;
+  openReports: number;
+}
 
 export default function OrchestratorDashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
@@ -24,258 +47,190 @@ export default function OrchestratorDashboard() {
     }
   }, [user, router]);
 
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/stats");
+        if (res.ok) {
+          const data = await res.json();
+          if (active) setStats(data.stats);
+        }
+      } catch {
+        /* surfaced via the empty/loading state */
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const handleLogout = async () => {
     await logout();
     router.push("/login");
   };
 
-  // Mock data - in production, fetch from API
-  const revenueData = [
-    { month: "Jan", revenue: 12000, target: 10000 },
-    { month: "Feb", revenue: 19000, target: 15000 },
-    { month: "Mar", revenue: 15000, target: 12000 },
-    { month: "Apr", revenue: 22000, target: 18000 },
-    { month: "May", revenue: 28000, target: 20000 },
-    { month: "Jun", revenue: 35000, target: 25000 },
+  const fmt = (n?: number) =>
+    n === undefined ? "—" : n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
+
+  const metrics = [
+    { label: "Total Businesses", value: fmt(stats?.totalBusinesses), icon: Building2, gradient: "from-amber-500 to-yellow-500" },
+    { label: "Total Users", value: fmt(stats?.totalUsers), icon: Users, gradient: "from-blue-500 to-cyan-500" },
+    { label: "Verified", value: fmt(stats?.verifiedBusinesses), icon: CheckCircle2, gradient: "from-green-500 to-emerald-500" },
+    { label: "Pending Review", value: fmt(stats?.pendingBusinesses), icon: Clock, gradient: "from-purple-500 to-pink-500" },
   ];
 
-  const tierDistribution = [
-    { name: "Free", value: 450, fill: "#ef4444" },
-    { name: "Standard", value: 280, fill: "#f59e0b" },
-    { name: "Premium", value: 95, fill: "#10b981" },
-    { name: "Enterprise", value: 8, fill: "#fbbf24" },
-  ];
+  const statusData = stats
+    ? [
+        { name: "Verified", value: stats.verifiedBusinesses, fill: "#10b981" },
+        { name: "Pending", value: stats.pendingBusinesses, fill: "#f59e0b" },
+        { name: "Reviewing", value: stats.reviewingBusinesses, fill: "#3b82f6" },
+        { name: "Rejected", value: stats.rejectedBusinesses, fill: "#ef4444" },
+      ].filter((d) => d.value > 0)
+    : [];
 
-  const metricsData = [
-    { label: "Total Businesses", value: "833", change: "+12%", icon: Building2, color: "from-amber-500 to-yellow-500" },
-    { label: "Total Users", value: "12.4K", change: "+8%", icon: Users, color: "from-blue-500 to-cyan-500" },
-    { label: "Monthly Revenue", value: "R35K", change: "+18%", icon: DollarSign, color: "from-green-500 to-emerald-500" },
-    { label: "Platform Health", value: "99.8%", change: "Optimal", icon: Activity, color: "from-purple-500 to-pink-500" },
-  ];
+  const engagementData = stats
+    ? [
+        { name: "Posts", value: stats.totalPosts },
+        { name: "Connections", value: stats.totalConnections },
+        { name: "Open Reports", value: stats.openReports },
+      ]
+    : [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
-      {/* Header */}
-      <div className="border-b border-gray-800 sticky top-0 z-50 backdrop-blur-xl bg-black/50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Orchestrator Portal</h1>
-            <p className="text-gray-400 text-sm mt-1">Business intelligence & tier management</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={() => router.push("/")}
-              variant="outline"
-              size="sm"
-              className="gap-2 border-cyan-500/30 text-cyan-400 hover:border-cyan-500/50 hover:bg-cyan-500/10"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to App
-            </Button>
-            <span className="text-gray-400">{user?.email}</span>
-            <Link href="/admin/dashboard">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 border-blue-500/30 text-blue-400 hover:border-blue-500/50 hover:bg-blue-500/10"
-              >
-                <Activity className="h-4 w-4" />
-                My Tools
-              </Button>
-            </Link>
-            <Link href="/admin/team">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 border-purple-500/30 text-purple-400 hover:border-purple-500/50 hover:bg-purple-500/10"
-              >
-                <Users className="h-4 w-4" />
-                Team
-              </Button>
-            </Link>
-            <Link href="/admin/settings">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-2 border-yellow-500/30 text-yellow-400 hover:border-yellow-500/50 hover:bg-yellow-500/10"
-              >
-                <Settings className="h-4 w-4" />
-                Settings
-              </Button>
-            </Link>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              className="gap-2 border-red-500/30 text-red-400 hover:border-red-500/50"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </div>
+    <AdminBackground>
+      <AdminPageHeader title="Orchestrator Portal" subtitle="Business intelligence & tier management">
+        <Button onClick={() => router.push("/")} variant="outline" size="sm"
+          className="gap-2 border-cyan-500/30 text-cyan-400 hover:border-cyan-500/50 hover:bg-cyan-500/10">
+          <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back to App</span>
+        </Button>
+        <span className="hidden text-sm text-gray-400 lg:inline">{user?.email}</span>
+        <Link href="/admin/dashboard">
+          <Button variant="outline" size="sm"
+            className="gap-2 border-blue-500/30 text-blue-400 hover:border-blue-500/50 hover:bg-blue-500/10">
+            <Activity className="h-4 w-4" /> <span className="hidden sm:inline">My Tools</span>
+          </Button>
+        </Link>
+        <Link href="/admin/team">
+          <Button variant="outline" size="sm"
+            className="gap-2 border-purple-500/30 text-purple-400 hover:border-purple-500/50 hover:bg-purple-500/10">
+            <Users className="h-4 w-4" /> <span className="hidden sm:inline">Team</span>
+          </Button>
+        </Link>
+        <Link href="/admin/settings">
+          <Button variant="outline" size="sm"
+            className="gap-2 border-yellow-500/30 text-yellow-400 hover:border-yellow-500/50 hover:bg-yellow-500/10">
+            <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Settings</span>
+          </Button>
+        </Link>
+        <Button variant="outline" size="sm" onClick={handleLogout}
+          className="gap-2 border-red-500/30 text-red-400 hover:border-red-500/50 hover:bg-red-500/10">
+          <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Logout</span>
+        </Button>
+      </AdminPageHeader>
 
-      {/* Admin Profile Section */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="mx-auto max-w-7xl px-4 py-6">
         <AdminProfilePanel />
       </div>
 
-      {/* Tabs Navigation */}
-      <div className="border-b border-gray-800 bg-black/30 backdrop-blur-xl sticky top-16 z-40">
-        <div className="max-w-7xl mx-auto px-4">
+      <div className="sticky top-[57px] z-40 border-b border-white/10 bg-black/40 backdrop-blur-xl sm:top-[65px]">
+        <div className="mx-auto max-w-7xl px-4">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-transparent h-auto border-0 p-0">
-              <TabsTrigger
-                value="overview"
-                className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-yellow-400 text-gray-400 data-[state=active]:text-yellow-400 rounded-none px-4 py-3 border-b-2 border-transparent"
-              >
-                <Activity className="h-4 w-4 mr-2" />
-                Overview
-              </TabsTrigger>
-              <TabsTrigger
-                value="tiers"
-                className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-yellow-400 text-gray-400 data-[state=active]:text-yellow-400 rounded-none px-4 py-3 border-b-2 border-transparent"
-              >
-                <DollarSign className="h-4 w-4 mr-2" />
-                Tiers
-              </TabsTrigger>
-              <TabsTrigger
-                value="users"
-                className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-yellow-400 text-gray-400 data-[state=active]:text-yellow-400 rounded-none px-4 py-3 border-b-2 border-transparent"
-              >
-                <Shield className="h-4 w-4 mr-2" />
-                Users
-              </TabsTrigger>
-              <TabsTrigger
-                value="payment"
-                className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-yellow-400 text-gray-400 data-[state=active]:text-yellow-400 rounded-none px-4 py-3 border-b-2 border-transparent"
-              >
-                <CreditCard className="h-4 w-4 mr-2" />
-                Payment Gateway
-              </TabsTrigger>
+            <TabsList className="grid h-auto w-full grid-cols-2 border-0 bg-transparent p-0 sm:grid-cols-4">
+              {[
+                { v: "overview", label: "Overview", Icon: Activity },
+                { v: "tiers", label: "Tiers", Icon: TrendingUp },
+                { v: "users", label: "Users", Icon: Shield },
+                { v: "payment", label: "Payment", Icon: CreditCard },
+              ].map(({ v, label, Icon }) => (
+                <TabsTrigger key={v} value={v}
+                  className="rounded-none border-b-2 border-transparent px-3 py-3 text-gray-400 data-[state=active]:border-amber-400 data-[state=active]:bg-transparent data-[state=active]:text-amber-400">
+                  <Icon className="mr-2 h-4 w-4" /> {label}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </Tabs>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:py-12">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-8">
-            {/* Key Metrics Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {metricsData.map((metric) => {
-                const Icon = metric.icon;
-                return (
-                  <div
-                    key={metric.label}
-                    className="p-6 rounded-2xl bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-gray-700/50 hover:border-gray-600/50 transition-all"
-                  >
-                    <div className="flex items-center justify-between mb-4">
-                      <div className={`h-10 w-10 rounded-lg bg-gradient-to-r ${metric.color} flex items-center justify-center`}>
-                        <Icon className="h-5 w-5 text-white" />
-                      </div>
-                    </div>
-                    <p className="text-gray-400 text-sm font-medium">{metric.label}</p>
-                    <p className="text-3xl font-bold text-white mt-2">{metric.value}</p>
-                    <p className={`text-sm mt-2 ${metric.change.includes("+") ? "text-green-400" : "text-blue-400"}`}>
-                      {metric.change}
-                    </p>
+          <TabsContent value="overview" className="space-y-6 sm:space-y-8">
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+              {metrics.map((m) => (
+                <StatCard key={m.label} {...m} loading={loading} />
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-3">
+              <AdminCard className="lg:col-span-2">
+                <SectionTitle icon={Activity}>Platform Engagement</SectionTitle>
+                {loading ? (
+                  <div className="h-[280px] animate-pulse rounded-xl bg-white/5" />
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={engagementData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
+                      <YAxis stroke="#9ca3af" fontSize={12} allowDecimals={false} />
+                      <Tooltip contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: 8 }} labelStyle={{ color: "#fff" }} />
+                      <Bar dataKey="value" fill="#fbbf24" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </AdminCard>
+
+              <AdminCard>
+                <SectionTitle icon={Building2}>Verification Status</SectionTitle>
+                {loading ? (
+                  <div className="h-[280px] animate-pulse rounded-xl bg-white/5" />
+                ) : statusData.length === 0 ? (
+                  <div className="flex h-[280px] items-center justify-center text-sm text-gray-500">
+                    No business data yet
                   </div>
-                );
-              })}
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie data={statusData} cx="50%" cy="50%" labelLine={false}
+                        label={({ name, value }) => `${name}: ${value}`} outerRadius={80} dataKey="value">
+                        {statusData.map((e, i) => <Cell key={i} fill={e.fill} />)}
+                      </Pie>
+                      <Tooltip contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: 8 }} />
+                      <Legend wrapperStyle={{ fontSize: 12 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </AdminCard>
             </div>
 
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Revenue Trend */}
-              <div className="lg:col-span-2 p-6 rounded-2xl bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-gray-700/50">
-                <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-green-400" />
-                  Revenue Trend
-                </h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis stroke="#9ca3af" />
-                    <YAxis stroke="#9ca3af" />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "#1f2937",
-                        border: "1px solid #374151",
-                        borderRadius: "8px",
-                      }}
-                      labelStyle={{ color: "#fff" }}
-                    />
-                    <Line type="monotone" dataKey="revenue" stroke="#fbbf24" strokeWidth={2} dot={{ fill: "#fbbf24" }} />
-                    <Line type="monotone" dataKey="target" stroke="#6b7280" strokeWidth={2} strokeDasharray="5 5" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-
-              {/* Tier Distribution */}
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-gray-700/50">
-                <h2 className="text-xl font-bold text-white mb-6">Tier Distribution</h2>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={tierDistribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {tierDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Business Tiers Breakdown */}
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-gray-700/50">
-              <h2 className="text-xl font-bold text-white mb-6">Tier Breakdown</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <AdminCard>
+              <SectionTitle icon={FileText}>Quick Breakdown</SectionTitle>
+              <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 {[
-                  { tier: "Free", count: 450, revenue: "R0", color: "text-red-400" },
-                  { tier: "Standard", count: 280, revenue: "R14K/mo", color: "text-amber-400" },
-                  { tier: "Premium", count: 95, revenue: "R9.5K/mo", color: "text-green-400" },
-                  { tier: "Enterprise", count: 8, revenue: "Custom", color: "text-yellow-400" },
-                ].map((tier) => (
-                  <div key={tier.tier} className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/30">
-                    <p className="text-gray-400 text-sm mb-2">{tier.tier}</p>
-                    <p className={`text-2xl font-bold ${tier.color}`}>{tier.count}</p>
-                    <p className="text-gray-500 text-xs mt-2">{tier.revenue}</p>
+                  { label: "Verified", count: stats?.verifiedBusinesses, color: "text-green-400", Icon: CheckCircle2 },
+                  { label: "Pending", count: stats?.pendingBusinesses, color: "text-amber-400", Icon: Clock },
+                  { label: "Total Posts", count: stats?.totalPosts, color: "text-cyan-400", Icon: FileText },
+                  { label: "Connections", count: stats?.totalConnections, color: "text-purple-400", Icon: Link2 },
+                ].map((t) => (
+                  <div key={t.label} className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                    <div className="mb-2 flex items-center gap-2">
+                      <t.Icon className={`h-4 w-4 ${t.color}`} />
+                      <p className="text-xs text-gray-400">{t.label}</p>
+                    </div>
+                    <p className={`text-2xl font-bold ${t.color}`}>{loading ? "…" : fmt(t.count)}</p>
                   </div>
                 ))}
               </div>
-            </div>
+            </AdminCard>
           </TabsContent>
 
-          {/* Tiers Tab */}
-          <TabsContent value="tiers">
-            <TierManagement />
-          </TabsContent>
-
-          {/* Users Tab */}
-          <TabsContent value="users">
-            <UserSubscriptionManager />
-          </TabsContent>
-
-          {/* Payment Gateway Tab */}
-          <TabsContent value="payment">
-            <PaymentGatewayConfig />
-          </TabsContent>
+          <TabsContent value="tiers"><TierManagement /></TabsContent>
+          <TabsContent value="users"><UserSubscriptionManager /></TabsContent>
+          <TabsContent value="payment"><PaymentGatewayConfig /></TabsContent>
         </Tabs>
       </div>
-    </div>
+    </AdminBackground>
   );
 }

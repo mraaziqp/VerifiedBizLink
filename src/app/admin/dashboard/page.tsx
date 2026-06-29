@@ -3,10 +3,10 @@
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Building2, CheckCircle, Users, BarChart3, Settings, Shield, FileText, Zap } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText } from 'lucide-react';
 import Link from 'next/link';
+import { AdminBackground, AdminCard, AdminPageHeader, StatCard } from '@/components/admin/ui';
 
 interface AdminTool {
   id: string;
@@ -18,111 +18,79 @@ interface AdminTool {
   badge?: string;
 }
 
+interface AdminStats {
+  totalUsers: number;
+  totalBusinesses: number;
+  verifiedBusinesses: number;
+  pendingBusinesses: number;
+  reviewingBusinesses: number;
+  openReports: number;
+}
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<AdminStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
-      setLoading(false);
-    }
+    if (user) setLoading(false);
   }, [user]);
 
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/stats');
+        if (res.ok) {
+          const data = await res.json();
+          if (active) setStats(data.stats);
+        }
+      } catch {
+        /* shown via loading state */
+      } finally {
+        if (active) setStatsLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
   if (loading) {
-    return <div className="min-h-screen bg-black flex items-center justify-center">Loading...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-black text-gray-300">
+        Loading…
+      </div>
+    );
   }
+  if (!user) return null;
 
-  if (!user) {
-    return null;
-  }
+  const fmt = (n?: number) =>
+    n === undefined ? '—' : n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
 
-  // Determine user role - Ramone, Wesley, and you are super admins
   const userEmail = user.email?.toLowerCase() || '';
   const userFullName = user.fullName?.toLowerCase() || '';
-
   const isRamone = userEmail.includes('ramone') || userFullName.includes('ramone');
   const isWesley = userEmail.includes('wesley') || userFullName.includes('wesley');
   const isSuperAdmin = userEmail.includes('mraaziq') || userEmail.includes('backupe9') || isRamone || isWesley;
-
-  // Everyone who can access the app can access admin tools
-  // Different roles see different tools
   const isAdmin = isRamone || isSuperAdmin;
-  const isBanker = isWesley || isSuperAdmin;
 
-  // All admin tools - Ramone & Super Admin
   const adminTools: AdminTool[] = [
-    {
-      id: 'business-vetting',
-      name: 'Business Vetting Desk',
-      description: 'Review and grade business documents, manage verification status',
-      icon: FileText,
-      href: '/admin/vetting',
-      color: 'from-blue-500 to-cyan-500',
-      badge: 'In Review: 8',
-    },
-    {
-      id: 'user-management',
-      name: 'User Management',
-      description: 'Manage all users, roles, permissions, and access',
-      icon: Users,
-      href: '/admin/users',
-      color: 'from-purple-500 to-pink-500',
-      badge: '12.4K Users',
-    },
-    {
-      id: 'platform-analytics',
-      name: 'Platform Analytics',
-      description: 'View platform metrics, traffic, and performance data',
-      icon: BarChart3,
-      href: '/admin/analytics',
-      color: 'from-orange-500 to-yellow-500',
-      badge: 'Real-time',
-    },
-    {
-      id: 'network-monitoring',
-      name: 'Network Status',
-      description: 'Monitor system health, uptime, and performance',
-      icon: Zap,
-      href: '/admin/network',
-      color: 'from-red-500 to-rose-500',
-      badge: '99.8%',
-    },
-    {
-      id: 'admin-settings',
-      name: 'Settings',
-      description: 'Configure platform settings and admin preferences',
-      icon: Settings,
-      href: '/admin/settings',
-      color: 'from-gray-600 to-gray-700',
-    },
+    { id: 'business-vetting', name: 'Business Vetting Desk', description: 'Review and grade business documents, manage verification status', icon: FileText, href: '/admin/vetting', color: 'from-blue-500 to-cyan-500', badge: statsLoading ? undefined : `${stats?.pendingBusinesses ?? 0} pending` },
+    { id: 'user-management', name: 'User Management', description: 'Manage all users, roles, permissions, and access', icon: Users, href: '/admin/users', color: 'from-purple-500 to-pink-500', badge: statsLoading ? undefined : `${fmt(stats?.totalUsers)} users` },
+    { id: 'platform-analytics', name: 'Platform Analytics', description: 'View platform metrics, traffic, and performance data', icon: BarChart3, href: '/admin/analytics', color: 'from-orange-500 to-yellow-500', badge: 'Live' },
+    { id: 'network-monitoring', name: 'Network Status', description: 'Monitor system health, uptime, and performance', icon: Zap, href: '/admin/network', color: 'from-red-500 to-rose-500' },
+    { id: 'admin-settings', name: 'Settings', description: 'Configure platform settings and admin preferences', icon: Settings, href: '/admin/settings', color: 'from-gray-600 to-gray-700' },
   ];
 
-  // Banking tools for Wesley
   const bankingTools: AdminTool[] = [
-    {
-      id: 'compliance',
-      name: 'Legal Compliance',
-      description: 'Monitor compliance status and regulatory requirements',
-      icon: FileText,
-      href: '/admin/compliance',
-      color: 'from-green-500 to-emerald-500',
-    },
-    {
-      id: 'team-management',
-      name: 'Team Management',
-      description: 'Manage team members and their permissions',
-      icon: Users,
-      href: '/admin/team',
-      color: 'from-purple-500 to-pink-500',
-    },
+    { id: 'compliance', name: 'Legal Compliance', description: 'Monitor compliance status and regulatory requirements', icon: FileText, href: '/admin/compliance', color: 'from-green-500 to-emerald-500' },
+    { id: 'team-management', name: 'Team Management', description: 'Manage team members and their permissions', icon: Users, href: '/admin/team', color: 'from-purple-500 to-pink-500' },
   ];
 
-  // Determine which tools to show
   let tools: AdminTool[] = [];
   let dashboardTitle = '';
   let dashboardDescription = '';
-
   if (isRamone) {
     tools = adminTools;
     dashboardTitle = '👑 Admin Control Center';
@@ -132,155 +100,85 @@ export default function AdminDashboard() {
     dashboardTitle = '🏦 Banking Portal';
     dashboardDescription = 'Review and approve business vetting requests';
   } else if (isSuperAdmin) {
-    // Super admin sees everything
-    tools = [...adminTools, ...bankingTools.filter(t => !adminTools.find(a => a.id === t.id))];
+    tools = [...adminTools, ...bankingTools.filter((t) => !adminTools.find((a) => a.id === t.id))];
     dashboardTitle = '⭐ Super Admin Dashboard';
     dashboardDescription = 'Full platform access and control';
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
-      {/* Header */}
-      <div className="border-b border-gray-800 bg-black/50 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex justify-between items-start">
+    <AdminBackground>
+      <AdminPageHeader title={dashboardTitle} subtitle={dashboardDescription}>
+        <Link href="/admin/orchestrator">
+          <Button variant="outline" size="sm" className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10">
+            Orchestrator
+          </Button>
+        </Link>
+        <Link href="/">
+          <Button variant="outline" size="sm" className="border-gray-500/30 text-gray-300 hover:bg-white/5">
+            Back to App
+          </Button>
+        </Link>
+      </AdminPageHeader>
+
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:py-12">
+        <AdminCard className="mb-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-4xl font-bold text-white">{dashboardTitle}</h1>
-              <p className="text-gray-400 mt-2">{dashboardDescription}</p>
+              <p className="text-sm text-gray-400">Logged in as</p>
+              <p className="text-lg font-semibold text-white">{user.fullName || user.email}</p>
+              <p className="mt-1 text-sm text-gray-400">
+                Role:{' '}
+                <span className={`font-semibold ${isSuperAdmin ? 'text-yellow-400' : isRamone ? 'text-green-400' : 'text-blue-400'}`}>
+                  {isSuperAdmin ? 'Super Admin' : isRamone ? 'Admin' : 'Banker'}
+                </span>
+              </p>
             </div>
-            <div className="flex gap-2">
-              <Link href="/admin/orchestrator">
-                <Button variant="outline" className="border-yellow-500/30 text-yellow-400">
-                  Orchestrator
-                </Button>
-              </Link>
-              <Link href="/">
-                <Button variant="outline" className="border-gray-500/30">
-                  Back to App
-                </Button>
-              </Link>
+            <div className="sm:text-right">
+              <p className="text-sm text-gray-400">Email</p>
+              <p className="font-mono text-sm text-white">{user.email}</p>
             </div>
           </div>
-        </div>
-      </div>
+        </AdminCard>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-12">
-        {/* User Info Card */}
-        <Card className="bg-gradient-to-r from-gray-800/50 to-gray-800/30 border-gray-700 mb-8">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm">Logged in as</p>
-                <p className="text-white text-lg font-semibold">{user.fullName || user.email}</p>
-                <p className="text-gray-400 text-sm mt-1">
-                  Role: <span className={`font-semibold ${isSuperAdmin ? 'text-yellow-400' : isRamone ? 'text-green-400' : 'text-blue-400'}`}>
-                    {isSuperAdmin ? 'Super Admin' : isRamone ? 'Admin' : 'Banker'}
-                  </span>
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-gray-400 text-sm">Email</p>
-                <p className="text-white font-mono text-sm">{user.email}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Tools Grid */}
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-6">
-            {isAdmin ? 'Admin Tools' : 'Banking Tools'}
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tools.map((tool) => {
-              const Icon = tool.icon;
-              return (
-                <Link key={tool.id} href={tool.href}>
-                  <Card className="bg-gray-800/40 border-gray-700 hover:border-gray-600 transition-all hover:shadow-lg hover:shadow-gray-900 cursor-pointer group h-full">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className={`h-12 w-12 rounded-lg bg-gradient-to-r ${tool.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                          <Icon className="h-6 w-6 text-white" />
-                        </div>
-                        {tool.badge && (
-                          <span className="text-xs font-semibold px-2 py-1 bg-blue-500/20 text-blue-300 rounded-full">
-                            {tool.badge}
-                          </span>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div>
-                        <h3 className="text-lg font-bold text-white group-hover:text-gray-200">
-                          {tool.name}
-                        </h3>
-                        <p className="text-gray-400 text-sm mt-2">{tool.description}</p>
-                      </div>
-                      <div className="flex items-center text-primary text-sm font-semibold pt-2">
-                        Open Tool <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
+        <h2 className="mb-6 text-xl font-bold text-white sm:text-2xl">
+          {isAdmin ? 'Admin Tools' : 'Banking Tools'}
+        </h2>
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {tools.map((tool) => {
+            const Icon = tool.icon;
+            return (
+              <Link key={tool.id} href={tool.href} className="group">
+                <AdminCard hover className="h-full">
+                  <div className="mb-3 flex items-start justify-between">
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${tool.color} transition-transform group-hover:scale-110`}>
+                      <Icon className="h-6 w-6 text-white" />
+                    </div>
+                    {tool.badge && (
+                      <span className="rounded-full bg-blue-500/15 px-2 py-1 text-xs font-semibold text-blue-300">
+                        {tool.badge}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="text-lg font-bold text-white">{tool.name}</h3>
+                  <p className="mt-2 text-sm text-gray-400">{tool.description}</p>
+                  <div className="flex items-center pt-4 text-sm font-semibold text-amber-400">
+                    Open Tool <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                  </div>
+                </AdminCard>
+              </Link>
+            );
+          })}
         </div>
 
-        {/* Quick Stats */}
         {(isRamone || isSuperAdmin) && (
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-gray-800/40 border-gray-700">
-              <CardContent className="p-6">
-                <p className="text-gray-400 text-sm">Pending Verifications</p>
-                <p className="text-3xl font-bold text-green-400 mt-2">12</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800/40 border-gray-700">
-              <CardContent className="p-6">
-                <p className="text-gray-400 text-sm">Total Businesses</p>
-                <p className="text-3xl font-bold text-blue-400 mt-2">833</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800/40 border-gray-700">
-              <CardContent className="p-6">
-                <p className="text-gray-400 text-sm">Active Users</p>
-                <p className="text-3xl font-bold text-purple-400 mt-2">12.4K</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800/40 border-gray-700">
-              <CardContent className="p-6">
-                <p className="text-gray-400 text-sm">System Health</p>
-                <p className="text-3xl font-bold text-green-400 mt-2">99.8%</p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
-
-        {(isWesley || isSuperAdmin) && isWesley && (
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="bg-gray-800/40 border-gray-700">
-              <CardContent className="p-6">
-                <p className="text-gray-400 text-sm">Pending Reviews</p>
-                <p className="text-3xl font-bold text-blue-400 mt-2">8</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800/40 border-gray-700">
-              <CardContent className="p-6">
-                <p className="text-gray-400 text-sm">Approved This Month</p>
-                <p className="text-3xl font-bold text-green-400 mt-2">24</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-gray-800/40 border-gray-700">
-              <CardContent className="p-6">
-                <p className="text-gray-400 text-sm">Compliance Status</p>
-                <p className="text-3xl font-bold text-green-400 mt-2">100%</p>
-              </CardContent>
-            </Card>
+          <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+            <StatCard label="Pending Verifications" value={fmt(stats?.pendingBusinesses)} icon={Clock} gradient="from-amber-500 to-orange-500" loading={statsLoading} />
+            <StatCard label="Total Businesses" value={fmt(stats?.totalBusinesses)} icon={Building2} gradient="from-blue-500 to-cyan-500" loading={statsLoading} />
+            <StatCard label="Verified" value={fmt(stats?.verifiedBusinesses)} icon={CheckCircle2} gradient="from-green-500 to-emerald-500" loading={statsLoading} />
+            <StatCard label="Active Users" value={fmt(stats?.totalUsers)} icon={Users} gradient="from-purple-500 to-pink-500" loading={statsLoading} />
           </div>
         )}
       </div>
-    </div>
+    </AdminBackground>
   );
 }
