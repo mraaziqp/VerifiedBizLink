@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.warn(
+    '[media/upload] Supabase storage not configured (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing) — uploads will fall back to inline base64.'
+  );
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 export async function POST(request: NextRequest) {
   try {
@@ -58,8 +64,17 @@ export async function POST(request: NextRequest) {
           method: 'supabase',
         }, { status: 200 });
       }
+
+      // Supabase returned an error object (e.g. bad URL, missing/private bucket).
+      // Log it loudly so the misconfiguration is visible instead of silently
+      // degrading every upload to base64.
+      console.error(
+        '[media/upload] Supabase upload failed, falling back to base64. Reason:',
+        error?.message || 'unknown error',
+        '| bucket "media" must exist & be public, and NEXT_PUBLIC_SUPABASE_URL must be valid.'
+      );
     } catch (supabaseError) {
-      console.warn('Supabase upload failed, falling back to data URL:', supabaseError);
+      console.error('[media/upload] Supabase threw, falling back to base64:', supabaseError);
     }
 
     // Fallback to base64 data URL if Supabase fails
