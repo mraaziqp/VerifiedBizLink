@@ -1,110 +1,122 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
 
 /**
- * Real news feed - actual South African business compliance news
- * Updated regularly with genuine regulatory updates
+ * Live news aggregator — pulls real South African business, markets, politics
+ * and tech headlines from public RSS feeds, with a curated regulatory fallback
+ * so the section always renders something useful.
  */
 
-const REAL_NEWS_ITEMS = [
-  {
-    id: 'popia-2026-01',
-    category: 'PRIVACY',
-    title: 'POPIA Compliance: Key obligations for B2B data processors in 2026',
-    description: 'Information Regulator SA releases updated guidelines on personal information handling requirements for business-to-business data processing',
-    source: 'Information Regulator SA',
-    date: new Date('2026-06-01'),
-    url: 'https://www.inforegulator.org.za',
-    priority: 'high',
-    affectsBusinesses: true,
-  },
-  {
-    id: 'cipc-2026-02',
-    category: 'REGULATORY',
-    title: 'CIPC company status checks now available via API for verified partners',
-    description: 'Certified Information and Prevention Centre expands digital verification options for accredited platform partners',
-    source: 'CIPC Official',
-    date: new Date('2026-05-28'),
-    url: 'https://www.cipc.co.za',
-    priority: 'high',
-    affectsBusinesses: true,
-  },
-  {
-    id: 'sars-2026-03',
-    category: 'TAX',
-    title: 'SARS VAT registration threshold remains at R1 million for 2026',
-    description: 'South African Revenue Service confirms VAT registration requirements remain unchanged for the 2026 tax year',
-    source: 'SARS',
-    date: new Date('2026-05-15'),
-    url: 'https://www.sars.gov.za',
-    priority: 'medium',
-    affectsBusinesses: true,
-  },
-  {
-    id: 'bbbee-2026-04',
-    category: 'B-BBEE',
-    title: 'B-BBEE verification agencies reminded of updated scorecard criteria for 2026',
-    description: 'Department of Trade, Industry and Competition releases compliance update for B-BBEE measurement scorecard requirements',
-    source: 'DTIC South Africa',
-    date: new Date('2026-05-10'),
-    url: 'https://www.dtic.gov.za',
-    priority: 'medium',
-    affectsBusinesses: true,
-  },
-  {
-    id: 'ncc-2026-05',
-    category: 'CONSUMER',
-    title: 'NCC updates consumer goods sector compliance guidelines for e-commerce',
-    description: 'National Consumer Commission releases new compliance guidelines for e-commerce platforms handling consumer goods',
-    source: 'National Consumer Commission',
-    date: new Date('2026-05-05'),
-    url: 'https://www.ncconsumer.org.za',
-    priority: 'medium',
-    affectsBusinesses: true,
-  },
-  {
-    id: 'companies-act-2026-06',
-    category: 'CORPORATE',
-    title: 'Companies Act Amendment: New disclosure requirements for close corporations',
-    description: 'Government Gazette publishes amendment requiring enhanced financial disclosure for private close corporations',
-    source: 'CIPC Official',
-    date: new Date('2026-04-28'),
-    url: 'https://www.cipc.co.za',
-    priority: 'high',
-    affectsBusinesses: true,
-  },
+export const revalidate = 1800; // cache for 30 min
+
+interface NewsItem {
+  id: string;
+  category: string;
+  title: string;
+  description: string;
+  source: string;
+  date: string;
+  url: string;
+  priority: 'high' | 'medium' | 'low';
+  affectsBusinesses: boolean;
+}
+
+const FEEDS: { url: string; source: string; category: string }[] = [
+  { url: 'https://businesstech.co.za/feed/', source: 'BusinessTech', category: 'BUSINESS' },
+  { url: 'https://www.moneyweb.co.za/feed/', source: 'Moneyweb', category: 'MARKETS' },
+  { url: 'https://mybroadband.co.za/news/feed', source: 'MyBroadband', category: 'TECH' },
+  { url: 'https://www.dailymaverick.co.za/feed/', source: 'Daily Maverick', category: 'POLITICS' },
 ];
 
-export async function GET(request: NextRequest) {
+const CURATED: NewsItem[] = [
+  { id: 'popia', category: 'PRIVACY', title: 'POPIA: Key obligations for B2B data processors', description: 'Information Regulator SA guidelines on personal information handling for business-to-business data processing.', source: 'Information Regulator SA', date: new Date('2026-06-01').toISOString(), url: 'https://www.inforegulator.org.za', priority: 'high', affectsBusinesses: true },
+  { id: 'cipc', category: 'REGULATORY', title: 'CIPC company status checks now available via API', description: 'CIPC expands digital verification options for accredited platform partners.', source: 'CIPC', date: new Date('2026-05-28').toISOString(), url: 'https://www.cipc.co.za', priority: 'high', affectsBusinesses: true },
+  { id: 'sars', category: 'TAX', title: 'SARS VAT registration threshold remains at R1 million', description: 'SARS confirms VAT registration requirements remain unchanged for the 2026 tax year.', source: 'SARS', date: new Date('2026-05-15').toISOString(), url: 'https://www.sars.gov.za', priority: 'medium', affectsBusinesses: true },
+  { id: 'bbbee', category: 'B-BBEE', title: 'Updated B-BBEE scorecard criteria for 2026', description: 'DTIC releases compliance update for B-BBEE measurement scorecard requirements.', source: 'DTIC South Africa', date: new Date('2026-05-10').toISOString(), url: 'https://www.dtic.gov.za', priority: 'medium', affectsBusinesses: true },
+];
+
+function decode(s: string): string {
+  return s
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&#8217;/g, '’')
+    .replace(/&nbsp;/g, ' ').replace(/&hellip;/g, '…')
+    .replace(/\s+/g, ' ').trim();
+}
+
+function tag(block: string, name: string): string {
+  const m = block.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, 'i'));
+  return m ? decode(m[1]) : '';
+}
+
+async function fetchFeed(feed: { url: string; source: string; category: string }): Promise<NewsItem[]> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
   try {
-    const limit = parseInt(request.nextUrl.searchParams.get('limit') || '10');
-    const category = request.nextUrl.searchParams.get('category');
+    const res = await fetch(feed.url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'VerifiedBizLink/1.0 (+https://verifiedbizlink.co.za)' },
+      next: { revalidate: 1800 },
+    });
+    if (!res.ok) return [];
+    const xml = await res.text();
+    const blocks = xml.match(/<item[\s\S]*?<\/item>/gi) || [];
+    return blocks.slice(0, 6).map((block, i) => {
+      const title = tag(block, 'title');
+      const link = tag(block, 'link') || (block.match(/<link[^>]*href="([^"]+)"/i)?.[1] ?? '');
+      const desc = tag(block, 'description') || tag(block, 'content:encoded');
+      const pub = tag(block, 'pubDate') || tag(block, 'published') || tag(block, 'dc:date');
+      const date = pub && !isNaN(Date.parse(pub)) ? new Date(pub).toISOString() : new Date().toISOString();
+      return {
+        id: `${feed.category.toLowerCase()}-${i}-${(link || title).slice(-24)}`,
+        category: feed.category,
+        title: title.slice(0, 160),
+        description: (desc || title).slice(0, 280),
+        source: feed.source,
+        date,
+        url: link,
+        priority: 'medium' as const,
+        affectsBusinesses: feed.category === 'BUSINESS' || feed.category === 'MARKETS',
+      };
+    }).filter((n) => n.title && n.url);
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
-    let news = [...REAL_NEWS_ITEMS];
+export async function GET(request: NextRequest) {
+  const limit = parseInt(request.nextUrl.searchParams.get('limit') || '12');
+  const category = request.nextUrl.searchParams.get('category');
 
-    // Filter by category if specified
+  try {
+    const results = await Promise.allSettled(FEEDS.map(fetchFeed));
+    let live: NewsItem[] = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+
+    // Always include curated regulatory items (high signal for this audience)
+    let news = [...CURATED, ...live];
+
     if (category) {
-      news = news.filter((item) => item.category.toLowerCase() === category.toLowerCase());
+      news = news.filter((n) => n.category.toLowerCase() === category.toLowerCase());
     }
 
-    // Sort by date (newest first)
-    news.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // De-dup by title, newest first
+    const seen = new Set<string>();
+    news = news
+      .filter((n) => { const k = n.title.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    // Paginate
     const items = news.slice(0, limit);
-
     return NextResponse.json({
       success: true,
       news: items,
       total: news.length,
       count: items.length,
+      live: live.length > 0,
     });
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
-    console.error('News fetch error:', errorMsg);
-    return NextResponse.json(
-      { error: 'Failed to fetch news', detail: errorMsg },
-      { status: 500 }
-    );
+    console.error('News aggregation failed, serving curated:', error);
+    return NextResponse.json({ success: true, news: CURATED.slice(0, limit), total: CURATED.length, count: CURATED.length, live: false });
   }
 }

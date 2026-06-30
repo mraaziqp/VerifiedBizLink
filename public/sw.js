@@ -1,4 +1,4 @@
-const CACHE_NAME = 'verifiedbizlink-v1';
+const CACHE_NAME = 'verifiedbizlink-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -46,16 +46,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip API requests - always go to network
+  // Do NOT intercept navigations — let the browser handle them natively so
+  // domain redirects (e.g. apex -> www) actually move the address bar instead
+  // of being masked by a cached HTML response.
+  if (event.request.mode === 'navigate') {
+    return;
+  }
+
+  // Skip API requests entirely — let them hit the network directly. (Don't
+  // synthesize a 503 on failure: that masked real upload/redirect errors.)
   if (event.request.url.includes('/api/')) {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return new Response(
-          JSON.stringify({ error: 'Offline - API not available' }),
-          { status: 503, headers: { 'Content-Type': 'application/json' } }
-        );
-      })
-    );
     return;
   }
 

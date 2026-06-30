@@ -41,14 +41,15 @@ const strengthColor = ["", "bg-red-500", "bg-orange-400", "bg-yellow-400", "bg-l
 export default function SignupPage() {
   const [role, setRole] = useState<AccountRole>("business");
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    dateOfBirth: "",
     email: "",
     password: "",
     confirmPassword: "",
     companyName: "",
     regNumber: "",
+    website: "",
+    linkedin: "",
+    instagram: "",
+    facebook: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -77,11 +78,16 @@ export default function SignupPage() {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          fullName: `${formData.firstName} ${formData.lastName}`.trim(),
-          dateOfBirth: formData.dateOfBirth,
+          fullName: formData.companyName.trim(),
           role,
           companyName: formData.companyName,
           regNumber: formData.regNumber,
+          website: formData.website,
+          socialLinks: {
+            linkedin: formData.linkedin,
+            instagram: formData.instagram,
+            facebook: formData.facebook,
+          },
         }),
       });
       const data = await res.json();
@@ -203,77 +209,66 @@ export default function SignupPage() {
             </div>
 
             <form className="space-y-4" onSubmit={handleSignup}>
-              {/* Name */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="first-name" className="text-sm font-semibold text-gray-700">First Name</Label>
-                  <Input
-                    id="first-name"
-                    required
-                    placeholder="John"
-                    className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:bg-white"
-                    value={formData.firstName}
-                    onChange={(e) => update("firstName", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="last-name" className="text-sm font-semibold text-gray-700">Last Name</Label>
-                  <Input
-                    id="last-name"
-                    required
-                    placeholder="Doe"
-                    className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:bg-white"
-                    value={formData.lastName}
-                    onChange={(e) => update("lastName", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              {/* Date of Birth */}
-              <div className="space-y-1.5">
-                <Label htmlFor="dob" className="text-sm font-semibold text-gray-700">Date of Birth</Label>
-                <Input
-                  id="dob"
-                  type="date"
-                  required
-                  className="h-11 rounded-xl border-gray-200 bg-gray-50 focus:bg-white"
-                  value={formData.dateOfBirth}
-                  onChange={(e) => update("dateOfBirth", e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
-                />
-                <p className="text-xs text-gray-500">We use this to verify eligibility for age-restricted promotions</p>
-              </div>
-
               {/* Business fields */}
-              {role === "business" && (
-                <div className="space-y-4 p-4 rounded-2xl border border-blue-100 bg-blue-50/50 animate-in fade-in slide-in-from-top-2 duration-300">
-                  <p className="text-xs font-bold text-blue-700 uppercase tracking-wider flex items-center gap-2">
-                    <Building2 className="h-3.5 w-3.5" /> Business Details
-                  </p>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="company-name" className="text-sm font-semibold text-gray-700">Company Name</Label>
-                    <Input
-                      id="company-name"
-                      required
-                      placeholder="Acme Corp Pty Ltd"
-                      className="h-11 rounded-xl border-gray-200 bg-white"
-                      value={formData.companyName}
-                      onChange={(e) => update("companyName", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label htmlFor="reg-number" className="text-sm font-semibold text-gray-700">CIPC Registration Number</Label>
-                    <Input
-                      id="reg-number"
-                      required
-                      placeholder="2024/123456/07"
-                      className="h-11 rounded-xl border-gray-200 bg-white"
-                      value={formData.regNumber}
-                      onChange={(e) => update("regNumber", e.target.value)}
-                    />
-                  </div>
+              <div className="space-y-4 p-4 rounded-2xl border border-blue-100 bg-blue-50/50">
+                <p className="text-xs font-bold text-blue-700 uppercase tracking-wider flex items-center gap-2">
+                  <Building2 className="h-3.5 w-3.5" /> Business Details
+                </p>
+                <div className="space-y-1.5">
+                  <Label htmlFor="company-name" className="text-sm font-semibold text-gray-700">Company Name</Label>
+                  <Input
+                    id="company-name"
+                    required
+                    placeholder="Acme Corp Pty Ltd"
+                    className="h-11 rounded-xl border-gray-200 bg-white"
+                    value={formData.companyName}
+                    onChange={(e) => update("companyName", e.target.value)}
+                  />
                 </div>
-              )}
+                <div className="space-y-1.5">
+                  <Label htmlFor="reg-number" className="text-sm font-semibold text-gray-700">CIPC Registration Number</Label>
+                  <Input
+                    id="reg-number"
+                    required
+                    placeholder="2024/123456/07"
+                    className="h-11 rounded-xl border-gray-200 bg-white"
+                    value={formData.regNumber}
+                    onChange={(e) => update("regNumber", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="website" className="text-sm font-semibold text-gray-700">Website <span className="font-normal text-gray-400">(optional)</span></Label>
+                  <Input
+                    id="website"
+                    type="url"
+                    placeholder="https://yourcompany.co.za"
+                    className="h-11 rounded-xl border-gray-200 bg-white"
+                    value={formData.website}
+                    onChange={(e) => update("website", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold text-gray-700">Social Media <span className="font-normal text-gray-400">(optional)</span></Label>
+                  <Input
+                    placeholder="LinkedIn URL or handle"
+                    className="h-11 rounded-xl border-gray-200 bg-white"
+                    value={formData.linkedin}
+                    onChange={(e) => update("linkedin", e.target.value)}
+                  />
+                  <Input
+                    placeholder="Instagram @handle"
+                    className="h-11 rounded-xl border-gray-200 bg-white"
+                    value={formData.instagram}
+                    onChange={(e) => update("instagram", e.target.value)}
+                  />
+                  <Input
+                    placeholder="Facebook page URL or handle"
+                    className="h-11 rounded-xl border-gray-200 bg-white"
+                    value={formData.facebook}
+                    onChange={(e) => update("facebook", e.target.value)}
+                  />
+                </div>
+              </div>
 
               {/* Email */}
               <div className="space-y-1.5">

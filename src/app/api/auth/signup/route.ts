@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { email, password, fullName, dateOfBirth, role, companyName, regNumber } = await request.json();
+    const { email, password, fullName, dateOfBirth, role, companyName, regNumber, website, socialLinks } = await request.json();
 
     if (!email || !password || !fullName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -62,11 +62,14 @@ export async function POST(request: NextRequest) {
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + 14);
       await db`
-        INSERT INTO businesses (user_id, company_name, reg_number, status, package_type, trial_package, trial_ends_at)
+        INSERT INTO businesses (user_id, name, company_name, reg_number, website, social_links, status, package_type, trial_package, trial_ends_at)
         VALUES (
           ${user.id},
           ${companyName},
+          ${companyName},
           ${regNumber || ''},
+          ${website || ''},
+          ${JSON.stringify(socialLinks || {})},
           'unregistered',
           'free',
           'premium_half',

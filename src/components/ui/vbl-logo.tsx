@@ -73,15 +73,19 @@ function VBLIcon({ size, theme }: { size: number; theme?: "light" | "dark" }) {
     return <VBLIconSVG size={size} theme={theme} />;
   }
 
+  // Prefers a dedicated square brand mark (drop a cropped VB shield at
+  // /logo-mark.png); falls back to the existing logo, then an SVG.
+  const [useFallbackSrc, setUseFallbackSrc] = useState(false);
   return (
     <Image
-      src="/vbl-logo.png"
+      src={useFallbackSrc ? "/vbl-logo.png" : "/logo-mark.png"}
       alt="VerifiedBizLink logo"
       width={size}
       height={size}
+      className="rounded-lg object-contain"
       style={{ display: "block", flexShrink: 0 }}
       priority
-      onError={() => setImageError(true)}
+      onError={() => (useFallbackSrc ? setImageError(true) : setUseFallbackSrc(true))}
     />
   );
 }
