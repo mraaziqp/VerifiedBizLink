@@ -12,13 +12,22 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 200);
 
+    // Maps the actual audit_logs schema (user_id / entity_type / entity_id /
+    // details) onto the field names the admin UI expects (admin_name /
+    // target_type / target_name).
     const logs = await db`
-      SELECT 
-        al.id, al.action, al.target_type, al.target_id, al.target_name,
-        al.created_at, al.admin_name,
-        u.full_name AS admin_full_name
+      SELECT
+        al.id,
+        al.action,
+        al.entity_type            AS target_type,
+        al.entity_id              AS target_id,
+        al.entity_id              AS target_name,
+        al.details,
+        al.created_at,
+        COALESCE(u.full_name, u.email, 'System') AS admin_name,
+        COALESCE(u.full_name, u.email, 'System') AS admin_full_name
       FROM audit_logs al
-      LEFT JOIN users u ON al.admin_id = u.id
+      LEFT JOIN users u ON al.user_id = u.id
       ORDER BY al.created_at DESC
       LIMIT ${limit}
     `;

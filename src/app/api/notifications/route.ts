@@ -9,8 +9,17 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
+    // Real schema: title / content / related_id. Alias to the shape the UI
+    // expects (message / link).
     const notifications = await db`
-      SELECT id, type, message, read, link, created_at
+      SELECT
+        id,
+        type,
+        COALESCE(content, title, '') AS message,
+        title,
+        read,
+        NULL AS link,
+        created_at
       FROM notifications
       WHERE user_id = ${session.id}
       ORDER BY created_at DESC
