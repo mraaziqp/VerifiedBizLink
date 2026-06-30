@@ -3,232 +3,165 @@
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Shield, AlertTriangle, CheckCircle2, XCircle, LogOut, Eye, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Shield, AlertTriangle, CheckCircle2, LogOut, Flag, Clock, Building2, ScrollText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AdminProfilePanel } from "@/components/admin/admin-profile-panel";
+import { AdminBackground, AdminCard, AdminPageHeader, StatCard, SectionTitle } from "@/components/admin/ui";
+
+interface Report {
+  id: string;
+  report_type: string;
+  risk_level: string;
+  description: string;
+  status: string;
+  created_at: string;
+  reported_name?: string;
+  reporter_name?: string;
+}
+interface Log { id: string; action: string; admin_name: string; target_name?: string; created_at: string; }
 
 export default function EnforcerDashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const [selectedTab, setSelectedTab] = useState<"content" | "fraud" | "compliance">("content");
+  const [tab, setTab] = useState<"reports" | "compliance" | "activity">("reports");
+  const [stats, setStats] = useState<any>(null);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [logs, setLogs] = useState<Log[]>([]);
+  const [compliance, setCompliance] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { if (!user) router.push("/login"); }, [user, router]);
 
   useEffect(() => {
-    if (!user) {
-      router.push("/login");
-    }
-  }, [user, router]);
+    let active = true;
+    (async () => {
+      try {
+        const [s, r, l, c] = await Promise.all([
+          fetch("/api/admin/stats").then((x) => x.ok ? x.json() : null).catch(() => null),
+          fetch("/api/admin/reports").then((x) => x.ok ? x.json() : null).catch(() => null),
+          fetch("/api/admin/audit-logs?limit=8").then((x) => x.ok ? x.json() : null).catch(() => null),
+          fetch("/api/compliance").then((x) => x.ok ? x.json() : null).catch(() => null),
+        ]);
+        if (!active) return;
+        setStats(s?.stats ?? null);
+        setReports(r?.reports ?? []);
+        setLogs(l?.logs ?? []);
+        setCompliance(c ?? null);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
 
-  const handleLogout = async () => {
-    await logout();
-    router.push("/login");
-  };
+  const handleLogout = async () => { await logout(); router.push("/login"); };
 
-  // Mock data
-  const contentQueue = [
-    { id: 1, business: "TechCorp SA", adTitle: "50% Off Electronics", type: "promotion", submitted: "2h ago", status: "pending" },
-    { id: 2, business: "Fashion House", adTitle: "New Collection Launch", type: "product", submitted: "4h ago", status: "pending" },
-    { id: 3, business: "Digital Agency", adTitle: "Web Design Services", type: "service", submitted: "6h ago", status: "reviewing" },
-  ];
-
-  const fraudAlerts = [
-    { id: 1, type: "unusual_spend_spike", business: "Mystery Marketing", severity: "high", detected: "1h ago", action: "investigate" },
-    { id: 2, type: "click_fraud", business: "Auto Clicks Inc", severity: "high", detected: "3h ago", action: "suspend" },
-    { id: 3, type: "content_violation", business: "Gray Market", severity: "medium", detected: "5h ago", action: "review" },
-  ];
-
-  const complianceIssues = [
-    { category: "POPI Act", status: "compliant", businesses: "833/833" },
-    { category: "Age Restrictions", status: "review", businesses: "12 requiring review" },
-    { category: "Content Policy", status: "compliant", businesses: "831/833" },
-    { category: "Geographic Targeting", status: "compliant", businesses: "833/833" },
+  const cards = [
+    { label: "Open Reports", value: stats?.openReports ?? 0, icon: Flag, gradient: "from-red-500 to-rose-500" },
+    { label: "Pending Vetting", value: stats?.pendingBusinesses ?? 0, icon: Clock, gradient: "from-amber-500 to-orange-500" },
+    { label: "Verified", value: stats?.verifiedBusinesses ?? 0, icon: CheckCircle2, gradient: "from-green-500 to-emerald-500" },
+    { label: "Total Businesses", value: stats?.totalBusinesses ?? 0, icon: Building2, gradient: "from-blue-500 to-cyan-500" },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
-      {/* Header */}
-      <div className="border-b border-red-900/30 sticky top-0 z-50 backdrop-blur-xl bg-black/50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-red-400">Enforcer Portal</h1>
-            <p className="text-gray-400 text-sm mt-1">Content moderation, fraud detection & compliance</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-400">{user?.email}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              className="gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </div>
+    <AdminBackground>
+      <AdminPageHeader title="Enforcer Portal" subtitle="Reports, compliance & platform integrity">
+        <span className="hidden text-sm text-gray-400 lg:inline">{user?.email}</span>
+        <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 border-red-500/30 text-red-400 hover:bg-red-500/10">
+          <LogOut className="h-4 w-4" /> Logout
+        </Button>
+      </AdminPageHeader>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Admin Profile Panel */}
+      <div className="mx-auto max-w-7xl px-4 py-8 space-y-6">
         <AdminProfilePanel />
 
-        {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="p-4 rounded-xl bg-red-900/20 border border-red-800/40">
-            <p className="text-red-400 text-sm font-bold">PENDING REVIEW</p>
-            <p className="text-3xl font-bold text-red-300 mt-2">3</p>
-            <p className="text-gray-500 text-xs mt-1">Content & ads</p>
-          </div>
-          <div className="p-4 rounded-xl bg-orange-900/20 border border-orange-800/40">
-            <p className="text-orange-400 text-sm font-bold">FRAUD ALERTS</p>
-            <p className="text-3xl font-bold text-orange-300 mt-2">3</p>
-            <p className="text-gray-500 text-xs mt-1">Requires action</p>
-          </div>
-          <div className="p-4 rounded-xl bg-yellow-900/20 border border-yellow-800/40">
-            <p className="text-yellow-400 text-sm font-bold">COMPLIANCE ISSUES</p>
-            <p className="text-3xl font-bold text-yellow-300 mt-2">2</p>
-            <p className="text-gray-500 text-xs mt-1">Under review</p>
-          </div>
-          <div className="p-4 rounded-xl bg-green-900/20 border border-green-800/40">
-            <p className="text-green-400 text-sm font-bold">APPROVED TODAY</p>
-            <p className="text-3xl font-bold text-green-300 mt-2">42</p>
-            <p className="text-gray-500 text-xs mt-1">Ads & content</p>
-          </div>
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {cards.map((c) => <StatCard key={c.label} {...c} loading={loading} />)}
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex gap-2 mb-8 border-b border-gray-800">
-          {(["content", "fraud", "compliance"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setSelectedTab(tab)}
-              className={`px-4 py-2 capitalize font-bold text-sm transition-all ${
-                selectedTab === tab
-                  ? "text-red-400 border-b-2 border-red-400"
-                  : "text-gray-500 hover:text-gray-400"
-              }`}
-            >
-              {tab} Moderation
+        <div className="flex gap-1 border-b border-white/10">
+          {([["reports", "Reports"], ["compliance", "Compliance"], ["activity", "Activity"]] as const).map(([v, label]) => (
+            <button key={v} onClick={() => setTab(v)}
+              className={`px-4 py-2.5 text-sm font-semibold transition-all ${tab === v ? "border-b-2 border-amber-400 text-amber-400" : "text-gray-400 hover:text-gray-200"}`}>
+              {label}
             </button>
           ))}
         </div>
 
-        {/* Content Moderation Queue */}
-        {selectedTab === "content" && (
-          <div className="space-y-4">
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-red-900/20">
-              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                <Eye className="h-5 w-5 text-red-400" />
-                Content Review Queue
-              </h2>
-              <div className="space-y-3">
-                {contentQueue.map((item) => (
-                  <div key={item.id} className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/30 flex items-center justify-between hover:border-red-700/40 transition-all">
-                    <div className="flex-1">
-                      <p className="text-white font-bold">{item.business}</p>
-                      <p className="text-gray-400 text-sm">{item.adTitle}</p>
-                      <div className="flex gap-2 mt-2 text-xs">
-                        <span className="px-2 py-1 rounded bg-gray-700/50 text-gray-300">{item.type}</span>
-                        <span className="px-2 py-1 rounded bg-gray-700/50 text-gray-400">{item.submitted}</span>
+        {tab === "reports" && (
+          <AdminCard>
+            <SectionTitle icon={Flag}>Compliance Reports</SectionTitle>
+            {loading ? <p className="py-6 text-center text-gray-500">Loading…</p>
+              : reports.length === 0 ? (
+                <div className="py-10 text-center">
+                  <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-green-400" />
+                  <p className="text-sm text-gray-400">No open reports — the platform is clean.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {reports.map((r) => (
+                    <div key={r.id} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-white capitalize">{r.report_type?.replace(/_/g, " ") || "Report"}</p>
+                        <p className="truncate text-sm text-gray-400">{r.description}</p>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {r.reporter_name ? `by ${r.reporter_name} · ` : ""}{new Date(r.created_at).toLocaleDateString("en-ZA")}
+                        </p>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" className="bg-green-600/30 text-green-400 border border-green-600 hover:bg-green-600/50 gap-1">
-                        <ThumbsUp className="h-3 w-3" />
-                        Approve
-                      </Button>
-                      <Button size="sm" variant="outline" className="border-red-600 text-red-400 hover:bg-red-600/20 gap-1">
-                        <ThumbsDown className="h-3 w-3" />
-                        Reject
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Fraud Detection */}
-        {selectedTab === "fraud" && (
-          <div className="space-y-4">
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-red-900/20">
-              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5 text-orange-400" />
-                Fraud Alerts & Suspicious Activity
-              </h2>
-              <div className="space-y-3">
-                {fraudAlerts.map((alert) => (
-                  <div key={alert.id} className="p-4 rounded-xl bg-gray-800/30 border border-orange-700/30 flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-white font-bold">{alert.business}</p>
-                      <p className="text-gray-400 text-sm capitalize">{alert.type.replace(/_/g, " ")}</p>
-                      <p className="text-gray-500 text-xs mt-1">{alert.detected}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                        alert.severity === "high"
-                          ? "bg-red-500/20 text-red-400"
-                          : "bg-yellow-500/20 text-yellow-400"
-                      }`}>
-                        {alert.severity.toUpperCase()}
+                      <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${r.risk_level === "high" ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400"}`}>
+                        {(r.risk_level || "medium").toUpperCase()}
                       </span>
-                      <Button size="sm" className="bg-red-600/30 text-red-400 border border-red-600 hover:bg-red-600/50">
-                        Investigate
-                      </Button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+                  ))}
+                </div>
+              )}
+          </AdminCard>
         )}
 
-        {/* Compliance */}
-        {selectedTab === "compliance" && (
-          <div className="space-y-4">
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-red-900/20">
-              <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                <Shield className="h-5 w-5 text-red-400" />
-                Compliance Checklist
-              </h2>
-              <div className="space-y-3">
-                {complianceIssues.map((issue) => (
-                  <div key={issue.category} className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/30 flex items-center justify-between">
-                    <div>
-                      <p className="text-white font-bold">{issue.category}</p>
-                      <p className="text-gray-400 text-sm">{issue.businesses}</p>
-                    </div>
-                    <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm font-bold ${
-                      issue.status === "compliant"
-                        ? "bg-green-500/20 text-green-400"
-                        : "bg-yellow-500/20 text-yellow-400"
-                    }`}>
-                      {issue.status === "compliant" ? (
-                        <CheckCircle2 className="h-4 w-4" />
-                      ) : (
-                        <AlertTriangle className="h-4 w-4" />
-                      )}
-                      {issue.status.toUpperCase()}
-                    </div>
-                  </div>
-                ))}
+        {tab === "compliance" && (
+          <AdminCard>
+            <SectionTitle icon={Shield}>Compliance Status</SectionTitle>
+            <div className="space-y-3">
+              {[
+                { k: "POPIA (South Africa)", ok: compliance?.policies?.popia ?? true },
+                { k: "GDPR", ok: compliance?.policies?.gdpr ?? true },
+                { k: "CCPA", ok: compliance?.policies?.ccpa ?? true },
+              ].map((p) => (
+                <div key={p.k} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                  <span className="font-semibold text-white">{p.k}</span>
+                  <span className={`flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold ${p.ok ? "bg-green-500/20 text-green-400" : "bg-amber-500/20 text-amber-400"}`}>
+                    {p.ok ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
+                    {p.ok ? "COMPLIANT" : "REVIEW"}
+                  </span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                <span className="font-semibold text-white">Verified Businesses</span>
+                <span className="font-semibold text-amber-400">{loading ? "…" : `${stats?.verifiedBusinesses ?? 0} / ${stats?.totalBusinesses ?? 0}`}</span>
               </div>
             </div>
-          </div>
+          </AdminCard>
         )}
 
-        {/* Action Log */}
-        <div className="mt-8 p-6 rounded-2xl bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-gray-700/50">
-          <h2 className="text-xl font-bold text-white mb-4">Recent Actions</h2>
-          <div className="space-y-2 text-sm text-gray-400">
-            <p>✓ Approved: "TechStore Mega Sale" by TechStore (1h ago)</p>
-            <p>✓ Approved: "Photography Session" by StudioPro (2h ago)</p>
-            <p>✗ Rejected: "Unknown Service" by Unknown Corp (3h ago)</p>
-            <p>⚠ Flagged: Unusual spend from FastMarketing (5h ago)</p>
-          </div>
-        </div>
+        {tab === "activity" && (
+          <AdminCard>
+            <SectionTitle icon={ScrollText}>Recent Admin Activity</SectionTitle>
+            {loading ? <p className="py-6 text-center text-gray-500">Loading…</p>
+              : logs.length === 0 ? <p className="py-8 text-center text-sm text-gray-400">No recorded admin activity yet.</p>
+              : (
+                <div className="space-y-2 font-mono text-sm">
+                  {logs.map((l) => (
+                    <div key={l.id} className="flex gap-2 text-gray-400">
+                      <span className="text-gray-600">[{new Date(l.created_at).toLocaleString("en-ZA", { dateStyle: "short", timeStyle: "short" })}]</span>
+                      <span className="text-amber-400">{l.admin_name}</span>
+                      <span>{l.action}{l.target_name ? ` → ${l.target_name}` : ""}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+          </AdminCard>
+        )}
       </div>
-    </div>
+    </AdminBackground>
   );
 }
