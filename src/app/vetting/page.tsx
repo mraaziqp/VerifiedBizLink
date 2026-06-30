@@ -1,5 +1,6 @@
 ﻿"use client";
 
+import { compressImage, fetchWithTimeout } from "@/lib/image-compress";
 import { SidebarLeft } from "@/components/layout/sidebar-left";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -168,22 +169,27 @@ export default function VettingPage() {
     if (!user) return;
     setUploadingDoc(docName);
     try {
+      // Image docs (photos of certificates) get compressed; PDFs pass through.
+      const prepared = await compressImage(file, { maxDim: 2000, quality: 0.85 });
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', prepared);
       formData.append('docName', docName);
       formData.append('docType', docType);
 
-      const res = await fetch("/api/businesses/documents", {
+      const res = await fetchWithTimeout("/api/businesses/documents", {
         method: "POST",
         body: formData,
-      });
+      }, 45000);
       if (res.ok) {
         fetchBusiness();
         toast({ title: "Document Uploaded", description: `${docName} has been securely stored.` });
       } else {
-        const d = await res.json();
+        const d = await res.json().catch(() => ({}));
         toast({ title: "Upload Failed", description: d.error || "Could not upload document.", variant: "destructive" });
       }
+    } catch (err) {
+      const aborted = err instanceof DOMException && err.name === 'AbortError';
+      toast({ title: "Upload Failed", description: aborted ? "Upload timed out — please retry." : "Could not upload document.", variant: "destructive" });
     } finally {
       setUploadingDoc(null);
     }

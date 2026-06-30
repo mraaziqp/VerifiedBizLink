@@ -67,15 +67,16 @@ function VBLIconSVG({ size, theme }: { size: number; theme?: "light" | "dark" })
 
 /** Image-based VBL icon mark with fallback */
 function VBLIcon({ size, theme }: { size: number; theme?: "light" | "dark" }) {
+  // All hooks must run before any early return (React rules of hooks).
   const [imageError, setImageError] = useState(false);
+  // Prefers a dedicated square brand mark (drop a cropped VB shield at
+  // /logo-mark.png); falls back to the existing logo, then an SVG.
+  const [useFallbackSrc, setUseFallbackSrc] = useState(false);
 
   if (imageError) {
     return <VBLIconSVG size={size} theme={theme} />;
   }
 
-  // Prefers a dedicated square brand mark (drop a cropped VB shield at
-  // /logo-mark.png); falls back to the existing logo, then an SVG.
-  const [useFallbackSrc, setUseFallbackSrc] = useState(false);
   return (
     <Image
       src={useFallbackSrc ? "/vbl-logo.png" : "/logo-mark.png"}

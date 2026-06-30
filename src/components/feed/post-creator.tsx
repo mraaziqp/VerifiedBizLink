@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { aiAssistedPostDrafting } from "@/ai/flows/ai-assisted-post-drafting";
+import { compressImage, fetchWithTimeout } from "@/lib/image-compress";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { ImageUploader } from "@/components/media/image-uploader";
@@ -34,9 +35,10 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
 
     setIsAttaching(true);
     try {
+      const compressed = await compressImage(file, { maxDim: 1600, quality: 0.82 });
       const formData = new FormData();
-      formData.append("file", file);
-      const res = await fetch("/api/media/upload", { method: "POST", body: formData });
+      formData.append("file", compressed);
+      const res = await fetchWithTimeout("/api/media/upload", { method: "POST", body: formData }, 45000);
       const data = await res.json();
       if (res.ok && data.success) {
         setImageUrl(data.url);

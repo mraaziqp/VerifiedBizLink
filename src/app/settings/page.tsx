@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { compressImage, fetchWithTimeout } from "@/lib/image-compress";
 import { SidebarLeft } from "@/components/layout/sidebar-left";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -208,26 +209,39 @@ export default function SettingsPage() {
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-selecting the same file even after an error
     if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: "Invalid file", description: "Please choose an image.", variant: "destructive" });
+      return;
+    }
+
     setIsUploadingAvatar(true);
     try {
+      // Resize to a small square-ish avatar before upload → fast & always under the limit.
+      const compressed = await compressImage(file, { maxDim: 512, quality: 0.85 });
       const form = new FormData();
-      form.append('avatar', file);
-      const res = await fetch('/api/users/avatar', { method: 'POST', body: form });
+      form.append('avatar', compressed);
+      const res = await fetchWithTimeout('/api/users/avatar', { method: 'POST', body: form }, 30000);
       if (res.ok) {
         const data = await res.json();
         setProfileForm(p => ({ ...p, avatarUrl: data.avatarUrl }));
         await refresh();
         toast({ title: "Avatar Updated", description: "Your profile photo has been saved." });
       } else {
-        const d = await res.json();
-        toast({ title: "Upload Failed", description: d.error, variant: "destructive" });
+        const d = await res.json().catch(() => ({}));
+        toast({ title: "Upload Failed", description: d.error || "Please try again.", variant: "destructive" });
       }
-    } catch {
-      toast({ title: "Upload Failed", description: "Could not upload photo.", variant: "destructive" });
+    } catch (err) {
+      const aborted = err instanceof DOMException && err.name === 'AbortError';
+      toast({
+        title: "Upload Failed",
+        description: aborted ? "Upload timed out — check your connection and retry." : "Could not upload photo.",
+        variant: "destructive",
+      });
     } finally {
       setIsUploadingAvatar(false);
-      e.target.value = '';
     }
   };
 
@@ -317,7 +331,7 @@ export default function SettingsPage() {
                             onChange={handleAvatarUpload}
                             disabled={isUploadingAvatar}
                           />
-                          <p className="text-xs text-gray-500">JPEG, PNG, WebP or GIF · max 2MB</p>
+                          <p className="text-xs text-gray-500">JPEG, PNG, WebP or GIF · auto-optimized on upload</p>
                         </div>
                       </div>
                       <div className="grid md:grid-cols-2 gap-5">

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { Upload, X, Check } from 'lucide-react';
+import { compressImage, fetchWithTimeout } from '@/lib/image-compress';
 
 interface ImageUploaderProps {
   onImageSelect?: (imageUrl: string) => void;
@@ -50,18 +51,20 @@ export function ImageUploader({
       };
       reader.readAsDataURL(file);
 
-      // Upload file
+      // Compress/resize before upload — fast, smooth, never gets stuck on big photos
+      const compressed = await compressImage(file, { maxDim: 1600, quality: 0.82 });
+
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', compressed);
       formData.append('bucket', 'posts');
 
-      const response = await fetch('/api/media/upload', {
+      const response = await fetchWithTimeout('/api/media/upload', {
         method: 'POST',
         body: formData,
-      });
+      }, 45000);
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         throw new Error(error.error || 'Upload failed');
       }
 
@@ -80,8 +83,12 @@ export function ImageUploader({
         }, 2000);
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Upload failed';
+      const aborted = err instanceof DOMException && err.name === 'AbortError';
+      const message = aborted
+        ? 'Upload timed out — check your connection and try again.'
+        : err instanceof Error ? err.message : 'Upload failed';
       setError(message);
+      setPreview(null);
     } finally {
       setUploading(false);
     }

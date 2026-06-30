@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
 import { getSession, createSession, sessionCookieOptions } from '@/lib/auth';
 import db from '@/lib/db';
 
-const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
+const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB (client compresses well below this)
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+);
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,28 +32,47 @@ export async function POST(request: NextRequest) {
     }
 
     const buffer = await file.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString('base64');
-    const dataUri = `data:${file.type};base64,${base64}`;
+
+    // Prefer Supabase Storage (lightweight URL); fall back to base64 in the DB.
+    let storedUrl = '';
+    try {
+      const ext = (file.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+      const path = `${session.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from('avatars')
+        .upload(path, buffer, { contentType: file.type, upsert: true });
+      if (!error) {
+        storedUrl = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+      } else {
+        console.error('[avatar] Supabase upload failed, using base64 fallback:', error.message);
+      }
+    } catch (e) {
+      console.error('[avatar] Supabase threw, using base64 fallback:', e);
+    }
+
+    if (!storedUrl) {
+      storedUrl = `data:${file.type};base64,${Buffer.from(buffer).toString('base64')}`;
+    }
 
     const updated = await db`
-      UPDATE users SET avatar_url = ${dataUri}, updated_at = NOW()
+      UPDATE users SET avatar_url = ${storedUrl}, updated_at = NOW()
       WHERE id = ${session.id}
       RETURNING id, email, full_name, role, avatar_url, headline, email_verified
     `;
 
-    // Store empty string in JWT — /api/auth/me always fetches avatar_url fresh from DB
-    // to avoid exceeding the 4KB cookie limit with a large base64 data URI.
+    // A Supabase URL is short enough for the JWT; base64 is not, so keep it
+    // empty in that case (/api/auth/me always reads avatar_url fresh from DB).
     const token = await createSession({
       id: updated[0].id,
       email: updated[0].email,
       fullName: updated[0].full_name,
       role: updated[0].role,
-      avatarUrl: '',
+      avatarUrl: storedUrl.startsWith('http') ? storedUrl : '',
       headline: updated[0].headline || '',
       emailVerified: updated[0].email_verified ?? session.emailVerified ?? false,
     });
 
-    const response = NextResponse.json({ avatarUrl: dataUri, success: true });
+    const response = NextResponse.json({ avatarUrl: storedUrl, success: true });
     response.cookies.set('vbl_session', token, sessionCookieOptions(request.headers.get('host')));
     return response;
   } catch (error) {
