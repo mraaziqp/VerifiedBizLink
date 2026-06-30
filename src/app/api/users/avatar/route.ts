@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, createSession } from '@/lib/auth';
+import { getSession, createSession, sessionCookieOptions } from '@/lib/auth';
 import db from '@/lib/db';
 
 const MAX_SIZE_BYTES = 2 * 1024 * 1024; // 2MB
@@ -48,13 +48,7 @@ export async function POST(request: NextRequest) {
     });
 
     const response = NextResponse.json({ avatarUrl: dataUri, success: true });
-    response.cookies.set('vbl_session', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
-    });
+    response.cookies.set('vbl_session', token, sessionCookieOptions(request.headers.get('host')));
     return response;
   } catch (error) {
     console.error('Avatar upload error:', error);

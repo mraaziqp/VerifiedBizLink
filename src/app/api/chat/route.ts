@@ -35,7 +35,7 @@ function findResponse(query: string): string {
     }
   }
   if (bestScore > 0) return bestResponse;
-  return "I'm not sure I can answer that specifically. Please email **support@verifiedbizlink.co.za** or visit our [Contact Page](/contact) for help. We respond within 24 hours!";
+  return "I'm not sure I can answer that specifically. Please email **info@verifiedbizlink.co.za** or visit our [Contact Page](/contact) for help. We respond within 24 hours!";
 }
 
 export async function POST(request: NextRequest) {
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
         const SYSTEM_PROMPT = `You are the VBL Assistant for VerifiedBizLink — South Africa's B2B verification network.
 Help with verification, privacy (POPI), accounts, networking, and features. Be friendly and concise.
 Key facts: Verification takes 3-7 days, free for all, POPI compliant.
-Support: support@verifiedbizlink.co.za`;
+Support: info@verifiedbizlink.co.za`;
 
         const fullPrompt = `${SYSTEM_PROMPT}\n\nUser question: ${message.trim()}`;
         const response = await ai.generate(fullPrompt);

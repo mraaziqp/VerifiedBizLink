@@ -8,6 +8,29 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 const COOKIE_NAME = 'vbl_session';
 
+/**
+ * Cookie options for the session cookie. Pass the request host so the cookie
+ * is scoped to the apex domain (e.g. `.verifiedbizlink.co.za`) — this keeps
+ * the session valid across both `www.` and the apex, so the www↔non-www
+ * redirect doesn't drop authentication (which broke uploads/POSTs).
+ * For localhost / *.vercel.app previews the domain is left unset (host-only).
+ */
+export function sessionCookieOptions(host?: string | null) {
+  let domain: string | undefined;
+  const h = (host || '').split(':')[0].toLowerCase();
+  if (h.endsWith('verifiedbizlink.co.za')) {
+    domain = '.verifiedbizlink.co.za';
+  }
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    maxAge: 60 * 60 * 24 * 7,
+    path: '/',
+    ...(domain ? { domain } : {}),
+  };
+}
+
 export interface SessionUser {
   id: string;
   email: string;

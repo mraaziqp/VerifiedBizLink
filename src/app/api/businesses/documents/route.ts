@@ -17,8 +17,18 @@ export async function POST(request: NextRequest) {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const biz = await db`SELECT id FROM businesses WHERE user_id = ${session.id} LIMIT 1`;
-    if (biz.length === 0) return NextResponse.json({ error: 'No business profile found' }, { status: 404 });
+    let biz = await db`SELECT id FROM businesses WHERE user_id = ${session.id} LIMIT 1`;
+    // Auto-create a draft business profile so users can record documents from
+    // the Vetting Hub before formally creating/submitting their profile.
+    if (biz.length === 0) {
+      const fallbackName =
+        (session as any).fullName || session.email?.split('@')[0] || 'My Business';
+      biz = await db`
+        INSERT INTO businesses (user_id, name, company_name, status)
+        VALUES (${session.id}, ${fallbackName}, ${fallbackName}, 'pending')
+        RETURNING id
+      `;
+    }
 
     const contentType = request.headers.get('content-type') ?? '';
 

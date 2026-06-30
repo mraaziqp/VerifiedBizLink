@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { createSession } from '@/lib/auth';
+import { createSession, sessionCookieOptions } from '@/lib/auth';
 import { compare } from 'bcryptjs';
 import db from '@/lib/db';
 
@@ -116,13 +116,7 @@ export async function POST(request: NextRequest) {
 
     const token = await createSession(sessionUser);
     const response = NextResponse.json({ user: sessionUser, success: true });
-    response.cookies.set('vbl_session', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
-    });
+    response.cookies.set('vbl_session', token, sessionCookieOptions(request.headers.get('host')));
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);

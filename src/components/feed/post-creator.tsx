@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Sparkles, Image as ImageIcon, Link as LinkIcon, Paperclip, Send, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,8 +17,51 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isDrafting, setIsDrafting] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
+  const [isAttaching, setIsAttaching] = useState(false);
+  const attachInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  const handleAttachFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) e.target.value = ""; // allow re-selecting the same file
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Maximum size is 5MB.", variant: "destructive" });
+      return;
+    }
+
+    setIsAttaching(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/media/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setImageUrl(data.url);
+        toast({ title: "Attachment added", description: "It'll be included with your post." });
+      } else {
+        throw new Error(data.error || "Upload failed");
+      }
+    } catch (err) {
+      toast({
+        title: "Attachment failed",
+        description: err instanceof Error ? err.message : "Could not upload the file.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAttaching(false);
+    }
+  };
+
+  const handleInsertLink = () => {
+    const url = window.prompt("Paste a link to add to your post:");
+    if (!url) return;
+    const trimmed = url.trim();
+    const normalized = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    setContent((c) => (c ? `${c}\n${normalized}` : normalized));
+  };
 
   const initials = user?.fullName
     ? user.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
@@ -129,19 +172,30 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
                   </button>
                 </div>
               )}
+              <input
+                ref={attachInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={handleAttachFile}
+                aria-label="Attach a file"
+              />
               <Button
                 variant="ghost"
                 size="icon"
                 className="text-gray-500 hover:text-primary hover:bg-primary/10 rounded-full"
-                onClick={() => toast({ title: "Coming Soon", description: "File attachments will be available in the next update." })}
+                onClick={() => attachInputRef.current?.click()}
+                disabled={isAttaching}
+                title="Attach a file"
               >
-                <Paperclip className="h-5 w-5" />
+                {isAttaching ? <Loader2 className="h-5 w-5 animate-spin" /> : <Paperclip className="h-5 w-5" />}
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 className="text-gray-500 hover:text-primary hover:bg-primary/10 rounded-full"
-                onClick={() => toast({ title: "Coming Soon", description: "Link previews will be available in the next update." })}
+                onClick={handleInsertLink}
+                title="Insert a link"
               >
                 <LinkIcon className="h-5 w-5" />
               </Button>

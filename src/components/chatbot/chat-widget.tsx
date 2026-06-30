@@ -20,7 +20,7 @@ const FAQ: Array<{ patterns: string[]; response: string }> = [
   },
   {
     patterns: ["verify", "verification", "vetting", "gold badge", "get verified", "trust badge", "checkmark", "verified"],
-    response: "To get your business **Gold Verification badge**, go to the **Vetting Hub** in the navigation.\n\nYou'll need to upload 5 documents:\n• CIPC Registration Certificate\n• VAT Compliance Letter\n• Identity Proof of Directors\n• Proof of Bank Account\n• Proof Business Exists (letterhead/lease/utility bill)\n\nVerification typically takes **3–7 business days**. Once verified, your trust score increases significantly.\n\nNeed help? Contact support@verifiedbizlink.co.za",
+    response: "To get your business **Gold Verification badge**, go to the **Vetting Hub** in the navigation.\n\nYou'll need to upload 5 documents:\n• CIPC Registration Certificate\n• VAT Compliance Letter\n• Identity Proof of Directors\n• Proof of Bank Account\n• Proof Business Exists (letterhead/lease/utility bill)\n\nVerification typically takes **3–7 business days**. Once verified, your trust score increases significantly.\n\nNeed help? Contact info@verifiedbizlink.co.za",
   },
   {
     patterns: ["upload", "document", "docs", "file", "cipc", "vat", "id proof", "bank letter", "letterhead"],
@@ -36,7 +36,7 @@ const FAQ: Array<{ patterns: string[]; response: string }> = [
   },
   {
     patterns: ["password", "change password", "reset password", "forgot password", "update password"],
-    response: "To **change your password**:\n1. Go to **Settings → Security**\n2. Enter your current password\n3. Enter your new password (min. 8 characters)\n4. Click 'Update Password'\n\nForgot your password? Email support@verifiedbizlink.co.za — we respond within 24 hours.",
+    response: "To **change your password**:\n1. Go to **Settings → Security**\n2. Enter your current password\n3. Enter your new password (min. 8 characters)\n4. Click 'Update Password'\n\nForgot your password? Email info@verifiedbizlink.co.za — we respond within 24 hours.",
   },
   {
     patterns: ["ad", "ads", "advertise", "boost", "advertising", "promote", "campaign", "banner"],
@@ -44,7 +44,7 @@ const FAQ: Array<{ patterns: string[]; response: string }> = [
   },
   {
     patterns: ["contact", "support", "help", "reach", "email", "phone", "speak to"],
-    response: "Get in touch with us:\n\n📧 **Support:** support@verifiedbizlink.co.za\n🔒 **Privacy/POPI:** privacy@verifiedbizlink.co.za\n⚖️ **Legal:** legal@verifiedbizlink.co.za\n💼 **Sales:** sales@verifiedbizlink.co.za\n\n🕐 Hours: Mon–Fri, **08:00–17:00 SAST**\n⚡ Response: within **24 hours**\n\nOr use our [Contact Page](/contact) to submit a ticket.",
+    response: "Get in touch with us:\n\n📧 **Support:** info@verifiedbizlink.co.za\n🔒 **Privacy/POPI:** privacy@verifiedbizlink.co.za\n⚖️ **Legal:** legal@verifiedbizlink.co.za\n💼 **Sales:** sales@verifiedbizlink.co.za\n\n🕐 Hours: Mon–Fri, **08:00–17:00 SAST**\n⚡ Response: within **24 hours**\n\nOr use our [Contact Page](/contact) to submit a ticket.",
   },
   {
     patterns: ["signup", "register", "create account", "join", "new account", "sign up", "getting started"],
@@ -116,7 +116,7 @@ function findResponse(query: string): string {
     }
   }
   if (bestScore > 0) return bestResponse;
-  return "I'm not sure I can answer that specifically.\n\nHere's how you can get help:\n• Visit our [Contact Page](/contact) to submit a support ticket\n• Email **support@verifiedbizlink.co.za**\n• Response within **24 hours** on business days\n\nTry rephrasing — I know about verification, privacy, accounts, networking, ads, and more!";
+  return "I'm not sure I can answer that specifically.\n\nHere's how you can get help:\n• Visit our [Contact Page](/contact) to submit a support ticket\n• Email **info@verifiedbizlink.co.za**\n• Response within **24 hours** on business days\n\nTry rephrasing — I know about verification, privacy, accounts, networking, ads, and more!";
 }
 
 function formatTime(date: Date) {

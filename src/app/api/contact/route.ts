@@ -39,7 +39,7 @@ Provide a helpful, professional, and concise response to their query. If it's a 
 
     // Send email to support
     await resend.emails.send({
-      from: 'support@verifiedbizlink.co.za',
+      from: 'info@verifiedbizlink.co.za',
       to: process.env.SUPPORT_EMAIL || 'mraaziqp@gmail.com',
       subject: `[SUPPORT] ${subject} - ${name}`,
       html: `
