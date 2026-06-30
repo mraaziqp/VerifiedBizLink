@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Users,
-  Settings,
-  Shield,
   BarChart3,
   CheckCircle,
   AlertCircle,
   ChevronRight,
   Search,
+  Loader2,
 } from 'lucide-react';
 
 interface AdminMember {
@@ -23,54 +23,89 @@ interface AdminMember {
   lastActive: string;
 }
 
-const ADMIN_TEAM: AdminMember[] = [
-  {
-    id: 'admin-001',
-    name: 'Ramoen (Lead Admin)',
-    email: 'ramoen@verifiedbizlink.co.za',
-    role: 'admin',
-    status: 'active',
-    joinedDate: '2026-01-15',
-    mainTools: ['Overview', 'Tier Management', 'Analytics'],
-    lastActive: '2 minutes ago',
-  },
-  {
-    id: 'banker-001',
-    name: 'Wesley (Banking Specialist)',
-    email: 'wesley@verifiedbizlink.co.za',
-    role: 'banker',
-    status: 'active',
-    joinedDate: '2026-02-01',
-    mainTools: ['Vetting Desk', 'User Management', 'Compliance Analytics'],
-    lastActive: '15 minutes ago',
-  },
-  {
-    id: 'lawyer-001',
-    name: 'Legal Officer',
-    email: 'legal@verifiedbizlink.co.za',
-    role: 'lawyer',
-    status: 'active',
-    joinedDate: '2026-01-20',
-    mainTools: ['Audit Logs', 'Compliance Tracker', 'User Management'],
-    lastActive: '1 hour ago',
-  },
-];
-
 const ROLE_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
   admin: { bg: 'bg-blue-500/10', text: 'text-blue-400', icon: '👑' },
   banker: { bg: 'bg-green-500/10', text: 'text-green-400', icon: '🏦' },
   lawyer: { bg: 'bg-purple-500/10', text: 'text-purple-400', icon: '⚖️' },
 };
 
+// Tools available to each staff role + where each tool lives.
+const ROLE_TOOLS: Record<string, string[]> = {
+  admin: ['Overview', 'Tier Management', 'Analytics'],
+  banker: ['Vetting Desk', 'User Management', 'Compliance Analytics'],
+  lawyer: ['Audit Logs', 'Compliance Tracker', 'User Management'],
+};
+
+const TOOL_LINKS: Record<string, string> = {
+  Overview: '/admin/orchestrator',
+  'Tier Management': '/admin/orchestrator',
+  Analytics: '/admin/analytics',
+  'Vetting Desk': '/admin/vetting',
+  'User Management': '/admin/users',
+  'Compliance Analytics': '/admin/compliance',
+  'Audit Logs': '/admin/ramone/audit',
+  'Compliance Tracker': '/admin/compliance',
+};
+
 export function AdminTeamPortal() {
-  const [selectedMember, setSelectedMember] = useState<AdminMember>(ADMIN_TEAM[0]);
+  const router = useRouter();
+  const [team, setTeam] = useState<AdminMember[]>([]);
+  const [selectedMember, setSelectedMember] = useState<AdminMember | null>(null);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredTeam = ADMIN_TEAM.filter(
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/users');
+        const data = await res.json();
+        const staff: AdminMember[] = (data.users || [])
+          .filter((u: any) => ['admin', 'banker', 'lawyer'].includes(u.role))
+          .map((u: any) => ({
+            id: u.id,
+            name: u.full_name || u.email,
+            email: u.email,
+            role: u.role,
+            status: 'active' as const,
+            joinedDate: u.created_at,
+            mainTools: ROLE_TOOLS[u.role] || ['Overview'],
+            lastActive: '—',
+          }));
+        if (active) {
+          setTeam(staff);
+          setSelectedMember(staff[0] || null);
+        }
+      } catch {
+        /* shown via empty state */
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  const filteredTeam = team.filter(
     (member) =>
       member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20 text-gray-400">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading team…
+      </div>
+    );
+  }
+
+  if (!selectedMember) {
+    return (
+      <div className="rounded-xl border border-gray-700 bg-gray-900/50 p-10 text-center text-gray-400">
+        No admin team members found.
+      </div>
+    );
+  }
 
   const roleColor = ROLE_COLORS[selectedMember.role];
 
@@ -219,9 +254,11 @@ export function AdminTeamPortal() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {selectedMember.mainTools.map((tool, idx) => (
-                <div
+                <button
                   key={idx}
-                  className={`p-4 rounded-lg border ${roleColor.bg} border-gray-700 hover:border-gray-600 transition-colors cursor-pointer group`}
+                  type="button"
+                  onClick={() => router.push(TOOL_LINKS[tool] || '/admin/dashboard')}
+                  className={`w-full text-left p-4 rounded-lg border ${roleColor.bg} border-gray-700 hover:border-gray-600 transition-colors cursor-pointer group`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -247,7 +284,7 @@ export function AdminTeamPortal() {
                     </div>
                     <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-gray-400 transition-colors" />
                   </div>
-                </div>
+                </button>
               ))}
             </div>
           </div>

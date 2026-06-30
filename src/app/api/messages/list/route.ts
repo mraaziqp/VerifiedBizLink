@@ -1,57 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth';
+import db from '@/lib/db';
 
+// GET /api/messages/list                 — list the current user's conversations
+// GET /api/messages/list?with=<userId>   — full message thread with one user
 export async function GET(request: NextRequest) {
-  try {
-    const user_id = request.nextUrl.searchParams.get('user_id');
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!user_id) {
-      return NextResponse.json(
-        { error: 'Missing user_id' },
-        { status: 400 }
-      );
+  const withUser = request.nextUrl.searchParams.get('with');
+
+  try {
+    // ── Thread view ────────────────────────────────────────────────
+    if (withUser) {
+      const messages = await db`
+        SELECT id, sender_id, receiver_id, content, read, created_at
+        FROM messages
+        WHERE (sender_id = ${session.id} AND receiver_id = ${withUser})
+           OR (sender_id = ${withUser} AND receiver_id = ${session.id})
+        ORDER BY created_at ASC
+        LIMIT 200
+      `;
+      // Mark messages from the other user as read
+      await db`
+        UPDATE messages SET read = TRUE
+        WHERE receiver_id = ${session.id} AND sender_id = ${withUser} AND read = FALSE
+      `;
+      return NextResponse.json({ success: true, messages });
     }
 
-    // In production: fetch from database
-    // const conversations = await db.conversations.findMany({
-    //   where: { OR: [{ user_id }, { other_user_id: user_id }] }
-    // })
+    // ── Conversation list (latest message per counterpart) ─────────
+    const conversations = await db`
+      SELECT
+        other.id          AS participant_id,
+        other.full_name   AS participant_name,
+        other.email       AS participant_email,
+        other.role        AS participant_type,
+        other.avatar_url  AS participant_avatar,
+        latest.content    AS last_message,
+        latest.created_at AS last_message_time,
+        (SELECT COUNT(*) FROM messages m
+          WHERE m.sender_id = other.id AND m.receiver_id = ${session.id} AND m.read = FALSE
+        )::int             AS unread_count
+      FROM (
+        SELECT DISTINCT ON (other_id) other_id, content, created_at
+        FROM (
+          SELECT
+            CASE WHEN sender_id = ${session.id} THEN receiver_id ELSE sender_id END AS other_id,
+            content, created_at
+          FROM messages
+          WHERE sender_id = ${session.id} OR receiver_id = ${session.id}
+        ) paired
+        ORDER BY other_id, created_at DESC
+      ) latest
+      JOIN users other ON other.id = latest.other_id
+      ORDER BY latest.created_at DESC
+    `;
 
-    // Mock data for now
-    const conversations = [
-      {
-        id: '1',
-        participant_id: 'biz-123',
-        participant_name: 'Tech Solutions Inc',
-        participant_email: 'contact@techsolutions.co.za',
-        participant_type: 'business',
-        last_message: 'Thanks for your interest! We can help you with that.',
-        last_message_time: '2 hours ago',
-        unread_count: 2,
-        avatar: '🏢'
-      },
-      {
-        id: '2',
-        participant_id: 'cust-456',
-        participant_name: 'John Smith',
-        participant_email: 'john@email.com',
-        participant_type: 'customer',
-        last_message: 'When can you deliver?',
-        last_message_time: '30 min ago',
-        unread_count: 1,
-        avatar: '👤'
-      }
-    ];
-
-    return NextResponse.json({
-      success: true,
-      conversations,
-      total: conversations.length,
-    });
+    return NextResponse.json({ success: true, conversations, total: conversations.length });
   } catch (error) {
-    console.error('Error fetching conversations:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch conversations' },
-      { status: 500 }
-    );
+    console.error('Error fetching messages:', error);
+    return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 });
   }
 }

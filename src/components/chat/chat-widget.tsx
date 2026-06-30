@@ -7,23 +7,20 @@ import { useAuth } from '@/contexts/auth-context';
 interface Message {
   id: string;
   sender_id: string;
-  sender_name: string;
   receiver_id: string;
   content: string;
-  timestamp: string;
+  created_at: string;
   read: boolean;
-  type: 'text' | 'notification' | 'system';
 }
 
 interface Conversation {
-  id: string;
   participant_id: string;
   participant_name: string;
-  participant_type: 'business' | 'customer';
+  participant_email?: string;
+  participant_type: string;
   last_message: string;
   last_message_time: string;
   unread_count: number;
-  avatar?: string;
 }
 
 export default function ChatWidget() {
@@ -31,28 +28,7 @@ export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [activeTab, setActiveTab] = useState<'conversations' | 'search'>('conversations');
-  const [conversations, setConversations] = useState<Conversation[]>([
-    {
-      id: '1',
-      participant_id: 'biz-123',
-      participant_name: 'Tech Solutions Inc',
-      participant_type: 'business',
-      last_message: 'Thanks for your interest! We can help you with that.',
-      last_message_time: '2 hours ago',
-      unread_count: 2,
-      avatar: '🏢'
-    },
-    {
-      id: '2',
-      participant_id: 'cust-456',
-      participant_name: 'John Smith',
-      participant_type: 'customer',
-      last_message: 'When can you deliver?',
-      last_message_time: '30 min ago',
-      unread_count: 1,
-      avatar: '👤'
-    }
-  ]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -68,66 +44,69 @@ export default function ChatWidget() {
     scrollToBottom();
   }, [messages]);
 
+  const loadConversations = async () => {
+    try {
+      const res = await fetch('/api/messages/list');
+      if (res.ok) {
+        const data = await res.json();
+        setConversations(data.conversations || []);
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    }
+  };
+
+  // Load real conversations when the widget opens (and poll while open)
+  useEffect(() => {
+    if (!isOpen || !user) return;
+    loadConversations();
+    const interval = setInterval(() => {
+      if (!selectedConversation) loadConversations();
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [isOpen, user, selectedConversation]);
+
+  const handleSelectConversation = async (conv: Conversation) => {
+    setSelectedConversation(conv);
+    setMessages([]);
+    try {
+      const res = await fetch(`/api/messages/list?with=${conv.participant_id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setMessages(data.messages || []);
+      }
+    } catch (error) {
+      console.error('Error loading thread:', error);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
-
+    const content = newMessage.trim();
+    setNewMessage('');
     setLoading(true);
     try {
-      const message: Message = {
-        id: Date.now().toString(),
-        sender_id: user?.id || 'unknown',
-        sender_name: user?.email || 'You',
-        receiver_id: selectedConversation.participant_id,
-        content: newMessage,
-        timestamp: new Date().toISOString(),
-        read: false,
-        type: 'text'
-      };
-
-      setMessages([...messages, message]);
-      setNewMessage('');
-
-      // Update last message in conversation
-      setConversations(
-        conversations.map(conv =>
-          conv.id === selectedConversation.id
-            ? {
-                ...conv,
-                last_message: newMessage,
-                last_message_time: 'just now'
-              }
-            : conv
-        )
-      );
-
-      // In production, send to API
-      // await fetch('/api/messages/send', { method: 'POST', body: JSON.stringify(message) })
+      const res = await fetch('/api/messages/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receiver_id: selectedConversation.participant_id, content }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMessages((prev) => [...prev, data.message]);
+      } else {
+        setNewMessage(content); // restore on failure
+      }
     } catch (error) {
       console.error('Error sending message:', error);
+      setNewMessage(content);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSelectConversation = (conv: Conversation) => {
-    setSelectedConversation(conv);
-    // Load messages for this conversation
-    setMessages([
-      {
-        id: '1',
-        sender_id: conv.participant_id,
-        sender_name: conv.participant_name,
-        receiver_id: user?.id || 'unknown',
-        content: conv.last_message,
-        timestamp: conv.last_message_time,
-        read: true,
-        type: 'text'
-      }
-    ]);
-  };
-
   const filteredConversations = conversations.filter(conv =>
-    conv.participant_name.toLowerCase().includes(searchQuery.toLowerCase())
+    conv.participant_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   if (!isOpen) {
@@ -220,13 +199,13 @@ export default function ChatWidget() {
                   ) : (
                     filteredConversations.map(conv => (
                       <button
-                        key={conv.id}
+                        key={conv.participant_id}
                         onClick={() => handleSelectConversation(conv)}
                         className="w-full p-3 border-b border-slate-700 hover:bg-slate-700/50 transition text-left"
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-lg">
-                            {conv.avatar}
+                            {conv.participant_type === 'business' ? '🏢' : '👤'}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
@@ -242,7 +221,9 @@ export default function ChatWidget() {
                             <p className="text-xs text-slate-400 truncate">
                               {conv.last_message}
                             </p>
-                            <p className="text-xs text-slate-500 mt-1">{conv.last_message_time}</p>
+                            <p className="text-xs text-slate-500 mt-1">
+                              {conv.last_message_time ? new Date(conv.last_message_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : ''}
+                            </p>
                           </div>
                         </div>
                       </button>
@@ -322,7 +303,7 @@ export default function ChatWidget() {
                           ? 'text-slate-700'
                           : 'text-slate-400'
                       }`}>
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
                   </div>

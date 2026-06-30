@@ -19,8 +19,9 @@ import { VBLLogo } from "@/components/ui/vbl-logo";
 
 type AccountRole = "customer" | "business";
 
+// Customer signups are paused until the business directory is populated —
+// only business accounts can register for now.
 const ROLES: { value: AccountRole; label: string; icon: React.ElementType; desc: string }[] = [
-  { value: "customer", label: "Customer", icon: User, desc: "Browse and connect with business profiles" },
   { value: "business", label: "Business", icon: Building2, desc: "Set up your company profile for review" },
 ];
 
@@ -38,7 +39,7 @@ const strengthLabel = ["", "Very Weak", "Weak", "Fair", "Good", "Strong"];
 const strengthColor = ["", "bg-red-500", "bg-orange-400", "bg-yellow-400", "bg-lime-500", "bg-green-500"];
 
 export default function SignupPage() {
-  const [role, setRole] = useState<AccountRole>("customer");
+  const [role, setRole] = useState<AccountRole>("business");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -173,7 +174,7 @@ export default function SignupPage() {
             </div>
 
             {/* Role selector */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className={cn("grid gap-3", ROLES.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
               {ROLES.map(({ value, label, icon: Icon, desc }) => (
                 <button
                   key={value}

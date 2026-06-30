@@ -195,8 +195,10 @@ export default function TierManagement() {
             ) : (
               <>
                 <div className="mb-4">
-                  <p className="text-3xl font-bold text-cyan-400">${tier.price_usd}</p>
-                  <p className="text-sm text-gray-400">R{tier.price_zar}/month</p>
+                  <p className="text-3xl font-bold text-cyan-400">
+                    R{Number(tier.price_zar).toLocaleString('en-ZA')}
+                    <span className="text-base font-medium text-gray-400">/month</span>
+                  </p>
                 </div>
                 <Button
                   size="sm"
