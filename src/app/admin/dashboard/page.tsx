@@ -72,7 +72,8 @@ export default function AdminDashboard() {
   const userFullName = user.fullName?.toLowerCase() || '';
   const isRamone = userEmail.includes('ramone') || userFullName.includes('ramone');
   const isWesley = userEmail.includes('wesley') || userFullName.includes('wesley');
-  const isSuperAdmin = userEmail.includes('mraaziq') || userEmail.includes('backupe9') || isRamone || isWesley;
+  // DB role is the source of truth — any 'admin' role is a super admin.
+  const isSuperAdmin = user.role === 'admin' || userEmail.includes('mraaziq') || userEmail.includes('backupe9') || isRamone || isWesley;
   const isAdmin = isRamone || isSuperAdmin;
 
   const adminTools: AdminTool[] = [
