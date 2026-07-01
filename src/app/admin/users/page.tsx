@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Users, Search, Mail, Shield, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ArrowLeft, Users, Search, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+import { AdminBackground, AdminCard, AdminPageHeader } from '@/components/admin/ui';
 
 interface User {
   id: string;
@@ -17,126 +16,108 @@ interface User {
   created_at: string;
 }
 
+const ROLE_STYLES: Record<string, string> = {
+  admin: 'bg-red-500/15 text-red-400',
+  banker: 'bg-blue-500/15 text-blue-400',
+  lawyer: 'bg-purple-500/15 text-purple-400',
+  business: 'bg-green-500/15 text-green-400',
+  customer: 'bg-gray-500/15 text-gray-400',
+};
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    let active = true;
+    (async () => {
       try {
         const res = await fetch('/api/admin/users');
         if (res.ok) {
           const data = await res.json();
-          setUsers(data.users || []);
+          if (active) setUsers(data.users || []);
         }
       } catch (error) {
         console.error('Failed to fetch users:', error);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
-    };
-
-    fetchUsers();
+    })();
+    return () => { active = false; };
   }, []);
 
-  const filteredUsers = users.filter(u =>
-    u.email.toLowerCase().includes(search.toLowerCase()) ||
-    u.full_name.toLowerCase().includes(search.toLowerCase())
+  const filteredUsers = users.filter(
+    (u) =>
+      u.email.toLowerCase().includes(search.toLowerCase()) ||
+      u.full_name?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const getRoleColor = (role: string) => {
-    const colors: Record<string, string> = {
-      admin: 'bg-red-100 text-red-800',
-      banker: 'bg-blue-100 text-blue-800',
-      lawyer: 'bg-purple-100 text-purple-800',
-      business: 'bg-green-100 text-green-800',
-      customer: 'bg-gray-100 text-gray-800',
-    };
-    return colors[role] || colors.customer;
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Navigation */}
-        <Link href="/admin" className="flex items-center gap-2 text-yellow-400 hover:text-yellow-300 mb-4">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Admin
+    <AdminBackground>
+      <AdminPageHeader title="User Management" subtitle={`${users.length} total users`}>
+        <Link href="/admin">
+          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10">
+            <ArrowLeft className="h-4 w-4" /> Back to Admin
+          </Button>
         </Link>
+      </AdminPageHeader>
 
-        {/* Header */}
-        <Card className="bg-gradient-to-r from-slate-800 to-slate-700 border-slate-600">
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <Users className="h-6 w-6 text-yellow-400" />
-              <CardTitle className="text-white text-2xl">User Management</CardTitle>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:py-12 space-y-6">
+        <AdminCard>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <Input
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="border-white/10 bg-white/[0.03] pl-10 text-white placeholder-gray-500 focus-visible:ring-amber-400"
+            />
+          </div>
+        </AdminCard>
+
+        <AdminCard className="p-0 overflow-hidden">
+          <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.02] px-5 py-3">
+            <p className="font-semibold text-white">{filteredUsers.length} Users</p>
+          </div>
+          {loading ? (
+            <div className="flex items-center justify-center p-10 text-gray-400">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading users…
             </div>
-          </CardHeader>
-        </Card>
-
-        {/* Search */}
-        <Card className="bg-slate-800 border-slate-600">
-          <CardContent className="p-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-              <Input
-                placeholder="Search by name or email..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 bg-slate-700 text-white border-slate-600 placeholder-slate-400"
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Users List */}
-        <Card className="bg-slate-800 border-slate-600">
-          <CardHeader className="bg-slate-700 border-b border-slate-600">
-            <CardTitle className="text-white">
-              {filteredUsers.length} Users
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            {loading ? (
-              <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-6 w-6 animate-spin text-yellow-400" />
-              </div>
-            ) : filteredUsers.length === 0 ? (
-              <div className="p-8 text-center text-slate-400">No users found</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="border-b border-slate-600">
-                    <tr className="text-yellow-400 text-sm font-semibold">
-                      <th className="px-6 py-3 text-left">Name</th>
-                      <th className="px-6 py-3 text-left">Email</th>
-                      <th className="px-6 py-3 text-left">Role</th>
-                      <th className="px-6 py-3 text-left">Joined</th>
+          ) : filteredUsers.length === 0 ? (
+            <div className="p-10 text-center text-gray-400">No users found</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-white/10 text-left text-xs font-semibold uppercase tracking-wide text-amber-400/80">
+                    <th className="px-5 py-3">Name</th>
+                    <th className="px-5 py-3">Email</th>
+                    <th className="px-5 py-3">Role</th>
+                    <th className="px-5 py-3">Joined</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filteredUsers.map((user) => (
+                    <tr key={user.id} className="text-gray-300 transition-colors hover:bg-white/[0.03]">
+                      <td className="px-5 py-3 font-medium text-white">{user.full_name}</td>
+                      <td className="px-5 py-3 font-mono text-xs text-gray-400">{user.email}</td>
+                      <td className="px-5 py-3">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${ROLE_STYLES[user.role] || ROLE_STYLES.customer}`}>
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3 text-xs text-gray-400">
+                        {new Date(user.created_at).toLocaleDateString('en-ZA')}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-600">
-                    {filteredUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-slate-700 transition-colors text-slate-300">
-                        <td className="px-6 py-3">{user.full_name}</td>
-                        <td className="px-6 py-3 font-mono text-sm text-slate-400">{user.email}</td>
-                        <td className="px-6 py-3">
-                          <Badge className={getRoleColor(user.role)}>
-                            {user.role}
-                          </Badge>
-                        </td>
-                        <td className="px-6 py-3 text-sm text-slate-400">
-                          {new Date(user.created_at).toLocaleDateString()}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </AdminCard>
       </div>
-    </div>
+    </AdminBackground>
   );
 }

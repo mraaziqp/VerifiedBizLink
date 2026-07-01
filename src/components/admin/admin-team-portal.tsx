@@ -43,7 +43,7 @@ const TOOL_LINKS: Record<string, string> = {
   'Vetting Desk': '/admin/vetting',
   'User Management': '/admin/users',
   'Compliance Analytics': '/admin/compliance',
-  'Audit Logs': '/admin/ramone/audit',
+  'Audit Logs': '/admin/enforcer',
   'Compliance Tracker': '/admin/compliance',
 };
 
