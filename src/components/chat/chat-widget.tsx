@@ -34,10 +34,47 @@ export default function ChatWidget() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Search users/businesses to start a new conversation with.
+  useEffect(() => {
+    if (activeTab !== 'search') return;
+    const q = searchQuery.trim();
+    if (q.length < 2) { setSearchResults([]); return; }
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/messages/search?q=${encodeURIComponent(q)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSearchResults(data.results || []);
+        }
+      } catch { /* ignore */ }
+      finally { setSearching(false); }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, activeTab]);
+
+  const startChatWith = (u: any) => {
+    setSelectedConversation({
+      participant_id: u.id,
+      participant_name: u.company_name || u.full_name || u.email,
+      participant_email: u.email,
+      participant_type: u.role === 'business' ? 'business' : (u.role || 'user'),
+      last_message: '',
+      last_message_time: '',
+      unread_count: 0,
+    });
+    setMessages([]);
+    setActiveTab('conversations');
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   useEffect(() => {
@@ -191,7 +228,10 @@ export default function ChatWidget() {
                   {filteredConversations.length === 0 ? (
                     <div className="p-4 text-center">
                       <p className="text-slate-400 text-sm">No conversations yet</p>
-                      <button className="mt-2 text-yellow-400 hover:text-yellow-300 text-sm font-medium flex items-center gap-1 mx-auto">
+                      <button
+                        onClick={() => setActiveTab('search')}
+                        className="mt-2 text-yellow-400 hover:text-yellow-300 text-sm font-medium flex items-center gap-1 mx-auto"
+                      >
                         <Plus className="h-4 w-4" />
                         Start New Chat
                       </button>
@@ -232,26 +272,50 @@ export default function ChatWidget() {
                 </div>
               )}
 
-              {/* Search Tab */}
+              {/* Search / Start New Chat Tab */}
               {activeTab === 'search' && (
-                <div className="flex-1 p-4">
-                  <input
-                    type="text"
-                    placeholder="Search conversations..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-yellow-400"
-                  />
-                  <div className="mt-4">
-                    <h4 className="text-white font-medium text-sm mb-3">Or start a new conversation:</h4>
-                    <button className="w-full bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-medium py-2 rounded transition flex items-center justify-center gap-2">
-                      <Plus className="h-4 w-4" />
-                      Message a Business
-                    </button>
-                    <button className="w-full mt-2 bg-slate-700 hover:bg-slate-600 text-white font-medium py-2 rounded transition flex items-center justify-center gap-2">
-                      <Mail className="h-4 w-4" />
-                      Contact Support
-                    </button>
+                <div className="flex flex-1 flex-col overflow-hidden">
+                  <div className="p-3">
+                    <input
+                      type="text"
+                      autoFocus
+                      placeholder="Search people or businesses…"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full rounded bg-slate-700 border border-slate-600 px-3 py-2 text-white placeholder-slate-400 focus:border-yellow-400 focus:outline-none"
+                    />
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {searchQuery.trim().length < 2 ? (
+                      <p className="px-4 py-6 text-center text-sm text-slate-400">
+                        Type a name, business or email to start a new conversation.
+                      </p>
+                    ) : searching ? (
+                      <p className="px-4 py-6 text-center text-sm text-slate-400">Searching…</p>
+                    ) : searchResults.length === 0 ? (
+                      <p className="px-4 py-6 text-center text-sm text-slate-400">No matches found.</p>
+                    ) : (
+                      searchResults.map((u) => (
+                        <button
+                          key={u.id}
+                          onClick={() => startChatWith(u)}
+                          className="flex w-full items-center gap-3 border-b border-slate-700 p-3 text-left transition hover:bg-slate-700/50"
+                        >
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-700 text-lg">
+                            {u.role === 'business' ? '🏢' : '👤'}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-white">
+                              {u.company_name || u.full_name || u.email}
+                            </p>
+                            <p className="truncate text-xs text-slate-400">
+                              {u.full_name && u.company_name ? `${u.full_name} · ` : ''}{u.email}
+                            </p>
+                          </div>
+                          <Plus className="h-4 w-4 shrink-0 text-yellow-400" />
+                        </button>
+                      ))
+                    )}
                   </div>
                 </div>
               )}
