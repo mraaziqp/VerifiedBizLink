@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const revalidate = 300; // 5 min cache
+// Reads searchParams, so this route must be dynamic — caching happens at the
+// individual fetch() calls below (next: { revalidate: 300 }), not here.
+export const dynamic = 'force-dynamic';
 
 interface PriceItem {
   name: string;

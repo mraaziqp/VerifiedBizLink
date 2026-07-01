@@ -6,7 +6,9 @@ import { NextRequest, NextResponse } from 'next/server';
  * so the section always renders something useful.
  */
 
-export const revalidate = 1800; // cache for 30 min
+// Reads searchParams, so this route must be dynamic — caching happens at the
+// individual fetch() calls below (next: { revalidate: 1800 }), not here.
+export const dynamic = 'force-dynamic';
 
 interface NewsItem {
   id: string;
