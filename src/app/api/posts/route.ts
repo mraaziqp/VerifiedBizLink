@@ -10,8 +10,9 @@ export async function GET(request: NextRequest) {
     const offset = Math.max(parseInt(searchParams.get('offset') || '0'), 0);
 
     const posts = await db`
-      SELECT 
-        p.id, p.user_id, p.content, p.likes_count, p.comments_count, p.created_at,
+      SELECT
+        p.id, p.user_id, p.content, p.image_url, p.video_url,
+        p.likes_count, p.comments_count, p.created_at,
         u.full_name AS author_name,
         u.avatar_url AS author_avatar,
         u.headline AS author_headline,
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { content } = await request.json();
+    const { content, image_url, video_url } = await request.json();
     if (!content?.trim()) {
       return NextResponse.json({ error: 'Content is required' }, { status: 400 });
     }
@@ -50,15 +51,20 @@ export async function POST(request: NextRequest) {
     }
 
     const newPost = await db`
-      INSERT INTO posts (user_id, content)
-      VALUES (${session.id}, ${content.trim()})
-      RETURNING id, content, likes_count, comments_count, created_at
+      INSERT INTO posts (user_id, content, image_url, video_url)
+      VALUES (${session.id}, ${content.trim()}, ${image_url || null}, ${video_url || null})
+      RETURNING id, content, image_url, video_url, likes_count, comments_count, created_at
     `;
 
-    await db`
-      INSERT INTO audit_logs (admin_id, admin_name, action, target_type, target_name)
-      VALUES (${session.id}, ${session.fullName}, 'Created Post', 'post', ${'Post by ' + session.fullName})
-    `;
+    // Audit logging must never break post creation.
+    try {
+      await db`
+        INSERT INTO audit_logs (admin_id, admin_name, action, target_type, target_name)
+        VALUES (${session.id}, ${session.fullName}, 'Created Post', 'post', ${'Post by ' + session.fullName})
+      `;
+    } catch (e) {
+      console.error('Audit log (post) failed:', e);
+    }
 
     return NextResponse.json({ post: newPost[0] }, { status: 201 });
   } catch (error) {
