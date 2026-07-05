@@ -121,12 +121,12 @@ export async function POST(
 
     // Notify business owner of new review
     await db`
-      INSERT INTO notifications (user_id, type, message, link)
+      INSERT INTO notifications (user_id, type, title, content)
       VALUES (
         ${biz.user_id},
         'new_review',
-        ${`${session.fullName} left you a ${rating}-star review: "${title.trim()}"`},
-        ${`/business/${id}`}
+        'New review',
+        ${`${session.fullName} left you a ${rating}-star review: "${title.trim()}"`}
       )
     `.catch(() => null);
 

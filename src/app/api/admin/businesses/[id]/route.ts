@@ -63,8 +63,8 @@ export async function PUT(
     const message = statusMessages[status];
     if (message) {
       await db`
-        INSERT INTO notifications (user_id, type, message, link)
-        VALUES (${updated[0].user_id}, ${'vetting_update'}, ${message}, '/vetting')
+        INSERT INTO notifications (user_id, type, title, content)
+        VALUES (${updated[0].user_id}, ${'vetting_update'}, 'Vetting update', ${message})
       `.catch(() => {}); // non-fatal
     }
 

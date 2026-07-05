@@ -105,8 +105,8 @@ export async function PUT(
           : `Document "${doc.name}" was rejected. Please review feedback and resubmit.`;
 
         await db`
-          INSERT INTO notifications (user_id, type, message, link)
-          VALUES (${business[0].user_id}, ${'document_graded'}, ${message}, '/vetting')
+          INSERT INTO notifications (user_id, type, title, content)
+          VALUES (${business[0].user_id}, ${'document_graded'}, 'Document reviewed', ${message})
         `.catch(() => {}); // non-fatal
       }
     }

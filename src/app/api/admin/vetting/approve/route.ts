@@ -35,9 +35,9 @@ export async function POST(request: NextRequest) {
 
       // Create notification
       await db`
-        INSERT INTO notifications (user_id, type, message, link)
-        VALUES (${business[0]?.user_id}, 'success', 'Your business has been verified!', '/dashboard')
-      `;
+        INSERT INTO notifications (user_id, type, title, content)
+        VALUES (${business[0]?.user_id}, 'success', 'Business verified', 'Your business has been verified!')
+      `.catch(() => {}); // non-fatal
     } else if (action === 'reject') {
       await db`
         UPDATE businesses
@@ -51,9 +51,9 @@ export async function POST(request: NextRequest) {
       const business = await db`SELECT user_id FROM businesses WHERE id = ${businessId} LIMIT 1`;
       if (business[0]) {
         await db`
-          INSERT INTO notifications (user_id, type, message, link)
-          VALUES (${business[0]?.user_id}, 'error', 'Your business verification was rejected. Please review the feedback and resubmit.', '/vetting')
-        `;
+          INSERT INTO notifications (user_id, type, title, content)
+          VALUES (${business[0]?.user_id}, 'error', 'Verification rejected', 'Your business verification was rejected. Please review the feedback and resubmit.')
+        `.catch(() => {}); // non-fatal
       }
     }
 

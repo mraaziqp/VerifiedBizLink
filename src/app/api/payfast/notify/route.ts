@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
 
       // Create notification
       await db`
-        INSERT INTO notifications (user_id, type, message, title)
-        VALUES (${userId}, 'payment_success', 'Your ad payment of R${payfastData.amount_gross} has been received', 'Ad Payment Successful')
+        INSERT INTO notifications (user_id, type, title, content)
+        VALUES (${userId}, 'payment_success', 'Ad Payment Successful', ${`Your ad payment of R${payfastData.amount_gross} has been received`})
       `.catch(err => console.log('Notification note:', err.message));
     }
 

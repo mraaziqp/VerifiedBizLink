@@ -90,8 +90,8 @@ export async function PATCH(
           : `Document "${doc.name}" needs revision. Please resubmit.`;
 
         await db`
-          INSERT INTO notifications (user_id, type, message, link)
-          VALUES (${biz.user_id}, 'document_graded', ${message}, '/vetting')
+          INSERT INTO notifications (user_id, type, title, content)
+          VALUES (${biz.user_id}, 'document_graded', 'Document reviewed', ${message})
         `.catch(() => {});
       }
     }

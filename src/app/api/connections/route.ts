@@ -73,8 +73,8 @@ export async function POST(request: NextRequest) {
       const accepter = await db`SELECT full_name FROM users WHERE id = ${session.id} LIMIT 1`;
       if (accepter.length > 0) {
         await db`
-          INSERT INTO notifications (user_id, type, message, link)
-          VALUES (${receiverId}, 'connection_accepted', ${`${accepter[0].full_name} accepted your connection request.`}, '/network')
+          INSERT INTO notifications (user_id, type, title, content)
+          VALUES (${receiverId}, 'connection_accepted', 'Connection accepted', ${`${accepter[0].full_name} accepted your connection request.`})
         `.catch(() => {}); // non-fatal
       }
       return NextResponse.json({ success: true, status: 'accepted' });
@@ -105,8 +105,8 @@ export async function POST(request: NextRequest) {
     const requester = await db`SELECT full_name FROM users WHERE id = ${session.id} LIMIT 1`;
     if (requester.length > 0) {
       await db`
-        INSERT INTO notifications (user_id, type, message, link)
-        VALUES (${receiverId}, 'connection_request', ${`${requester[0].full_name} sent you a connection request.`}, '/network')
+        INSERT INTO notifications (user_id, type, title, content)
+        VALUES (${receiverId}, 'connection_request', 'Connection request', ${`${requester[0].full_name} sent you a connection request.`})
       `.catch(() => {}); // non-fatal
     }
 
