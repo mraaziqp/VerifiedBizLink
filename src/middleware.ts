@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify } from 'jose';
+
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
 
 // Routes that do NOT require authentication
 const PUBLIC_PATHS = [
@@ -20,7 +24,7 @@ const PUBLIC_PREFIXES = [
   '/favicon',
 ];
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Always allow public paths
@@ -39,6 +43,21 @@ export function middleware(request: NextRequest) {
     // Preserve the originally requested URL so we can redirect back after login
     loginUrl.searchParams.set('from', pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Admin area is staff-only: verify the JWT and check the role claim here so
+  // non-staff users never reach the admin UI (API routes also check server-side)
+  if (pathname.startsWith('/admin')) {
+    try {
+      const { payload } = await jwtVerify(session.value, JWT_SECRET);
+      if (!STAFF_ROLES.includes((payload as { role?: string }).role ?? '')) {
+        return NextResponse.redirect(new URL('/', request.url));
+      }
+    } catch {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('from', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   return NextResponse.next();

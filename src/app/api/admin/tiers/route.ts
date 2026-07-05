@@ -1,9 +1,14 @@
 import db from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession, isStaff } from '@/lib/auth';
 
 // GET all tiers
 export async function GET() {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const tiers = await db`
       SELECT
         id, name, description, price_usd, price_zar,
@@ -24,6 +29,11 @@ export async function GET() {
 // POST create new tier
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await req.json();
     const { name, description, price_usd, price_zar, billing_interval, features, permissions, display_order } = body;
 

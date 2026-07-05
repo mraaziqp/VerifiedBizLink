@@ -1,5 +1,6 @@
 import db from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession, isStaff } from '@/lib/auth';
 
 // GET single tier with features
 export async function GET(
@@ -7,6 +8,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
     const tier = await db`
       SELECT
@@ -46,6 +52,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await req.json();
     const { name, description, price_usd, price_zar, billing_interval, is_active, display_order, features, permissions } = body;
@@ -86,6 +97,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
     const existing = await db`SELECT id FROM subscription_tiers WHERE id = ${id}`;
     if (existing.length === 0) {

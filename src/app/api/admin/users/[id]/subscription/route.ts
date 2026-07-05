@@ -1,5 +1,6 @@
 import db from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession, isStaff } from '@/lib/auth';
 
 // GET user's current subscription
 export async function GET(
@@ -7,6 +8,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
     const subscription = await db`
       SELECT
@@ -51,6 +57,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await req.json();
     const { tier_id, status = 'active', renews_at, permission_overrides } = body;
@@ -103,6 +114,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await req.json();
     const { subscription_id, status, permission_overrides } = body;

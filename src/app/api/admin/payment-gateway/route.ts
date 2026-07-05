@@ -1,9 +1,15 @@
 import db from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession, isStaff } from '@/lib/auth';
 
 // GET payment gateway configuration
 export async function GET(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const config = {
       stripe: {
         public_key: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
@@ -26,6 +32,11 @@ export async function GET(req: NextRequest) {
 // POST update payment gateway configuration
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const body = await req.json();
     const { stripe_key, paypal_client_id, fallback_gateway } = body;
 

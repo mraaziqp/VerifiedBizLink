@@ -1,5 +1,6 @@
 import db from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession, isStaff } from '@/lib/auth';
 
 // GET all features for a tier
 export async function GET(
@@ -7,6 +8,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
     const features = await db`
       SELECT
@@ -35,6 +41,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await req.json();
     const { feature_name, feature_description, is_enabled = true, monthly_limit } = body;
@@ -75,6 +86,11 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
     const body = await req.json();
     const { feature_id, is_enabled, monthly_limit, feature_description } = body;
@@ -113,6 +129,11 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getSession();
+    if (!isStaff(session)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const { id } = await params;
     const { searchParams } = new URL(req.url);
     const feature_id = searchParams.get('feature_id');

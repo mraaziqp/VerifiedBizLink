@@ -10,18 +10,18 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status') || 'pending';
+    const status = searchParams.get('status') || 'uploaded';
 
     const documents = await db`
       SELECT
-        d.id, d.name, d.doc_type, d.file_url, d.approval_status, d.score,
+        d.id, d.name, d.doc_type, d.file_url, d.status, d.grade,
         d.uploaded_at, d.reviewed_at, d.review_notes,
         b.company_name, b.user_id,
         u.full_name, u.email, u.avatar_url, u.headline
       FROM documents d
       JOIN businesses b ON d.business_id = b.id
-      JOIN users u ON d.user_id = u.id
-      WHERE d.approval_status = ${status}
+      JOIN users u ON b.user_id = u.id
+      WHERE d.status = ${status}
       ORDER BY d.uploaded_at DESC
     `;
 
@@ -45,16 +45,21 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const validStatuses = ['uploaded', 'reviewing', 'approved', 'rejected'];
+    if (!validStatuses.includes(approval)) {
+      return NextResponse.json({ error: 'Invalid approval status' }, { status: 400 });
+    }
+
     const updated = await db`
       UPDATE documents
       SET
-        approval_status = ${approval},
-        score = ${score || 0},
-        approved_by = ${session.id},
+        status = ${approval},
+        grade = ${score || 0},
+        reviewed_by = ${session.id},
         review_notes = ${notes || ''},
         reviewed_at = NOW()
       WHERE id = ${documentId}
-      RETURNING id, approval_status, score, review_notes
+      RETURNING id, status, grade, review_notes
     `;
 
     return NextResponse.json({ document: updated[0] });
