@@ -25,6 +25,7 @@ interface Post {
   id: string;
   user_id: string;
   content: string;
+  image_url: string | null;
   likes_count: number;
   comments_count: number;
   created_at: string;
@@ -363,7 +364,29 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
                   </div>
                 </div>
               ) : (
-                <p className="text-gray-700 leading-relaxed text-[15px]">{post.content}</p>
+                <>
+                  <p className="text-gray-700 leading-relaxed text-[15px]">{post.content}</p>
+                  {post.image_url && (
+                    <a
+                      href={post.image_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 block overflow-hidden rounded-xl border border-gray-100 bg-gray-50"
+                    >
+                      <img
+                        src={post.image_url}
+                        alt="Post attachment"
+                        loading="lazy"
+                        className="max-h-[480px] w-full object-cover"
+                        onError={(e) => {
+                          // Hide the frame entirely if the URL is dead so old
+                          // posts never show a broken-image icon
+                          (e.currentTarget.parentElement as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    </a>
+                  )}
+                </>
               )}
             </CardContent>
 
