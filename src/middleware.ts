@@ -29,6 +29,14 @@ const PUBLIC_PREFIXES = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Static files (manifest.json, sw.js, icons, robots.txt, …) must be public:
+  // the browser fetches the web-app manifest and service worker WITHOUT
+  // cookies, so redirecting them to /login breaks PWA install and SEO.
+  // App routes never contain a dot, so this only matches real files.
+  if (/\.[a-zA-Z0-9]+$/.test(pathname)) {
+    return NextResponse.next();
+  }
+
   // Always allow public paths
   if (
     PUBLIC_PATHS.includes(pathname) ||
