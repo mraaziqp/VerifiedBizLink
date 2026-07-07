@@ -12,6 +12,8 @@ const PUBLIC_PATHS = [
   '/privacy',
   '/contact',
   '/explore',
+  '/pricing',
+  '/legal',
 ];
 
 // Prefixes that are always public (API auth routes, static assets, etc.)
