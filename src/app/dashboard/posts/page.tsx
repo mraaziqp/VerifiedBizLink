@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
+import { PostImage } from '@/components/feed/post-image';
 
 interface Post {
   id: string;
@@ -165,22 +166,7 @@ export default function PostsPage() {
                   <p className="text-white text-base leading-relaxed">{post.content}</p>
 
                   {post.image_url && (
-                    <a
-                      href={post.image_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block overflow-hidden rounded-xl border border-slate-700 bg-slate-900"
-                    >
-                      <img
-                        src={post.image_url}
-                        alt="Post attachment"
-                        loading="lazy"
-                        className="max-h-[420px] w-full object-cover"
-                        onError={(e) => {
-                          (e.currentTarget.parentElement as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                    </a>
+                    <PostImage url={post.image_url} className="border-slate-700 bg-slate-900" />
                   )}
 
                   {/* Post Meta */}

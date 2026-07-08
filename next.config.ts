@@ -7,6 +7,19 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  webpack: (config) => {
+    // OpenTelemetry (pulled in transitively by genkit, used for /api/chat) uses
+    // dynamic `require(expr)` internally for optional instrumentation plugins.
+    // Webpack can't statically analyze that, so it warns on every build even
+    // though the code path is never exercised — this is a widely-known,
+    // harmless warning upstream (open-telemetry/opentelemetry-js#4638).
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      { module: /node_modules\/@opentelemetry\/instrumentation/, message: /Critical dependency/ },
+      { module: /node_modules\/@protobufjs\/inquire/, message: /Critical dependency/ },
+    ];
+    return config;
+  },
   images: {
     remotePatterns: [
       {

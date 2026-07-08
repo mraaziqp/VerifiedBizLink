@@ -143,10 +143,16 @@ export async function GET(request: NextRequest) {
   const mime = mimeMatch?.[1] ?? 'application/octet-stream';
   const buffer = Buffer.from(base64, 'base64');
 
+  // Images and PDFs render natively in the browser — show them inline so
+  // staff can review a document with one click instead of downloading it
+  // first. Anything else still downloads, since browsers can't display it.
+  const canPreviewInline = mime.startsWith('image/') || mime === 'application/pdf';
+  const disposition = canPreviewInline ? 'inline' : 'attachment';
+
   return new Response(buffer, {
     headers: {
       'Content-Type': mime,
-      'Content-Disposition': `attachment; filename="${doc.name}"`,
+      'Content-Disposition': `${disposition}; filename="${doc.name}"`,
       'Content-Length': String(buffer.length),
     },
   });

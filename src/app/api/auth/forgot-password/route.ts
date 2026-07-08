@@ -16,12 +16,16 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
+    const token = randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
 
-    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token TEXT`;
-    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMP`;
-
+    // Single round trip: set the token only if the email matches, and get
+    // back who (if anyone) it belongs to in the same query.
     const users = await db`
-      SELECT id, email, full_name FROM users WHERE LOWER(email) = ${normalizedEmail} LIMIT 1
+      UPDATE users
+      SET password_reset_token = ${token}, password_reset_expires = ${expires.toISOString()}
+      WHERE LOWER(email) = ${normalizedEmail}
+      RETURNING id, email, full_name
     `;
 
     // Always return the same response whether or not the account exists —
@@ -31,14 +35,6 @@ export async function POST(request: NextRequest) {
     }
 
     const user = users[0];
-    const token = randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-
-    await db`
-      UPDATE users
-      SET password_reset_token = ${token}, password_reset_expires = ${expires.toISOString()}
-      WHERE id = ${user.id}
-    `;
 
     try {
       await sendPasswordResetEmail(user.email, user.full_name || 'there', token);

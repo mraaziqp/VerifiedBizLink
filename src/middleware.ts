@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify } from 'jose';
+import { jwtVerify } from 'jose/jwt/verify';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 const STAFF_ROLES = ['admin', 'banker', 'lawyer'];

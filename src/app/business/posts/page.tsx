@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { PostImage } from '@/components/feed/post-image';
 
 interface Post {
   id: string;
@@ -289,22 +290,7 @@ export default function BusinessPostsPage() {
                   <p className="text-white mb-6 leading-relaxed">{post.content}</p>
 
                   {post.image_url && (
-                    <a
-                      href={post.image_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mb-6 block overflow-hidden rounded-xl border border-slate-700 bg-slate-900"
-                    >
-                      <img
-                        src={post.image_url}
-                        alt="Post attachment"
-                        loading="lazy"
-                        className="max-h-[420px] w-full object-cover"
-                        onError={(e) => {
-                          (e.currentTarget.parentElement as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                    </a>
+                    <PostImage url={post.image_url} className="mb-6 border-slate-700 bg-slate-900" />
                   )}
 
                   {/* Post Stats */}

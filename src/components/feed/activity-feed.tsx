@@ -20,6 +20,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import { PostImage } from "@/components/feed/post-image";
 
 interface Post {
   id: string;
@@ -367,24 +368,7 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
                 <>
                   <p className="text-gray-700 leading-relaxed text-[15px]">{post.content}</p>
                   {post.image_url && (
-                    <a
-                      href={post.image_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-3 block overflow-hidden rounded-xl border border-gray-100 bg-gray-50"
-                    >
-                      <img
-                        src={post.image_url}
-                        alt="Post attachment"
-                        loading="lazy"
-                        className="max-h-[480px] w-full object-cover"
-                        onError={(e) => {
-                          // Hide the frame entirely if the URL is dead so old
-                          // posts never show a broken-image icon
-                          (e.currentTarget.parentElement as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                    </a>
+                    <PostImage url={post.image_url} className="mt-3 border-gray-100 bg-gray-50" />
                   )}
                 </>
               )}
