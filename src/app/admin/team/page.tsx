@@ -39,7 +39,7 @@ export default function AdminTeamPage() {
           <p className="text-amber-200 text-sm">
             <strong>💡 Admin Structure:</strong> Your platform has three specialized admin roles:
             <strong className="block mt-2">
-              👑 Orchestrator (Ramoen)
+              👑 Orchestrator (Ramone)
             </strong>
             - System overview, tier management, platform analytics
             <strong className="block mt-2">

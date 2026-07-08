@@ -8,6 +8,8 @@ const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
 const PUBLIC_PATHS = [
   '/login',
   '/signup',
+  '/forgot-password',
+  '/reset-password',
   '/terms',
   '/privacy',
   '/contact',
