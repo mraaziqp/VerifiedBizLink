@@ -601,6 +601,9 @@ export default function SettingsPage() {
                       <a href="/terms" target="_blank">View Terms & Conditions</a>
                     </Button>
                     <Button asChild variant="outline" className="rounded-xl font-bold flex-1">
+                      <a href="/refund-policy" target="_blank">View Refund Policy</a>
+                    </Button>
+                    <Button asChild variant="outline" className="rounded-xl font-bold flex-1">
                       <a href="/contact">Contact Data Officer</a>
                     </Button>
                   </CardContent>

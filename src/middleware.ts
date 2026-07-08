@@ -12,6 +12,7 @@ const PUBLIC_PATHS = [
   '/reset-password',
   '/terms',
   '/privacy',
+  '/refund-policy',
   '/contact',
   '/explore',
   '/pricing',

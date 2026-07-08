@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
     if (existing.length > 0) {
       const updated = await db`
         UPDATE businesses SET
+          name = ${companyName || ''},
           company_name = ${companyName || ''},
           industry = ${industry || ''},
           reg_number = ${regNumber || ''},
@@ -64,8 +65,8 @@ export async function POST(request: NextRequest) {
     }
 
     const newBiz = await db`
-      INSERT INTO businesses (user_id, company_name, industry, reg_number, vat_number, description, website, phone, address)
-      VALUES (${session.id}, ${companyName || ''}, ${industry || ''}, ${regNumber || ''}, ${vatNumber || ''}, ${description || ''}, ${website || ''}, ${phone || ''}, ${address || ''})
+      INSERT INTO businesses (user_id, name, company_name, industry, reg_number, vat_number, description, website, phone, address)
+      VALUES (${session.id}, ${companyName || ''}, ${companyName || ''}, ${industry || ''}, ${regNumber || ''}, ${vatNumber || ''}, ${description || ''}, ${website || ''}, ${phone || ''}, ${address || ''})
       RETURNING *
     `;
     return NextResponse.json({ business: newBiz[0] }, { status: 201 });

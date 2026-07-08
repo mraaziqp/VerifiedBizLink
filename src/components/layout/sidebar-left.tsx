@@ -80,7 +80,7 @@ export function SidebarLeft() {
     <div className="flex flex-col gap-6">
       {/* App Logo */}
       <div className="flex items-center px-2">
-        <VBLLogo variant="full" size="sm" theme="dark" />
+        <VBLLogo variant="full" size="lg" theme="dark" />
       </div>
 
       {/* Profile Card */}

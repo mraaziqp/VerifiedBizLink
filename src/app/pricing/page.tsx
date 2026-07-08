@@ -251,6 +251,11 @@ export default function PricingPage() {
             Get Started Now
           </Button>
         </Link>
+        <p className="text-gray-500 text-xs mt-6">
+          By subscribing you agree to our{" "}
+          <Link href="/terms" className="underline hover:text-gray-300">Terms &amp; Conditions</Link> and{" "}
+          <Link href="/refund-policy" className="underline hover:text-gray-300">Refund Policy</Link>.
+        </p>
       </div>
     </div>
   );

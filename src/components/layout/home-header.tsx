@@ -148,7 +148,7 @@ export function HomeHeader() {
 
         {/* Logo & Title */}
         <div className="flex-1 flex justify-center">
-          <VBLLogo variant="full" size="md" theme="light" />
+          <VBLLogo variant="full" size="lg" theme="light" />
         </div>
 
         {/* Notification Button */}
@@ -236,7 +236,7 @@ export function HomeHeader() {
           />
           <div className="absolute left-0 top-0 h-full w-72 max-w-[80vw] bg-[#0f0f16] border-r border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
             <div className="flex items-center justify-between border-b border-white/10 p-4">
-              <VBLLogo variant="icon" size="sm" theme="light" />
+              <VBLLogo variant="icon" size="md" theme="light" />
               <button
                 type="button"
                 onClick={() => setMenuOpen(false)}

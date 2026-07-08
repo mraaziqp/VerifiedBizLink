@@ -131,7 +131,7 @@ function LoginForm() {
         <div className="w-full max-w-[420px]">
           {/* Mobile logo */}
           <div className="flex lg:hidden items-center gap-2 mb-10 justify-center">
-            <VBLLogo variant="full" size="sm" theme="dark" />
+            <VBLLogo variant="full" size="md" theme="dark" />
           </div>
 
           <div className="mb-8">

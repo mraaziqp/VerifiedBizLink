@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Shield, Globe, Phone, MapPin, Building2, Users,
-  Star, CalendarCheck, ArrowLeft, Loader2, BadgeCheck,
+  Star, CalendarCheck, ArrowLeft, Loader2, BadgeCheck, MessageCircle,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -184,14 +184,25 @@ export default function BusinessProfilePage() {
               {/* Actions */}
               <div className="flex items-center gap-2 mt-2">
                 {!isOwnBusiness && user && (
-                  <Button
-                    onClick={handleConnect}
-                    disabled={connecting}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold gap-2"
-                  >
-                    {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
-                    Connect
-                  </Button>
+                  <>
+                    <Link href={`/messages?with=${business.userId}`}>
+                      <Button
+                        variant="outline"
+                        className="font-bold gap-2"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Message
+                      </Button>
+                    </Link>
+                    <Button
+                      onClick={handleConnect}
+                      disabled={connecting}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold gap-2"
+                    >
+                      {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
+                      Connect
+                    </Button>
+                  </>
                 )}
                 {!user && (
                   <Link href="/login">

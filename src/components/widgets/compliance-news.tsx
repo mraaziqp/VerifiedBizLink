@@ -172,6 +172,7 @@ export function ComplianceNews() {
           { label: "About", href: "/contact" },
           { label: "Privacy", href: "/privacy" },
           { label: "Terms", href: "/terms" },
+          { label: "Refunds", href: "/refund-policy" },
           { label: "Help", href: "/contact" },
         ].map((link) => (
           <Link key={link.label} href={link.href}

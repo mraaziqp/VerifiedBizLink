@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-white p-8">
       <div className="w-full max-w-[420px]">
         <div className="flex items-center gap-2 mb-10 justify-center">
-          <VBLLogo variant="full" size="sm" theme="dark" />
+          <VBLLogo variant="full" size="md" theme="dark" />
         </div>
 
         {sent ? (
