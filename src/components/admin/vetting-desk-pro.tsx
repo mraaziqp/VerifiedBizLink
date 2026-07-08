@@ -360,14 +360,18 @@ export function VettingDeskPro() {
                         </Badge>
                       </div>
 
-                      {doc.file_url && (
-                        <div className="mb-4 p-3 bg-gray-50 rounded flex items-center justify-between">
-                          <a href={doc.file_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-sm hover:underline">
-                            View Document
-                          </a>
-                          <Download className="h-4 w-4 text-gray-400" />
-                        </div>
-                      )}
+                      <div className="mb-4 p-3 bg-gray-50 rounded flex items-center justify-between">
+                        <a
+                          href={`/api/businesses/documents?id=${doc.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 text-sm hover:underline flex items-center gap-1.5"
+                        >
+                          <Eye className="h-4 w-4" />
+                          View / Download Document
+                        </a>
+                        <Download className="h-4 w-4 text-gray-400" />
+                      </div>
 
                       {selectedDoc?.id === doc.id ? (
                         <div className="space-y-4 mt-4 p-4 bg-blue-50 rounded border-l-4 border-blue-500">
