@@ -26,6 +26,15 @@ const PUBLIC_PREFIXES = [
   '/favicon',
 ];
 
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+// A verified business's public trust profile (page + the API it reads from)
+// must be viewable without an account — that's the whole point of showing
+// a trust score to prospective customers. Owner-management routes like
+// /business/dashboard, /business/posts, etc. are plain words, not UUIDs,
+// so this only opens the read-only profile paths.
+const PUBLIC_BUSINESS_PROFILE = new RegExp(`^/business/${UUID}$`, 'i');
+const PUBLIC_BUSINESS_API = new RegExp(`^/api/businesses/${UUID}(/reviews(/${UUID}/helpful)?)?$`, 'i');
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -40,7 +49,9 @@ export async function middleware(request: NextRequest) {
   // Always allow public paths
   if (
     PUBLIC_PATHS.includes(pathname) ||
-    PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+    PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+    PUBLIC_BUSINESS_PROFILE.test(pathname) ||
+    PUBLIC_BUSINESS_API.test(pathname)
   ) {
     return NextResponse.next();
   }
