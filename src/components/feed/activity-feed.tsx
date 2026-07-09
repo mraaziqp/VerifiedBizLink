@@ -33,6 +33,7 @@ interface Post {
   author_name: string;
   author_avatar: string;
   author_headline: string;
+  business_id: string | null;
   company_name: string | null;
   business_status: string | null;
   trust_score: number | null;
@@ -286,12 +287,16 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
                 </Avatar>
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <a
-                      href={`/business/${post.user_id}`}
-                      className="font-bold text-gray-900 hover:text-primary hover:underline transition-colors"
-                    >
-                      {post.company_name || post.author_name}
-                    </a>
+                    {post.business_id ? (
+                      <a
+                        href={`/business/${post.business_id}`}
+                        className="font-bold text-gray-900 hover:text-primary hover:underline transition-colors"
+                      >
+                        {post.company_name || post.author_name}
+                      </a>
+                    ) : (
+                      <span className="font-bold text-gray-900">{post.author_name}</span>
+                    )}
                     {post.business_status === 'verified' && <GoldCheckmark />}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500 font-medium">

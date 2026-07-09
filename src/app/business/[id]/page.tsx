@@ -22,6 +22,12 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import Link from "next/link";
 
+interface GalleryImage {
+  id: string;
+  image_url: string;
+  title: string;
+}
+
 interface BusinessProfile {
   id: string;
   companyName: string;
@@ -60,6 +66,7 @@ export default function BusinessProfilePage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [business, setBusiness] = useState<BusinessProfile | null>(null);
+  const [gallery, setGallery] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -85,6 +92,14 @@ export default function BusinessProfilePage() {
   }, [id, previousStatus]);
 
   useEffect(() => { fetchBusiness(); }, [fetchBusiness]);
+
+  useEffect(() => {
+    if (!id) return;
+    fetch(`/api/businesses/${id}/gallery`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setGallery(data?.images ?? []))
+      .catch(() => setGallery([]));
+  }, [id]);
 
   const handleConnect = async () => {
     if (!user) { router.push("/login"); return; }
@@ -256,6 +271,33 @@ export default function BusinessProfilePage() {
                 <CardContent className="p-5 space-y-2">
                   <h2 className="font-black text-foreground">About</h2>
                   <p className="text-sm text-foreground/75 leading-relaxed">{business.description}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Gallery */}
+            {gallery.length > 0 && (
+              <Card className="border-border">
+                <CardContent className="p-5 space-y-3">
+                  <h2 className="font-black text-foreground">Gallery</h2>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {gallery.map((img) => (
+                      <a
+                        key={img.id}
+                        href={img.image_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="aspect-square overflow-hidden rounded-lg bg-foreground/5 block"
+                      >
+                        <img
+                          src={img.image_url}
+                          alt={img.title || business.companyName}
+                          loading="lazy"
+                          className="w-full h-full object-cover hover:scale-105 transition-transform"
+                        />
+                      </a>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             )}

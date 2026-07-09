@@ -1,112 +1,124 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Eye, Zap, DollarSign, BarChart3, Trash2, Edit, Pause, Play } from 'lucide-react';
+import { ArrowLeft, Plus, Zap, Trash2, Pause, Play, Loader2, Sparkles } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 
 interface Ad {
   id: string;
   title: string;
   description: string;
-  budget: number;
-  spent: number;
-  impressions: number;
-  clicks: number;
-  status: 'active' | 'paused' | 'completed';
-  createdAt: string;
+  cta_text: string;
+  cta_url: string | null;
+  badge: string | null;
+  is_boosted: boolean;
+  is_active: boolean;
+  created_at: string;
 }
 
 export default function BusinessAdsPage() {
-  const [ads, setAds] = useState<Ad[]>([
-    {
-      id: '1',
-      title: 'Summer Promotion',
-      description: 'Get 20% off on all products this summer!',
-      budget: 5000,
-      spent: 2340,
-      impressions: 15240,
-      clicks: 342,
-      status: 'active',
-      createdAt: '3 days ago',
-    },
-    {
-      id: '2',
-      title: 'New Product Launch',
-      description: 'Check out our new innovative product line',
-      budget: 3000,
-      spent: 3000,
-      impressions: 8900,
-      clicks: 210,
-      status: 'completed',
-      createdAt: '1 week ago',
-    },
-  ]);
+  const { toast } = useToast();
+  const [ads, setAds] = useState<Ad[]>([]);
+  const [limit, setLimit] = useState(0);
+  const [active, setActive] = useState(0);
+  const [packageType, setPackageType] = useState('free');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    budget: '',
-  });
+  const [formData, setFormData] = useState({ title: '', description: '', ctaText: 'Learn More', ctaUrl: '' });
 
-  const handleCreateAd = () => {
-    if (formData.title && formData.description && formData.budget) {
-      const newAd: Ad = {
-        id: Date.now().toString(),
-        title: formData.title,
-        description: formData.description,
-        budget: parseFloat(formData.budget),
-        spent: 0,
-        impressions: 0,
-        clicks: 0,
-        status: 'active',
-        createdAt: 'just now',
-      };
-      setAds([newAd, ...ads]);
-      setFormData({ title: '', description: '', budget: '' });
-      setShowCreateForm(false);
+  const fetchAds = useCallback(async () => {
+    try {
+      const res = await fetch('/api/business/ads');
+      if (res.ok) {
+        const data = await res.json();
+        setAds(data.ads || []);
+        setLimit(data.limit || 0);
+        setActive(data.active || 0);
+        setPackageType(data.packageType || 'free');
+      }
+    } catch {
+      /* keep whatever is shown */
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchAds();
+  }, [fetchAds]);
+
+  const handleCreateAd = async () => {
+    if (!formData.title.trim() || !formData.description.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/business/ads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      if (res.ok) {
+        setFormData({ title: '', description: '', ctaText: 'Learn More', ctaUrl: '' });
+        setShowCreateForm(false);
+        toast({ title: 'Ad created' });
+        fetchAds();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast({ title: 'Could not create ad', description: data.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not create ad', variant: 'destructive' });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleToggleStatus = (id: string) => {
-    setAds(ads.map(ad => ({
-      ...ad,
-      status: ad.status === 'active' ? 'paused' : 'active',
-    })));
-  };
-
-  const handleDeleteAd = (id: string) => {
-    setAds(ads.filter(ad => ad.id !== id));
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-500/20 text-green-400';
-      case 'paused':
-        return 'bg-yellow-500/20 text-yellow-400';
-      case 'completed':
-        return 'bg-slate-500/20 text-slate-400';
-      default:
-        return 'bg-slate-500/20 text-slate-400';
+  const handleToggleStatus = async (ad: Ad) => {
+    setTogglingId(ad.id);
+    try {
+      const res = await fetch(`/api/business/ads/${ad.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !ad.is_active }),
+      });
+      if (res.ok) {
+        fetchAds();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast({ title: 'Could not update ad', description: data.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not update ad', variant: 'destructive' });
+    } finally {
+      setTogglingId(null);
     }
   };
 
-  const getTotalStats = () => {
-    const totalBudget = ads.reduce((sum, ad) => sum + ad.budget, 0);
-    const totalSpent = ads.reduce((sum, ad) => sum + ad.spent, 0);
-    const totalImpressions = ads.reduce((sum, ad) => sum + ad.impressions, 0);
-    const totalClicks = ads.reduce((sum, ad) => sum + ad.clicks, 0);
-
-    return { totalBudget, totalSpent, totalImpressions, totalClicks };
+  const handleDeleteAd = async (id: string) => {
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/business/ads/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setAds((prev) => prev.filter((a) => a.id !== id));
+        toast({ title: 'Ad deleted' });
+      } else {
+        toast({ title: 'Could not delete ad', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not delete ad', variant: 'destructive' });
+    } finally {
+      setDeletingId(null);
+    }
   };
-
-  const stats = getTotalStats();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-20">
@@ -120,54 +132,48 @@ export default function BusinessAdsPage() {
 
       <div className="max-w-6xl mx-auto p-4 space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-center">
+        <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Advertisement Manager</h1>
-            <p className="text-slate-400 mt-1">Create and manage your business ads</p>
+            <h1 className="text-3xl font-bold text-white">Sponsored Listings</h1>
+            <p className="text-slate-400 mt-1">
+              {loading ? 'Loading your plan…' : `${active} of ${limit} active — ${packageType === 'free' ? 'Free plan' : packageType} plan`}
+            </p>
           </div>
-          <Button onClick={() => setShowCreateForm(true)} className="gap-2 bg-yellow-400 text-slate-900 hover:bg-yellow-300">
+          <Button
+            onClick={() => setShowCreateForm(true)}
+            disabled={limit === 0}
+            className="gap-2 bg-yellow-400 text-slate-900 hover:bg-yellow-300 disabled:opacity-50"
+          >
             <Plus className="h-4 w-4" />
             Create Ad
           </Button>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="bg-slate-800 border-slate-600">
-            <CardContent className="p-4">
-              <p className="text-slate-400 text-sm">Total Budget</p>
-              <p className="text-2xl font-bold text-white mt-2">R {stats.totalBudget.toLocaleString()}</p>
+        {limit === 0 && !loading && (
+          <Card className="bg-yellow-400/10 border-yellow-400/30">
+            <CardContent className="p-6 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-6 w-6 text-yellow-400 shrink-0" />
+                <p className="text-slate-200 text-sm">
+                  Sponsored listings appear across VerifiedBizLink to boost your visibility. Upgrade your plan to create one.
+                </p>
+              </div>
+              <Link href="/pricing">
+                <Button className="bg-yellow-400 text-slate-900 hover:bg-yellow-300 shrink-0">View Plans</Button>
+              </Link>
             </CardContent>
           </Card>
-          <Card className="bg-slate-800 border-slate-600">
-            <CardContent className="p-4">
-              <p className="text-slate-400 text-sm">Total Spent</p>
-              <p className="text-2xl font-bold text-yellow-400 mt-2">R {stats.totalSpent.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-slate-800 border-slate-600">
-            <CardContent className="p-4">
-              <p className="text-slate-400 text-sm">Total Impressions</p>
-              <p className="text-2xl font-bold text-white mt-2">{stats.totalImpressions.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-slate-800 border-slate-600">
-            <CardContent className="p-4">
-              <p className="text-slate-400 text-sm">Total Clicks</p>
-              <p className="text-2xl font-bold text-white mt-2">{stats.totalClicks.toLocaleString()}</p>
-            </CardContent>
-          </Card>
-        </div>
+        )}
 
         {/* Create Ad Form */}
         {showCreateForm && (
           <Card className="bg-slate-800 border-slate-600">
             <CardHeader className="border-b border-slate-700">
-              <CardTitle className="text-white">Create New Advertisement</CardTitle>
+              <CardTitle className="text-white">Create New Sponsored Listing</CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div>
-                <label className="text-slate-400 text-sm mb-2 block">Ad Title</label>
+                <label className="text-slate-400 text-sm mb-2 block">Title</label>
                 <Input
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -176,23 +182,33 @@ export default function BusinessAdsPage() {
                 />
               </div>
               <div>
-                <label className="text-slate-400 text-sm mb-2 block">Ad Description</label>
+                <label className="text-slate-400 text-sm mb-2 block">Description</label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Describe your ad and what you're promoting"
+                  placeholder="Describe what you're promoting"
                   className="bg-slate-700 text-white border-slate-600"
                 />
               </div>
-              <div>
-                <label className="text-slate-400 text-sm mb-2 block">Budget (R)</label>
-                <Input
-                  type="number"
-                  value={formData.budget}
-                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
-                  placeholder="5000"
-                  className="bg-slate-700 text-white border-slate-600"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-slate-400 text-sm mb-2 block">Button Text</label>
+                  <Input
+                    value={formData.ctaText}
+                    onChange={(e) => setFormData({ ...formData, ctaText: e.target.value })}
+                    placeholder="Learn More"
+                    className="bg-slate-700 text-white border-slate-600"
+                  />
+                </div>
+                <div>
+                  <label className="text-slate-400 text-sm mb-2 block">Link (optional)</label>
+                  <Input
+                    value={formData.ctaUrl}
+                    onChange={(e) => setFormData({ ...formData, ctaUrl: e.target.value })}
+                    placeholder="https://yourbusiness.co.za"
+                    className="bg-slate-700 text-white border-slate-600"
+                  />
+                </div>
               </div>
               <div className="flex gap-2 justify-end">
                 <Button
@@ -202,8 +218,12 @@ export default function BusinessAdsPage() {
                 >
                   Cancel
                 </Button>
-                <Button onClick={handleCreateAd} className="bg-yellow-400 text-slate-900 hover:bg-yellow-300">
-                  Create Ad
+                <Button
+                  onClick={handleCreateAd}
+                  disabled={saving || !formData.title.trim() || !formData.description.trim()}
+                  className="bg-yellow-400 text-slate-900 hover:bg-yellow-300"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Ad'}
                 </Button>
               </div>
             </CardContent>
@@ -214,106 +234,66 @@ export default function BusinessAdsPage() {
         <div className="space-y-4">
           <h2 className="text-2xl font-bold text-white">Your Ads ({ads.length})</h2>
 
-          {ads.map((ad) => (
-            <Card key={ad.id} className="bg-slate-800 border-slate-600 hover:border-yellow-400/30 transition-colors">
-              <CardContent className="p-6 space-y-4">
-                {/* Ad Header */}
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <h3 className="text-xl font-bold text-white">{ad.title}</h3>
-                    <p className="text-slate-400 text-sm mt-1">{ad.description}</p>
-                    <p className="text-slate-500 text-xs mt-2">Created {ad.createdAt}</p>
-                  </div>
-                  <Badge className={getStatusColor(ad.status)}>
-                    {ad.status.charAt(0).toUpperCase() + ad.status.slice(1)}
-                  </Badge>
-                </div>
-
-                {/* Progress Bar */}
-                <div>
-                  <div className="flex justify-between text-slate-400 text-sm mb-2">
-                    <span>Budget Usage</span>
-                    <span>R {ad.spent.toLocaleString()} / R {ad.budget.toLocaleString()}</span>
-                  </div>
-                  <div className="w-full bg-slate-700 rounded-full h-2">
-                    <div
-                      className="bg-yellow-400 h-2 rounded-full transition-all"
-                      style={{ width: `${(ad.spent / ad.budget) * 100}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-slate-700 rounded-lg p-3">
-                    <div className="flex items-center gap-2 text-slate-400 text-sm mb-1">
-                      <Eye className="h-4 w-4" />
-                      Impressions
-                    </div>
-                    <p className="text-xl font-bold text-white">{ad.impressions.toLocaleString()}</p>
-                  </div>
-                  <div className="bg-slate-700 rounded-lg p-3">
-                    <div className="flex items-center gap-2 text-slate-400 text-sm mb-1">
-                      <Zap className="h-4 w-4" />
-                      Clicks
-                    </div>
-                    <p className="text-xl font-bold text-white">{ad.clicks.toLocaleString()}</p>
-                  </div>
-                  <div className="bg-slate-700 rounded-lg p-3">
-                    <div className="flex items-center gap-2 text-slate-400 text-sm mb-1">
-                      <BarChart3 className="h-4 w-4" />
-                      CTR
-                    </div>
-                    <p className="text-xl font-bold text-white">
-                      {ad.impressions > 0 ? ((ad.clicks / ad.impressions) * 100).toFixed(2) : '0'}%
-                    </p>
-                  </div>
-                  <div className="bg-slate-700 rounded-lg p-3">
-                    <div className="flex items-center gap-2 text-slate-400 text-sm mb-1">
-                      <DollarSign className="h-4 w-4" />
-                      CPC
-                    </div>
-                    <p className="text-xl font-bold text-white">
-                      R {ad.clicks > 0 ? (ad.spent / ad.clicks).toFixed(2) : '0'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-2 pt-4 border-t border-slate-700">
-                  <Button
-                    size="sm"
-                    onClick={() => handleToggleStatus(ad.id)}
-                    className={`gap-2 ${ad.status === 'active' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
-                  >
-                    {ad.status === 'active' ? (
-                      <>
-                        <Pause className="h-4 w-4" />
-                        Pause
-                      </>
-                    ) : (
-                      <>
-                        <Play className="h-4 w-4" />
-                        Resume
-                      </>
-                    )}
-                  </Button>
-                  <Button size="sm" variant="outline" className="gap-2 border-slate-600 text-slate-300">
-                    <Edit className="h-4 w-4" />
-                    Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => handleDeleteAd(ad.id)}
-                    className="gap-2 bg-red-600/20 text-red-400 hover:bg-red-600/30 ml-auto"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                  </Button>
-                </div>
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="h-8 w-8 text-yellow-400 animate-spin" />
+            </div>
+          ) : ads.length === 0 ? (
+            <Card className="bg-slate-800 border-slate-600">
+              <CardContent className="p-8 text-center">
+                <p className="text-slate-400">No sponsored listings yet.</p>
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            ads.map((ad) => (
+              <Card key={ad.id} className="bg-slate-800 border-slate-600 hover:border-yellow-400/30 transition-colors">
+                <CardContent className="p-6 space-y-4">
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-xl font-bold text-white">{ad.title}</h3>
+                        {ad.is_boosted && (
+                          <Badge className="bg-yellow-400/20 text-yellow-400 gap-1">
+                            <Zap className="h-3 w-3" /> Boosted
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-slate-400 text-sm mt-1">{ad.description}</p>
+                    </div>
+                    <Badge className={ad.is_active ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'}>
+                      {ad.is_active ? 'Active' : 'Paused'}
+                    </Badge>
+                  </div>
+
+                  <div className="flex gap-2 pt-4 border-t border-slate-700">
+                    <Button
+                      size="sm"
+                      onClick={() => handleToggleStatus(ad)}
+                      disabled={togglingId === ad.id}
+                      className={`gap-2 ${ad.is_active ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+                    >
+                      {togglingId === ad.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : ad.is_active ? (
+                        <><Pause className="h-4 w-4" /> Pause</>
+                      ) : (
+                        <><Play className="h-4 w-4" /> Resume</>
+                      )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => handleDeleteAd(ad.id)}
+                      disabled={deletingId === ad.id}
+                      className="gap-2 bg-red-600/20 text-red-400 hover:bg-red-600/30 ml-auto"
+                    >
+                      {deletingId === ad.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                      Delete
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </div>
     </div>

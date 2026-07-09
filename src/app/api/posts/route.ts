@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
         u.full_name AS author_name,
         u.avatar_url AS author_avatar,
         u.headline AS author_headline,
+        b.id AS business_id,
         b.company_name,
         b.status AS business_status,
         b.trust_score,
