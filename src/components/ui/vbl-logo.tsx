@@ -5,10 +5,12 @@ import { useState } from "react";
 interface VBLLogoProps {
   /** "icon" = square monogram only; "full" = icon + text; "text" = text only */
   variant?: "icon" | "full" | "text";
-  size?: "xs" | "sm" | "md" | "lg" | "xl";
+  size?: "xs" | "sm" | "md" | "lg" | "xl" | "xxl";
   className?: string;
   /** Force light or dark text (only applies to variant="full" and "text") */
   theme?: "light" | "dark";
+  /** Override just the icon's pixel size, independent of the text size tier */
+  iconSize?: number;
 }
 
 const iconSizes = {
@@ -17,6 +19,7 @@ const iconSizes = {
   md: 40,
   lg: 52,
   xl: 72,
+  xxl: 104,
 };
 
 const textSizes = {
@@ -25,6 +28,7 @@ const textSizes = {
   md: "text-xl",
   lg: "text-2xl",
   xl: "text-4xl",
+  xxl: "text-5xl",
 };
 
 const subTextSizes = {
@@ -33,6 +37,7 @@ const subTextSizes = {
   md: "text-[10px]",
   lg: "text-xs",
   xl: "text-sm",
+  xxl: "text-base",
 };
 
 /** SVG-based VBL icon fallback */
@@ -96,8 +101,9 @@ export function VBLLogo({
   size = "md",
   className,
   theme = "light",
+  iconSize,
 }: VBLLogoProps) {
-  const px = iconSizes[size];
+  const px = iconSize ?? iconSizes[size];
 
   const Icon = <VBLIcon size={px} theme={theme} />;
 
