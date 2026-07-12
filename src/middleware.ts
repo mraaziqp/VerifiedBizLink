@@ -37,7 +37,7 @@ const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 // /business/dashboard, /business/posts, etc. are plain words, not UUIDs,
 // so this only opens the read-only profile paths.
 const PUBLIC_BUSINESS_PROFILE = new RegExp(`^/business/${UUID}$`, 'i');
-const PUBLIC_BUSINESS_API = new RegExp(`^/api/businesses/${UUID}(/reviews(/${UUID}/helpful)?|/gallery)?$`, 'i');
+const PUBLIC_BUSINESS_API = new RegExp(`^/api/businesses/${UUID}(/reviews(/${UUID}/helpful)?|/gallery|/view)?$`, 'i');
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

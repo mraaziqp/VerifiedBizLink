@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell, MapPin } from "lucide-react";
+import { Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell, MapPin, Building2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { GoldCheckmark } from "@/components/ui/gold-checkmark";
@@ -33,6 +33,7 @@ const navigation = [
   { name: "Home", href: "/", icon: Home },
   { name: "My Network", href: "/network", icon: Users },
   { name: "Explore", href: "/explore", icon: MapPin },
+  { name: "My Business", href: "/business/dashboard", icon: Building2 },
   { name: "Vetting Hub", href: "/vetting", icon: ShieldCheck },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: Settings },
@@ -75,6 +76,7 @@ export function SidebarLeft() {
     : 'VB';
 
   const isAdmin = user && ['admin', 'banker', 'lawyer'].includes(user.role);
+  const canManageBusiness = user && (user.role === 'business' || isAdmin);
 
   return (
     <div className="flex flex-col gap-6">
@@ -124,8 +126,10 @@ export function SidebarLeft() {
       {/* Main Navigation */}
       <nav className="flex flex-col gap-1">
         {navigation.map((item) => {
-          // Hide Vetting Hub from customers (only show for admins/bankers/lawyers)
-          if (item.name === "Vetting Hub" && !isAdmin) {
+          // My Business and Vetting Hub are for business accounts (to manage
+          // their profile and upload verification docs) and staff (who need
+          // to view/support both) — hidden for plain customer accounts.
+          if ((item.name === "My Business" || item.name === "Vetting Hub") && !canManageBusiness) {
             return null;
           }
           return (

@@ -24,7 +24,7 @@ interface Post {
 }
 
 export default function BusinessPostsPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [posts, setPosts] = useState<Post[]>([]);
@@ -34,11 +34,16 @@ export default function BusinessPostsPage() {
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  const canManage = !!user && (user.role === 'business' || ['admin', 'banker', 'lawyer'].includes(user.role));
+
   useEffect(() => {
-    if (!user || user.role !== 'business') {
+    if (authLoading) return;
+    if (!user) {
       router.push('/login');
+    } else if (!canManage) {
+      router.push('/dashboard');
     }
-  }, [user, router]);
+  }, [user, authLoading, canManage, router]);
 
   const fetchMyPosts = useCallback(async () => {
     if (!user) return;

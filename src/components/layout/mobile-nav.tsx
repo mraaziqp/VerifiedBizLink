@@ -1,6 +1,6 @@
 "use client";
 
-import { Home, Users, ShieldCheck, BarChart3, Settings, Shield, Compass } from "lucide-react";
+import { Home, Users, ShieldCheck, BarChart3, Settings, Shield, Compass, Building2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -22,9 +22,19 @@ export function MobileNav() {
   if (pathname === "/login" || pathname === "/signup") return null;
 
   const isAdmin = user && ["admin", "banker", "lawyer"].includes(user.role);
-  const navItems = isAdmin
-    ? [...navigation, { name: "Admin", href: "/admin", icon: Shield }]
-    : navigation;
+  const canManageBusiness = user && (user.role === "business" || isAdmin);
+
+  let navItems = navigation;
+  if (canManageBusiness) {
+    navItems = [
+      ...navigation.slice(0, 3),
+      { name: "Business", href: "/business/dashboard", icon: Building2 },
+      ...navigation.slice(3),
+    ];
+  }
+  if (isAdmin) {
+    navItems = [...navItems, { name: "Admin", href: "/admin", icon: Shield }];
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>

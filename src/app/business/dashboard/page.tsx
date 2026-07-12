@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { formatDistanceToNow } from 'date-fns';
 
 interface Business {
   id: string;
@@ -23,7 +24,7 @@ interface Business {
   industry: string;
   status: 'pending' | 'reviewing' | 'verified' | 'rejected';
   trust_score: number;
-  avatar_url: string;
+  logo_url: string;
   website: string;
   phone: string;
   address: string;
@@ -33,14 +34,23 @@ interface Business {
 
 interface BusinessStats {
   views: number;
-  contacts: number;
+  week_views: number;
+  week_change_pct: number | null;
+  month_views: number;
+  connections: number;
   reviews: number;
   verified: boolean;
-  posts?: number;
-  ads_active?: number;
-  engagement_rate?: number;
-  week_views?: number;
-  profile_completion?: number;
+  ads_active: number;
+  ads_limit: number;
+  profile_completion: number;
+  gallery_count: number;
+}
+
+interface ActivityItem {
+  id: string;
+  type: string;
+  message: string;
+  created_at: string;
 }
 
 const STATUS_COLORS = {
@@ -116,34 +126,68 @@ const GROWTH_RECOMMENDATIONS = [
   }
 ];
 
-const PROFILE_COMPLETION_ITEMS = [
-  { label: 'Company Name', completed: true, weight: 15 },
-  { label: 'Description', completed: true, weight: 15 },
-  { label: 'Contact Info', completed: true, weight: 15 },
-  { label: 'Photos (5+)', completed: false, weight: 20 },
-  { label: 'Documents', completed: false, weight: 20 },
-  { label: 'Website', completed: false, weight: 15 }
-];
+function getTrustScoreLabel(score: number): { label: string; color: string } {
+  if (score >= 80) return { label: 'Excellent', color: 'text-green-400' };
+  if (score >= 60) return { label: 'Good', color: 'text-green-400' };
+  if (score >= 30) return { label: 'Building', color: 'text-yellow-400' };
+  return { label: 'Get Verified', color: 'text-slate-400' };
+}
+
+function getProfileCompletionItems(business: Business, stats: BusinessStats | null) {
+  return [
+    { label: 'Company Name', completed: !!business.company_name },
+    { label: 'Description', completed: !!business.description },
+    { label: 'Contact Info', completed: !!(business.phone || business.address) },
+    { label: 'Photos (5+)', completed: (stats?.gallery_count ?? 0) >= 5 },
+    { label: 'Documents', completed: business.doc_count > 0 },
+    { label: 'Website', completed: !!business.website },
+  ];
+}
 
 export default function BusinessDashboard() {
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
   const [business, setBusiness] = useState<Business | null>(null);
   const [stats, setStats] = useState<BusinessStats | null>(null);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'insights' | 'tasks'>('overview');
   const [showFilters, setShowFilters] = useState(false);
 
+  const canManage = !!user && (user.role === 'business' || ['admin', 'banker', 'lawyer'].includes(user.role));
+
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       router.push('/login');
-    } else if (user.role !== 'business') {
+    } else if (!canManage) {
       router.push('/dashboard');
     } else {
       fetchBusinessData();
+      fetchActivity();
     }
-  }, [user, router]);
+  }, [user, authLoading, canManage, router]);
+
+  const fetchActivity = async () => {
+    try {
+      const res = await fetch('/api/notifications');
+      if (res.ok) {
+        const data = await res.json();
+        setActivity((data.notifications || []).slice(0, 5));
+      }
+    } catch {
+      /* Recent Activity card just shows nothing — not worth an error state */
+    }
+  };
+
+  const activityIcon = (type: string) => {
+    if (type.includes('review')) return Star;
+    if (type.includes('connection')) return Users;
+    if (type.includes('document') || type.includes('vetting')) return FileText;
+    if (type.includes('payment') || type.includes('ad')) return TrendingUp;
+    return Bell;
+  };
 
   const fetchBusinessData = async () => {
     try {
@@ -152,11 +196,7 @@ export default function BusinessDashboard() {
       if (res.ok) {
         const data = await res.json();
         setBusiness(data.business);
-        setStats({
-          ...data.stats,
-          week_views: Math.floor(data.stats?.views * 0.3) || 0,
-          profile_completion: 60
-        });
+        setStats(data.stats);
       } else {
         setError('Failed to load business data');
       }
@@ -173,10 +213,6 @@ export default function BusinessDashboard() {
     router.push('/login');
   };
 
-  const profileCompletion = PROFILE_COMPLETION_ITEMS.reduce((sum, item) => {
-    return sum + (item.completed ? item.weight : 0);
-  }, 0);
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
@@ -188,7 +224,7 @@ export default function BusinessDashboard() {
     );
   }
 
-  if (error || !business) {
+  if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
         <Card className="max-w-md w-full bg-slate-800 border-slate-700">
@@ -206,6 +242,36 @@ export default function BusinessDashboard() {
       </div>
     );
   }
+
+  if (!business) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full bg-slate-800 border-slate-700">
+          <CardContent className="pt-6">
+            <div className="text-center space-y-4">
+              <Building2 className="h-12 w-12 text-yellow-400 mx-auto" />
+              <h2 className="text-lg font-bold text-white">
+                {user?.role === 'business' ? 'Create your business profile' : "This account doesn't have a business profile"}
+              </h2>
+              <p className="text-slate-400 text-sm">
+                {user?.role === 'business'
+                  ? 'Set up your company details in the Vetting Hub to unlock your business dashboard, posts, gallery, and ads.'
+                  : 'Viewing as staff — this dashboard is empty until a business profile exists for this account.'}
+              </p>
+              <Link href="/vetting">
+                <Button className="w-full bg-yellow-400 text-slate-900 hover:bg-yellow-500">
+                  Go to Vetting Hub
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const profileCompletion = stats?.profile_completion ?? 0;
+  const profileCompletionItems = getProfileCompletionItems(business, stats);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
@@ -346,7 +412,7 @@ export default function BusinessDashboard() {
                 ></div>
               </div>
               <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
-                {PROFILE_COMPLETION_ITEMS.map((item, i) => (
+                {profileCompletionItems.map((item, i) => (
                   <div key={i} className="flex items-center gap-2">
                     {item.completed ? (
                       <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0" />
@@ -373,7 +439,11 @@ export default function BusinessDashboard() {
                         <p className="text-slate-400 text-sm mb-2">This Week</p>
                         <div className="flex items-end gap-2">
                           <p className="text-4xl font-bold text-white">{stats?.week_views || 0}</p>
-                          <p className="text-green-400 text-sm font-medium mb-1">+15%</p>
+                          {stats?.week_change_pct !== null && stats?.week_change_pct !== undefined && (
+                            <p className={`text-sm font-medium mb-1 ${stats.week_change_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                              {stats.week_change_pct >= 0 ? '+' : ''}{stats.week_change_pct}%
+                            </p>
+                          )}
                         </div>
                       </div>
                       <div className="p-3 bg-slate-700 rounded-lg">
@@ -405,17 +475,17 @@ export default function BusinessDashboard() {
                 </Card>
               </div>
 
-              {/* Engagement Rate */}
-              <div className="group relative">
+              {/* Active Ads */}
+              <Link href="/business/ads" className="group relative block">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-lg blur opacity-20 group-hover:opacity-30 transition"></div>
                 <Card className="relative bg-slate-800 border-slate-700 hover:border-yellow-400 transition">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-400 text-sm mb-2">Engagement</p>
+                        <p className="text-slate-400 text-sm mb-2">Active Ads</p>
                         <div className="flex items-end gap-2">
-                          <p className="text-4xl font-bold text-white">8.2%</p>
-                          <p className="text-green-400 text-sm font-medium mb-1">+2.1%</p>
+                          <p className="text-4xl font-bold text-white">{stats?.ads_active ?? 0}</p>
+                          <p className="text-slate-400 text-xs mb-1">of {stats?.ads_limit ?? 0} allowed</p>
                         </div>
                       </div>
                       <div className="p-3 bg-slate-700 rounded-lg">
@@ -424,7 +494,7 @@ export default function BusinessDashboard() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+              </Link>
 
               {/* Trust Score */}
               <div className="group relative">
@@ -436,7 +506,9 @@ export default function BusinessDashboard() {
                         <p className="text-slate-400 text-sm mb-2">Trust Score</p>
                         <div className="flex items-end gap-2">
                           <p className="text-4xl font-bold text-white">{business.trust_score}%</p>
-                          <p className="text-green-400 text-sm font-medium mb-1">Excellent</p>
+                          <p className={`text-sm font-medium mb-1 ${getTrustScoreLabel(business.trust_score).color}`}>
+                            {getTrustScoreLabel(business.trust_score).label}
+                          </p>
                         </div>
                       </div>
                       <div className="p-3 bg-slate-700 rounded-lg">
@@ -506,7 +578,7 @@ export default function BusinessDashboard() {
                         <div className="p-3 bg-purple-900 rounded-lg">
                           <ImageIcon className="h-5 w-5 text-purple-400" />
                         </div>
-                        <Badge className="bg-yellow-900 text-yellow-300 border-yellow-700">{business.doc_count} images</Badge>
+                        <Badge className="bg-yellow-900 text-yellow-300 border-yellow-700">{stats?.gallery_count ?? 0} images</Badge>
                       </div>
                       <h3 className="font-semibold text-white mb-2">Gallery</h3>
                       <p className="text-slate-400 text-sm">Showcase your business</p>
@@ -555,29 +627,28 @@ export default function BusinessDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="divide-y divide-slate-700">
-                  <div className="flex items-center justify-between p-6 hover:bg-slate-700/50 transition">
-                    <div>
-                      <p className="font-medium text-white">5 new profile views</p>
-                      <p className="text-sm text-slate-400">Today at 2:30 PM</p>
-                    </div>
-                    <Eye className="h-5 w-5 text-yellow-400" />
+                {activity.length === 0 ? (
+                  <div className="p-6 text-center text-slate-400 text-sm">
+                    No activity yet — it'll show up here as customers view your profile, connect, and review you.
                   </div>
-                  <div className="flex items-center justify-between p-6 hover:bg-slate-700/50 transition">
-                    <div>
-                      <p className="font-medium text-white">New contact request received</p>
-                      <p className="text-sm text-slate-400">Yesterday at 10:15 AM</p>
-                    </div>
-                    <MessageSquare className="h-5 w-5 text-yellow-400" />
+                ) : (
+                  <div className="divide-y divide-slate-700">
+                    {activity.map((item) => {
+                      const Icon = activityIcon(item.type);
+                      return (
+                        <div key={item.id} className="flex items-center justify-between p-6 hover:bg-slate-700/50 transition">
+                          <div>
+                            <p className="font-medium text-white">{item.message}</p>
+                            <p className="text-sm text-slate-400">
+                              {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                            </p>
+                          </div>
+                          <Icon className="h-5 w-5 text-yellow-400 shrink-0" />
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="flex items-center justify-between p-6 hover:bg-slate-700/50 transition">
-                    <div>
-                      <p className="font-medium text-white">Your ad campaign got 23 clicks</p>
-                      <p className="text-sm text-slate-400">2 days ago</p>
-                    </div>
-                    <TrendingUp className="h-5 w-5 text-green-400" />
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </>
@@ -652,30 +723,30 @@ export default function BusinessDashboard() {
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-white font-medium">Profile Completeness</span>
-                      <span className="text-yellow-400">60% (vs 45% average)</span>
+                      <span className="text-yellow-400">{profileCompletion}%</span>
                     </div>
                     <div className="w-full bg-slate-700 rounded-full h-2">
-                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '60%' }}></div>
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: `${profileCompletion}%` }}></div>
                     </div>
                   </div>
 
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-white font-medium">Monthly Views</span>
-                      <span className="text-yellow-400">342 (vs 280 average)</span>
+                      <span className="text-yellow-400">{stats?.month_views ?? 0}</span>
                     </div>
                     <div className="w-full bg-slate-700 rounded-full h-2">
-                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '65%' }}></div>
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: `${Math.min(100, (stats?.month_views ?? 0) * 2)}%` }}></div>
                     </div>
                   </div>
 
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-white font-medium">Engagement Rate</span>
-                      <span className="text-yellow-400">8.2% (vs 6.5% average)</span>
+                      <span className="text-white font-medium">Connections</span>
+                      <span className="text-yellow-400">{stats?.connections ?? 0}</span>
                     </div>
                     <div className="w-full bg-slate-700 rounded-full h-2">
-                      <div className="bg-green-500 h-2 rounded-full" style={{ width: '72%' }}></div>
+                      <div className="bg-green-500 h-2 rounded-full" style={{ width: `${Math.min(100, (stats?.connections ?? 0) * 5)}%` }}></div>
                     </div>
                   </div>
                 </div>
@@ -694,7 +765,7 @@ export default function BusinessDashboard() {
                 <div className="space-y-4">
                   <div className="bg-slate-700/50 p-4 rounded-lg border-l-2 border-yellow-400">
                     <p className="text-white font-medium mb-1">📸 Add More Photos</p>
-                    <p className="text-slate-400 text-sm">Profiles with 5+ photos receive 40% more views. You currently have {business.doc_count}.</p>
+                    <p className="text-slate-400 text-sm">Profiles with 5+ photos get more visibility. You currently have {stats?.gallery_count ?? 0}.</p>
                   </div>
                   <div className="bg-slate-700/50 p-4 rounded-lg border-l-2 border-yellow-400">
                     <p className="text-white font-medium mb-1">📝 Post Consistently</p>

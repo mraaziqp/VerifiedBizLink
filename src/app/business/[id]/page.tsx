@@ -95,6 +95,11 @@ export default function BusinessProfilePage() {
 
   useEffect(() => {
     if (!id) return;
+    fetch(`/api/businesses/${id}/view`, { method: 'POST' }).catch(() => {});
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
     fetch(`/api/businesses/${id}/gallery`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => setGallery(data?.images ?? []))
