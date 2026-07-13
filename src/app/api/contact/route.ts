@@ -1,17 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getSession } from '@/lib/auth';
+import db from '@/lib/db';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, subject, message, userProfile } = await request.json();
+    const { name, email, subject, message } = await request.json();
 
     if (!name || !email || !message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
+
+    // Try to get user session to link ticket
+    const session = await getSession().catch(() => null);
+    const userId = session?.id || null;
+
+    // Log support ticket in DB
+    await db`
+      INSERT INTO support_tickets (user_id, name, email, category, subject, message, status)
+      VALUES (${userId}, ${name}, ${email}, 'support', ${subject || 'Support Request'}, ${message}, 'open')
+    `.catch((dbErr) => {
+      console.error('Failed to insert support ticket in DB:', dbErr);
+    });
 
     let aiResponse = '';
     let usedAI = false;

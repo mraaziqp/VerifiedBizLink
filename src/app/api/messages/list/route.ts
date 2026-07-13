@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/messages/list                 — list the current user's conversations
 // GET /api/messages/list?with=<userId>   — full message thread with one user
 export async function GET(request: NextRequest) {
@@ -26,7 +28,16 @@ export async function GET(request: NextRequest) {
         UPDATE messages SET read = TRUE
         WHERE receiver_id = ${session.id} AND sender_id = ${withUser} AND read = FALSE
       `;
-      return NextResponse.json({ success: true, messages });
+      return NextResponse.json(
+        { success: true, messages },
+        {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+          }
+        }
+      );
     }
 
     // ── Conversation list (latest message per counterpart) ─────────
@@ -57,7 +68,16 @@ export async function GET(request: NextRequest) {
       ORDER BY latest.created_at DESC
     `;
 
-    return NextResponse.json({ success: true, conversations, total: conversations.length });
+    return NextResponse.json(
+      { success: true, conversations, total: conversations.length },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      }
+    );
   } catch (error) {
     console.error('Error fetching messages:', error);
     return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 });

@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
+import { GlassBackground, GlassCard, glassInteractive } from '@/components/shared/glass-ui';
 
 interface Business {
   id: string;
@@ -215,7 +216,7 @@ export default function BusinessDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="text-center space-y-4">
           <Loader2 className="h-12 w-12 animate-spin text-yellow-400 mx-auto" />
           <p className="text-slate-300 font-medium">Loading your business dashboard...</p>
@@ -226,8 +227,8 @@ export default function BusinessDashboard() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full bg-slate-800 border-slate-700">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full bg-slate-900/60 backdrop-blur-xl border-white/5">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
@@ -245,8 +246,8 @@ export default function BusinessDashboard() {
 
   if (!business) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-        <Card className="max-w-md w-full bg-slate-800 border-slate-700">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full bg-slate-900/60 backdrop-blur-xl border-white/5">
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <Building2 className="h-12 w-12 text-yellow-400 mx-auto" />
@@ -274,9 +275,9 @@ export default function BusinessDashboard() {
   const profileCompletionItems = getProfileCompletionItems(business, stats);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <GlassBackground>
       {/* Premium Header */}
-      <div className="bg-gradient-to-r from-slate-800 to-slate-700 border-b border-slate-600 sticky top-0 z-40">
+      <div className="bg-slate-950/70 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4 flex-1">
@@ -395,7 +396,7 @@ export default function BusinessDashboard() {
             )}
 
             {/* Profile Completion Progress */}
-            <div className="mb-8 bg-slate-800 border border-slate-700 rounded-lg p-6">
+            <div className="mb-8 rounded-2xl border border-white/5 bg-slate-900/60 backdrop-blur-xl p-6 shadow-2xl">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-white flex items-center gap-2">
                   <Target className="h-5 w-5 text-yellow-400" />
@@ -432,7 +433,7 @@ export default function BusinessDashboard() {
               {/* Views This Week */}
               <div className="group relative">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-lg blur opacity-20 group-hover:opacity-30 transition"></div>
-                <Card className="relative bg-slate-800 border-slate-700 hover:border-yellow-400 transition">
+                <Card className="relative bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 transition">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -457,7 +458,7 @@ export default function BusinessDashboard() {
               {/* Total Views */}
               <div className="group relative">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-lg blur opacity-20 group-hover:opacity-30 transition"></div>
-                <Card className="relative bg-slate-800 border-slate-700 hover:border-yellow-400 transition">
+                <Card className="relative bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 transition">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -478,7 +479,7 @@ export default function BusinessDashboard() {
               {/* Active Ads */}
               <Link href="/business/ads" className="group relative block">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-lg blur opacity-20 group-hover:opacity-30 transition"></div>
-                <Card className="relative bg-slate-800 border-slate-700 hover:border-yellow-400 transition">
+                <Card className="relative bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 transition">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -499,7 +500,7 @@ export default function BusinessDashboard() {
               {/* Trust Score */}
               <div className="group relative">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-lg blur opacity-20 group-hover:opacity-30 transition"></div>
-                <Card className="relative bg-slate-800 border-slate-700 hover:border-yellow-400 transition">
+                <Card className="relative bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 transition">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -533,7 +534,7 @@ export default function BusinessDashboard() {
                     <Link key={action.href} href={action.href}>
                       <div className="group relative h-full">
                         <div className={`absolute -inset-0.5 bg-gradient-to-r ${action.color} rounded-lg blur opacity-0 group-hover:opacity-50 transition`}></div>
-                        <div className="relative bg-slate-800 border border-slate-700 group-hover:border-yellow-400 rounded-lg p-5 cursor-pointer transition">
+                        <div className={`relative rounded-2xl border border-white/5 bg-slate-900/60 backdrop-blur-xl p-5 shadow-2xl cursor-pointer group-hover:border-yellow-500/30 ${glassInteractive}`}>
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
                               <div className={`inline-block p-2 ${action.textColor} bg-slate-700 rounded-lg mb-3`}>
@@ -557,7 +558,7 @@ export default function BusinessDashboard() {
               <h2 className="text-2xl font-bold text-white mb-4">Manage Your Business</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Link href="/business/posts">
-                  <Card className="h-full bg-slate-800 border-slate-700 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="p-3 bg-cyan-900 rounded-lg">
@@ -572,7 +573,7 @@ export default function BusinessDashboard() {
                 </Link>
 
                 <Link href="/business/gallery">
-                  <Card className="h-full bg-slate-800 border-slate-700 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="p-3 bg-purple-900 rounded-lg">
@@ -587,7 +588,7 @@ export default function BusinessDashboard() {
                 </Link>
 
                 <Link href="/business/ads">
-                  <Card className="h-full bg-slate-800 border-slate-700 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="p-3 bg-orange-900 rounded-lg">
@@ -602,7 +603,7 @@ export default function BusinessDashboard() {
                 </Link>
 
                 <Link href="/business/analytics">
-                  <Card className="h-full bg-slate-800 border-slate-700 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
                         <div className="p-3 bg-yellow-900 rounded-lg">
@@ -619,7 +620,7 @@ export default function BusinessDashboard() {
             </div>
 
             {/* Activity Feed */}
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
               <CardHeader className="border-b border-slate-700">
                 <CardTitle className="text-white flex items-center gap-2">
                   <Activity className="h-5 w-5 text-yellow-400" />
@@ -668,7 +669,7 @@ export default function BusinessDashboard() {
                 return (
                   <div
                     key={i}
-                    className={`bg-slate-800 border-l-4 rounded-lg p-6 flex items-start justify-between hover:shadow-lg transition ${
+                    className={`bg-slate-900/60 backdrop-blur-xl border-l-4 border border-white/5 rounded-2xl p-6 flex items-start justify-between shadow-2xl transition-all duration-300 ease-out hover:shadow-lg ${
                       rec.priority === 'high'
                         ? 'border-orange-400'
                         : 'border-blue-400'
@@ -711,7 +712,7 @@ export default function BusinessDashboard() {
             </div>
 
             {/* Industry Benchmarks */}
-            <Card className="bg-slate-800 border-slate-700 mb-8">
+            <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5 mb-8">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <BarChart className="h-5 w-5 text-yellow-400" />
@@ -754,7 +755,7 @@ export default function BusinessDashboard() {
             </Card>
 
             {/* Smart Tips */}
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Lightbulb className="h-5 w-5 text-yellow-400" />
@@ -794,7 +795,7 @@ export default function BusinessDashboard() {
             </h2>
 
             {/* Verification Checklist */}
-            <Card className="bg-slate-800 border-slate-700 mb-8">
+            <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5 mb-8">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <CheckCircle2 className="h-5 w-5 text-yellow-400" />
@@ -842,7 +843,7 @@ export default function BusinessDashboard() {
             </Card>
 
             {/* Action Items */}
-            <Card className="bg-slate-800 border-slate-700">
+            <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <Radio className="h-5 w-5 text-yellow-400" />
@@ -892,6 +893,6 @@ export default function BusinessDashboard() {
           </>
         )}
       </div>
-    </div>
+    </GlassBackground>
   );
 }

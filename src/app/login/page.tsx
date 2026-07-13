@@ -163,9 +163,15 @@ function LoginForm() {
                 <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
                   Password
                 </Label>
-                <Link href="/forgot-password" className="text-xs font-semibold text-yellow-600 hover:text-yellow-700 hover:underline">
-                  Forgot password?
-                </Link>
+                <div className="flex gap-2">
+                  <Link href="/forgot-username" className="text-xs font-semibold text-yellow-600 hover:text-yellow-700 hover:underline">
+                    Forgot username?
+                  </Link>
+                  <span className="text-xs text-gray-300">|</span>
+                  <Link href="/forgot-password" className="text-xs font-semibold text-yellow-600 hover:text-yellow-700 hover:underline">
+                    Forgot password?
+                  </Link>
+                </div>
               </div>
               <div className="relative">
                 <Input

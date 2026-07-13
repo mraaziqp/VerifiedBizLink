@@ -56,7 +56,7 @@ export function MobileBottomNav() {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 lg:hidden z-50 border-t border-gray-200 bg-white">
+    <div className="fixed bottom-0 left-0 right-0 lg:hidden z-50 border-t border-white/5 bg-slate-900/80 backdrop-blur-xl">
       <nav className="flex justify-around items-center h-20">
         {navItems.map((item) => (
           <Link
@@ -65,7 +65,7 @@ export function MobileBottomNav() {
             className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors ${
               item.active
                 ? "text-yellow-500"
-                : "text-gray-600 hover:text-gray-900"
+                : "text-slate-400 hover:text-slate-100"
             }`}
           >
             {item.icon}

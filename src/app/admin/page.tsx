@@ -37,10 +37,10 @@ export default function AdminDashboard() {
 
   if (loading || !persona) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-yellow-400 mx-auto mb-4" />
-          <p className="text-white">Loading admin dashboard...</p>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="text-center animate-fade-in">
+          <Loader2 className="h-12 w-12 animate-spin text-yellow-500 mx-auto mb-4" />
+          <p className="text-slate-200">Loading admin dashboard...</p>
         </div>
       </div>
     );

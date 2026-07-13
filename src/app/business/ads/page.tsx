@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { GlassBackground } from '@/components/shared/glass-ui';
 
 interface Ad {
   id: string;
@@ -121,16 +122,16 @@ export default function BusinessAdsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-20">
+    <GlassBackground>
       {/* Navigation */}
-      <div className="bg-slate-800 border-b border-slate-700 sticky top-0 z-40 p-4">
+      <div className="bg-slate-950/70 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40 p-4">
         <Link href="/business/dashboard" className="flex items-center gap-2 text-yellow-400 hover:text-yellow-300">
           <ArrowLeft className="h-4 w-4" />
           Back to Business Dashboard
         </Link>
       </div>
 
-      <div className="max-w-6xl mx-auto p-4 space-y-6">
+      <div className="max-w-6xl mx-auto p-4 pb-20 space-y-6">
         {/* Header */}
         <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
@@ -167,7 +168,7 @@ export default function BusinessAdsPage() {
 
         {/* Create Ad Form */}
         {showCreateForm && (
-          <Card className="bg-slate-800 border-slate-600">
+          <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
             <CardHeader className="border-b border-slate-700">
               <CardTitle className="text-white">Create New Sponsored Listing</CardTitle>
             </CardHeader>
@@ -239,14 +240,14 @@ export default function BusinessAdsPage() {
               <Loader2 className="h-8 w-8 text-yellow-400 animate-spin" />
             </div>
           ) : ads.length === 0 ? (
-            <Card className="bg-slate-800 border-slate-600">
+            <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
               <CardContent className="p-8 text-center">
                 <p className="text-slate-400">No sponsored listings yet.</p>
               </CardContent>
             </Card>
           ) : (
             ads.map((ad) => (
-              <Card key={ad.id} className="bg-slate-800 border-slate-600 hover:border-yellow-400/30 transition-colors">
+              <Card key={ad.id} className="bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400/30 transition-colors">
                 <CardContent className="p-6 space-y-4">
                   <div className="flex justify-between items-start gap-3">
                     <div className="flex-1 min-w-0">
@@ -296,6 +297,6 @@ export default function BusinessAdsPage() {
           )}
         </div>
       </div>
-    </div>
+    </GlassBackground>
   );
 }

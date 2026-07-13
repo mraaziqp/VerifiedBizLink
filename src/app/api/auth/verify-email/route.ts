@@ -9,10 +9,28 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const userRows = await db`
+      SELECT id, email, full_name, role, avatar_url, headline, email_verification_token_expires_at
+      FROM users
+      WHERE email_verification_token = ${token}
+      LIMIT 1
+    `;
+
+    if (userRows.length === 0) {
+      return NextResponse.redirect(new URL('/verify-email?error=invalid', request.url));
+    }
+
+    const u = userRows[0];
+    const now = new Date();
+    
+    if (u.email_verification_token_expires_at && new Date(u.email_verification_token_expires_at) < now) {
+      return NextResponse.redirect(new URL('/verify-email?error=expired', request.url));
+    }
+
     const rows = await db`
       UPDATE users
-      SET email_verified = TRUE, email_verification_token = NULL, updated_at = NOW()
-      WHERE email_verification_token = ${token}
+      SET email_verified = TRUE, email_verification_token = NULL, email_verification_token_expires_at = NULL, updated_at = NOW()
+      WHERE id = ${u.id}
       RETURNING id, email, full_name, role, avatar_url, headline
     `;
 
@@ -20,14 +38,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/verify-email?error=invalid', request.url));
     }
 
-    const u = rows[0];
+    const verifiedUser = rows[0];
     const sessionUser = {
-      id: u.id,
-      email: u.email,
-      fullName: u.full_name,
-      role: u.role,
+      id: verifiedUser.id,
+      email: verifiedUser.email,
+      fullName: verifiedUser.full_name,
+      role: verifiedUser.role,
       avatarUrl: '',
-      headline: u.headline || '',
+      headline: verifiedUser.headline || '',
       emailVerified: true,
     };
 

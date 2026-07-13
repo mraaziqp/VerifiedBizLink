@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Settings, Code2, Zap, Database, LogOut, ChevronRight, CheckCircle2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AdminProfilePanel } from "@/components/admin/admin-profile-panel";
+import { AdminBackground, AdminPageHeader, AdminCard, SectionTitle, glassInteractive } from "@/components/admin/ui";
 
 export default function ArchitectDashboard() {
   const { user, logout } = useAuth();
@@ -58,28 +59,19 @@ export default function ArchitectDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
-      {/* Header */}
-      <div className="border-b border-green-900/30 sticky top-0 z-50 backdrop-blur-xl bg-black/50">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-green-400">Architect Portal</h1>
-            <p className="text-gray-400 text-sm mt-1">System configuration, algorithms & technical infrastructure</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-gray-400">{user?.email}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              className="gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </div>
+    <AdminBackground>
+      <AdminPageHeader title="Architect Portal" subtitle="System configuration, algorithms & technical infrastructure">
+        <span className="hidden text-sm text-slate-400 sm:inline">{user?.email}</span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleLogout}
+          className={`gap-2 border-red-500/30 text-red-400 hover:border-red-500/50 hover:bg-red-500/10 ${glassInteractive}`}
+        >
+          <LogOut className="h-4 w-4" />
+          Logout
+        </Button>
+      </AdminPageHeader>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -87,43 +79,37 @@ export default function ArchitectDashboard() {
         <AdminProfilePanel />
 
         {/* System Health */}
-        <div className="mb-8">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <Database className="h-5 w-5 text-green-400" />
-            System Infrastructure
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="mb-8 mt-6">
+          <SectionTitle icon={Database}>System Infrastructure</SectionTitle>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {systemMetrics.map((metric) => (
-              <div key={metric.label} className="p-4 rounded-xl bg-gray-800/30 border border-green-900/20 hover:border-green-700/40 transition-all">
-                <p className="text-gray-400 text-sm">{metric.label}</p>
-                <div className="flex items-center justify-between mt-2">
-                  <p className="text-2xl font-bold text-green-400">{metric.value}</p>
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <AdminCard key={metric.label} hover className="!p-4">
+                <p className="text-sm text-slate-400">{metric.label}</p>
+                <div className="mt-2 flex items-center justify-between">
+                  <p className="text-2xl font-bold text-emerald-400">{metric.value}</p>
+                  <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                 </div>
-              </div>
+              </AdminCard>
             ))}
           </div>
         </div>
 
         {/* Feature Flags */}
-        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-green-900/20">
-          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <Zap className="h-5 w-5 text-green-400" />
-            Feature Flags
-          </h2>
+        <AdminCard className="mb-8">
+          <SectionTitle icon={Zap}>Feature Flags</SectionTitle>
           <div className="space-y-3">
             {Object.entries(featureFlags).map(([key, enabled]) => (
-              <div key={key} className="flex items-center justify-between p-3 rounded-lg bg-gray-700/20 border border-gray-600/30">
+              <div key={key} className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.02] p-3">
                 <div className="flex items-center gap-3">
-                  <div className={`h-2 w-2 rounded-full ${enabled ? "bg-green-500" : "bg-gray-500"}`} />
-                  <span className="text-white capitalize">{key.replace(/([A-Z])/g, " $1")}</span>
+                  <div className={`h-2 w-2 rounded-full ${enabled ? "bg-emerald-500" : "bg-slate-500"}`} />
+                  <span className="capitalize text-slate-100">{key.replace(/([A-Z])/g, " $1")}</span>
                 </div>
                 <button
                   onClick={() => toggleFeature(key as keyof typeof featureFlags)}
-                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                  className={`rounded-lg px-4 py-2 text-sm font-bold ${glassInteractive} ${
                     enabled
-                      ? "bg-green-600/30 text-green-400 border border-green-500/50"
-                      : "bg-gray-600/20 text-gray-400 border border-gray-600/30"
+                      ? "border border-emerald-500/50 bg-emerald-600/20 text-emerald-400"
+                      : "border border-slate-600/30 bg-slate-600/20 text-slate-400"
                   }`}
                 >
                   {enabled ? "ENABLED" : "DISABLED"}
@@ -131,68 +117,61 @@ export default function ArchitectDashboard() {
               </div>
             ))}
           </div>
-        </div>
+        </AdminCard>
 
         {/* Algorithms */}
-        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-green-900/20">
-          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <Code2 className="h-5 w-5 text-green-400" />
-            ML Algorithms
-          </h2>
+        <AdminCard className="mb-8">
+          <SectionTitle icon={Code2}>ML Algorithms</SectionTitle>
           <div className="space-y-3">
             {algorithms.map((algo) => (
-              <div key={algo.name} className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/30 flex items-center justify-between hover:border-green-700/40 transition-all cursor-pointer">
+              <div key={algo.name} className="flex cursor-pointer items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4 transition-all duration-300 ease-out hover:border-emerald-500/30">
                 <div>
-                  <p className="text-white font-bold">{algo.name}</p>
-                  <p className="text-gray-500 text-sm">v{algo.version} • {algo.lastUpdate}</p>
+                  <p className="font-bold text-slate-100">{algo.name}</p>
+                  <p className="text-sm text-slate-500">v{algo.version} • {algo.lastUpdate}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold ${algo.status === "active" ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}`}>
+                  <span className={`rounded-full px-3 py-1 text-xs font-bold ${algo.status === "active" ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-500/20 text-slate-400"}`}>
                     {algo.status.toUpperCase()}
                   </span>
-                  <ChevronRight className="h-5 w-5 text-gray-500" />
+                  <ChevronRight className="h-5 w-5 text-slate-500" />
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </AdminCard>
 
         {/* Targeting Configuration */}
-        <div className="mb-8 p-6 rounded-2xl bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl border border-green-900/20">
-          <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-            <Settings className="h-5 w-5 text-green-400" />
-            Targeting Rules
-          </h2>
+        <AdminCard className="mb-8">
+          <SectionTitle icon={Settings}>Targeting Rules</SectionTitle>
           <div className="space-y-3">
             {targetingRules.map((rule) => (
-              <div key={rule.name} className="p-4 rounded-xl bg-gray-800/30 border border-gray-700/30 flex items-center justify-between">
+              <div key={rule.name} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
                 <div>
-                  <p className="text-white font-bold">{rule.name}</p>
-                  <p className="text-green-400 text-sm mt-1">{rule.value}</p>
+                  <p className="font-bold text-slate-100">{rule.name}</p>
+                  <p className="mt-1 text-sm text-emerald-400">{rule.value}</p>
                 </div>
                 {rule.editable && (
-                  <Button size="sm" variant="outline" className="border-green-600 text-green-400 hover:bg-green-600/20">
+                  <Button size="sm" variant="outline" className={`border-emerald-600 text-emerald-400 hover:bg-emerald-600/20 ${glassInteractive}`}>
                     Edit
                   </Button>
                 )}
               </div>
             ))}
           </div>
-        </div>
+        </AdminCard>
 
         {/* Alerts */}
-        <div className="p-6 rounded-2xl bg-gradient-to-br from-yellow-900/20 to-gray-900/40 backdrop-blur-xl border border-yellow-700/20">
-          <h2 className="text-xl font-bold text-yellow-400 mb-4 flex items-center gap-2">
-            <AlertCircle className="h-5 w-5" />
-            System Alerts
-          </h2>
-          <div className="space-y-2 text-sm text-yellow-300">
+        <AdminCard className="!border-yellow-500/20 !bg-yellow-500/5">
+          <SectionTitle icon={AlertCircle}>
+            <span className="text-yellow-400">System Alerts</span>
+          </SectionTitle>
+          <div className="space-y-2 text-sm text-yellow-200/90">
             <p>✓ All systems operational</p>
             <p>✓ Database backup completed 2 hours ago</p>
             <p>→ Scheduled maintenance: Sunday 2:00 AM UTC</p>
           </div>
-        </div>
+        </AdminCard>
       </div>
-    </div>
+    </AdminBackground>
   );
 }

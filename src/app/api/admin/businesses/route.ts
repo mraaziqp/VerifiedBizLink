@@ -22,7 +22,17 @@ export async function GET(request: NextRequest) {
           b.description, b.website, b.phone, b.address, b.created_at,
           u.full_name AS owner_name, u.email AS owner_email, u.avatar_url AS owner_avatar,
           (SELECT COUNT(*) FROM documents d WHERE d.business_id = b.id) AS doc_count,
-          (SELECT array_agg(d.name) FROM documents d WHERE d.business_id = b.id) AS documents
+          (SELECT COALESCE(json_agg(json_build_object(
+            'id', d.id,
+            'name', d.name,
+            'doc_type', d.doc_type,
+            'status', d.status,
+            'grade', d.grade,
+            'review_notes', d.review_notes,
+            'uploaded_at', d.uploaded_at,
+            'file_url', d.file_url
+          ) ORDER BY d.uploaded_at DESC), '[]'::json)
+           FROM documents d WHERE d.business_id = b.id) AS documents
         FROM businesses b
         JOIN users u ON b.user_id = u.id
         WHERE b.status = ${status}
@@ -36,7 +46,17 @@ export async function GET(request: NextRequest) {
           b.description, b.website, b.phone, b.address, b.created_at,
           u.full_name AS owner_name, u.email AS owner_email, u.avatar_url AS owner_avatar,
           (SELECT COUNT(*) FROM documents d WHERE d.business_id = b.id) AS doc_count,
-          (SELECT array_agg(d.name) FROM documents d WHERE d.business_id = b.id) AS documents
+          (SELECT COALESCE(json_agg(json_build_object(
+            'id', d.id,
+            'name', d.name,
+            'doc_type', d.doc_type,
+            'status', d.status,
+            'grade', d.grade,
+            'review_notes', d.review_notes,
+            'uploaded_at', d.uploaded_at,
+            'file_url', d.file_url
+          ) ORDER BY d.uploaded_at DESC), '[]'::json)
+           FROM documents d WHERE d.business_id = b.id) AS documents
         FROM businesses b
         JOIN users u ON b.user_id = u.id
         ORDER BY b.submitted_at DESC NULLS LAST, b.created_at DESC
@@ -46,6 +66,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ businesses });
   } catch (error) {
     console.error('Admin businesses GET error:', error);
-    return NextResponse.json({ error: 'Failed to fetch businesses' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch businesses' }, { status: 503 });
   }
 }

@@ -16,12 +16,33 @@ export async function POST(request: NextRequest) {
     const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || '';
     const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY || '';
 
-    // Create signature for verification
-    const dataString = Object.keys(payfastData)
+    // Create signature for verification matching Payfast signature guidelines (RFC 3986, spaces to +)
+    let dataString = Object.keys(payfastData)
       .filter(key => key !== 'signature')
       .sort()
-      .map(key => `${key}=${payfastData[key]}`)
+      .map(key => {
+        const val = payfastData[key];
+        const encodedVal = encodeURIComponent(val)
+          .replace(/%20/g, '+')
+          .replace(/!/g, '%21')
+          .replace(/'/g, '%27')
+          .replace(/\(/g, '%28')
+          .replace(/\)/g, '%29')
+          .replace(/\*/g, '%2A');
+        return `${key}=${encodedVal}`;
+      })
       .join('&');
+
+    if (process.env.PAYFAST_PASSPHRASE) {
+      const encodedPass = encodeURIComponent(process.env.PAYFAST_PASSPHRASE)
+        .replace(/%20/g, '+')
+        .replace(/!/g, '%21')
+        .replace(/'/g, '%27')
+        .replace(/\(/g, '%28')
+        .replace(/\)/g, '%29')
+        .replace(/\*/g, '%2A');
+      dataString += `&passphrase=${encodedPass}`;
+    }
 
     const expectedSignature = crypto
       .createHash('md5')

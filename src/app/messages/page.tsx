@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
+import { GlassBackground, glassInteractive } from '@/components/shared/glass-ui';
 
 interface Message {
   id: string;
@@ -53,7 +54,7 @@ function MessagesPageInner() {
 
   const fetchConversations = useCallback(async () => {
     try {
-      const res = await fetch('/api/messages/list');
+      const res = await fetch('/api/messages/list', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setConversations(data.conversations || []);
@@ -73,7 +74,7 @@ function MessagesPageInner() {
     setSelectedId(participantId);
     setLoadingThread(true);
     try {
-      const res = await fetch(`/api/messages/list?with=${participantId}`);
+      const res = await fetch(`/api/messages/list?with=${participantId}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setMessages(data.messages || []);
@@ -163,20 +164,20 @@ function MessagesPageInner() {
   const initials = (name: string) => name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <GlassBackground>
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-800 to-slate-700 border-b border-slate-600 sticky top-0 z-40">
+      <div className="bg-slate-950/70 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link href="/">
-                <button className="p-2 hover:bg-slate-700 rounded-lg transition">
-                  <ArrowLeft className="h-5 w-5 text-white" />
+                <button className={`p-2 hover:bg-white/5 rounded-lg ${glassInteractive}`}>
+                  <ArrowLeft className="h-5 w-5 text-slate-100" />
                 </button>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                  <MessageCircle className="h-6 w-6 text-yellow-400" />
+                <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
+                  <MessageCircle className="h-6 w-6 text-yellow-500" />
                   Messages
                 </h1>
                 <p className="text-sm text-slate-400 mt-1">
@@ -185,7 +186,7 @@ function MessagesPageInner() {
               </div>
             </div>
             <Link href="/explore">
-              <Button className="bg-yellow-400 text-slate-900 hover:bg-yellow-500 gap-2">
+              <Button className={`gap-2 bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-bold ${glassInteractive}`}>
                 <Plus className="h-4 w-4" />
                 Find a Business
               </Button>
@@ -195,11 +196,11 @@ function MessagesPageInner() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8 sm:px-6 lg:px-8 h-[calc(100vh-120px)]">
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 sm:px-6 lg:px-8 h-[calc(100vh-88px)] sm:h-[calc(100vh-120px)]">
         <div className="flex gap-6 h-full">
           {/* Conversations List */}
-          <div className="w-80 bg-slate-800 border border-slate-700 rounded-lg flex flex-col shrink-0">
-            <div className="p-4 border-b border-slate-700">
+          <div className={`w-full md:w-80 bg-slate-900/60 backdrop-blur-xl border border-white/5 shadow-2xl rounded-lg flex-col shrink-0 ${selectedId ? 'hidden md:flex' : 'flex'}`}>
+            <div className="p-4 border-b border-white/5">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
                 <input
@@ -207,7 +208,7 @@ function MessagesPageInner() {
                   placeholder="Search conversations..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 pl-10 text-white placeholder-slate-400 focus:outline-none focus:border-yellow-400"
+                  className={`w-full bg-slate-800/60 border border-white/10 rounded px-3 py-2 pl-10 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-yellow-500 ${glassInteractive}`}
                 />
               </div>
             </div>
@@ -215,7 +216,7 @@ function MessagesPageInner() {
             <div className="flex-1 overflow-y-auto">
               {loadingConversations ? (
                 <div className="flex justify-center py-10">
-                  <Loader2 className="h-6 w-6 text-yellow-400 animate-spin" />
+                  <Loader2 className="h-6 w-6 text-yellow-500 animate-spin" />
                 </div>
               ) : filteredConversations.length === 0 ? (
                 <div className="p-4 text-center">
@@ -226,22 +227,22 @@ function MessagesPageInner() {
                   <button
                     key={conv.participant_id}
                     onClick={() => openThread(conv.participant_id)}
-                    className={`w-full p-4 border-b border-slate-700 hover:bg-slate-700/50 transition text-left ${
-                      selectedId === conv.participant_id ? 'bg-slate-700' : ''
+                    className={`w-full p-4 border-b border-white/5 hover:bg-white/5 text-left ${glassInteractive} ${
+                      selectedId === conv.participant_id ? 'bg-white/10' : ''
                     }`}
                   >
                     <div className="flex items-start gap-3">
                       <Avatar className="h-12 w-12">
                         <AvatarImage src={conv.participant_avatar || undefined} alt={conv.participant_name} />
-                        <AvatarFallback className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-slate-900 font-bold">
+                        <AvatarFallback className="bg-gradient-to-br from-yellow-600 to-yellow-400 text-slate-950 font-bold">
                           {initials(conv.participant_name)}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <h4 className="text-white font-medium text-sm truncate">{conv.participant_name}</h4>
+                          <h4 className="text-slate-100 font-medium text-sm truncate">{conv.participant_name}</h4>
                           {conv.unread_count > 0 && (
-                            <span className="bg-yellow-400 text-slate-900 text-xs font-bold px-2 py-1 rounded-full shrink-0">
+                            <span className="bg-yellow-500 text-slate-950 text-xs font-bold px-2 py-1 rounded-full shrink-0">
                               {conv.unread_count}
                             </span>
                           )}
@@ -262,21 +263,27 @@ function MessagesPageInner() {
 
           {/* Chat Area */}
           {selected ? (
-            <div className="flex-1 bg-slate-800 border border-slate-700 rounded-lg flex flex-col min-w-0">
-              <div className="p-4 border-b border-slate-700 flex items-center gap-3">
+            <div className="flex-1 bg-slate-900/60 backdrop-blur-xl border border-white/5 shadow-2xl rounded-lg flex flex-col min-w-0">
+              <div className="p-4 border-b border-white/5 flex items-center gap-3">
+                <button
+                  onClick={() => setSelectedId(null)}
+                  className={`md:hidden p-1 -ml-1 text-slate-400 hover:text-slate-100 rounded ${glassInteractive}`}
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </button>
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={selected.participant_avatar || undefined} alt={selected.participant_name} />
-                  <AvatarFallback className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-slate-900 font-bold">
+                  <AvatarFallback className="bg-gradient-to-br from-yellow-600 to-yellow-400 text-slate-950 font-bold">
                     {initials(selected.participant_name)}
                   </AvatarFallback>
                 </Avatar>
-                <h3 className="text-white font-semibold">{selected.participant_name}</h3>
+                <h3 className="text-slate-100 font-semibold">{selected.participant_name}</h3>
               </div>
 
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
                 {loadingThread ? (
                   <div className="flex justify-center py-10">
-                    <Loader2 className="h-6 w-6 text-yellow-400 animate-spin" />
+                    <Loader2 className="h-6 w-6 text-yellow-500 animate-spin" />
                   </div>
                 ) : messages.length === 0 ? (
                   <div className="flex h-full items-center justify-center text-slate-500 text-sm">
@@ -285,11 +292,13 @@ function MessagesPageInner() {
                 ) : (
                   messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-xs px-4 py-2 rounded-lg ${
-                        msg.sender_id === user?.id ? 'bg-yellow-400 text-slate-900' : 'bg-slate-700 text-white'
+                      <div className={`max-w-xs px-4 py-2 rounded-lg shadow-lg ${
+                        msg.sender_id === user?.id
+                          ? 'bg-gradient-to-r from-yellow-600 to-yellow-400 text-slate-950'
+                          : 'bg-slate-800/80 backdrop-blur-sm text-slate-100'
                       }`}>
                         <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                        <p className={`text-xs mt-1 ${msg.sender_id === user?.id ? 'text-slate-700' : 'text-slate-400'}`}>
+                        <p className={`text-xs mt-1 ${msg.sender_id === user?.id ? 'text-slate-800' : 'text-slate-400'}`}>
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -298,7 +307,7 @@ function MessagesPageInner() {
                 )}
               </div>
 
-              <div className="p-4 border-t border-slate-700 flex gap-2">
+              <div className="p-4 border-t border-white/5 flex gap-2">
                 <input
                   type="text"
                   value={newMessage}
@@ -310,24 +319,24 @@ function MessagesPageInner() {
                     }
                   }}
                   placeholder="Type a message..."
-                  className="flex-1 bg-slate-700 border border-slate-600 rounded px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:border-yellow-400"
+                  className={`flex-1 bg-slate-800/60 border border-white/10 rounded px-4 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-yellow-500 ${glassInteractive}`}
                 />
                 <Button
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim() || sending}
-                  className="bg-yellow-400 text-slate-900 hover:bg-yellow-500 disabled:bg-slate-600"
+                  className={`bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-bold disabled:opacity-50 ${glassInteractive}`}
                 >
                   {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="flex-1 bg-slate-800 border border-slate-700 rounded-lg flex items-center justify-center">
+            <div className="hidden md:flex flex-1 bg-slate-900/60 backdrop-blur-xl border border-white/5 shadow-2xl rounded-lg items-center justify-center">
               <div className="text-center">
                 <MessageCircle className="h-12 w-12 text-slate-600 mx-auto mb-4" />
                 <p className="text-slate-400 mb-4">Select a conversation to start messaging</p>
                 <Link href="/explore">
-                  <Button className="bg-yellow-400 text-slate-900 hover:bg-yellow-500">
+                  <Button className={`bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-bold ${glassInteractive}`}>
                     <Plus className="h-4 w-4 mr-2" />
                     Find a Business to Message
                   </Button>
@@ -337,15 +346,15 @@ function MessagesPageInner() {
           )}
         </div>
       </div>
-    </div>
+    </GlassBackground>
   );
 }
 
 export default function MessagesPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-slate-900">
-        <Loader2 className="h-8 w-8 animate-spin text-yellow-400" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <Loader2 className="h-8 w-8 animate-spin text-yellow-500" />
       </div>
     }>
       <MessagesPageInner />

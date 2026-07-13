@@ -139,7 +139,23 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
           <AvatarImage src={user?.avatarUrl || `https://picsum.photos/seed/${user?.id || 'guest'}/200/200`} />
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
-        <div className="flex-1 space-y-3">
+        <div className="flex-1 relative flex flex-col gap-4">
+          {imageUrl && (
+            <div className="relative w-full max-h-[260px] bg-slate-100 rounded-xl overflow-hidden border border-gray-200">
+              <img
+                src={imageUrl}
+                alt="Selected"
+                className="w-full h-48 object-cover rounded-md"
+              />
+              <button
+                onClick={() => setImageUrl(null)}
+                className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full shadow-md transition-all active:scale-95"
+                title="Remove image"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
           <Textarea
             placeholder="Share an update or milestone..."
             className="min-h-[100px] bg-gray-50 border-none focus-visible:ring-1 focus-visible:ring-primary text-gray-900 resize-none rounded-xl"
@@ -158,22 +174,6 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
                 }}
                 buttonClassName="text-gray-500 hover:text-primary hover:bg-primary/10 rounded-full p-2"
               />
-              {imageUrl && (
-                <div className="relative w-12 h-12 bg-gray-200 rounded-lg overflow-hidden">
-                  <img
-                    src={imageUrl}
-                    alt="Selected"
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    onClick={() => setImageUrl(null)}
-                    className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full"
-                    title="Remove image"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              )}
               <input
                 ref={attachInputRef}
                 type="file"

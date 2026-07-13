@@ -37,13 +37,14 @@ export async function POST(request: NextRequest) {
 
     const passwordHash = await hash(password, 12);
     const verificationToken = crypto.randomUUID();
+    const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     let userRole = 'user';
     let headline = 'Professional';
     if (role === 'business') { userRole = 'business'; headline = `Owner at ${companyName || 'Company'}`; }
 
     const newUsers = await db`
-      INSERT INTO users (email, password_hash, full_name, role, headline, avatar_url, email_verification_token, date_of_birth)
+      INSERT INTO users (email, password_hash, full_name, role, headline, avatar_url, email_verification_token, email_verification_token_expires_at, date_of_birth)
       VALUES (
         ${email.toLowerCase().trim()},
         ${passwordHash},
@@ -52,6 +53,7 @@ export async function POST(request: NextRequest) {
         ${headline},
         ${''},
         ${verificationToken},
+        ${verificationTokenExpiresAt.toISOString()},
         ${dateOfBirth || null}
       )
       RETURNING id, email, full_name, role, avatar_url, headline, email_verified, date_of_birth

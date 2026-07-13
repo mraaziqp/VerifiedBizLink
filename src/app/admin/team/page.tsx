@@ -2,57 +2,48 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ChevronLeft, Users } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { AdminTeamPortal } from '@/components/admin/admin-team-portal';
+import { AdminBackground, AdminPageHeader, AdminCard, glassInteractive } from '@/components/admin/ui';
 
 export default function AdminTeamPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
-      {/* Header */}
-      <div className="border-b border-gray-800 sticky top-0 z-40 backdrop-blur-xl bg-black/50">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <Link
-            href="/admin/orchestrator"
-            className="mb-4 flex items-center gap-2 text-gray-400 hover:text-gray-200 transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-            Back to Admin
-          </Link>
-          <div className="flex items-center gap-3">
-            <Users className="w-8 h-8 text-blue-400" />
-            <div>
-              <h1 className="text-3xl font-bold text-white">Admin Team Portal</h1>
-              <p className="text-gray-400 text-sm mt-1">
-                View all admin team members, roles, and their tools
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <AdminBackground>
+      <AdminPageHeader title="Admin Team Portal" subtitle="View all admin team members, roles, and their tools">
+        <Link
+          href="/admin/orchestrator"
+          className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-yellow-500 hover:bg-white/5 ${glassInteractive}`}
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Back to Admin
+        </Link>
+      </AdminPageHeader>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <AdminTeamPortal />
+        <AdminCard className="overflow-hidden !p-0">
+          <AdminTeamPortal />
+        </AdminCard>
 
         {/* Info Box */}
-        <div className="mt-8 rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
-          <p className="text-amber-200 text-sm">
-            <strong>💡 Admin Structure:</strong> Your platform has three specialized admin roles:
-            <strong className="block mt-2">
+        <AdminCard className="mt-8 !border-yellow-500/20 !bg-yellow-500/5">
+          <p className="text-yellow-200/90 text-sm leading-relaxed">
+            <strong className="text-yellow-400">💡 Admin Structure:</strong> Your platform has three specialized admin roles:
+            <strong className="block mt-2 text-slate-100">
               👑 Orchestrator (Ramone)
             </strong>
             - System overview, tier management, platform analytics
-            <strong className="block mt-2">
+            <strong className="block mt-2 text-slate-100">
               🏦 Banker/Specialist (Wesley)
             </strong>
             - Business vetting, user management, compliance verification
-            <strong className="block mt-2">
+            <strong className="block mt-2 text-slate-100">
               ⚖️ Legal Officer
             </strong>
             - Audit logs, compliance tracking, regulatory adherence
           </p>
-        </div>
+        </AdminCard>
       </div>
-    </div>
+    </AdminBackground>
   );
 }

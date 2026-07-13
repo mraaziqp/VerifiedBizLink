@@ -83,7 +83,7 @@ export default function ChatWidget() {
 
   const loadConversations = async () => {
     try {
-      const res = await fetch('/api/messages/list');
+      const res = await fetch('/api/messages/list', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setConversations(data.conversations || []);
@@ -107,7 +107,7 @@ export default function ChatWidget() {
     setSelectedConversation(conv);
     setMessages([]);
     try {
-      const res = await fetch(`/api/messages/list?with=${conv.participant_id}`);
+      const res = await fetch(`/api/messages/list?with=${conv.participant_id}`, { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setMessages(data.messages || []);
@@ -121,7 +121,22 @@ export default function ChatWidget() {
     if (!newMessage.trim() || !selectedConversation) return;
     const content = newMessage.trim();
     setNewMessage('');
+    
+    // Create optimistic message
+    const tempId = `optimistic-${Date.now()}`;
+    const optimisticMsg: Message = {
+      id: tempId,
+      sender_id: user?.id || '',
+      receiver_id: selectedConversation.participant_id,
+      content,
+      created_at: new Date().toISOString(),
+      read: false,
+    };
+    
+    // Append optimistically
+    setMessages((prev) => [...prev, optimisticMsg]);
     setLoading(true);
+    
     try {
       const res = await fetch('/api/messages/send', {
         method: 'POST',
@@ -130,12 +145,15 @@ export default function ChatWidget() {
       });
       if (res.ok) {
         const data = await res.json();
-        setMessages((prev) => [...prev, data.message]);
+        // Replace optimistic message with actual db message
+        setMessages((prev) => prev.map((m) => m.id === tempId ? data.message : m));
       } else {
-        setNewMessage(content); // restore on failure
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        setNewMessage(content); // restore input
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
       setNewMessage(content);
     } finally {
       setLoading(false);
@@ -352,24 +370,20 @@ export default function ChatWidget() {
                 {messages.map(msg => (
                   <div
                     key={msg.id}
-                    className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
+                    className={`flex flex-col ${msg.sender_id === user?.id ? 'items-end' : 'items-start'}`}
                   >
                     <div
-                      className={`max-w-xs px-3 py-2 rounded-lg ${
+                      className={`max-w-[75%] ${
                         msg.sender_id === user?.id
-                          ? 'bg-yellow-400 text-slate-900'
-                          : 'bg-slate-700 text-white'
+                          ? 'bg-yellow-500 text-slate-950 rounded-l-xl rounded-tr-xl px-4 py-2 shadow-sm'
+                          : 'bg-slate-800 text-slate-100 rounded-r-xl rounded-tl-xl px-4 py-2 border border-slate-700'
                       }`}
                     >
-                      <p className="text-sm">{msg.content}</p>
-                      <p className={`text-xs mt-1 ${
-                        msg.sender_id === user?.id
-                          ? 'text-slate-700'
-                          : 'text-slate-400'
-                      }`}>
-                        {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                     </div>
+                    <span className="text-[10px] text-slate-400 mt-1 mb-2 px-1">
+                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
                 ))}
                 <div ref={messagesEndRef} />

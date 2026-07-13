@@ -21,12 +21,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Minimum amount is R10' }, { status: 400 });
     }
 
-    // Create payment record in database
     const paymentRef = `VBL-${Date.now()}-${session.id.substring(0, 8)}`;
+    const amountCents = Math.round(amount * 100);
 
     await db`
       INSERT INTO payments (user_id, amount, status, reference, description, ad_id)
-      VALUES (${session.id}, ${amount}, 'pending', ${paymentRef}, ${description}, ${adId || null})
+      VALUES (${session.id}, ${amountCents}, 'pending', ${paymentRef}, ${description}, ${adId || null})
     `.catch(err => console.log('Payment record creation note:', err.message));
 
     // Payfast API credentials (from environment)
@@ -53,11 +53,32 @@ export async function POST(request: NextRequest) {
       custom_str2: session.id,
     };
 
-    // Create signature
-    const dataString = Object.keys(payfastData)
+    // Create signature matching Payfast guidelines (RFC 3986 style, spaces to +)
+    let dataString = Object.keys(payfastData)
       .sort()
-      .map(key => `${key}=${(payfastData as any)[key]}`)
+      .map(key => {
+        const val = (payfastData as any)[key];
+        const encodedVal = encodeURIComponent(val)
+          .replace(/%20/g, '+')
+          .replace(/!/g, '%21')
+          .replace(/'/g, '%27')
+          .replace(/\(/g, '%28')
+          .replace(/\)/g, '%29')
+          .replace(/\*/g, '%2A');
+        return `${key}=${encodedVal}`;
+      })
       .join('&');
+
+    if (process.env.PAYFAST_PASSPHRASE) {
+      const encodedPass = encodeURIComponent(process.env.PAYFAST_PASSPHRASE)
+        .replace(/%20/g, '+')
+        .replace(/!/g, '%21')
+        .replace(/'/g, '%27')
+        .replace(/\(/g, '%28')
+        .replace(/\)/g, '%29')
+        .replace(/\*/g, '%2A');
+      dataString += `&passphrase=${encodedPass}`;
+    }
 
     const signature = crypto
       .createHash('md5')

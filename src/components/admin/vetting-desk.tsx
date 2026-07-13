@@ -206,7 +206,7 @@ export function VettingDesk() {
       if (res.ok) {
         toast({
           title: `Business ${newStatus}`,
-          description: `Status updated to ${newStatus.toUpperCase()} successfully.`,
+          description: `Status updated to ${(newStatus || 'pending').toUpperCase()} successfully.`,
         });
         fetchBusinesses();
         if (dialogOpen) setDialogOpen(false);
@@ -572,7 +572,7 @@ export function VettingDesk() {
                   : "bg-white text-gray-500 border-gray-200 hover:border-gray-400"
               }`}
             >
-              {s === "all" ? "All Statuses" : s.charAt(0).toUpperCase() + s.slice(1)}
+              {s === "all" ? "All Statuses" : (s || '').charAt(0).toUpperCase() + (s || '').slice(1)}
             </button>
           ))}
         </div>
@@ -680,7 +680,7 @@ export function VettingDesk() {
                       {item.status === "verified" && <CheckCircle2 className="h-3 w-3 mr-1" />}
                       {item.status === "rejected" && <XCircle className="h-3 w-3 mr-1" />}
                       {item.status === "reviewing" && <Eye className="h-3 w-3 mr-1" />}
-                      {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                      {(item.status || 'pending').charAt(0).toUpperCase() + (item.status || 'pending').slice(1)}
                     </Badge>
                   </TableCell>
 
@@ -823,7 +823,7 @@ export function VettingDesk() {
               Review: {selectedBiz?.company_name}
               {selectedBiz && (
                 <Badge className={`${STATUS_COLORS[selectedBiz.status]} text-xs ml-2`}>
-                  {selectedBiz.status.toUpperCase()}
+                  {(selectedBiz?.status || 'pending').toUpperCase()}
                 </Badge>
               )}
             </DialogTitle>
@@ -1116,7 +1116,7 @@ export function VettingDesk() {
                               className={`rounded-lg text-xs font-bold h-7 px-2 ${STATUS_COLORS[s]}`}
                               onClick={() => setTrustScore(val)}
                             >
-                              {s.charAt(0).toUpperCase() + s.slice(1)}
+                              {(s || '').charAt(0).toUpperCase() + (s || '').slice(1)}
                             </Button>
                           ))}
                         </div>

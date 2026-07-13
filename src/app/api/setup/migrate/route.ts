@@ -162,9 +162,20 @@ export async function POST(request: NextRequest) {
       )
     `;
 
+    // --- v6: Password recovery, verification expiry, and Payfast support ---
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verification_token_expires_at TIMESTAMPTZ`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token TEXT`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMPTZ`;
+
+    await db`ALTER TABLE payments ALTER COLUMN plan_type DROP NOT NULL`.catch(() => {});
+    await db`ALTER TABLE payments ADD COLUMN IF NOT EXISTS reference VARCHAR(100) UNIQUE`;
+    await db`ALTER TABLE payments ADD COLUMN IF NOT EXISTS description TEXT`;
+    await db`ALTER TABLE payments ADD COLUMN IF NOT EXISTS ad_id UUID`;
+    await db`ALTER TABLE payments ADD COLUMN IF NOT EXISTS payfast_reference VARCHAR(100)`;
+
     return NextResponse.json({
       success: true,
-      message: 'Migration v5 applied: payments and user preferences tables added.',
+      message: 'Migration v6 applied: password recovery, verification expiry, and Payfast support columns added.',
     });
   } catch (error) {
     console.error('Migration error:', error);

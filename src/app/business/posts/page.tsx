@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { PostImage } from '@/components/feed/post-image';
+import { GlassBackground } from '@/components/shared/glass-ui';
 
 interface Post {
   id: string;
@@ -127,9 +128,9 @@ export default function BusinessPostsPage() {
   const totalComments = posts.reduce((sum, p) => sum + p.comments_count, 0);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <GlassBackground>
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-800 to-slate-700 border-b border-slate-600 sticky top-0 z-40">
+      <div className="bg-slate-950/70 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -161,7 +162,7 @@ export default function BusinessPostsPage() {
       <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Performance Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -175,7 +176,7 @@ export default function BusinessPostsPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -189,7 +190,7 @@ export default function BusinessPostsPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-800 border-slate-700">
+          <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -250,7 +251,7 @@ export default function BusinessPostsPage() {
             <Loader2 className="h-8 w-8 text-yellow-400 animate-spin" />
           </div>
         ) : posts.length === 0 ? (
-          <Card className="bg-slate-800 border-slate-700 text-center py-16">
+          <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5 text-center py-16">
             <CardContent>
               <Sparkles className="h-12 w-12 text-slate-600 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-white mb-2">No Posts Yet</h3>
@@ -266,7 +267,7 @@ export default function BusinessPostsPage() {
         ) : (
           <div className="space-y-4">
             {posts.map((post) => (
-              <Card key={post.id} className="bg-slate-800 border-slate-700 hover:border-yellow-400 transition">
+              <Card key={post.id} className="bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 transition">
                 <CardContent className="p-6">
                   {/* Post Header */}
                   <div className="flex items-start justify-between mb-4">
@@ -317,6 +318,6 @@ export default function BusinessPostsPage() {
           </div>
         )}
       </div>
-    </div>
+    </GlassBackground>
   );
 }

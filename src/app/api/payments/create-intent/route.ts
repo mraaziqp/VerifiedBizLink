@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 
 interface PaymentIntent {
@@ -81,10 +83,16 @@ export async function GET(request: NextRequest) {
       LIMIT 10
     `;
 
-    return NextResponse.json({
-      success: true,
-      payments,
-    });
+    return NextResponse.json(
+      { success: true, payments },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      }
+    );
   } catch (error) {
     console.error('Payment history fetch error:', error);
     return NextResponse.json(

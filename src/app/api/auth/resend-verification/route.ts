@@ -22,7 +22,8 @@ export async function POST(request: Request) {
   }
 
   const token = crypto.randomUUID();
-  await db`UPDATE users SET email_verification_token = ${token}, updated_at = NOW() WHERE id = ${session.id}`;
+  const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+  await db`UPDATE users SET email_verification_token = ${token}, email_verification_token_expires_at = ${tokenExpiresAt.toISOString()}, updated_at = NOW() WHERE id = ${session.id}`;
 
   sendVerificationEmail(rows[0].email, rows[0].full_name, token).catch(() => {});
 

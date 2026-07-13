@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.toLowerCase().trim();
     const token = randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+    const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     // Single round trip: set the token only if the email matches, and get
     // back who (if anyone) it belongs to in the same query.

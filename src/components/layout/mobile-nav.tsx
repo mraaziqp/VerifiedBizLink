@@ -37,7 +37,7 @@ export function MobileNav() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-xl border-t border-white/5 lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <div className="flex items-center h-16 px-2 overflow-x-auto">
         {navItems.map((item) => {
           const isActive =
@@ -52,11 +52,11 @@ export function MobileNav() {
               href={item.href}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors flex-1 min-w-[72px]",
-                isActive ? "text-primary" : "text-gray-400"
+                isActive ? "text-primary" : "text-slate-400 hover:text-slate-100"
               )}
             >
               <item.icon className={cn("h-6 w-6 shrink-0", isActive && "text-primary")} />
-              <span className={cn("text-[10px] font-semibold leading-tight", isActive ? "text-primary" : "text-gray-400")}>
+              <span className={cn("text-[10px] font-semibold leading-tight", isActive ? "text-primary" : "text-slate-400")}>
                 {item.name}
               </span>
             </Link>

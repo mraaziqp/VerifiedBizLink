@@ -89,7 +89,11 @@ function VerifyEmailContent() {
           <div>
             <h1 className="text-xl font-bold text-gray-900">Verification failed</h1>
             <p className="text-sm text-gray-500 mt-2">
-              {error === "invalid" ? "This verification link is invalid or has already been used." : "Something went wrong. Please try again."}
+              {error === "expired"
+                ? "This verification link has expired."
+                : error === "invalid"
+                ? "This verification link is invalid or has already been used."
+                : "Something went wrong. Please try again."}
             </p>
           </div>
           <Button className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl" onClick={handleResend} disabled={resending}>

@@ -289,8 +289,8 @@ export function VettingDeskPro() {
                     <TableCell className="font-medium">{business.company_name}</TableCell>
                     <TableCell className="text-sm text-gray-600">{business.owner_name}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={STATUS_COLORS[business.status].text}>
-                        {business.status.toUpperCase()}
+                      <Badge variant="outline" className={(STATUS_COLORS[business?.status || 'pending'] || STATUS_COLORS.pending).text}>
+                        {(business?.status || 'pending').toUpperCase()}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -347,16 +347,16 @@ export function VettingDeskPro() {
 
               {/* Documents Tab */}
               <TabsContent value="documents" className="space-y-4">
-                {selectedBusiness.documents.map(doc => (
-                  <Card key={doc.id}>
+                {(selectedBusiness?.documents || []).map(doc => (
+                  <Card key={doc?.id}>
                     <CardContent className="pt-6">
                       <div className="flex justify-between items-start mb-4">
                         <div>
-                          <h3 className="font-semibold">{doc.name}</h3>
-                          <p className="text-sm text-gray-600">{doc.doc_type.toUpperCase()}</p>
+                          <h3 className="font-semibold">{doc?.name || 'Document'}</h3>
+                          <p className="text-sm text-gray-600">{(doc?.doc_type || 'document').toUpperCase()}</p>
                         </div>
-                        <Badge className={DOC_STATUS_BADGE[doc.status]}>
-                          {doc.status.toUpperCase()}
+                        <Badge className={DOC_STATUS_BADGE[doc?.status || 'uploaded'] || 'bg-gray-100 text-gray-800'}>
+                          {(doc?.status || 'uploaded').toUpperCase()}
                         </Badge>
                       </div>
 

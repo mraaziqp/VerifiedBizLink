@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { ImageUploader } from '@/components/media/image-uploader';
 import { useToast } from '@/hooks/use-toast';
+import { GlassBackground, glassInteractive } from '@/components/shared/glass-ui';
 
 interface GalleryImage {
   id: string;
@@ -89,16 +90,19 @@ export default function BusinessGalleryPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <GlassBackground>
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <Link href="/business/dashboard" className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-6">
+        <Link
+          href="/business/dashboard"
+          className={`inline-flex items-center gap-2 text-yellow-500 hover:text-yellow-400 mb-6 rounded-lg ${glassInteractive}`}
+        >
           <ArrowLeft className="h-4 w-4" />
           Back to Dashboard
         </Link>
 
-        <Card className="mb-8">
+        <Card className="mb-8 bg-slate-900/60 backdrop-blur-xl border-white/5 shadow-2xl">
           <CardHeader>
-            <CardTitle>Business Gallery</CardTitle>
+            <CardTitle className="text-slate-100">Business Gallery</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -106,7 +110,7 @@ export default function BusinessGalleryPage() {
                 onImageSelect={handleImageUpload}
                 buttonClassName="w-full"
               />
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-slate-400">
                 Upload photos of your business, products, and services — visible on your public profile.
               </p>
             </div>
@@ -116,20 +120,23 @@ export default function BusinessGalleryPage() {
         {/* Gallery Grid */}
         {loading ? (
           <div className="flex justify-center py-16">
-            <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+            <Loader2 className="h-8 w-8 text-yellow-500 animate-spin" />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {images.length === 0 ? (
-              <Card className="col-span-full">
+              <Card className="col-span-full bg-slate-900/60 backdrop-blur-xl border-white/5 shadow-2xl">
                 <CardContent className="py-12 text-center">
-                  <p className="text-gray-500">No images yet. Upload your first business photo!</p>
+                  <p className="text-slate-400">No images yet. Upload your first business photo!</p>
                 </CardContent>
               </Card>
             ) : (
               images.map((img) => (
-                <Card key={img.id} className="overflow-hidden">
-                  <div className="aspect-square bg-gray-200 overflow-hidden">
+                <Card
+                  key={img.id}
+                  className="overflow-hidden bg-slate-900/60 backdrop-blur-xl border-white/5 shadow-2xl transition-all duration-300 ease-out hover:border-yellow-500/30"
+                >
+                  <div className="aspect-square bg-slate-800 overflow-hidden">
                     <img src={img.image_url} alt={img.title} className="w-full h-full object-cover" />
                   </div>
                   <CardContent className="p-4">
@@ -138,13 +145,13 @@ export default function BusinessGalleryPage() {
                         type="text"
                         value={img.title}
                         onChange={(e) => handleRename(img.id, e.target.value)}
-                        className="text-sm font-medium border-0 focus:outline-none flex-1"
+                        className={`text-sm font-medium border-0 bg-transparent text-slate-100 placeholder-slate-500 focus:outline-none flex-1 rounded ${glassInteractive}`}
                         placeholder="Image title"
                       />
                       <button
                         onClick={() => handleDelete(img.id)}
                         disabled={deletingId === img.id}
-                        className="text-red-600 hover:text-red-700 shrink-0"
+                        className={`text-red-400 hover:text-red-300 shrink-0 rounded ${glassInteractive}`}
                       >
                         {deletingId === img.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       </button>
@@ -156,6 +163,6 @@ export default function BusinessGalleryPage() {
           </div>
         )}
       </div>
-    </div>
+    </GlassBackground>
   );
 }

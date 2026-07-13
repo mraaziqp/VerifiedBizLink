@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -32,6 +33,75 @@ export default function SettingsPage() {
     complianceAlerts: false,
   });
   const [aiAssistantEnabled, setAiAssistantEnabled] = useState(true);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoadingPayments(true);
+    fetch('/api/payments/create-intent', { cache: 'no-store' })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        if (data && data.payments) {
+          setPayments(data.payments);
+        }
+      })
+      .catch(err => console.error('Error fetching payments:', err))
+      .finally(() => setLoadingPayments(false));
+  }, []);
+
+  const handleCheckout = async (amount: number, description: string) => {
+    setCheckoutLoading(description);
+    try {
+      const res = await fetch('/api/payfast/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount,
+          description,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to initialize payment');
+      }
+
+      const { payfastUrl, data, signature } = await res.json();
+
+      // Dynamically create a hidden form and submit it to redirect to Payfast
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = payfastUrl;
+
+      // Append all Payfast payload parameters
+      Object.keys(data).forEach(key => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = String(data[key]);
+        form.appendChild(input);
+      });
+
+      // Append signature
+      const sigInput = document.createElement('input');
+      sigInput.type = 'hidden';
+      sigInput.name = 'signature';
+      sigInput.value = signature;
+      form.appendChild(sigInput);
+
+      document.body.appendChild(form);
+      form.submit();
+    } catch (err: any) {
+      toast({
+        title: 'Payment Error',
+        description: err.message || 'Could not connect to payment gateway.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCheckoutLoading(null);
+    }
+  };
 
   const [profileForm, setProfileForm] = useState({
     fullName: "",
@@ -507,29 +577,221 @@ export default function SettingsPage() {
                 </Card>
               </TabsContent>
 
-              <TabsContent value="billing" className="animate-in fade-in duration-500">
-                <Card className="border-none shadow-sm overflow-hidden">
-                  <CardHeader className="bg-white border-b py-6">
-                    <CardTitle>Billing & Subscription</CardTitle>
-                    <CardDescription>Manage your membership plan and payment methods.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-8">
-                    <div className="flex flex-col items-center justify-center py-10 gap-4 text-center">
-                      <div className="p-4 rounded-2xl bg-primary/10">
-                        <CreditCard className="h-10 w-10 text-primary" />
-                      </div>
+              <TabsContent value="billing" className="animate-in fade-in duration-500 space-y-6">
+                {/* Active Plan Overview */}
+                <Card className="border-none shadow-sm overflow-hidden bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white">
+                  <CardHeader className="border-b border-white/5 py-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                       <div>
-                        <h3 className="font-bold text-gray-900 text-lg">Billing Portal Coming Soon</h3>
-                        <p className="text-sm text-gray-500 font-medium mt-1 max-w-sm">
-                          Subscription and payment management will be available here. Contact us to learn about available plans.
-                        </p>
+                        <CardTitle className="text-xl font-bold flex items-center gap-2">
+                          <Zap className="h-5 w-5 text-yellow-400 animate-pulse" />
+                          Membership &amp; Subscription
+                        </CardTitle>
+                        <CardDescription className="text-slate-400 mt-1">
+                          Review your subscription plan, features, and billing status.
+                        </CardDescription>
                       </div>
-                      <a href="/contact">
-                        <Button variant="outline" className="rounded-xl font-bold">
-                          Contact Us About Plans
-                        </Button>
-                      </a>
+                      <div className="px-4 py-2 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-sm font-bold text-center sm:text-left self-start sm:self-center">
+                        Active Account
+                      </div>
                     </div>
+                  </CardHeader>
+                  <CardContent className="p-6 sm:p-8 space-y-6">
+                    <div className="grid md:grid-cols-3 gap-6">
+                      <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Current Tier</p>
+                        <p className="text-2xl font-extrabold text-white">
+                          {user?.role === 'business' ? 'Standard Listing' : 'Professional Account'}
+                        </p>
+                        <p className="text-xs text-slate-500">Free tier list visibility</p>
+                      </div>
+                      <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">SARS/CIPC Status</p>
+                        <p className="text-2xl font-extrabold text-amber-400">Vetting Pending</p>
+                        <p className="text-xs text-slate-500">Documents submitted for review</p>
+                      </div>
+                      <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Vetting Score</p>
+                        <p className="text-2xl font-extrabold text-green-400">85/100</p>
+                        <p className="text-xs text-slate-500">Trust rating metric</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Subscriptions Grid */}
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Verified Business Upgrade */}
+                  <Card className="border border-gray-150 shadow-sm overflow-hidden flex flex-col justify-between bg-white">
+                    <div className="p-6 md:p-8 space-y-4">
+                      <div className="h-10 w-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
+                        <Shield className="h-6 w-6 text-yellow-500" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-xl font-bold text-gray-900">Verified Business</h3>
+                        <p className="text-sm text-gray-500 font-medium">Build trust and gain priority search visibility.</p>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-extrabold text-gray-900">R99</span>
+                        <span className="text-sm text-gray-500 font-bold">/ month</span>
+                      </div>
+                      <ul className="space-y-2.5 pt-2 text-sm text-gray-600 font-medium">
+                        <li className="flex items-center gap-2 text-slate-700">✓ Verified trust badge on profile</li>
+                        <li className="flex items-center gap-2 text-slate-700">✓ Dynamic CIPC &amp; SARS database validation</li>
+                        <li className="flex items-center gap-2 text-slate-700">✓ Reviews and rating capabilities enabled</li>
+                        <li className="flex items-center gap-2 text-slate-700">✓ Priority placement in category queries</li>
+                      </ul>
+                    </div>
+                    <div className="p-6 bg-gray-50 border-t flex justify-end">
+                      <Button
+                        onClick={() => handleCheckout(99, 'Verified Business Subscription (R99/month)')}
+                        disabled={checkoutLoading !== null}
+                        className="bg-[#EAB308] hover:bg-[#EAB308]/90 text-slate-950 font-bold px-6 h-11 rounded-xl transition-all shadow-md shadow-yellow-500/20"
+                      >
+                        {checkoutLoading === 'Verified Business Subscription (R99/month)' ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Redirecting…</>
+                        ) : (
+                          'Upgrade to Verified'
+                        )}
+                      </Button>
+                    </div>
+                  </Card>
+
+                  {/* Premium Business Upgrade */}
+                  <Card className="border border-gray-150 shadow-sm overflow-hidden flex flex-col justify-between bg-white">
+                    <div className="p-6 md:p-8 space-y-4">
+                      <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                        <Zap className="h-6 w-6 text-blue-505" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-xl font-bold text-gray-900">Premium Partner</h3>
+                        <p className="text-sm text-gray-500 font-medium">Maximum exposure, advanced leads, and custom branding.</p>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-extrabold text-gray-900">R299</span>
+                        <span className="text-sm text-gray-500 font-bold">/ month</span>
+                      </div>
+                      <ul className="space-y-2.5 pt-2 text-sm text-gray-600 font-medium">
+                        <li className="flex items-center gap-2 text-slate-700">✓ All features in Verified tier</li>
+                        <li className="flex items-center gap-2 text-slate-700">✓ Homepage exposure and spotlight listings</li>
+                        <li className="flex items-center gap-2 text-slate-700">✓ Advanced lead dashboard &amp; viewer analytics</li>
+                        <li className="flex items-center gap-2 text-slate-700">✓ AI-assisted ad builder and campaign tools</li>
+                      </ul>
+                    </div>
+                    <div className="p-6 bg-gray-50 border-t flex justify-end">
+                      <Button
+                        onClick={() => handleCheckout(299, 'Premium Business Subscription (R299/month)')}
+                        disabled={checkoutLoading !== null}
+                        className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 h-11 rounded-xl transition-all"
+                      >
+                        {checkoutLoading === 'Premium Business Subscription (R299/month)' ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Redirecting…</>
+                        ) : (
+                          'Upgrade to Premium'
+                        )}
+                      </Button>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Ad Credits Section */}
+                <Card className="border border-gray-100 shadow-sm overflow-hidden bg-white">
+                  <CardHeader className="bg-white border-b py-6">
+                    <CardTitle className="text-lg font-bold">Purchase Ad Credits</CardTitle>
+                    <CardDescription>Boost your ads and highlight your listings dynamically.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6 md:p-8 space-y-6">
+                    <div className="grid sm:grid-cols-3 gap-4">
+                      {[
+                        { amount: 100, label: '1 Week Boost', desc: 'Highlight 1 ad for 7 days' },
+                        { amount: 250, label: '3 Weeks Boost', desc: 'Highlight 1 ad for 21 days' },
+                        { amount: 500, label: 'Premium Spotlight', desc: 'Top category position for 30 days' },
+                      ].map((item) => (
+                        <div key={item.amount} className="p-5 rounded-2xl border border-gray-200 hover:border-yellow-400 transition-all flex flex-col justify-between gap-4 bg-white">
+                          <div>
+                            <h4 className="font-bold text-gray-900">{item.label}</h4>
+                            <p className="text-xs text-gray-500 mt-1">{item.desc}</p>
+                          </div>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xl font-extrabold text-gray-900">R{item.amount}</span>
+                            <Button
+                              onClick={() => handleCheckout(item.amount, `Ad Credits: ${item.label}`)}
+                              disabled={checkoutLoading !== null}
+                              size="sm"
+                              className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold rounded-lg px-3"
+                            >
+                              {checkoutLoading === `Ad Credits: ${item.label}` ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                'Buy'
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Spent Transaction Ledger */}
+                <Card className="border border-gray-100 shadow-sm overflow-hidden bg-white">
+                  <CardHeader className="bg-white border-b py-6">
+                    <CardTitle className="text-lg font-bold">Transaction History</CardTitle>
+                    <CardDescription>A ledger of all payments and credits on your profile.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {loadingPayments ? (
+                      <div className="py-10 text-center flex flex-col items-center justify-center gap-2 text-gray-400">
+                        <Loader2 className="h-6 w-6 animate-spin" />
+                        <p className="text-xs">Loading ledger transactions…</p>
+                      </div>
+                    ) : payments.length === 0 ? (
+                      <div className="py-12 text-center text-gray-400 space-y-2">
+                        <CreditCard className="h-10 w-10 mx-auto opacity-30" />
+                        <p className="text-sm font-semibold">No transactions found</p>
+                        <p className="text-xs">Upgrade your account or buy ad credits to see ledger events.</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-sm">
+                          <thead>
+                            <tr className="bg-gray-50 border-b text-gray-500 font-semibold">
+                              <th className="px-6 py-3">Reference</th>
+                              <th className="px-6 py-3">Description</th>
+                              <th className="px-6 py-3">Amount</th>
+                              <th className="px-6 py-3">Date</th>
+                              <th className="px-6 py-3">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y text-gray-700">
+                            {payments.map((p) => {
+                              // Standardize amount display: Stripe uses cents (amount/100), Payfast now does too.
+                              // If value is stored as gross (unconverted legacy), show directly.
+                              const displayAmount = p.amount > 2000 ? (p.amount / 100).toFixed(2) : p.amount.toFixed(2);
+                              return (
+                                <tr key={p.id} className="hover:bg-gray-50/50">
+                                  <td className="px-6 py-4 font-mono text-xs">{p.reference || p.id.substring(0, 8).toUpperCase()}</td>
+                                  <td className="px-6 py-4 font-medium">{p.description || `VBL ${p.plan_type || 'Upgrade'}`}</td>
+                                  <td className="px-6 py-4 font-bold text-gray-900">R{displayAmount}</td>
+                                  <td className="px-6 py-4 text-gray-400">{new Date(p.created_at || p.completed_at || Date.now()).toLocaleDateString()}</td>
+                                  <td className="px-6 py-4">
+                                    <Badge variant="outline" className={
+                                      p.status === 'completed' || p.status === 'success'
+                                        ? 'bg-green-50 text-green-700 border-green-200 font-bold'
+                                        : p.status === 'failed'
+                                        ? 'bg-red-50 text-red-700 border-red-200 font-bold'
+                                        : 'bg-yellow-50 text-yellow-700 border-yellow-200 font-bold'
+                                    }>
+                                      {(p.status || 'pending').toUpperCase()}
+                                    </Badge>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

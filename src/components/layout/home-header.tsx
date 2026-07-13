@@ -131,10 +131,7 @@ export function HomeHeader() {
   const bellText = useMemo(() => (unreadCount > 9 ? "9+" : unreadCount), [unreadCount]);
 
   return (
-    <div
-      className="sticky top-0 z-30"
-      style={{ background: "#06060a", borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-    >
+    <div className="sticky top-0 z-30 bg-slate-950 border-b border-slate-800">
       <div className="px-4 py-4 flex items-center justify-between">
         {/* Menu Button */}
         <button
