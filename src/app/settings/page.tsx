@@ -620,7 +620,46 @@ export default function SettingsPage() {
                 </Card>
 
                 {/* Subscriptions Grid */}
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid md:grid-cols-3 gap-6">
+                  {/* Test Sandbox Upgrade */}
+                  <Card className="border border-yellow-250 shadow-sm overflow-hidden flex flex-col justify-between bg-yellow-50/10">
+                    <div className="p-6 md:p-8 space-y-4">
+                      <div className="h-10 w-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
+                        <Zap className="h-6 w-6 text-yellow-600 animate-pulse" />
+                      </div>
+                      <div className="space-y-1">
+                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-1.5">
+                          Developer Test Tier
+                          <span className="text-[10px] bg-yellow-500 text-slate-950 font-extrabold px-1.5 py-0.5 rounded-full uppercase">Test</span>
+                        </h3>
+                        <p className="text-sm text-gray-500 font-medium">Simulate checkout integration with a real R5 micropayment.</p>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-extrabold text-gray-900">R5</span>
+                        <span className="text-sm text-gray-500 font-bold">/ month</span>
+                      </div>
+                      <ul className="space-y-2.5 pt-2 text-sm text-gray-600 font-medium">
+                        <li className="flex items-center gap-2 text-slate-700">✓ R5.00 sandbox micropayment</li>
+                        <li className="flex items-center gap-2 text-slate-700">✓ Secure PayFast sandbox gateway</li>
+                        <li className="flex items-center gap-2 text-slate-700">✓ Automated payment status callback</li>
+                        <li className="flex items-center gap-2 text-slate-700">✓ Instantly writes to spent ledger</li>
+                      </ul>
+                    </div>
+                    <div className="p-6 bg-gray-50 border-t flex justify-end">
+                      <Button
+                        onClick={() => handleCheckout(5, 'Developer Test Subscription (R5/month)')}
+                        disabled={checkoutLoading !== null}
+                        className="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold px-6 h-11 rounded-xl transition-all shadow-md shadow-yellow-500/20"
+                      >
+                        {checkoutLoading === 'Developer Test Subscription (R5/month)' ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Redirecting…</>
+                        ) : (
+                          'Upgrade R5'
+                        )}
+                      </Button>
+                    </div>
+                  </Card>
+
                   {/* Verified Business Upgrade */}
                   <Card className="border border-gray-150 shadow-sm overflow-hidden flex flex-col justify-between bg-white">
                     <div className="p-6 md:p-8 space-y-4">
