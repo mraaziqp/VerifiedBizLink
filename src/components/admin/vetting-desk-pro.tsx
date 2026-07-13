@@ -44,6 +44,7 @@ interface Business {
   doc_count: number;
   review_notes?: string;
   user_id?: string;
+  created_at?: string;
 }
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
@@ -81,7 +82,7 @@ export function VettingDeskPro() {
   const fetchBusinesses = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/businesses');
+      const res = await fetch('/api/admin/businesses', { cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         setBusinesses(data.businesses || []);
@@ -135,12 +136,13 @@ export function VettingDeskPro() {
       if (res.ok) {
         toast({ title: 'Document graded successfully' });
         if (selectedBusiness) {
-          const updated = await fetch(`/api/admin/businesses/${selectedBusiness.id}`);
+          const updated = await fetch(`/api/admin/businesses/${selectedBusiness.id}`, { cache: 'no-store' });
           if (updated.ok) {
             const data = await updated.json();
             setSelectedBusiness(data.business);
           }
         }
+        fetchBusinesses();
         setSelectedDoc(null);
         setDocGrade(0);
         setDocNotes('');
@@ -311,7 +313,11 @@ export function VettingDeskPro() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
-                      {business.submitted_at ? new Date(business.submitted_at).toLocaleDateString() : 'Not submitted'}
+                      {business.submitted_at
+                        ? new Date(business.submitted_at).toLocaleDateString()
+                        : (business.created_at
+                          ? new Date(business.created_at).toLocaleDateString()
+                          : 'Pending')}
                     </TableCell>
                     <TableCell>
                       <Button

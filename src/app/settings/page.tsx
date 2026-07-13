@@ -701,8 +701,9 @@ export default function SettingsPage() {
                     <CardDescription>Boost your ads and highlight your listings dynamically.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-6 md:p-8 space-y-6">
-                    <div className="grid sm:grid-cols-3 gap-4">
+                    <div className="grid sm:grid-cols-4 gap-4">
                       {[
+                        { amount: 5, label: 'Test Payment', desc: 'R5 — verify checkout works end-to-end' },
                         { amount: 100, label: '1 Week Boost', desc: 'Highlight 1 ad for 7 days' },
                         { amount: 250, label: '3 Weeks Boost', desc: 'Highlight 1 ad for 21 days' },
                         { amount: 500, label: 'Premium Spotlight', desc: 'Top category position for 30 days' },

@@ -16,9 +16,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Validate amount (minimum R10)
-    if (amount < 10) {
-      return NextResponse.json({ error: 'Minimum amount is R10' }, { status: 400 });
+    // Validate amount (PayFast's own minimum transaction amount is R5)
+    if (amount < 5) {
+      return NextResponse.json({ error: 'Minimum amount is R5' }, { status: 400 });
     }
 
     const paymentRef = `VBL-${Date.now()}-${session.id.substring(0, 8)}`;

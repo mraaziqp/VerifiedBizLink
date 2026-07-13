@@ -29,6 +29,7 @@ interface Conversation {
   participant_name: string;
   participant_avatar: string | null;
   participant_type: string;
+  business_id?: string | null;
   last_message: string;
   last_message_time: string;
   unread_count: number;
@@ -117,6 +118,7 @@ function MessagesPageInner() {
             participant_name: other.fullName || 'Unknown',
             participant_avatar: other.avatarUrl || null,
             participant_type: other.role,
+            business_id: other.businessId || null,
             last_message: '',
             last_message_time: new Date().toISOString(),
             unread_count: 0,
@@ -311,7 +313,13 @@ function MessagesPageInner() {
                     {initials(selected.participant_name)}
                   </AvatarFallback>
                 </Avatar>
-                <h3 className="text-slate-100 font-semibold">{selected.participant_name}</h3>
+                {selected.business_id ? (
+                  <Link href={`/business/${selected.business_id}`} className="text-slate-100 font-semibold hover:text-yellow-400 hover:underline">
+                    {selected.participant_name}
+                  </Link>
+                ) : (
+                  <h3 className="text-slate-100 font-semibold">{selected.participant_name}</h3>
+                )}
               </div>
 
               <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">

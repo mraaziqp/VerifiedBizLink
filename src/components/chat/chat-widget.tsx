@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { MessageCircle, X, Send, Mail, Search, Plus, Settings, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { compressImage, fetchWithTimeout } from '@/lib/image-compress';
@@ -20,6 +21,7 @@ interface Conversation {
   participant_name: string;
   participant_email?: string;
   participant_type: string;
+  business_id?: string | null;
   last_message: string;
   last_message_time: string;
   unread_count: number;
@@ -71,6 +73,7 @@ export default function ChatWidget() {
       participant_name: u.company_name || u.full_name || u.email,
       participant_email: u.email,
       participant_type: u.role === 'business' ? 'business' : (u.role || 'user'),
+      business_id: u.business_id || null,
       last_message: '',
       last_message_time: '',
       unread_count: 0,
@@ -381,7 +384,11 @@ export default function ChatWidget() {
                   </button>
                   <div>
                     <h4 className="text-white font-medium text-sm">
-                      {selectedConversation.participant_name}
+                      {selectedConversation.business_id ? (
+                        <Link href={`/business/${selectedConversation.business_id}`} className="hover:text-yellow-400 hover:underline">
+                          {selectedConversation.participant_name}
+                        </Link>
+                      ) : selectedConversation.participant_name}
                     </h4>
                     <p className="text-xs text-slate-400">
                       {selectedConversation.participant_type === 'business' ? '🏢 Business' : '👤 Customer'}

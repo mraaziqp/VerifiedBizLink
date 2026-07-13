@@ -14,7 +14,10 @@ export async function GET(
   const { id } = await params;
 
   const users = await db`
-    SELECT id, full_name, avatar_url, role FROM users WHERE id = ${id} LIMIT 1
+    SELECT u.id, u.full_name, u.avatar_url, u.role, b.id AS business_id
+    FROM users u
+    LEFT JOIN businesses b ON b.user_id = u.id
+    WHERE u.id = ${id} LIMIT 1
   `;
 
   if (users.length === 0) {
@@ -28,6 +31,7 @@ export async function GET(
       fullName: u.full_name,
       avatarUrl: u.avatar_url,
       role: u.role,
+      businessId: u.business_id,
     },
   });
 }

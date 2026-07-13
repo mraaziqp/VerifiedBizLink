@@ -3,7 +3,7 @@ import { VerificationEmail } from '@/emails/VerificationEmail';
 import { PasswordResetEmail } from '@/emails/PasswordResetEmail';
 import { UsernameRecoveryEmail } from '@/emails/UsernameRecoveryEmail';
 
-const FROM = process.env.RESEND_FROM_EMAIL ?? 'noreply@verifiedbizlink.co.za';
+const FROM = process.env.RESEND_FROM_EMAIL ?? 'info@verifiedbizlink.co.za';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.verifiedbizlink.co.za';
 
 function getResend() {

@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'noreply@verifiedbizlink.co.za',
+        from: 'info@verifiedbizlink.co.za',
         to: 'info@verifiedbizlink.co.za',
         replyTo: email,
         subject: `[${type || 'Support'}] ${subject}`,
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'noreply@verifiedbizlink.co.za',
+        from: 'info@verifiedbizlink.co.za',
         to: email,
         subject: `We received your support request - ${subject}`,
         html: `

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 // PUT /api/admin/businesses/[id] — update status
 export async function PUT(
   request: NextRequest,
@@ -104,7 +106,16 @@ export async function GET(
 
     const docs = await db`SELECT * FROM documents WHERE business_id = ${id} ORDER BY uploaded_at DESC`;
 
-    return NextResponse.json({ business: { ...business[0], documents: docs, doc_count: docs.length } });
+    return NextResponse.json(
+      { business: { ...business[0], documents: docs, doc_count: docs.length } },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      }
+    );
   } catch (error) {
     console.error('Admin business GET error:', error);
     return NextResponse.json({ error: 'Failed to fetch business' }, { status: 500 });

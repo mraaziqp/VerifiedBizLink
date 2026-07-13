@@ -81,7 +81,7 @@ Provide a helpful, professional, and concise response to their query. If it's a 
 
     // Send confirmation email to user
     await resend.emails.send({
-      from: 'noreply@verifiedbizlink.co.za',
+      from: 'info@verifiedbizlink.co.za',
       to: email,
       subject: `We received your query - ${subject}`,
       html: `

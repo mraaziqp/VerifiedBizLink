@@ -21,7 +21,8 @@ export async function GET(request: NextRequest) {
         u.email,
         u.role,
         u.avatar_url,
-        b.company_name
+        b.company_name,
+        b.id AS business_id
       FROM users u
       LEFT JOIN businesses b ON b.user_id = u.id
       WHERE u.id <> ${session.id}

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession, isStaff } from '@/lib/auth';
 import db from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 // GET /api/admin/businesses — list all businesses with user info
 export async function GET(request: NextRequest) {
   try {
@@ -63,7 +65,16 @@ export async function GET(request: NextRequest) {
       `;
     }
 
-    return NextResponse.json({ businesses });
+    return NextResponse.json(
+      { businesses },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      }
+    );
   } catch (error) {
     console.error('Admin businesses GET error:', error);
     return NextResponse.json({ error: 'Failed to fetch businesses' }, { status: 503 });

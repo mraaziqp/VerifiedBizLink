@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
         other.email       AS participant_email,
         other.role        AS participant_type,
         other.avatar_url  AS participant_avatar,
+        biz.id            AS business_id,
         CASE WHEN latest.content = '' AND latest.image_url IS NOT NULL THEN '📷 Photo' ELSE latest.content END AS last_message,
         latest.created_at AS last_message_time,
         (SELECT COUNT(*) FROM messages m
@@ -65,6 +66,7 @@ export async function GET(request: NextRequest) {
         ORDER BY other_id, created_at DESC
       ) latest
       JOIN users other ON other.id = latest.other_id
+      LEFT JOIN businesses biz ON biz.user_id = other.id
       ORDER BY latest.created_at DESC
     `;
 

@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/auth-context';
 import { MobileNav } from '@/components/layout/mobile-nav';
+import { MobileMenuDrawer } from '@/components/layout/mobile-menu-drawer';
 import { AdBanner } from '@/components/ads/ad-banner';
 import { ChatWidget } from '@/components/chatbot/chat-widget';
 import MessagesWidget from '@/components/chat/chat-widget';
@@ -55,6 +56,7 @@ export default function RootLayout({
           <ServiceWorkerRegister />
           <EmailVerificationBanner />
           <PwaInstallPrompt />
+          <MobileMenuDrawer />
           <div className="pb-20 lg:pb-0">
             {children}
           </div>
