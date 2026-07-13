@@ -15,9 +15,9 @@ import db from '@/lib/db';
 const adminAccounts = [
   {
     id: '550e8400-e29b-41d4-a716-446655440001',
-    email: 'ramoen@verifiedbizlink.co.za',
-    password: 'Ramoen@123456',
-    fullName: 'Ramoen - Lead Admin',
+    email: 'ramone@verifiedbizlink.co.za',
+    password: 'Ramone@123456',
+    fullName: 'Ramone - Lead Admin',
     role: 'admin',
   },
   {
@@ -150,9 +150,9 @@ export async function POST(request: NextRequest) {
         admins_created: results.filter((r) => r.status === 'created').length,
         results,
         credentials: {
-          ramoen: {
-            email: 'ramoen@verifiedbizlink.co.za',
-            password: 'Ramoen@123456',
+          ramone: {
+            email: 'ramone@verifiedbizlink.co.za',
+            password: 'Ramone@123456',
             role: 'admin',
             access: 'All vetting and verification tools',
           },

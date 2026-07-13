@@ -9,7 +9,7 @@
  * }
  *
  * Creates test accounts for:
- * - Ramoen (admin)
+ * - Ramone (admin)
  * - Wesley (banker)
  */
 
@@ -45,10 +45,10 @@ export async function POST(request: NextRequest) {
 
     const testAccounts = [
       {
-        email: 'ramoen@verifiedbizlink.co.za',
+        email: 'ramone@verifiedbizlink.co.za',
         password: 'TestPass123!',
-        fullName: 'Ramoen - Lead Admin',
-        businessName: 'Ramoen Verification Co',
+        fullName: 'Ramone - Lead Admin',
+        businessName: 'Ramone Verification Co',
         role: 'admin',
       },
       {
@@ -121,8 +121,8 @@ export async function POST(request: NextRequest) {
         message: 'Admin accounts seeding complete',
         results,
         credentials: {
-          ramoen: {
-            email: 'ramoen@verifiedbizlink.co.za',
+          ramone: {
+            email: 'ramone@verifiedbizlink.co.za',
             password: 'TestPass123!',
             role: 'admin',
           },

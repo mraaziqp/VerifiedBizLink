@@ -1,6 +1,6 @@
 /**
  * Grade Document Endpoint
- * Allows admins (Ramoen, Wesley) to grade verification documents
+ * Allows admins (Ramone, Wesley) to grade verification documents
  */
 
 import { NextRequest, NextResponse } from 'next/server';

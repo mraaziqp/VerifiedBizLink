@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard } from 'lucide-react';
 import Link from 'next/link';
 import { AdminBackground, AdminCard, AdminPageHeader, StatCard } from '@/components/admin/ui';
 
@@ -78,6 +78,7 @@ export default function AdminDashboard() {
 
   const adminTools: AdminTool[] = [
     { id: 'business-vetting', name: 'Business Vetting Desk', description: 'Review and grade business documents, manage verification status', icon: FileText, href: '/admin/vetting', color: 'from-blue-500 to-cyan-500', badge: statsLoading ? undefined : `${stats?.pendingBusinesses ?? 0} pending` },
+    { id: 'payment-gateway', name: 'Payment Gateway', description: 'PayFast transactions, revenue, and payment status', icon: CreditCard, href: '/admin/payments', color: 'from-yellow-500 to-amber-500' },
     { id: 'user-management', name: 'User Management', description: 'Manage all users, roles, permissions, and access', icon: Users, href: '/admin/users', color: 'from-purple-500 to-pink-500', badge: statsLoading ? undefined : `${fmt(stats?.totalUsers)} users` },
     { id: 'platform-analytics', name: 'Platform Analytics', description: 'View platform metrics, traffic, and performance data', icon: BarChart3, href: '/admin/analytics', color: 'from-orange-500 to-yellow-500', badge: 'Live' },
     { id: 'network-monitoring', name: 'Network Status', description: 'Monitor system health, uptime, and performance', icon: Zap, href: '/admin/network', color: 'from-red-500 to-rose-500' },

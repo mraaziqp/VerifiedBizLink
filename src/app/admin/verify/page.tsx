@@ -189,7 +189,7 @@ export default function AdminVerificationPortal() {
 
                     {isAdmin && !isCurrentUser && (
                       <div className="pt-4 border-t border-gray-700">
-                        <p className="text-xs text-gray-400 mb-2">To test as Ramoen:</p>
+                        <p className="text-xs text-gray-400 mb-2">To test as Ramone:</p>
                         <div className="bg-gray-900/50 p-2 rounded text-xs font-mono text-gray-300">
                           {adminUser.email}
                         </div>
@@ -221,27 +221,27 @@ export default function AdminVerificationPortal() {
                 <thead>
                   <tr className="border-b border-gray-700 bg-gray-900/50">
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-300">Tool / Feature</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-300">Ramoen (Admin)</th>
+                    <th className="px-4 py-3 text-center text-sm font-semibold text-gray-300">Ramone (Admin)</th>
                     <th className="px-4 py-3 text-center text-sm font-semibold text-gray-300">Wesley (Banker)</th>
                     <th className="px-4 py-3 text-center text-sm font-semibold text-gray-300">Customers</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[
-                    { tool: 'Business Verification', ramoen: true, wesley: false, customer: false },
-                    { tool: 'Vetting Queue', ramoen: true, wesley: true, customer: false },
-                    { tool: 'User Management', ramoen: true, wesley: false, customer: false },
-                    { tool: 'Platform Analytics', ramoen: true, wesley: false, customer: false },
-                    { tool: 'Network Status', ramoen: true, wesley: false, customer: false },
-                    { tool: 'Settings', ramoen: true, wesley: false, customer: false },
-                    { tool: 'Legal Compliance', ramoen: true, wesley: true, customer: false },
-                    { tool: 'Team Management', ramoen: true, wesley: true, customer: false },
-                    { tool: 'Dashboard', ramoen: true, wesley: true, customer: false },
+                    { tool: 'Business Verification', ramone: true, wesley: false, customer: false },
+                    { tool: 'Vetting Queue', ramone: true, wesley: true, customer: false },
+                    { tool: 'User Management', ramone: true, wesley: false, customer: false },
+                    { tool: 'Platform Analytics', ramone: true, wesley: false, customer: false },
+                    { tool: 'Network Status', ramone: true, wesley: false, customer: false },
+                    { tool: 'Settings', ramone: true, wesley: false, customer: false },
+                    { tool: 'Legal Compliance', ramone: true, wesley: true, customer: false },
+                    { tool: 'Team Management', ramone: true, wesley: true, customer: false },
+                    { tool: 'Dashboard', ramone: true, wesley: true, customer: false },
                   ].map((row, idx) => (
                     <tr key={idx} className="border-b border-gray-700/50 hover:bg-gray-800/30 transition">
                       <td className="px-4 py-3 text-sm text-white font-medium">{row.tool}</td>
                       <td className="px-4 py-3 text-center">
-                        {row.ramoen ? (
+                        {row.ramone ? (
                           <CheckCircle className="h-5 w-5 text-green-400 mx-auto" />
                         ) : (
                           <XCircle className="h-5 w-5 text-red-400 mx-auto" />
@@ -279,14 +279,14 @@ export default function AdminVerificationPortal() {
               <strong>Getting "Access Denied"?</strong>
             </p>
             <ul className="list-disc list-inside space-y-2 ml-2">
-              <li>Make sure you're logged in with the correct email (ramoen@ or wesley@)</li>
-              <li>Check that your full name includes "Ramoen" or "Wesley"</li>
+              <li>Make sure you're logged in with the correct email (ramone@ or wesley@)</li>
+              <li>Check that your full name includes "Ramone" or "Wesley"</li>
               <li>Try clearing browser cache and logging in again</li>
               <li>Super admin (you) should always have full access</li>
             </ul>
 
             <p className="pt-4">
-              <strong>Want to test as Ramoen or Wesley?</strong>
+              <strong>Want to test as Ramone or Wesley?</strong>
             </p>
             <ul className="list-disc list-inside space-y-2 ml-2">
               <li>Create test accounts with their emails</li>

@@ -28,7 +28,7 @@ export function AuditLogs() {
       {
         id: '1',
         timestamp: '2026-06-09 18:45:23',
-        user: 'ramoen@verifiedbizlink.co.za',
+        user: 'ramone@verifiedbizlink.co.za',
         action: 'post_deleted',
         resource: 'Post',
         resourceId: 'post_12345',
@@ -72,7 +72,7 @@ export function AuditLogs() {
       {
         id: '5',
         timestamp: '2026-06-09 18:30:05',
-        user: 'ramoen@verifiedbizlink.co.za',
+        user: 'ramone@verifiedbizlink.co.za',
         action: 'comment_updated',
         resource: 'Comment',
         resourceId: 'comment_67890',
