@@ -18,8 +18,8 @@ import { hash } from 'bcryptjs';
 const adminAccounts = [
   {
     id: '550e8400-e29b-41d4-a716-446655440001',
-    email: 'ramoen@verifiedbizlink.co.za',
-    fullName: 'Ramoen - Lead Admin',
+    email: 'ramone@verifiedbizlink.co.za',
+    fullName: 'Ramone - Lead Admin',
     role: 'admin',
     description: 'Admin - All vetting and verification tools',
   },
@@ -91,8 +91,8 @@ export async function POST(request: NextRequest) {
         admins_created: results.filter((r) => r.status === 'created').length,
         results,
         credentials: {
-          ramoen: {
-            email: 'ramoen@verifiedbizlink.co.za',
+          ramone: {
+            email: 'ramone@verifiedbizlink.co.za',
             role: 'admin',
             access: 'All vetting and verification tools',
             password: 'Admin@123',
