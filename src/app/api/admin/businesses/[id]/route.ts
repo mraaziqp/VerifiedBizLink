@@ -65,7 +65,7 @@ export async function PUT(
       await db`
         INSERT INTO notifications (user_id, type, title, content)
         VALUES (${updated[0].user_id}, ${'vetting_update'}, 'Vetting update', ${message})
-      `.catch(() => {}); // non-fatal
+      `.catch((err) => console.error('Vetting status notification failed:', err)); // non-fatal
     }
 
     return NextResponse.json({ business: updated[0] });

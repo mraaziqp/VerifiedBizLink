@@ -1,4 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession } from '@/lib/auth';
+import db from '@/lib/db';
+
+const STATUS_QUERY_PATTERNS = [
+  "where am i", "my status", "verification status", "my verification",
+  "check my status", "check my verification", "queue", "ticket number",
+  "how long will", "when will i be verified", "am i verified",
+];
+
+async function findVerificationStatusResponse(): Promise<string | null> {
+  const session = await getSession();
+  if (!session) {
+    return "You'll need to be logged in for me to look up your verification status — [sign in here](/login) and ask me again.";
+  }
+
+  const rows = await db`
+    SELECT id, company_name, status, submitted_at, trust_score
+    FROM businesses WHERE user_id = ${session.id} LIMIT 1
+  `;
+
+  if (rows.length === 0) {
+    return "I don't see a business profile on your account yet. Head to the **Vetting Hub** to set one up and start the verification process.";
+  }
+
+  const biz = rows[0];
+  const ticketNumber = `VBL-${biz.id.slice(0, 8).toUpperCase()}`;
+
+  if (biz.status === 'verified') {
+    return `Great news — **${biz.company_name}** is fully **Verified** ✅ (Trust Score: ${biz.trust_score ?? 0}/100). Your Gold Verification badge is live on your public profile.`;
+  }
+  if (biz.status === 'rejected') {
+    return `Your submission for **${biz.company_name}** (Ticket ${ticketNumber}) needs attention — it was returned by our compliance team. Head to the **Vetting Hub** to review the feedback and resubmit your documents.`;
+  }
+  if (!biz.submitted_at || biz.status === 'unregistered') {
+    return `Looks like **${biz.company_name}** hasn't been submitted for verification yet. Upload your documents in the **Vetting Hub** and click "Submit for Vetting" to join the queue.`;
+  }
+
+  const [queueRow] = await db`
+    SELECT
+      (SELECT COUNT(*) FROM businesses WHERE status IN ('pending', 'reviewing') AND submitted_at <= ${biz.submitted_at}) AS position,
+      (SELECT COUNT(*) FROM businesses WHERE status IN ('pending', 'reviewing')) AS total
+  `;
+  const position = parseInt(queueRow.position);
+  const total = parseInt(queueRow.total);
+  const submittedDate = new Date(biz.submitted_at).toLocaleDateString();
+
+  return `Here's where you stand:\n\n**${biz.company_name}** — Ticket **${ticketNumber}**\nStatus: **${biz.status === 'reviewing' ? 'Under Review' : 'Pending Review'}**\nQueue position: **#${position} of ${total}**\nSubmitted: ${submittedDate}\n\nVerification typically takes 3–7 business days once review starts. You'll get a notification the moment your status changes.`;
+}
+
+function isStatusQuery(query: string): boolean {
+  const q = query.toLowerCase();
+  return STATUS_QUERY_PATTERNS.some((p) => q.includes(p));
+}
 
 // Fallback FAQ knowledge base (used when AI isn't available)
 const FAQ: Array<{ patterns: string[]; response: string }> = [
@@ -8,7 +61,7 @@ const FAQ: Array<{ patterns: string[]; response: string }> = [
   },
   {
     patterns: ["verify", "verification", "vetting", "gold badge", "get verified", "trust badge", "checkmark", "verified"],
-    response: "To get your business **Gold Verification badge**, go to the **Vetting Hub** in the navigation.\n\nYou'll need to upload 5 documents:\n• CIPC Registration Certificate\n• VAT Compliance Letter\n• Identity Proof of Directors\n• Proof of Bank Account\n• Proof Business Exists\n\nVerification takes **3–7 business days** after submission.",
+    response: "To get your business **Gold Verification badge**, go to the **Vetting Hub** in the navigation.\n\nYou'll need to upload 4 documents:\n• CIPC Registration Certificate\n• Identity Proof of Directors\n• Proof of Bank Account\n• Proof of Operating Address\n\nVerification takes **3–7 business days** after submission. Already submitted? Ask me \"where am I in the verification process\" and I'll pull your live status.",
   },
   {
     patterns: ["upload", "document", "docs", "file", "cipc", "vat", "id proof", "bank letter", "letterhead"],
@@ -52,7 +105,12 @@ export async function POST(request: NextRequest) {
     // Try to use AI if available, otherwise fall back to FAQ
     let responseText: string;
 
-    if (process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY) {
+    if (isStatusQuery(message)) {
+      responseText = (await findVerificationStatusResponse().catch((err) => {
+        console.error('Chat status lookup failed:', err);
+        return null;
+      })) ?? "I couldn't look up your verification status just now — please try again shortly, or check the Vetting Hub directly.";
+    } else if (process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY) {
       try {
         const { ai } = await import('@/ai/genkit');
         const SYSTEM_PROMPT = `You are the VBL Assistant for VerifiedBizLink — South Africa's B2B verification network.

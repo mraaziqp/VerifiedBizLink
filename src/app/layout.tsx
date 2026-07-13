@@ -8,6 +8,7 @@ import { ChatWidget } from '@/components/chatbot/chat-widget';
 import MessagesWidget from '@/components/chat/chat-widget';
 import { EmailVerificationBanner } from '@/components/ui/email-verification-banner';
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register';
+import { PwaInstallPrompt } from '@/components/pwa/install-prompt';
 
 export const metadata: Metadata = {
   title: 'VerifiedBizLink | Connecting You to Trusted Businesses',
@@ -53,6 +54,7 @@ export default function RootLayout({
         <AuthProvider>
           <ServiceWorkerRegister />
           <EmailVerificationBanner />
+          <PwaInstallPrompt />
           <div className="pb-20 lg:pb-0">
             {children}
           </div>

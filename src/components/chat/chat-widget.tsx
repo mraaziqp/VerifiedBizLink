@@ -1,14 +1,16 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, X, Send, Phone, Mail, Search, Plus, Settings } from 'lucide-react';
+import { MessageCircle, X, Send, Mail, Search, Plus, Settings, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
+import { compressImage, fetchWithTimeout } from '@/lib/image-compress';
 
 interface Message {
   id: string;
   sender_id: string;
   receiver_id: string;
   content: string;
+  image_url?: string | null;
   created_at: string;
   read: boolean;
 }
@@ -33,6 +35,8 @@ export default function ChatWidget() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
@@ -117,46 +121,72 @@ export default function ChatWidget() {
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation) return;
-    const content = newMessage.trim();
-    setNewMessage('');
-    
-    // Create optimistic message
+  const sendPayload = async (content: string, imageUrl: string | null) => {
+    if (!selectedConversation) return;
+
     const tempId = `optimistic-${Date.now()}`;
     const optimisticMsg: Message = {
       id: tempId,
       sender_id: user?.id || '',
       receiver_id: selectedConversation.participant_id,
       content,
+      image_url: imageUrl,
       created_at: new Date().toISOString(),
       read: false,
     };
-    
-    // Append optimistically
+
     setMessages((prev) => [...prev, optimisticMsg]);
     setLoading(true);
-    
+
     try {
       const res = await fetch('/api/messages/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receiver_id: selectedConversation.participant_id, content }),
+        body: JSON.stringify({ receiver_id: selectedConversation.participant_id, content, image_url: imageUrl }),
       });
       if (res.ok) {
         const data = await res.json();
-        // Replace optimistic message with actual db message
         setMessages((prev) => prev.map((m) => m.id === tempId ? data.message : m));
       } else {
         setMessages((prev) => prev.filter((m) => m.id !== tempId));
-        setNewMessage(content); // restore input
+        if (content) setNewMessage(content);
       }
     } catch (error) {
       console.error('Error sending message:', error);
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      setNewMessage(content);
+      if (content) setNewMessage(content);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation) return;
+    const content = newMessage.trim();
+    setNewMessage('');
+    await sendPayload(content, null);
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !selectedConversation) return;
+
+    setUploadingImage(true);
+    try {
+      const compressed = await compressImage(file, { maxDim: 1600, quality: 0.82 });
+      const formData = new FormData();
+      formData.append('file', compressed);
+      formData.append('bucket', 'messages');
+
+      const res = await fetchWithTimeout('/api/media/upload', { method: 'POST', body: formData }, 45000);
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      await sendPayload('', data.url);
+    } catch (error) {
+      console.error('Error uploading chat image:', error);
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -358,12 +388,15 @@ export default function ChatWidget() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    <button className="p-1 hover:bg-slate-700 rounded transition">
-                      <Phone className="h-4 w-4 text-slate-400 hover:text-yellow-400" />
-                    </button>
-                    <button className="p-1 hover:bg-slate-700 rounded transition">
-                      <Mail className="h-4 w-4 text-slate-400 hover:text-yellow-400" />
-                    </button>
+                    {selectedConversation.participant_email && (
+                      <a
+                        href={`mailto:${selectedConversation.participant_email}`}
+                        className="p-1 hover:bg-slate-700 rounded transition"
+                        title={`Email ${selectedConversation.participant_name}`}
+                      >
+                        <Mail className="h-4 w-4 text-slate-400 hover:text-yellow-400" />
+                      </a>
+                    )}
                   </div>
                 </div>
 
@@ -377,9 +410,18 @@ export default function ChatWidget() {
                         msg.sender_id === user?.id
                           ? 'bg-yellow-500 text-slate-950 rounded-l-xl rounded-tr-xl px-4 py-2 shadow-sm'
                           : 'bg-slate-800 text-slate-100 rounded-r-xl rounded-tl-xl px-4 py-2 border border-slate-700'
-                      }`}
+                      } ${msg.image_url ? '!p-1.5' : ''}`}
                     >
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      {msg.image_url && (
+                        <img
+                          src={msg.image_url}
+                          alt="Shared photo"
+                          className="rounded-lg max-w-full max-h-52 object-cover"
+                        />
+                      )}
+                      {msg.content && (
+                        <p className={`text-sm whitespace-pre-wrap ${msg.image_url ? 'px-1.5 pt-1.5' : ''}`}>{msg.content}</p>
+                      )}
                     </div>
                     <span className="text-[10px] text-slate-400 mt-1 mb-2 px-1">
                       {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -391,6 +433,23 @@ export default function ChatWidget() {
 
               {/* Message Input */}
               <div className="p-4 border-t border-slate-700 flex gap-2">
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  disabled={uploadingImage}
+                  className="hidden"
+                  aria-label="Send image"
+                />
+                <button
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={uploadingImage}
+                  className="bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-slate-300 rounded px-3 py-2 transition"
+                  title="Send an image"
+                >
+                  {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                </button>
                 <input
                   type="text"
                   value={newMessage}

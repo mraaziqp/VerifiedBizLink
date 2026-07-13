@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, Suspense } from 'react';
 import {
-  ArrowLeft, Send, Search, Plus, MessageCircle, Loader2,
+  ArrowLeft, Send, Search, Plus, MessageCircle, Loader2, Image as ImageIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,12 +12,14 @@ import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { GlassBackground, glassInteractive } from '@/components/shared/glass-ui';
+import { compressImage, fetchWithTimeout } from '@/lib/image-compress';
 
 interface Message {
   id: string;
   sender_id: string;
   receiver_id: string;
   content: string;
+  image_url?: string | null;
   read: boolean;
   created_at: string;
 }
@@ -45,8 +47,10 @@ function MessagesPageInner() {
   const [loadingThread, setLoadingThread] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [sending, setSending] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!authLoading && !user) router.push('/login');
@@ -130,20 +134,17 @@ function MessagesPageInner() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedId || sending) return;
-    const content = newMessage.trim();
-    setSending(true);
+  const sendPayload = async (content: string, imageUrl: string | null) => {
+    if (!selectedId) return;
     try {
       const res = await fetch('/api/messages/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ receiver_id: selectedId, content }),
+        body: JSON.stringify({ receiver_id: selectedId, content, image_url: imageUrl }),
       });
       if (res.ok) {
         const data = await res.json();
         setMessages((prev) => [...prev, data.message]);
-        setNewMessage('');
         fetchConversations();
       } else {
         const data = await res.json().catch(() => ({}));
@@ -151,8 +152,41 @@ function MessagesPageInner() {
       }
     } catch {
       toast({ title: 'Message not sent', description: 'Could not reach the server.', variant: 'destructive' });
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !selectedId || sending) return;
+    const content = newMessage.trim();
+    setSending(true);
+    try {
+      setNewMessage('');
+      await sendPayload(content, null);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !selectedId) return;
+
+    setUploadingImage(true);
+    try {
+      const compressed = await compressImage(file, { maxDim: 1600, quality: 0.82 });
+      const formData = new FormData();
+      formData.append('file', compressed);
+      formData.append('bucket', 'messages');
+
+      const res = await fetchWithTimeout('/api/media/upload', { method: 'POST', body: formData }, 45000);
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      await sendPayload('', data.url);
+    } catch {
+      toast({ title: 'Could not send image', variant: 'destructive' });
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -296,9 +330,14 @@ function MessagesPageInner() {
                         msg.sender_id === user?.id
                           ? 'bg-gradient-to-r from-yellow-600 to-yellow-400 text-slate-950'
                           : 'bg-slate-800/80 backdrop-blur-sm text-slate-100'
-                      }`}>
-                        <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                        <p className={`text-xs mt-1 ${msg.sender_id === user?.id ? 'text-slate-800' : 'text-slate-400'}`}>
+                      } ${msg.image_url ? '!p-1.5' : ''}`}>
+                        {msg.image_url && (
+                          <img src={msg.image_url} alt="Shared photo" className="rounded-md max-w-full max-h-60 object-cover" />
+                        )}
+                        {msg.content && (
+                          <p className={`text-sm whitespace-pre-wrap break-words ${msg.image_url ? 'px-1.5 pt-1.5' : ''}`}>{msg.content}</p>
+                        )}
+                        <p className={`text-xs mt-1 ${msg.image_url ? 'px-1.5' : ''} ${msg.sender_id === user?.id ? 'text-slate-800' : 'text-slate-400'}`}>
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -308,6 +347,25 @@ function MessagesPageInner() {
               </div>
 
               <div className="p-4 border-t border-white/5 flex gap-2">
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  disabled={uploadingImage}
+                  className="hidden"
+                  aria-label="Send image"
+                />
+                <Button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={uploadingImage}
+                  variant="outline"
+                  className={`border-white/10 text-slate-300 hover:bg-white/5 ${glassInteractive}`}
+                  title="Send an image"
+                >
+                  {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
+                </Button>
                 <input
                   type="text"
                   value={newMessage}

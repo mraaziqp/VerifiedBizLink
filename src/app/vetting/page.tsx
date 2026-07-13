@@ -44,6 +44,7 @@ interface Business {
   submitted_at: string | null;
   trust_score?: number;
   documents?: Document[];
+  queue?: { ticketNumber: string; position: number; total: number } | null;
 }
 
 const REQUIRED_DOCS = [
@@ -363,6 +364,18 @@ export default function VettingPage() {
                       </div>
                       <Progress value={progressValue} className="h-2.5 bg-gray-100" />
                     </div>
+                    {business?.queue && (
+                      <div className="p-4 bg-yellow-50 rounded-2xl border border-dashed border-yellow-300 flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs text-yellow-700 font-bold uppercase tracking-wider">Verification Queue</span>
+                          <span className="text-sm font-mono font-bold text-gray-900">Ticket {business.queue.ticketNumber}</span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-primary leading-none">#{business.queue.position}</p>
+                          <p className="text-xs text-gray-500 mt-1">of {business.queue.total} in queue</p>
+                        </div>
+                      </div>
+                    )}
                     {business && (
                       <div className="grid grid-cols-2 gap-3">
                         <div className="p-4 bg-gray-50 rounded-2xl border border-dashed flex flex-col gap-1">

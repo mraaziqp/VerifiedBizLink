@@ -26,7 +26,22 @@ export async function GET(request: NextRequest) {
       ORDER BY uploaded_at DESC
     `;
 
-    return NextResponse.json({ business: { ...business[0], documents: docs } });
+    let queue: { ticketNumber: string; position: number; total: number } | null = null;
+    const biz = business[0];
+    if (['pending', 'reviewing'].includes(biz.status) && biz.submitted_at) {
+      const [queueRow] = await db`
+        SELECT
+          (SELECT COUNT(*) FROM businesses WHERE status IN ('pending', 'reviewing') AND submitted_at <= ${biz.submitted_at}) AS position,
+          (SELECT COUNT(*) FROM businesses WHERE status IN ('pending', 'reviewing')) AS total
+      `;
+      queue = {
+        ticketNumber: `VBL-${biz.id.slice(0, 8).toUpperCase()}`,
+        position: parseInt(queueRow.position),
+        total: parseInt(queueRow.total),
+      };
+    }
+
+    return NextResponse.json({ business: { ...biz, documents: docs, queue } });
   } catch (error) {
     console.error('Business GET error:', error);
     return NextResponse.json({ error: 'Failed to fetch business' }, { status: 500 });

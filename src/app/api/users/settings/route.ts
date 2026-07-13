@@ -10,12 +10,17 @@ export async function PUT(request: NextRequest) {
 
     const { fullName, headline, location, bio, phone, avatarUrl, currentPassword, newPassword } = await request.json();
 
+    const current = await db`
+      SELECT password_hash, full_name, headline, location, bio, phone, avatar_url
+      FROM users WHERE id = ${session.id}
+    `;
+    if (!current.length) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
     if (newPassword) {
       if (!currentPassword) {
         return NextResponse.json({ error: 'Current password required' }, { status: 400 });
       }
-      const user = await db`SELECT password_hash FROM users WHERE id = ${session.id}`;
-      const valid = await compare(currentPassword, user[0].password_hash);
+      const valid = await compare(currentPassword, current[0].password_hash);
       if (!valid) {
         return NextResponse.json({ error: 'Current password incorrect' }, { status: 400 });
       }
@@ -23,14 +28,17 @@ export async function PUT(request: NextRequest) {
       await db`UPDATE users SET password_hash = ${newHash}, updated_at = NOW() WHERE id = ${session.id}`;
     }
 
+    // Only overwrite a field when the caller actually sent it — otherwise
+    // a request that only changes the password (or only the headline) would
+    // silently blank out the fields it didn't mention.
     const updated = await db`
       UPDATE users SET
-        full_name = ${fullName || session.fullName},
-        headline = ${headline || session.headline},
-        location = ${location || ''},
-        bio = ${bio || ''},
-        phone = ${phone || ''},
-        avatar_url = ${avatarUrl || session.avatarUrl},
+        full_name = ${fullName !== undefined ? fullName : current[0].full_name},
+        headline = ${headline !== undefined ? headline : current[0].headline},
+        location = ${location !== undefined ? location : current[0].location},
+        bio = ${bio !== undefined ? bio : current[0].bio},
+        phone = ${phone !== undefined ? phone : current[0].phone},
+        avatar_url = ${avatarUrl !== undefined ? avatarUrl : current[0].avatar_url},
         updated_at = NOW()
       WHERE id = ${session.id}
       RETURNING id, email, full_name, role, avatar_url, headline, email_verified

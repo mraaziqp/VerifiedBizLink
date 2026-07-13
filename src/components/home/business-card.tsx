@@ -4,6 +4,7 @@ import { Shield, ChevronRight, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RatingSummary } from "@/components/ui/star-rating";
+import { GoldCheckmark } from "@/components/ui/gold-checkmark";
 import { HomeBusiness } from "@/components/home/types";
 
 interface BusinessCardProps {
@@ -39,7 +40,10 @@ export function BusinessCard({
             <AvatarFallback className="bg-primary/10 text-primary font-bold">{initials}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <h3 className="font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1">{business.displayName}</h3>
+            <h3 className="font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1 flex items-center gap-1">
+              <span className="line-clamp-1">{business.displayName}</span>
+              <GoldCheckmark />
+            </h3>
             <p className="text-xs text-foreground/60 line-clamp-1">{business.headline || business.companyName || "Verified Business"}</p>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { Shield, TrendingUp, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RatingSummary } from "@/components/ui/star-rating";
+import { GoldCheckmark } from "@/components/ui/gold-checkmark";
 import { HomeBusiness } from "@/components/home/types";
 
 interface FeaturedBusinessesProps {
@@ -72,8 +73,9 @@ export function FeaturedBusinesses({
                   </Avatar>
 
                   <div className="min-w-0">
-                    <h4 className="font-bold text-foreground group-hover:text-primary transition-colors truncate">
-                      {business.displayName}
+                    <h4 className="font-bold text-foreground group-hover:text-primary transition-colors truncate flex items-center gap-1">
+                      <span className="truncate">{business.displayName}</span>
+                      <GoldCheckmark />
                     </h4>
                     <p className="text-xs text-foreground/60 mt-0.5 truncate">{business.industry || "General Services"}</p>
                   </div>

@@ -4,13 +4,17 @@ import { useState } from "react";
 import { Mail, X, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 
+const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
+
 export function EmailVerificationBanner() {
   const { user } = useAuth();
   const [dismissed, setDismissed] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
-  if (!user || (user as { emailVerified?: boolean }).emailVerified || dismissed) return null;
+  const isStaff = !!user && STAFF_ROLES.includes((user as { role?: string }).role ?? '');
+
+  if (!user || isStaff || (user as { emailVerified?: boolean }).emailVerified || dismissed) return null;
 
   const handleResend = async () => {
     setSending(true);

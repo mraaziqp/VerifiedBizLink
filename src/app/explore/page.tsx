@@ -23,6 +23,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { GoldCheckmark } from '@/components/ui/gold-checkmark';
 
 interface Business {
   id: string;
@@ -378,8 +379,9 @@ export default function ExplorePage() {
                   </div>
 
                   {/* Company Info */}
-                  <h3 className="text-lg font-bold text-white mb-1 group-hover:text-yellow-400 transition-colors line-clamp-2">
-                    {business.company_name}
+                  <h3 className="text-lg font-bold text-white mb-1 group-hover:text-yellow-400 transition-colors line-clamp-2 flex items-center gap-1.5">
+                    <span className="line-clamp-2">{business.company_name}</span>
+                    {business.status === 'verified' && <GoldCheckmark />}
                   </h3>
                   <p className="text-xs font-medium text-slate-400 mb-3">
                     {business.industry.charAt(0).toUpperCase() + business.industry.slice(1)}
@@ -473,8 +475,9 @@ export default function ExplorePage() {
                         {INDUSTRY_ICONS[business.industry] || '💼'}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-bold text-white mb-1 group-hover:text-yellow-400 transition-colors line-clamp-1">
-                          {business.company_name}
+                        <h3 className="text-lg font-bold text-white mb-1 group-hover:text-yellow-400 transition-colors line-clamp-1 flex items-center gap-1.5">
+                          <span className="line-clamp-1">{business.company_name}</span>
+                          {business.status === 'verified' && <GoldCheckmark />}
                         </h3>
                         <p className="text-sm text-slate-400 mb-2 line-clamp-1">{business.address}</p>
                         <div className="flex flex-wrap gap-3">

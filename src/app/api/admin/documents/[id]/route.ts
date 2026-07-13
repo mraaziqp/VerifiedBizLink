@@ -92,7 +92,7 @@ export async function PATCH(
         await db`
           INSERT INTO notifications (user_id, type, title, content)
           VALUES (${biz.user_id}, 'document_graded', 'Document reviewed', ${message})
-        `.catch(() => {});
+        `.catch((err) => console.error('Document review notification failed:', err));
       }
     }
 

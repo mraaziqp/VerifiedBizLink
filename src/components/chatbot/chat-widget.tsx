@@ -86,6 +86,7 @@ const FAQ: Array<{ patterns: string[]; response: string }> = [
 
 // Quick reply chips shown before the user's first message
 const QUICK_REPLIES = [
+  { label: "Check my status 🎫", text: "Where am I in the verification process?" },
   { label: "Get verified 🏅", text: "How do I get my business verified?" },
   { label: "Leave a review ⭐", text: "How do I leave a review for a business?" },
   { label: "Upload docs 📄", text: "How do I upload my verification documents?" },

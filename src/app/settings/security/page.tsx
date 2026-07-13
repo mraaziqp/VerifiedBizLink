@@ -20,14 +20,19 @@ export default function SecuritySettingsPage() {
       return;
     }
 
+    if (!passwordForm.currentPassword || !passwordForm.newPassword) {
+      setMessage('Enter your current and new password');
+      return;
+    }
+
     try {
       setIsSaving(true);
-      const response = await fetch('/api/admin/settings', {
-        method: 'POST',
+      const response = await fetch('/api/users/settings', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           currentPassword: passwordForm.currentPassword,
-          password: passwordForm.newPassword,
+          newPassword: passwordForm.newPassword,
         }),
       });
 

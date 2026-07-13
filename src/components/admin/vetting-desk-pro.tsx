@@ -196,9 +196,9 @@ export function VettingDeskPro() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-6">
       {/* Header Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="text-3xl font-bold text-yellow-600">{stats.pending}</div>
@@ -269,8 +269,8 @@ export function VettingDeskPro() {
 
       {/* Business List */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="overflow-x-auto">
+        <CardContent className="pt-6 px-2 sm:px-6">
+          <div className="overflow-x-auto -mx-2 sm:mx-0">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -311,7 +311,7 @@ export function VettingDeskPro() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">
-                      {new Date(business.submitted_at).toLocaleDateString()}
+                      {business.submitted_at ? new Date(business.submitted_at).toLocaleDateString() : 'Not submitted'}
                     </TableCell>
                     <TableCell>
                       <Button

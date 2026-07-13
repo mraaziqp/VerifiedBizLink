@@ -23,11 +23,11 @@ export default function ProfileSettingsPage() {
   const loadProfileData = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/auth/me');
+      const response = await fetch('/api/users/profile');
       if (response.ok) {
         const user = await response.json();
         setProfileData({
-          fullName: user.full_name || '',
+          fullName: user.fullName || '',
           email: user.email || '',
           phone: user.phone || '',
           location: user.location || '',
@@ -45,12 +45,11 @@ export default function ProfileSettingsPage() {
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      const response = await fetch('/api/admin/settings', {
-        method: 'POST',
+      const response = await fetch('/api/users/settings', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: profileData.fullName,
-          email: profileData.email,
           phone: profileData.phone,
           location: profileData.location,
           headline: profileData.headline,
@@ -60,6 +59,9 @@ export default function ProfileSettingsPage() {
 
       if (response.ok) {
         alert('Profile updated successfully!');
+      } else {
+        const error = await response.json().catch(() => ({}));
+        alert(error.error || 'Failed to save profile');
       }
     } catch (error) {
       alert('Failed to save profile');
@@ -122,11 +124,10 @@ export default function ProfileSettingsPage() {
               <input
                 type="email"
                 value={profileData.email}
-                onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                className="w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
-                placeholder="your@email.com"
+                disabled
+                className="w-full rounded-lg border border-gray-700 bg-gray-800/50 px-4 py-3 text-gray-400 cursor-not-allowed"
               />
-              <p className="mt-2 text-sm text-gray-500">We'll send a verification link if you change this.</p>
+              <p className="mt-2 text-sm text-gray-500">This is your login email and can't be changed here.</p>
             </div>
 
             {/* Phone */}

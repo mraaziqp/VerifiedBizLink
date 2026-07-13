@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     // ── Thread view ────────────────────────────────────────────────
     if (withUser) {
       const messages = await db`
-        SELECT id, sender_id, receiver_id, content, read, created_at
+        SELECT id, sender_id, receiver_id, content, image_url, read, created_at
         FROM messages
         WHERE (sender_id = ${session.id} AND receiver_id = ${withUser})
            OR (sender_id = ${withUser} AND receiver_id = ${session.id})
@@ -48,17 +48,17 @@ export async function GET(request: NextRequest) {
         other.email       AS participant_email,
         other.role        AS participant_type,
         other.avatar_url  AS participant_avatar,
-        latest.content    AS last_message,
+        CASE WHEN latest.content = '' AND latest.image_url IS NOT NULL THEN '📷 Photo' ELSE latest.content END AS last_message,
         latest.created_at AS last_message_time,
         (SELECT COUNT(*) FROM messages m
           WHERE m.sender_id = other.id AND m.receiver_id = ${session.id} AND m.read = FALSE
         )::int             AS unread_count
       FROM (
-        SELECT DISTINCT ON (other_id) other_id, content, created_at
+        SELECT DISTINCT ON (other_id) other_id, content, image_url, created_at
         FROM (
           SELECT
             CASE WHEN sender_id = ${session.id} THEN receiver_id ELSE sender_id END AS other_id,
-            content, created_at
+            content, image_url, created_at
           FROM messages
           WHERE sender_id = ${session.id} OR receiver_id = ${session.id}
         ) paired
