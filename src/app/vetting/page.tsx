@@ -48,10 +48,9 @@ interface Business {
 
 const REQUIRED_DOCS = [
   { name: "CIPC Registration Certificate", docType: "cipc" },
-  { name: "VAT Compliance Letter", docType: "vat" },
   { name: "Identity Proof of Directors", docType: "id_proof" },
   { name: "Proof of Bank Account (Bank Letter / Statement)", docType: "bank_proof" },
-  { name: "Proof Business Exists (Letterhead / Lease / Utility Bill)", docType: "business_proof" },
+  { name: "Proof of Operating Address (Letterhead / Lease / Utility Bill)", docType: "business_proof" },
 ];
 
 export default function VettingPage() {

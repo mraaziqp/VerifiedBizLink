@@ -26,9 +26,24 @@ const PUBLIC_PREFIXES = [
   '/api/chat',
   '/api/explore/',
   '/api/ads', // AdBanner renders on every page, including public ones for anonymous visitors
+  '/api/payfast/notify', // PayFast's server calls this webhook directly — it has no user session cookie
   '/_next/',
   '/favicon',
 ];
+
+// Mutating requests to these API prefixes are blocked until the account's
+// email is verified — staff accounts (admin/banker/lawyer) are exempt since
+// they're provisioned directly, not through the public signup+verify flow.
+const VERIFIED_ONLY_PREFIXES = [
+  '/api/posts',
+  '/api/comments',
+  '/api/messages',
+  '/api/connections',
+  '/api/business/',
+  '/api/businesses',
+  '/api/media/upload',
+];
+const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 // A verified business's public trust profile (page + the API it reads from)
@@ -77,6 +92,30 @@ export async function middleware(request: NextRequest) {
       const { payload } = await jwtVerify(session.value, JWT_SECRET);
       if (!STAFF_ROLES.includes((payload as { role?: string }).role ?? '')) {
         return NextResponse.redirect(new URL('/', request.url));
+      }
+    } catch {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('from', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // Lock creation/write actions behind email verification. Staff accounts
+  // are provisioned directly (not through the public signup flow) and are
+  // exempt. Reads are never gated — only mutating requests.
+  if (
+    MUTATING_METHODS.includes(request.method) &&
+    VERIFIED_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  ) {
+    try {
+      const { payload } = await jwtVerify(session.value, JWT_SECRET);
+      const claims = payload as { role?: string; emailVerified?: boolean };
+      const isStaffUser = STAFF_ROLES.includes(claims.role ?? '');
+      if (!isStaffUser && !claims.emailVerified) {
+        return NextResponse.json(
+          { error: 'Please verify your email address to unlock this feature.' },
+          { status: 403 },
+        );
       }
     } catch {
       const loginUrl = new URL('/login', request.url);
