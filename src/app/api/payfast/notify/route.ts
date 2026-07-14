@@ -83,23 +83,35 @@ export async function POST(request: NextRequest) {
       WHERE reference = ${paymentRef}
     `.catch(err => console.log('Payment update note:', err.message));
 
-    // If payment successful, update ad status
+    // If payment successful, grant whatever was actually purchased
     if (dbStatus === 'completed') {
       const userId = payfastData.custom_str2 as string;
       const adId = payfastData.custom_str1 as string;
+      const purchaseType = (payfastData.custom_str3 as string) || 'ad_credits';
+      let grantMessage = `Your payment of R${payfastData.amount_gross} has been received`;
 
-      if (adId) {
+      if (purchaseType === 'ad_boost' && adId) {
         await db`
           UPDATE ads
-          SET status = 'active', budget_paid = TRUE, updated_at = NOW()
-          WHERE id = ${adId} AND user_id = ${userId}
+          SET is_boosted = TRUE, is_active = TRUE, boost_expires_at = NOW() + INTERVAL '7 days'
+          WHERE id = ${adId}
+            AND business_id IN (SELECT id FROM businesses WHERE user_id = ${userId})
         `.catch(err => console.log('Ad update note:', err.message));
+        grantMessage = 'Your ad has been boosted for 7 days — it will get priority placement.';
+      } else if (purchaseType === 'subscription_standard' || purchaseType === 'subscription_premium') {
+        const tier = purchaseType === 'subscription_premium' ? 'premium' : 'standard';
+        await db`
+          UPDATE businesses
+          SET package_type = ${tier}, updated_at = NOW()
+          WHERE user_id = ${userId}
+        `.catch(err => console.log('Subscription upgrade note:', err.message));
+        grantMessage = `Your business has been upgraded to the ${tier === 'premium' ? 'Premium' : 'Verified'} plan.`;
       }
 
       // Create notification
       await db`
         INSERT INTO notifications (user_id, type, title, content)
-        VALUES (${userId}, 'payment_success', 'Ad Payment Successful', ${`Your ad payment of R${payfastData.amount_gross} has been received`})
+        VALUES (${userId}, 'payment_success', 'Payment Successful', ${grantMessage})
       `.catch(err => console.log('Notification note:', err.message));
     }
 

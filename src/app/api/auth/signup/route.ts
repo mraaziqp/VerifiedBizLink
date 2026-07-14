@@ -1,9 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
+import { resolveMx } from 'dns/promises';
 import { createSession } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { sendVerificationEmail } from '@/lib/email';
 import db from '@/lib/db';
+
+const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Well-known disposable/temporary email providers — block these outright
+// rather than letting a throwaway inbox complete signup.
+const DISPOSABLE_DOMAINS = new Set([
+  'mailinator.com', 'guerrillamail.com', 'guerrillamail.info', '10minutemail.com',
+  'tempmail.com', 'temp-mail.org', 'yopmail.com', 'trashmail.com', 'throwawaymail.com',
+  'getnada.com', 'maildrop.cc', 'fakeinbox.com', 'sharklasers.com', 'dispostable.com',
+]);
+
+async function isRegistrableEmailDomain(email: string): Promise<boolean> {
+  const domain = email.split('@')[1]?.toLowerCase();
+  if (!domain) return false;
+  if (DISPOSABLE_DOMAINS.has(domain)) return false;
+  try {
+    const records = await resolveMx(domain);
+    return records.length > 0;
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
@@ -22,6 +45,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+    if (!EMAIL_FORMAT.test(normalizedEmail)) {
+      return NextResponse.json({ error: 'Enter a valid email address' }, { status: 400 });
+    }
+
+    if (!(await isRegistrableEmailDomain(normalizedEmail))) {
+      return NextResponse.json(
+        { error: "We couldn't verify that email domain accepts mail. Please use a real, permanent email address." },
+        { status: 400 },
+      );
+    }
+
     if (password.length < 8) {
       return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
     }
@@ -30,7 +65,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid account type' }, { status: 400 });
     }
 
-    const existing = await db`SELECT id FROM users WHERE email = ${email.toLowerCase().trim()} LIMIT 1`;
+    const existing = await db`SELECT id FROM users WHERE email = ${normalizedEmail} LIMIT 1`;
     if (existing.length > 0) {
       return NextResponse.json({ error: 'Email already registered' }, { status: 409 });
     }
@@ -46,7 +81,7 @@ export async function POST(request: NextRequest) {
     const newUsers = await db`
       INSERT INTO users (email, password_hash, full_name, role, headline, avatar_url, email_verification_token, email_verification_token_expires_at, date_of_birth)
       VALUES (
-        ${email.toLowerCase().trim()},
+        ${normalizedEmail},
         ${passwordHash},
         ${fullName},
         ${userRole},

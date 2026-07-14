@@ -6,10 +6,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Save, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, Facebook, Instagram, Linkedin, Youtube, MessageCircle, X, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { GlassBackground, glassInteractive } from '@/components/shared/glass-ui';
+import { ImageUploader } from '@/components/media/image-uploader';
+
+const SOCIAL_PLATFORMS: { key: string; label: string; placeholder: string; icon: any }[] = [
+  { key: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/yourbusiness', icon: Facebook },
+  { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/yourbusiness', icon: Instagram },
+  { key: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/company/yourbusiness', icon: Linkedin },
+  { key: 'twitter', label: 'X (Twitter)', placeholder: 'https://x.com/yourbusiness', icon: MessageCircle },
+  { key: 'tiktok', label: 'TikTok', placeholder: 'https://tiktok.com/@yourbusiness', icon: MessageCircle },
+  { key: 'youtube', label: 'YouTube', placeholder: 'https://youtube.com/@yourbusiness', icon: Youtube },
+  { key: 'whatsapp', label: 'WhatsApp Business', placeholder: '+27 XX XXX XXXX', icon: MessageCircle },
+];
 
 export default function BusinessProfilePage() {
   const { toast } = useToast();
@@ -23,6 +34,11 @@ export default function BusinessProfilePage() {
     phone: '',
     address: '',
   });
+  const [socialLinks, setSocialLinks] = useState<Record<string, string>>({});
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [tagline, setTagline] = useState('');
+  const [highlights, setHighlights] = useState<string[]>([]);
+  const [newHighlight, setNewHighlight] = useState('');
 
   useEffect(() => {
     fetch('/api/business/profile')
@@ -38,11 +54,28 @@ export default function BusinessProfilePage() {
             phone: biz.phone || '',
             address: biz.address || '',
           });
+          const links = typeof biz.social_links === 'string' ? JSON.parse(biz.social_links || '{}') : (biz.social_links || {});
+          setSocialLinks(links);
+          setCoverImageUrl(biz.cover_image_url || '');
+          setTagline(biz.tagline || '');
+          const h = typeof biz.highlights === 'string' ? JSON.parse(biz.highlights || '[]') : (biz.highlights || []);
+          setHighlights(h);
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const addHighlight = () => {
+    const text = newHighlight.trim();
+    if (!text || highlights.length >= 6) return;
+    setHighlights([...highlights, text]);
+    setNewHighlight('');
+  };
+
+  const removeHighlight = (index: number) => {
+    setHighlights(highlights.filter((_, i) => i !== index));
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -50,7 +83,13 @@ export default function BusinessProfilePage() {
       const res = await fetch('/api/business/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          social_links: socialLinks,
+          cover_image_url: coverImageUrl,
+          tagline,
+          highlights,
+        }),
       });
       if (res.ok) {
         toast({ title: 'Profile updated successfully!' });
@@ -86,6 +125,41 @@ export default function BusinessProfilePage() {
               </div>
             ) : (
               <>
+                <div>
+                  <Label className="text-slate-300 mb-2 block">Cover Photo</Label>
+                  <p className="text-sm text-slate-500 mb-3">Shown as a banner at the top of your public profile.</p>
+                  {coverImageUrl && (
+                    <div className="mb-3 rounded-xl overflow-hidden border border-white/10 aspect-[3/1] bg-slate-800">
+                      <img src={coverImageUrl} alt="Cover" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <ImageUploader
+                      onImageSelect={(url) => setCoverImageUrl(url)}
+                      buttonClassName="border border-white/10 bg-slate-800/60 text-slate-300 hover:text-yellow-500"
+                    />
+                    {coverImageUrl && (
+                      <button
+                        onClick={() => setCoverImageUrl('')}
+                        className={`text-sm text-red-400 hover:text-red-300 ${glassInteractive}`}
+                      >
+                        Remove cover photo
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-slate-300 mb-2 block">Tagline</Label>
+                  <Input
+                    value={tagline}
+                    onChange={(e) => setTagline(e.target.value)}
+                    placeholder="A short line under your name — e.g. Trusted electrical contractors since 2010"
+                    maxLength={100}
+                    className={`bg-slate-800/60 border-white/10 text-slate-100 placeholder-slate-500 ${glassInteractive}`}
+                  />
+                </div>
+
                 <div>
                   <Label className="text-slate-300 mb-2 block">Company Name</Label>
                   <Input
@@ -148,6 +222,57 @@ export default function BusinessProfilePage() {
                     rows={3}
                     className={`bg-slate-800/60 border-white/10 text-slate-100 placeholder-slate-500 ${glassInteractive}`}
                   />
+                </div>
+
+                <div className="pt-2 border-t border-white/5">
+                  <h3 className="text-slate-100 font-semibold mb-1 mt-6">Highlights</h3>
+                  <p className="text-sm text-slate-500 mb-4">Up to 6 short bullet points — what makes your business worth choosing. Shown on your public profile.</p>
+                  <div className="space-y-2 mb-3">
+                    {highlights.map((h, i) => (
+                      <div key={i} className="flex items-center gap-2 bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2">
+                        <span className="flex-1 text-sm text-slate-200">{h}</span>
+                        <button onClick={() => removeHighlight(i)} className={`text-slate-500 hover:text-red-400 ${glassInteractive}`}>
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {highlights.length < 6 && (
+                    <div className="flex gap-2">
+                      <Input
+                        value={newHighlight}
+                        onChange={(e) => setNewHighlight(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addHighlight(); } }}
+                        placeholder="e.g. Same-day quotes, 15 years experience"
+                        maxLength={80}
+                        className={`bg-slate-800/60 border-white/10 text-slate-100 placeholder-slate-500 ${glassInteractive}`}
+                      />
+                      <Button type="button" onClick={addHighlight} variant="outline" className={`border-white/10 text-slate-300 hover:bg-white/5 shrink-0 ${glassInteractive}`}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-white/5">
+                  <h3 className="text-slate-100 font-semibold mb-1 mt-6">Social Media</h3>
+                  <p className="text-sm text-slate-500 mb-4">Add your social pages — they'll show as icons on your public business profile.</p>
+                  <div className="space-y-4">
+                    {SOCIAL_PLATFORMS.map(({ key, label, placeholder, icon: Icon }) => (
+                      <div key={key}>
+                        <Label className="text-slate-300 mb-2 flex items-center gap-2">
+                          <Icon className="h-4 w-4 text-yellow-500" />
+                          {label}
+                        </Label>
+                        <Input
+                          value={socialLinks[key] || ''}
+                          onChange={(e) => setSocialLinks({ ...socialLinks, [key]: e.target.value })}
+                          placeholder={placeholder}
+                          className={`bg-slate-800/60 border-white/10 text-slate-100 placeholder-slate-500 ${glassInteractive}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="flex gap-2 pt-6">

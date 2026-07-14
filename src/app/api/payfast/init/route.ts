@@ -10,7 +10,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { amount, description, adId } = await request.json();
+    // purchaseType tells the webhook what to actually grant on success:
+    // 'ad_boost' (needs adId), 'subscription_standard', 'subscription_premium', or 'ad_credits' (no auto-effect).
+    const { amount, description, adId, purchaseType } = await request.json();
 
     if (!amount || !description) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -51,6 +53,7 @@ export async function POST(request: NextRequest) {
       item_description: `VerifiedBizLink Ad Campaign - ${description}`,
       custom_str1: adId || '',
       custom_str2: session.id,
+      custom_str3: purchaseType || 'ad_credits',
     };
 
     // Create signature matching Payfast guidelines (RFC 3986 style, spaces to +)

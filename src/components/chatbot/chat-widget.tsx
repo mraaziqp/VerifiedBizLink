@@ -91,7 +91,7 @@ const QUICK_REPLIES = [
   { label: "Leave a review ⭐", text: "How do I leave a review for a business?" },
   { label: "Upload docs 📄", text: "How do I upload my verification documents?" },
   { label: "Privacy & POPI 🔒", text: "How does VerifiedBizLink protect my data under POPI?" },
-  { label: "Contact support 📧", text: "How do I contact support?" },
+  { label: "Talk to a human 📞", text: "I'd like to speak to a real person" },
   { label: "Pricing 💰", text: "What does VerifiedBizLink cost?" },
 ];
 

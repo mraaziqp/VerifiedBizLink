@@ -50,7 +50,7 @@ export default function SettingsPage() {
       .finally(() => setLoadingPayments(false));
   }, []);
 
-  const handleCheckout = async (amount: number, description: string) => {
+  const handleCheckout = async (amount: number, description: string, purchaseType?: string) => {
     setCheckoutLoading(description);
     try {
       const res = await fetch('/api/payfast/init', {
@@ -59,6 +59,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           amount,
           description,
+          purchaseType,
         }),
       });
 
@@ -683,7 +684,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="p-6 bg-gray-50 border-t flex justify-end">
                       <Button
-                        onClick={() => handleCheckout(99, 'Verified Business Subscription (R99/month)')}
+                        onClick={() => handleCheckout(99, 'Verified Business Subscription (R99/month)', 'subscription_standard')}
                         disabled={checkoutLoading !== null}
                         className="bg-[#EAB308] hover:bg-[#EAB308]/90 text-slate-950 font-bold px-6 h-11 rounded-xl transition-all shadow-md shadow-yellow-500/20"
                       >
@@ -719,7 +720,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="p-6 bg-gray-50 border-t flex justify-end">
                       <Button
-                        onClick={() => handleCheckout(299, 'Premium Business Subscription (R299/month)')}
+                        onClick={() => handleCheckout(299, 'Premium Business Subscription (R299/month)', 'subscription_premium')}
                         disabled={checkoutLoading !== null}
                         className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 h-11 rounded-xl transition-all"
                       >
@@ -733,42 +734,36 @@ export default function SettingsPage() {
                   </Card>
                 </div>
 
-                {/* Ad Credits Section */}
+                {/* Payment Sanity Check */}
                 <Card className="border border-gray-100 shadow-sm overflow-hidden bg-white">
                   <CardHeader className="bg-white border-b py-6">
-                    <CardTitle className="text-lg font-bold">Purchase Ad Credits</CardTitle>
-                    <CardDescription>Boost your ads and highlight your listings dynamically.</CardDescription>
+                    <CardTitle className="text-lg font-bold">Test Payment Gateway</CardTitle>
+                    <CardDescription>
+                      Verify checkout works end-to-end with a tiny R5 charge. To boost a specific ad, go to{' '}
+                      <a href="/business/ads" className="text-yellow-600 hover:underline font-semibold">Ad Campaigns</a> instead.
+                    </CardDescription>
                   </CardHeader>
-                  <CardContent className="p-6 md:p-8 space-y-6">
-                    <div className="grid sm:grid-cols-4 gap-4">
-                      {[
-                        { amount: 5, label: 'Test Payment', desc: 'R5 — verify checkout works end-to-end' },
-                        { amount: 100, label: '1 Week Boost', desc: 'Highlight 1 ad for 7 days' },
-                        { amount: 250, label: '3 Weeks Boost', desc: 'Highlight 1 ad for 21 days' },
-                        { amount: 500, label: 'Premium Spotlight', desc: 'Top category position for 30 days' },
-                      ].map((item) => (
-                        <div key={item.amount} className="p-5 rounded-2xl border border-gray-200 hover:border-yellow-400 transition-all flex flex-col justify-between gap-4 bg-white">
-                          <div>
-                            <h4 className="font-bold text-gray-900">{item.label}</h4>
-                            <p className="text-xs text-gray-500 mt-1">{item.desc}</p>
-                          </div>
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-xl font-extrabold text-gray-900">R{item.amount}</span>
-                            <Button
-                              onClick={() => handleCheckout(item.amount, `Ad Credits: ${item.label}`)}
-                              disabled={checkoutLoading !== null}
-                              size="sm"
-                              className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold rounded-lg px-3"
-                            >
-                              {checkoutLoading === `Ad Credits: ${item.label}` ? (
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                              ) : (
-                                'Buy'
-                              )}
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                  <CardContent className="p-6 md:p-8">
+                    <div className="max-w-xs p-5 rounded-2xl border border-gray-200 hover:border-yellow-400 transition-all flex flex-col justify-between gap-4 bg-white">
+                      <div>
+                        <h4 className="font-bold text-gray-900">Test Payment</h4>
+                        <p className="text-xs text-gray-500 mt-1">R5 — confirms your card and PayFast checkout work</p>
+                      </div>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xl font-extrabold text-gray-900">R5</span>
+                        <Button
+                          onClick={() => handleCheckout(5, 'Test Payment', 'test')}
+                          disabled={checkoutLoading !== null}
+                          size="sm"
+                          className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold rounded-lg px-3"
+                        >
+                          {checkoutLoading === 'Test Payment' ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            'Pay R5'
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

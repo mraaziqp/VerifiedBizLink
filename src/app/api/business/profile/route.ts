@@ -16,7 +16,8 @@ export async function GET(request: NextRequest) {
     const business = await db`
       SELECT
         id, user_id, company_name, description, industry, status, trust_score,
-        logo_url, website, phone, address, package_type, created_at,
+        logo_url, website, phone, address, package_type, created_at, social_links,
+        cover_image_url, tagline, highlights,
         (SELECT COUNT(*) FROM documents WHERE business_id = businesses.id) as doc_count
       FROM businesses
       WHERE user_id = ${session.id}
@@ -84,7 +85,10 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { company_name, description, industry, website, phone, address, logo_url } = body;
+    const {
+      company_name, description, industry, website, phone, address, logo_url, social_links,
+      cover_image_url, tagline, highlights,
+    } = body;
 
     const updated = await db`
       UPDATE businesses
@@ -96,6 +100,10 @@ export async function PUT(request: NextRequest) {
         phone = COALESCE(${phone}, phone),
         address = COALESCE(${address}, address),
         logo_url = COALESCE(${logo_url}, logo_url),
+        social_links = COALESCE(${social_links ? JSON.stringify(social_links) : null}, social_links),
+        cover_image_url = COALESCE(${cover_image_url}, cover_image_url),
+        tagline = COALESCE(${tagline}, tagline),
+        highlights = COALESCE(${highlights ? JSON.stringify(highlights) : null}, highlights),
         updated_at = NOW()
       WHERE user_id = ${session.id}
       RETURNING *

@@ -27,7 +27,7 @@ export async function GET() {
   if (!biz) return NextResponse.json({ ads: [], limit: 0, active: 0 });
 
   const ads = await db`
-    SELECT id, title, description, cta_text, cta_url, badge, is_boosted, is_active, created_at, expires_at
+    SELECT id, title, description, cta_text, cta_url, badge, is_boosted, is_active, boost_expires_at, created_at, expires_at
     FROM ads WHERE business_id = ${biz.id} ORDER BY created_at DESC
   `;
   const limit = AD_LIMITS[biz.package_type] ?? 0;

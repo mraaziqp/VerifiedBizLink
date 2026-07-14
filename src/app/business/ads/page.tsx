@@ -20,8 +20,11 @@ interface Ad {
   badge: string | null;
   is_boosted: boolean;
   is_active: boolean;
+  boost_expires_at: string | null;
   created_at: string;
 }
+
+const BOOST_PRICE = 100;
 
 export default function BusinessAdsPage() {
   const { toast } = useToast();
@@ -33,6 +36,7 @@ export default function BusinessAdsPage() {
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [boostingId, setBoostingId] = useState<string | null>(null);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({ title: '', description: '', ctaText: 'Learn More', ctaUrl: '' });
@@ -118,6 +122,48 @@ export default function BusinessAdsPage() {
       toast({ title: 'Could not delete ad', variant: 'destructive' });
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleBoostAd = async (ad: Ad) => {
+    setBoostingId(ad.id);
+    try {
+      const res = await fetch('/api/payfast/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: BOOST_PRICE,
+          description: `Boost Ad: ${ad.title}`,
+          adId: ad.id,
+          purchaseType: 'ad_boost',
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to start payment');
+      }
+      const { payfastUrl, data, signature } = await res.json();
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = payfastUrl;
+      Object.keys(data).forEach((key) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = String(data[key]);
+        form.appendChild(input);
+      });
+      const sigInput = document.createElement('input');
+      sigInput.type = 'hidden';
+      sigInput.name = 'signature';
+      sigInput.value = signature;
+      form.appendChild(sigInput);
+      document.body.appendChild(form);
+      form.submit();
+    } catch (err: any) {
+      toast({ title: 'Could not start payment', description: err.message, variant: 'destructive' });
+      setBoostingId(null);
     }
   };
 
@@ -253,9 +299,9 @@ export default function BusinessAdsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="text-xl font-bold text-white">{ad.title}</h3>
-                        {ad.is_boosted && (
+                        {ad.is_boosted && ad.boost_expires_at && new Date(ad.boost_expires_at) > new Date() && (
                           <Badge className="bg-yellow-400/20 text-yellow-400 gap-1">
-                            <Zap className="h-3 w-3" /> Boosted
+                            <Zap className="h-3 w-3" /> Boosted until {new Date(ad.boost_expires_at).toLocaleDateString()}
                           </Badge>
                         )}
                       </div>
@@ -266,7 +312,7 @@ export default function BusinessAdsPage() {
                     </Badge>
                   </div>
 
-                  <div className="flex gap-2 pt-4 border-t border-slate-700">
+                  <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-700">
                     <Button
                       size="sm"
                       onClick={() => handleToggleStatus(ad)}
@@ -281,6 +327,17 @@ export default function BusinessAdsPage() {
                         <><Play className="h-4 w-4" /> Resume</>
                       )}
                     </Button>
+                    {!(ad.is_boosted && ad.boost_expires_at && new Date(ad.boost_expires_at) > new Date()) && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleBoostAd(ad)}
+                        disabled={boostingId === ad.id}
+                        className="gap-2 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold"
+                      >
+                        {boostingId === ad.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                        Boost — R{BOOST_PRICE}
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       onClick={() => handleDeleteAd(ad.id)}

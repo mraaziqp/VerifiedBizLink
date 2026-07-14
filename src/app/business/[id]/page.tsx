@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   Shield, Globe, Phone, MapPin, Building2, Users,
   Star, CalendarCheck, ArrowLeft, Loader2, BadgeCheck, MessageCircle,
+  Facebook, Instagram, Linkedin, Youtube,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +41,10 @@ interface BusinessProfile {
   website: string;
   phone: string;
   address: string;
+  socialLinks?: Record<string, string>;
+  coverImageUrl?: string | null;
+  tagline?: string | null;
+  highlights?: string[];
   verifiedAt: string | null;
   createdAt: string;
   userId: string;
@@ -175,16 +180,21 @@ export default function BusinessProfilePage() {
         <Card className="overflow-hidden border-border">
           {/* Cover banner */}
           <div
-            className="h-32 relative"
+            className="h-32 relative bg-cover bg-center"
             style={{
-              background: isVerified
+              background: business.coverImageUrl
+                ? `url(${business.coverImageUrl}) center/cover no-repeat`
+                : isVerified
                 ? "linear-gradient(135deg, #0f172a 0%, #1a2340 60%, #0f172a 100%)"
                 : "linear-gradient(135deg, #111 0%, #1e1e1e 100%)",
             }}
           >
-            {isVerified && (
+            {isVerified && !business.coverImageUrl && (
               <div className="absolute inset-0 opacity-10"
                 style={{ background: "radial-gradient(ellipse at 30% 50%, #F5A800 0%, transparent 70%)" }} />
+            )}
+            {business.coverImageUrl && (
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
             )}
           </div>
 
@@ -241,6 +251,10 @@ export default function BusinessProfilePage() {
                 </Badge>
               </div>
 
+              {business.tagline && (
+                <p className="text-primary text-sm font-semibold">{business.tagline}</p>
+              )}
+
               {business.headline && (
                 <p className="text-foreground/70 text-sm">{business.headline}</p>
               )}
@@ -273,6 +287,23 @@ export default function BusinessProfilePage() {
                 <CardContent className="p-5 space-y-2">
                   <h2 className="font-black text-foreground">About</h2>
                   <p className="text-sm text-foreground/75 leading-relaxed">{business.description}</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Highlights */}
+            {business.highlights && business.highlights.length > 0 && (
+              <Card className="border-border">
+                <CardContent className="p-5 space-y-3">
+                  <h2 className="font-black text-foreground">Why Choose Us</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {business.highlights.map((h, i) => (
+                      <div key={i} className="flex items-start gap-2 text-sm text-foreground/80">
+                        <BadgeCheck className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                        <span>{h}</span>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             )}
@@ -387,7 +418,7 @@ export default function BusinessProfilePage() {
             )}
 
             {/* Contact */}
-            {(business.website || business.phone || business.address || business.location) && (
+            {(business.website || business.phone || business.address || business.location || (business.socialLinks && Object.values(business.socialLinks).some(Boolean))) && (
               <Card className="border-border">
                 <CardContent className="p-5 space-y-3">
                   <h3 className="font-black text-foreground text-sm uppercase tracking-widest">
@@ -417,6 +448,38 @@ export default function BusinessProfilePage() {
                     <div className="flex items-start gap-2 text-sm text-foreground/75">
                       <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
                       <span>{business.address || business.location}</span>
+                    </div>
+                  )}
+
+                  {business.socialLinks && Object.values(business.socialLinks).some(Boolean) && (
+                    <div className="flex items-center gap-3 pt-2">
+                      {[
+                        { key: "facebook", icon: Facebook },
+                        { key: "instagram", icon: Instagram },
+                        { key: "linkedin", icon: Linkedin },
+                        { key: "twitter", icon: MessageCircle },
+                        { key: "tiktok", icon: MessageCircle },
+                        { key: "youtube", icon: Youtube },
+                        { key: "whatsapp", icon: Phone },
+                      ].map(({ key, icon: Icon }) => {
+                        const value = business.socialLinks?.[key];
+                        if (!value) return null;
+                        const href = key === "whatsapp"
+                          ? `https://wa.me/${value.replace(/\D/g, "")}`
+                          : value.startsWith("http") ? value : `https://${value}`;
+                        return (
+                          <a
+                            key={key}
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title={key}
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                          >
+                            <Icon className="h-4 w-4" />
+                          </a>
+                        );
+                      })}
                     </div>
                   )}
                 </CardContent>

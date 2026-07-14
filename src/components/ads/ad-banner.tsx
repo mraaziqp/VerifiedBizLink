@@ -69,8 +69,9 @@ export function AdBanner() {
   }, []);
 
   useEffect(() => {
-    // Only show to free/customer accounts
-    if (!user || user.role !== "user") return;
+    // Show to customers and businesses browsing the platform — not staff,
+    // who are doing internal admin/vetting work, not shopping around.
+    if (!user || !["user", "business"].includes(user.role)) return;
 
     const fetchAdSettings = async () => {
       try {
@@ -111,7 +112,7 @@ export function AdBanner() {
 
   // Poll to re-show after cooldown
   useEffect(() => {
-    if (!user || user.role !== "user" || !adsEnabled) return;
+    if (!user || !["user", "business"].includes(user.role) || !adsEnabled) return;
     const interval = setInterval(() => {
       if (!visible && checkShouldShow()) {
         setCurrentAdIndex((i) => (i + 1) % ads.length);
@@ -126,7 +127,7 @@ export function AdBanner() {
     setVisible(false);
   };
 
-  if (!user || user.role !== "user" || !visible || !adsEnabled) return null;
+  if (!user || !["user", "business"].includes(user.role) || !visible || !adsEnabled) return null;
 
   const ad = ads[currentAdIndex] || ads[0];
 

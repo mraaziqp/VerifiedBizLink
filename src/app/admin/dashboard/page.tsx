@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard, History } from 'lucide-react';
 import Link from 'next/link';
 import { AdminBackground, AdminCard, AdminPageHeader, StatCard } from '@/components/admin/ui';
 
@@ -82,6 +82,7 @@ export default function AdminDashboard() {
     { id: 'user-management', name: 'User Management', description: 'Manage all users, roles, permissions, and access', icon: Users, href: '/admin/users', color: 'from-purple-500 to-pink-500', badge: statsLoading ? undefined : `${fmt(stats?.totalUsers)} users` },
     { id: 'platform-analytics', name: 'Platform Analytics', description: 'View platform metrics, traffic, and performance data', icon: BarChart3, href: '/admin/analytics', color: 'from-orange-500 to-yellow-500', badge: 'Live' },
     { id: 'network-monitoring', name: 'Network Status', description: 'Monitor system health, uptime, and performance', icon: Zap, href: '/admin/network', color: 'from-red-500 to-rose-500' },
+    { id: 'activity-logs', name: 'Activity Logs', description: 'Every admin action, in order', icon: History, href: '/admin/logs', color: 'from-slate-600 to-slate-700' },
     { id: 'admin-settings', name: 'Settings', description: 'Configure platform settings and admin preferences', icon: Settings, href: '/admin/settings', color: 'from-gray-600 to-gray-700' },
   ];
 
@@ -174,10 +175,10 @@ export default function AdminDashboard() {
 
         {(isRamone || isSuperAdmin) && (
           <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-            <StatCard label="Pending Verifications" value={fmt(stats?.pendingBusinesses)} icon={Clock} gradient="from-amber-500 to-orange-500" loading={statsLoading} />
-            <StatCard label="Total Businesses" value={fmt(stats?.totalBusinesses)} icon={Building2} gradient="from-blue-500 to-cyan-500" loading={statsLoading} />
-            <StatCard label="Verified" value={fmt(stats?.verifiedBusinesses)} icon={CheckCircle2} gradient="from-green-500 to-emerald-500" loading={statsLoading} />
-            <StatCard label="Active Users" value={fmt(stats?.totalUsers)} icon={Users} gradient="from-purple-500 to-pink-500" loading={statsLoading} />
+            <StatCard label="Pending Verifications" value={fmt(stats?.pendingBusinesses)} icon={Clock} gradient="from-amber-500 to-orange-500" loading={statsLoading} onClick={() => router.push('/admin/vetting')} />
+            <StatCard label="Total Businesses" value={fmt(stats?.totalBusinesses)} icon={Building2} gradient="from-blue-500 to-cyan-500" loading={statsLoading} onClick={() => router.push('/admin/vetting')} />
+            <StatCard label="Verified" value={fmt(stats?.verifiedBusinesses)} icon={CheckCircle2} gradient="from-green-500 to-emerald-500" loading={statsLoading} onClick={() => router.push('/admin/vetting')} />
+            <StatCard label="Active Users" value={fmt(stats?.totalUsers)} icon={Users} gradient="from-purple-500 to-pink-500" loading={statsLoading} onClick={() => router.push('/admin/users')} />
           </div>
         )}
       </div>

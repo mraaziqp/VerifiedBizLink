@@ -169,7 +169,7 @@ export function ComplianceNews() {
 
       <div className="flex flex-wrap gap-x-3 gap-y-1.5 px-1">
         {[
-          { label: "About", href: "/contact" },
+          { label: "About", href: "/about" },
           { label: "Privacy", href: "/privacy" },
           { label: "Terms", href: "/terms" },
           { label: "Refunds", href: "/refund-policy" },

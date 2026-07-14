@@ -14,6 +14,7 @@ const PUBLIC_PATHS = [
   '/privacy',
   '/refund-policy',
   '/contact',
+  '/about',
   '/explore',
   '/pricing',
   '/legal',

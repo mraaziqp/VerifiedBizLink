@@ -53,11 +53,28 @@ function isStatusQuery(query: string): boolean {
   return STATUS_QUERY_PATTERNS.some((p) => q.includes(p));
 }
 
+const ESCALATION_PATTERNS = [
+  "human", "real person", "agent", "talk to someone", "speak to", "speak with",
+  "escalate", "complaint", "complain", "not helpful", "call centre", "call center",
+  "customer service", "representative", "manager",
+];
+
+function isEscalationRequest(query: string): boolean {
+  const q = query.toLowerCase();
+  return ESCALATION_PATTERNS.some((p) => q.includes(p));
+}
+
+const ESCALATION_RESPONSE =
+  "Of course — I'll get you to a real person.\n\n" +
+  "📧 Email us directly: **info@verifiedbizlink.co.za**\n" +
+  "📝 Or fill out the [Contact form](/contact) and our team will respond within 24 hours.\n\n" +
+  "If this is about your verification status, an ad, or a payment, mention your business name or ticket number so we can find your account fast.";
+
 // Fallback FAQ knowledge base (used when AI isn't available)
 const FAQ: Array<{ patterns: string[]; response: string }> = [
   {
     patterns: ["hi", "hello", "hey", "howzit", "greetings", "good morning", "good afternoon", "sup", "yo"],
-    response: "Hey there! 👋 Great to see you on **VerifiedBizLink**.\n\nI can help you with:\n• Business verification & documents\n• Privacy & POPI Act rights\n• Account management & settings\n• Connections & networking\n• Ads & platform features\n\nType your question or try asking about verification!",
+    response: "Hey there! 👋 Great to see you on **VerifiedBizLink**.\n\nI can help you with:\n• Business verification & documents\n• Privacy & POPI Act rights\n• Account management & settings\n• Connections & networking\n• Ads, boosting, and billing\n\nType your question, or ask to **speak to a human** if you'd rather deal with our team directly.",
   },
   {
     patterns: ["verify", "verification", "vetting", "gold badge", "get verified", "trust badge", "checkmark", "verified"],
@@ -65,11 +82,27 @@ const FAQ: Array<{ patterns: string[]; response: string }> = [
   },
   {
     patterns: ["upload", "document", "docs", "file", "cipc", "vat", "id proof", "bank letter", "letterhead"],
-    response: "To upload verification documents:\n1. Go to **Vetting** from the sidebar\n2. Check each required document\n3. Click **'Mark Uploaded'** for each\n4. Once all 5 are uploaded, click **'Submit for Vetting'**\n\nAll documents are encrypted and only visible to our compliance team.",
+    response: "To upload verification documents:\n1. Go to **Vetting** from the sidebar\n2. Check each required document\n3. Click **'Mark Uploaded'** for each\n4. Once all documents are uploaded, click **'Submit for Vetting'**\n\nAll documents are encrypted and only visible to our compliance team.",
   },
   {
     patterns: ["privacy", "popi", "popia", "personal information", "gdpr", "data protection", "collect", "what data"],
     response: "VerifiedBizLink is fully **POPI Act compliant**.\n\nWe collect:\n• Your name & email\n• Contact details & address\n• Business registration info\n\nWe **never** sell your data. Manage your data in **Settings → Data & Privacy**.",
+  },
+  {
+    patterns: ["ad", "ads", "advertise", "advertising", "boost", "sponsored", "campaign"],
+    response: "You can create and manage sponsored ads from **Business Dashboard → Ad Campaigns**.\n\n• Free plans don't include ads — upgrade to Standard or Premium in Settings → Billing\n• Once you've created an ad, click **Boost — R100** on it to get 7 days of priority placement across the platform\n• Boosted ads always show first to other members browsing the site",
+  },
+  {
+    patterns: ["payment", "pay", "billing", "invoice", "subscription", "upgrade", "price", "pricing", "cost", "refund"],
+    response: "Payments run through **PayFast**. You can upgrade your plan or boost an ad from **Settings → Billing** or **Business Dashboard → Ad Campaigns**.\n\nRefunds follow our [Refund Policy](/refund-policy) — a 7-day cooling-off period applies, non-refundable after that. If a payment didn't go through correctly, contact us and include your reference number.",
+  },
+  {
+    patterns: ["message", "messaging", "chat with", "dm", "contact a business"],
+    response: "You can message any business or connection directly from the chat icon, or from their profile page. Look for the message bubble in the bottom corner, or open **Messages** from the menu.",
+  },
+  {
+    patterns: ["password", "forgot password", "reset password", "can't log in", "cant log in", "login issue", "locked out"],
+    response: "Forgot your password? Use the **Forgot password?** link on the login page — we'll email you a reset link (valid for 1 hour).\n\nStill stuck? [Contact us](/contact) and we'll help you regain access.",
   },
 ];
 
@@ -105,7 +138,9 @@ export async function POST(request: NextRequest) {
     // Try to use AI if available, otherwise fall back to FAQ
     let responseText: string;
 
-    if (isStatusQuery(message)) {
+    if (isEscalationRequest(message)) {
+      responseText = ESCALATION_RESPONSE;
+    } else if (isStatusQuery(message)) {
       responseText = (await findVerificationStatusResponse().catch((err) => {
         console.error('Chat status lookup failed:', err);
         return null;
@@ -113,10 +148,22 @@ export async function POST(request: NextRequest) {
     } else if (process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY) {
       try {
         const { ai } = await import('@/ai/genkit');
-        const SYSTEM_PROMPT = `You are the VBL Assistant for VerifiedBizLink — South Africa's B2B verification network.
-Help with verification, privacy (POPI), accounts, networking, and features. Be friendly and concise.
-Key facts: Verification takes 3-7 days, free for all, POPI compliant.
-Support: info@verifiedbizlink.co.za`;
+        const SYSTEM_PROMPT = `You are the VBL Assistant — the call-centre-style support assistant for VerifiedBizLink,
+South Africa's B2B verification network. Act like a helpful, competent call-centre agent: greet warmly, listen to
+the actual question, and try to fully resolve it in your reply rather than giving a vague answer.
+
+You can help with:
+- Business verification/vetting (CIPC, SARS, ID, bank, address documents — takes 3-7 business days after submission)
+- Verification queue status and ticket numbers (tell users to ask "where am I in the verification process" — a separate system pulls their live status)
+- Account management, password resets, profile/settings changes
+- Messaging and connecting with other businesses
+- Sponsored ads: creating an ad requires a paid plan (Standard/Premium); boosting an ad costs R100 for 7 days of priority placement
+- Billing and subscriptions via PayFast; refunds follow a 7-day cooling-off policy
+- Privacy and POPI Act compliance — we never sell user data
+
+Be concise, friendly, and use South African context naturally. If the question is something you genuinely can't
+resolve (a specific account issue, a billing dispute, a bug report, or anything you're not confident about), say so
+plainly and direct them to email info@verifiedbizlink.co.za or use the Contact page — don't guess or make up details.`;
 
         const fullPrompt = `${SYSTEM_PROMPT}\n\nUser question: ${message.trim()}`;
         const response = await ai.generate(fullPrompt);

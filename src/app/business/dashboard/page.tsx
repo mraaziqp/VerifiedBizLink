@@ -616,6 +616,49 @@ export default function BusinessDashboard() {
                     </CardContent>
                   </Card>
                 </Link>
+
+                <Link href="/business/profile">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="p-3 bg-blue-900 rounded-lg">
+                          <Edit2 className="h-5 w-5 text-blue-400" />
+                        </div>
+                      </div>
+                      <h3 className="font-semibold text-white mb-2">Edit Profile</h3>
+                      <p className="text-slate-400 text-sm">Update your business details</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                <Link href="/business/documents">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="p-3 bg-emerald-900 rounded-lg">
+                          <FileText className="h-5 w-5 text-emerald-400" />
+                        </div>
+                        <Badge className="bg-slate-700 text-slate-300 border-slate-600">{business?.doc_count ?? 0} docs</Badge>
+                      </div>
+                      <h3 className="font-semibold text-white mb-2">Documents</h3>
+                      <p className="text-slate-400 text-sm">Verification document status</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                <Link href="/business/settings">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="p-3 bg-slate-700 rounded-lg">
+                          <Settings className="h-5 w-5 text-slate-300" />
+                        </div>
+                      </div>
+                      <h3 className="font-semibold text-white mb-2">Settings</h3>
+                      <p className="text-slate-400 text-sm">Visibility, notifications, security</p>
+                    </CardContent>
+                  </Card>
+                </Link>
               </div>
             </div>
 

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession, isStaff } from '@/lib/auth';
 import db from '@/lib/db';
 
 /**
@@ -81,6 +82,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
+  const session = await getSession();
+  if (!isStaff(session)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const userId = request.nextUrl.searchParams.get('userId');
     const action = request.nextUrl.searchParams.get('action');
