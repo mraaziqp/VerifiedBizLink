@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  Menu, X, Home, Users, MapPin, ShieldCheck, BarChart3,
+  X, Home, Users, MapPin, ShieldCheck, BarChart3,
   UserCircle, Settings, Shield, LogOut, Building2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
+import { useMobileMenu } from "@/contexts/mobile-menu-context";
 import { VBLLogo } from "@/components/ui/vbl-logo";
 
 const MENU_ITEMS = [
@@ -21,19 +21,18 @@ const MENU_ITEMS = [
 ];
 
 /**
- * Global mobile "left sidebar" equivalent — the desktop SidebarLeft (with
- * Sign Out) is `hidden md:block`, and HomeHeader's own slide-out menu only
- * renders on "/". Every other page had no mobile way to sign out at all.
- * This mounts globally and skips rendering its own trigger on "/" since
- * HomeHeader already covers that page.
+ * Global mobile menu drawer — content is the same everywhere; opened via
+ * the shared MobileMenuContext from either MobileNav's "More" tab or a
+ * page's own header trigger (e.g. HomeHeader). This lets every page share
+ * one drawer instead of each screen needing its own sign-out mechanism.
  */
 export function MobileMenuDrawer() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
-  const [open, setOpen] = useState(false);
+  const { open, setOpen } = useMobileMenu();
 
-  if (pathname === "/" || pathname === "/login" || pathname === "/signup" || !user) return null;
+  if (pathname === "/login" || pathname === "/signup" || !user) return null;
 
   const isStaff = ["admin", "banker", "lawyer"].includes(user.role);
   const isBusiness = user.role === "business" || isStaff;
@@ -46,15 +45,6 @@ export function MobileMenuDrawer() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Open menu"
-        className="lg:hidden fixed top-3 left-3 z-40 p-2.5 rounded-lg bg-slate-900/80 backdrop-blur-xl border border-white/10 shadow-lg active:scale-95 transition-transform"
-      >
-        <Menu size={20} className="text-yellow-500" />
-      </button>
-
       {open && (
         <div className="fixed inset-0 z-[60] lg:hidden">
           <div

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/auth-context';
+import { MobileMenuProvider } from '@/contexts/mobile-menu-context';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { MobileMenuDrawer } from '@/components/layout/mobile-menu-drawer';
 import { AdBanner } from '@/components/ads/ad-banner';
@@ -34,6 +35,9 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   minimumScale: 1,
+  // Required for env(safe-area-inset-*) to resolve to real values on notched
+  // iPhones — without this, the bottom nav's safe-area padding is always 0.
+  viewportFit: 'cover',
   themeColor: '#FCC200',
 };
 
@@ -53,18 +57,20 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased bg-background text-foreground overflow-x-hidden">
         <AuthProvider>
-          <ServiceWorkerRegister />
-          <EmailVerificationBanner />
-          <PwaInstallPrompt />
-          <MobileMenuDrawer />
-          <div className="pb-20 lg:pb-0">
-            {children}
-          </div>
-          <MobileNav />
-          <AdBanner />
-          <ChatWidget />
-          <MessagesWidget />
-          <Toaster />
+          <MobileMenuProvider>
+            <ServiceWorkerRegister />
+            <EmailVerificationBanner />
+            <PwaInstallPrompt />
+            <MobileMenuDrawer />
+            <div className="pb-20 lg:pb-0">
+              {children}
+            </div>
+            <MobileNav />
+            <AdBanner />
+            <ChatWidget />
+            <MessagesWidget />
+            <Toaster />
+          </MobileMenuProvider>
         </AuthProvider>
       </body>
     </html>

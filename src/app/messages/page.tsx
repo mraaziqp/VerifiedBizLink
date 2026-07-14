@@ -232,7 +232,7 @@ function MessagesPageInner() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 sm:px-6 lg:px-8 h-[calc(100vh-88px)] sm:h-[calc(100vh-120px)]">
+      <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 sm:px-6 lg:px-8 h-[calc(100dvh-88px)] sm:h-[calc(100dvh-120px)]">
         <div className="flex gap-6 h-full">
           {/* Conversations List */}
           <div className={`w-full md:w-80 bg-slate-900/60 backdrop-blur-xl border border-white/5 shadow-2xl rounded-lg flex-col shrink-0 ${selectedId ? 'hidden md:flex' : 'flex'}`}>

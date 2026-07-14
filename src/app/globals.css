@@ -84,10 +84,15 @@
   
   html {
     scroll-behavior: smooth;
+    /* Stop iOS Safari's rubber-band overscroll from bouncing the whole page
+       — that bounce is what makes fixed bottom bars look like they "float"
+       away from the screen edge or jump on scroll release. */
+    overscroll-behavior-y: none;
   }
-  
+
   body {
     @apply bg-background text-foreground font-body;
+    overscroll-behavior-y: none;
   }
   
   h1, h2, h3, h4, h5, h6 {

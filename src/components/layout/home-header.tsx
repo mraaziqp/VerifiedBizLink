@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import {
-  Bell, Menu, X, CheckCheck, Home, Users, MapPin, ShieldCheck,
-  BarChart3, Settings, UserCircle, Shield, LogOut,
+  Bell, Menu, CheckCheck,
 } from "lucide-react";
 import { VBLLogo } from "@/components/ui/vbl-logo";
-import { useRouter, usePathname } from "next/navigation";
-import { useAuth } from "@/contexts/auth-context";
+import { useRouter } from "next/navigation";
+import { useMobileMenu } from "@/contexts/mobile-menu-context";
 import {
   Dialog,
   DialogContent,
@@ -17,16 +15,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
-const MENU_ITEMS = [
-  { name: "Home", href: "/", icon: Home },
-  { name: "My Network", href: "/network", icon: Users },
-  { name: "Explore", href: "/explore", icon: MapPin },
-  { name: "Vetting Hub", href: "/vetting", icon: ShieldCheck },
-  { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  { name: "My Profile", href: "/settings/profile", icon: UserCircle },
-  { name: "Settings", href: "/settings", icon: Settings },
-];
 
 interface NotificationItem {
   id: string;
@@ -39,20 +27,11 @@ interface NotificationItem {
 
 export function HomeHeader() {
   const router = useRouter();
-  const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { setOpen } = useMobileMenu();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const isStaff = user && ["admin", "banker", "lawyer"].includes(user.role);
-
-  const handleLogout = async () => {
-    setMenuOpen(false);
-    await logout();
-    router.push("/login");
-  };
 
   const loadNotifications = async () => {
     setLoadingNotifications(true);
@@ -136,7 +115,7 @@ export function HomeHeader() {
         {/* Menu Button */}
         <button
           type="button"
-          onClick={() => setMenuOpen(true)}
+          onClick={() => setOpen(true)}
           aria-label="Open menu"
           className="p-2.5 hover:bg-primary/10 active:bg-primary/20 rounded-lg transition-all duration-200 group"
         >
@@ -223,80 +202,6 @@ export function HomeHeader() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Slide-out menu */}
-      {menuOpen && (
-        <div className="fixed inset-0 z-[60]">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setMenuOpen(false)}
-          />
-          <div className="absolute left-0 top-0 h-full w-72 max-w-[80vw] bg-[#0f0f16] border-r border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
-            <div className="flex items-center justify-between border-b border-white/10 p-4">
-              <VBLLogo variant="icon" size="md" theme="light" />
-              <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                aria-label="Close menu"
-                className="rounded-lg p-2 hover:bg-white/10"
-              >
-                <X size={20} className="text-white/70" />
-              </button>
-            </div>
-
-            {user && (
-              <div className="border-b border-white/10 px-4 py-3">
-                <p className="truncate text-sm font-semibold text-white">{user.fullName || user.email}</p>
-                <p className="truncate text-xs text-white/50">{user.email}</p>
-              </div>
-            )}
-
-            <nav className="flex-1 overflow-y-auto p-2">
-              {MENU_ITEMS.map((item) => {
-                const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setMenuOpen(false)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                      active ? "bg-primary/15 text-primary" : "text-white/80 hover:bg-white/5"
-                    }`}
-                  >
-                    <item.icon size={18} />
-                    {item.name}
-                  </Link>
-                );
-              })}
-              {isStaff && (
-                <Link
-                  href="/admin"
-                  onClick={() => setMenuOpen(false)}
-                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                    pathname.startsWith("/admin") ? "bg-primary/15 text-primary" : "text-white/80 hover:bg-white/5"
-                  }`}
-                >
-                  <Shield size={18} />
-                  Admin Hub
-                </Link>
-              )}
-            </nav>
-
-            {user && (
-              <div className="border-t border-white/10 p-2">
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10"
-                >
-                  <LogOut size={18} />
-                  Sign Out
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

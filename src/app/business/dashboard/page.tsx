@@ -318,7 +318,7 @@ export default function BusinessDashboard() {
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto [-webkit-overflow-scrolling:touch]">
             <button
               onClick={() => setActiveTab('overview')}
               className={`px-4 py-2 rounded-lg font-medium transition ${
