@@ -125,12 +125,12 @@ export default function Home() {
           fully legible against the light theme. */}
       <div
         aria-hidden
-        className="fixed inset-0 -z-10 bg-cover bg-center opacity-[0.09]"
+        className="fixed inset-0 -z-10 bg-cover bg-center opacity-[0.16]"
         style={{ backgroundImage: "url('/hero-cape-town.jpg')" }}
       />
       <div
         aria-hidden
-        className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-gray-50/70 to-gray-50"
+        className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50/60 via-gray-50/40 to-gray-50"
       />
 
       {/* Mobile-only header */}

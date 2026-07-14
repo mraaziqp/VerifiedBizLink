@@ -41,11 +41,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    // Public, like the posts feed itself (GET /api/posts) — anonymous
+    // visitors browsing the home feed can expand and read comments.
     const { id: postId } = await params;
 
     const comments = await db`

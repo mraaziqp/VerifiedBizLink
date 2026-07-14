@@ -36,6 +36,7 @@ export default function BusinessProfilePage() {
   });
   const [socialLinks, setSocialLinks] = useState<Record<string, string>>({});
   const [coverImageUrl, setCoverImageUrl] = useState('');
+  const [coverUploading, setCoverUploading] = useState(false);
   const [tagline, setTagline] = useState('');
   const [highlights, setHighlights] = useState<string[]>([]);
   const [newHighlight, setNewHighlight] = useState('');
@@ -136,8 +137,12 @@ export default function BusinessProfilePage() {
                   <div className="flex items-center gap-3">
                     <ImageUploader
                       onImageSelect={(url) => setCoverImageUrl(url)}
+                      onUploadStateChange={setCoverUploading}
                       buttonClassName="border border-white/10 bg-slate-800/60 text-slate-300 hover:text-yellow-500"
                     />
+                    {coverUploading && (
+                      <span className="text-xs text-slate-500">Uploading — don't save yet…</span>
+                    )}
                     {coverImageUrl && (
                       <button
                         onClick={() => setCoverImageUrl('')}
@@ -278,11 +283,12 @@ export default function BusinessProfilePage() {
                 <div className="flex gap-2 pt-6">
                   <Button
                     onClick={handleSave}
-                    disabled={saving}
+                    disabled={saving || coverUploading}
+                    title={coverUploading ? 'Wait for the cover photo to finish uploading' : undefined}
                     className={`gap-2 bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-bold ${glassInteractive}`}
                   >
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    Save Changes
+                    {coverUploading ? 'Uploading photo…' : 'Save Changes'}
                   </Button>
                   <Link href="/business/dashboard">
                     <Button variant="outline" className={`border-white/10 text-slate-300 hover:bg-white/5 ${glassInteractive}`}>

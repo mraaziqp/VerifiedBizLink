@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Zap, Trash2, Pause, Play, Loader2, Sparkles, Eye, MousePointerClick } from 'lucide-react';
+import { ArrowLeft, Plus, Zap, Trash2, Pause, Play, Loader2, Sparkles, Eye, MousePointerClick, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,10 @@ export default function BusinessAdsPage() {
 
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({ title: '', description: '', ctaText: 'Learn More', ctaUrl: '' });
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editFormData, setEditFormData] = useState({ title: '', description: '', ctaText: '', ctaUrl: '' });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchAds = useCallback(async () => {
     try {
@@ -124,6 +128,40 @@ export default function BusinessAdsPage() {
       toast({ title: 'Could not delete ad', variant: 'destructive' });
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const startEdit = (ad: Ad) => {
+    setEditingId(ad.id);
+    setEditFormData({
+      title: ad.title,
+      description: ad.description,
+      ctaText: ad.cta_text || 'Learn More',
+      ctaUrl: ad.cta_url || '',
+    });
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    if (!editFormData.title.trim() || !editFormData.description.trim()) return;
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/business/ads/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editFormData),
+      });
+      if (res.ok) {
+        setEditingId(null);
+        toast({ title: 'Ad updated' });
+        fetchAds();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast({ title: 'Could not update ad', description: data.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not update ad', variant: 'destructive' });
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -297,23 +335,76 @@ export default function BusinessAdsPage() {
             ads.map((ad) => (
               <Card key={ad.id} className="bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400/30 transition-colors">
                 <CardContent className="p-6 space-y-4">
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-xl font-bold text-white">{ad.title}</h3>
-                        {ad.is_boosted && ad.boost_expires_at && new Date(ad.boost_expires_at) > new Date() && (
-                          <Badge className="bg-yellow-400/20 text-yellow-400 gap-1">
-                            <Zap className="h-3 w-3" /> Boosted until {new Date(ad.boost_expires_at).toLocaleDateString()}
-                          </Badge>
-                        )}
+                  {editingId === ad.id ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-slate-400 text-sm mb-2 block">Title</label>
+                        <Input
+                          value={editFormData.title}
+                          onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
+                          className="bg-slate-700 text-white border-slate-600"
+                        />
                       </div>
-                      <p className="text-slate-400 text-sm mt-1">{ad.description}</p>
+                      <div>
+                        <label className="text-slate-400 text-sm mb-2 block">Description</label>
+                        <Textarea
+                          value={editFormData.description}
+                          onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                          className="bg-slate-700 text-white border-slate-600"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-slate-400 text-sm mb-2 block">Button Text</label>
+                          <Input
+                            value={editFormData.ctaText}
+                            onChange={(e) => setEditFormData({ ...editFormData, ctaText: e.target.value })}
+                            className="bg-slate-700 text-white border-slate-600"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-slate-400 text-sm mb-2 block">Link (optional)</label>
+                          <Input
+                            value={editFormData.ctaUrl}
+                            onChange={(e) => setEditFormData({ ...editFormData, ctaUrl: e.target.value })}
+                            className="bg-slate-700 text-white border-slate-600"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 justify-end pt-2">
+                        <Button onClick={() => setEditingId(null)} variant="outline" size="sm" className="border-slate-600 text-slate-300">
+                          Cancel
+                        </Button>
+                        <Button
+                          onClick={() => handleSaveEdit(ad.id)}
+                          disabled={savingEdit || !editFormData.title.trim() || !editFormData.description.trim()}
+                          size="sm"
+                          className="bg-yellow-400 text-slate-900 hover:bg-yellow-300"
+                        >
+                          {savingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Changes'}
+                        </Button>
+                      </div>
                     </div>
-                    <Badge className={ad.is_active ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'}>
-                      {ad.is_active ? 'Active' : 'Paused'}
-                    </Badge>
-                  </div>
+                  ) : (
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-xl font-bold text-white">{ad.title}</h3>
+                          {ad.is_boosted && ad.boost_expires_at && new Date(ad.boost_expires_at) > new Date() && (
+                            <Badge className="bg-yellow-400/20 text-yellow-400 gap-1">
+                              <Zap className="h-3 w-3" /> Boosted until {new Date(ad.boost_expires_at).toLocaleDateString()}
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-slate-400 text-sm mt-1">{ad.description}</p>
+                      </div>
+                      <Badge className={ad.is_active ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'}>
+                        {ad.is_active ? 'Active' : 'Paused'}
+                      </Badge>
+                    </div>
+                  )}
 
+                  {editingId !== ad.id && (
                   <div className="flex items-center gap-5 text-sm">
                     <div className="flex items-center gap-1.5 text-slate-300">
                       <Eye className="h-4 w-4 text-slate-500" />
@@ -332,7 +423,9 @@ export default function BusinessAdsPage() {
                       </span>
                     </div>
                   </div>
+                  )}
 
+                  {editingId !== ad.id && (
                   <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-700">
                     <Button
                       size="sm"
@@ -347,6 +440,13 @@ export default function BusinessAdsPage() {
                       ) : (
                         <><Play className="h-4 w-4" /> Resume</>
                       )}
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => startEdit(ad)}
+                      className="gap-2 bg-slate-700 hover:bg-slate-600 text-white"
+                    >
+                      <Pencil className="h-4 w-4" /> Edit
                     </Button>
                     {!(ad.is_boosted && ad.boost_expires_at && new Date(ad.boost_expires_at) > new Date()) && (
                       <Button
@@ -369,6 +469,7 @@ export default function BusinessAdsPage() {
                       Delete
                     </Button>
                   </div>
+                  )}
                 </CardContent>
               </Card>
             ))

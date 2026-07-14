@@ -133,7 +133,7 @@ export function formatProfileHeader(
 
   // For business accounts, include verification status if available
   if (isBusinessAccount(user)) {
-    const status = user.status === "verified" ? "✓ Verified" : "";
+    const status = business?.status === "verified" ? "✓ Verified" : "";
     return status ? `${displayName} ${status}` : displayName;
   }
 

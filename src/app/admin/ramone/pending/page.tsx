@@ -28,6 +28,7 @@ export default function RamonePendingPage() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPendingBusinesses();
@@ -45,6 +46,24 @@ export default function RamonePendingPage() {
       console.error('Failed to fetch businesses:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApprove = async (businessId: string) => {
+    setApprovingId(businessId);
+    try {
+      const res = await fetch(`/api/admin/businesses/${businessId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'verified' }),
+      });
+      if (res.ok) {
+        setBusinesses(prev => prev.filter(b => b.id !== businessId));
+      }
+    } catch (error) {
+      console.error('Failed to approve business:', error);
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -174,8 +193,12 @@ export default function RamonePendingPage() {
                         Review Documents
                       </Button>
                     </Link>
-                    <Button className="bg-green-600 hover:bg-green-700 w-full">
-                      Approve
+                    <Button
+                      className="bg-green-600 hover:bg-green-700 w-full"
+                      onClick={() => handleApprove(business.id)}
+                      disabled={approvingId === business.id}
+                    >
+                      {approvingId === business.id ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Approve'}
                     </Button>
                   </div>
                 </CardContent>

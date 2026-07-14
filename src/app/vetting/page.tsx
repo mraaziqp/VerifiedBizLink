@@ -43,6 +43,7 @@ interface Business {
   status: string;
   submitted_at: string | null;
   trust_score?: number;
+  review_notes?: string | null;
   documents?: Document[];
   queue?: { ticketNumber: string; position: number; total: number } | null;
 }
@@ -364,6 +365,12 @@ export default function VettingPage() {
                       </div>
                       <Progress value={progressValue} className="h-2.5 bg-gray-100" />
                     </div>
+                    {business?.status === "rejected" && business.review_notes && (
+                      <div className="p-4 bg-red-50 rounded-2xl border border-dashed border-red-300 space-y-1">
+                        <span className="text-xs text-red-700 font-bold uppercase tracking-wider">Why this was rejected</span>
+                        <p className="text-sm text-gray-700">{business.review_notes}</p>
+                      </div>
+                    )}
                     {business?.queue && (
                       <div className="p-4 bg-yellow-50 rounded-2xl border border-dashed border-yellow-300 flex items-center justify-between gap-3 flex-wrap">
                         <div className="flex flex-col gap-1">

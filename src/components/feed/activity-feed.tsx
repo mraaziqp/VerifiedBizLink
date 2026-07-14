@@ -132,9 +132,23 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
               : p
           )
         );
+        const { error } = await res.json().catch(() => ({ error: null }));
+        toast({ title: 'Could not update like', description: error || 'Please try again.', variant: 'destructive' });
       }
     } catch {
-      // silent revert handled above
+      setLikedPosts(prev => {
+        const next = new Set(prev);
+        wasLiked ? next.add(postId) : next.delete(postId);
+        return next;
+      });
+      setPosts(prev =>
+        prev.map(p =>
+          p.id === postId
+            ? { ...p, likes_count: wasLiked ? p.likes_count + 1 : p.likes_count - 1 }
+            : p
+        )
+      );
+      toast({ title: 'Could not update like', description: 'Check your connection and try again.', variant: 'destructive' });
     }
   };
 
@@ -194,7 +208,7 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
 
   const handleReport = async (post: Post) => {
     try {
-      await fetch('/api/admin/reports', {
+      const res = await fetch('/api/admin/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -204,10 +218,11 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
           description: `Post reported by user. Post ID: ${post.id}`,
         }),
       });
+      if (!res.ok) throw new Error();
+      toast({ title: "Post reported", description: "Our team will review this content shortly." });
     } catch {
-      // fail silently
+      toast({ title: "Could not report post", description: "Please try again.", variant: "destructive" });
     }
-    toast({ title: "Post reported", description: "Our team will review this content shortly." });
   };
 
   const handleDeletePost = async (postId: string) => {

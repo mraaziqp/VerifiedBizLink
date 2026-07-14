@@ -6,12 +6,14 @@ import { compressImage, fetchWithTimeout } from '@/lib/image-compress';
 
 interface ImageUploaderProps {
   onImageSelect?: (imageUrl: string) => void;
+  onUploadStateChange?: (uploading: boolean) => void;
   maxSize?: number;
   buttonClassName?: string;
 }
 
 export function ImageUploader({
   onImageSelect,
+  onUploadStateChange,
   maxSize = 10 * 1024 * 1024,
   buttonClassName = 'text-gray-500 hover:text-gray-700',
 }: ImageUploaderProps) {
@@ -42,6 +44,7 @@ export function ImageUploader({
     }
 
     setUploading(true);
+    onUploadStateChange?.(true);
 
     try {
       // Create preview
@@ -91,6 +94,7 @@ export function ImageUploader({
       setPreview(null);
     } finally {
       setUploading(false);
+      onUploadStateChange?.(false);
     }
   };
 

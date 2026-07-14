@@ -57,6 +57,14 @@ const VERIFIED_ONLY_PREFIXES = [
 const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
 
 const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
+
+// Liking and commenting are low-stakes social actions, not the kind of
+// business-content creation the email-verification gate was meant to guard
+// (that's still enforced on POST /api/posts itself, and on business/message/
+// connection mutations). Gating them the same way as everything else under
+// /api/posts left every unverified account — the majority of real users —
+// unable to like or comment, with the request silently rejected client-side.
+const VERIFICATION_EXEMPT = new RegExp(`^/api/posts/${UUID}/(like|comments)$`, 'i');
 // A verified business's public trust profile (page + the API it reads from)
 // must be viewable without an account — that's the whole point of showing
 // a trust score to prospective customers. Owner-management routes like
@@ -122,7 +130,8 @@ export async function middleware(request: NextRequest) {
   // exempt. Reads are never gated — only mutating requests.
   if (
     MUTATING_METHODS.includes(request.method) &&
-    VERIFIED_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+    VERIFIED_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix)) &&
+    !VERIFICATION_EXEMPT.test(pathname)
   ) {
     try {
       const { payload } = await jwtVerify(session.value, JWT_SECRET);

@@ -26,6 +26,7 @@ interface Business {
   status: 'pending' | 'reviewing' | 'verified' | 'rejected';
   trust_score: number;
   logo_url: string;
+  cover_image_url?: string | null;
   website: string;
   phone: string;
   address: string;
@@ -273,9 +274,26 @@ export default function BusinessDashboard() {
 
   const profileCompletion = stats?.profile_completion ?? 0;
   const profileCompletionItems = getProfileCompletionItems(business, stats);
+  const step1Complete = profileCompletionItems.every((item) => item.completed);
 
   return (
     <GlassBackground>
+      {/* Cover Photo — same field shown on the public profile page; previously
+          fetched here but never rendered, so owners couldn't see their own
+          cover photo without opening their public page in another tab. */}
+      {business.cover_image_url && (
+        <div className="relative w-full h-32 sm:h-44 overflow-hidden">
+          <img src={business.cover_image_url} alt="" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent" />
+          <Link
+            href="/business/profile"
+            className="absolute bottom-3 right-3 text-xs font-medium bg-slate-950/70 backdrop-blur text-white px-3 py-1.5 rounded-lg hover:bg-slate-900 transition"
+          >
+            Change cover photo
+          </Link>
+        </div>
+      )}
+
       {/* Premium Header */}
       <div className="bg-slate-950/70 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -380,31 +398,37 @@ export default function BusinessDashboard() {
               <div className={`mb-6 p-4 rounded-lg border-l-4 flex items-start gap-4 ${
                 business.status === 'pending' ? 'bg-yellow-900 border-yellow-400' :
                 business.status === 'reviewing' ? 'bg-blue-900 border-blue-400' :
-                'bg-red-900 border-red-400'
+                business.status === 'rejected' ? 'bg-red-900 border-red-400' :
+                'bg-slate-800 border-slate-500'
               }`}>
                 <div className="flex-shrink-0 mt-0.5">
                   {business.status === 'reviewing' ? (
                     <Clock className="h-5 w-5 text-yellow-400" />
                   ) : business.status === 'pending' ? (
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
-                  ) : (
+                  ) : business.status === 'rejected' ? (
                     <AlertCircle className="h-5 w-5 text-red-400" />
+                  ) : (
+                    <FileText className="h-5 w-5 text-slate-400" />
                   )}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-white mb-1">
                     {business.status === 'pending' ? '⏳ Complete Your Profile' :
                      business.status === 'reviewing' ? '🔍 Under Review' :
-                     '⚠️ Action Required'}
+                     business.status === 'rejected' ? '⚠️ Action Required' :
+                     'Get Verified'}
                   </h3>
                   <p className={`text-sm ${
                     business.status === 'pending' ? 'text-yellow-200' :
                     business.status === 'reviewing' ? 'text-blue-200' :
-                    'text-red-200'
+                    business.status === 'rejected' ? 'text-red-200' :
+                    'text-slate-300'
                   }`}>
                     {business.status === 'pending' ? 'Complete your profile to unlock verified status and get more visibility.' :
                      business.status === 'reviewing' ? 'We\'re reviewing your documents. Typically takes 3-5 business days.' :
-                     'Please review and resubmit your application.'}
+                     business.status === 'rejected' ? 'Please review and resubmit your application.' :
+                     'Submit your business for verification to unlock a trust badge and more visibility.'}
                   </p>
                 </div>
               </div>
@@ -769,12 +793,13 @@ export default function BusinessDashboard() {
               })}
             </div>
 
-            {/* Industry Benchmarks */}
+            {/* Growth Snapshot — your own numbers, not a peer comparison (there's
+                no industry benchmark dataset behind this yet). */}
             <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5 mb-8">
               <CardHeader>
                 <CardTitle className="text-white flex items-center gap-2">
                   <BarChart className="h-5 w-5 text-yellow-400" />
-                  How You Compare to Similar Businesses
+                  Your Growth Snapshot
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
@@ -862,13 +887,28 @@ export default function BusinessDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex gap-4 p-4 bg-slate-700/50 rounded-lg border-l-2 border-green-400">
+                  <div className={`flex gap-4 p-4 bg-slate-700/50 rounded-lg border-l-2 ${step1Complete ? 'border-green-400' : 'border-slate-600'}`}>
                     <div className="flex-shrink-0">
-                      <CheckCircle2 className="h-6 w-6 text-green-400 mt-1" />
+                      {step1Complete ? (
+                        <CheckCircle2 className="h-6 w-6 text-green-400 mt-1" />
+                      ) : (
+                        <div className="flex items-center justify-center h-6 w-6 rounded-full bg-slate-600 text-white text-sm font-bold mt-1">1</div>
+                      )}
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-white mb-1">Step 1: Complete Profile ✓</h4>
-                      <p className="text-slate-400 text-sm">You've filled out your basic information. Great start!</p>
+                      <h4 className="font-semibold text-white mb-1">Step 1: Complete Profile {step1Complete ? '✓' : `(${profileCompletion}%)`}</h4>
+                      <p className="text-slate-400 text-sm mb-3">
+                        {step1Complete
+                          ? "You've filled out your basic information. Great start!"
+                          : 'Fill in your company name, description, contact info, website, and add photos.'}
+                      </p>
+                      {!step1Complete && (
+                        <Link href="/business/profile">
+                          <Button size="sm" className="bg-yellow-400 text-slate-900 hover:bg-yellow-500">
+                            Complete Profile
+                          </Button>
+                        </Link>
+                      )}
                     </div>
                   </div>
 
@@ -910,41 +950,47 @@ export default function BusinessDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center gap-3 p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition">
-                    <input type="checkbox" className="w-5 h-5 rounded border-slate-600 cursor-pointer" />
-                    <div className="flex-1">
-                      <p className="text-white font-medium">Upload business documents</p>
-                      <p className="text-slate-400 text-sm">Business registration, tax certificate, etc.</p>
-                    </div>
-                    <Badge className="bg-orange-900 text-orange-300 border-orange-700">High Priority</Badge>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition">
-                    <input type="checkbox" className="w-5 h-5 rounded border-slate-600 cursor-pointer" />
-                    <div className="flex-1">
-                      <p className="text-white font-medium">Add website to profile</p>
-                      <p className="text-slate-400 text-sm">+60% more customer clicks when website is linked</p>
-                    </div>
-                    <Badge className="bg-blue-900 text-blue-300 border-blue-700">Medium Priority</Badge>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition">
-                    <input type="checkbox" className="w-5 h-5 rounded border-slate-600 cursor-pointer" />
-                    <div className="flex-1">
-                      <p className="text-white font-medium">Upload 5 high-quality photos</p>
-                      <p className="text-slate-400 text-sm">Complete your gallery for better visibility</p>
-                    </div>
-                    <Badge className="bg-blue-900 text-blue-300 border-blue-700">Medium Priority</Badge>
-                  </div>
-
-                  <div className="flex items-center gap-3 p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition">
-                    <input type="checkbox" className="w-5 h-5 rounded border-slate-600 cursor-pointer" />
-                    <div className="flex-1">
-                      <p className="text-white font-medium">Create your first post</p>
-                      <p className="text-slate-400 text-sm">Share an update about your business</p>
-                    </div>
-                    <Badge className="bg-slate-700 text-slate-300 border-slate-600">Optional</Badge>
-                  </div>
+                  {[
+                    {
+                      label: 'Upload business documents',
+                      description: 'Business registration, tax certificate, etc.',
+                      done: business.doc_count > 0,
+                      priority: 'High Priority',
+                      priorityClass: 'bg-orange-900 text-orange-300 border-orange-700',
+                      href: '/business/documents',
+                    },
+                    {
+                      label: 'Add website to profile',
+                      description: '+60% more customer clicks when website is linked',
+                      done: !!business.website,
+                      priority: 'Medium Priority',
+                      priorityClass: 'bg-blue-900 text-blue-300 border-blue-700',
+                      href: '/business/profile',
+                    },
+                    {
+                      label: 'Upload 5 high-quality photos',
+                      description: 'Complete your gallery for better visibility',
+                      done: (stats?.gallery_count ?? 0) >= 5,
+                      priority: 'Medium Priority',
+                      priorityClass: 'bg-blue-900 text-blue-300 border-blue-700',
+                      href: '/business/gallery',
+                    },
+                  ].map((item) => (
+                    <Link key={item.label} href={item.href} className="flex items-center gap-3 p-4 bg-slate-700/50 rounded-lg hover:bg-slate-700 transition">
+                      {item.done ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-400 shrink-0" />
+                      ) : (
+                        <div className="h-5 w-5 rounded border border-slate-500 shrink-0" />
+                      )}
+                      <div className="flex-1">
+                        <p className={`font-medium ${item.done ? 'text-slate-400 line-through' : 'text-white'}`}>{item.label}</p>
+                        <p className="text-slate-400 text-sm">{item.description}</p>
+                      </div>
+                      <Badge className={item.priority === 'High Priority' && !item.done ? item.priorityClass : 'bg-slate-700 text-slate-300 border-slate-600'}>
+                        {item.done ? 'Done' : item.priority}
+                      </Badge>
+                    </Link>
+                  ))}
                 </div>
               </CardContent>
             </Card>
