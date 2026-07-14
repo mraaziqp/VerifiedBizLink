@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { ShieldCheck, Users, TrendingUp } from "lucide-react";
 import { SidebarLeft } from "@/components/layout/sidebar-left";
 import { HomeHeader } from "@/components/layout/home-header";
 import { SearchInterface } from "@/components/home/search-interface";
@@ -9,6 +11,7 @@ import { FeaturedBusinesses } from "@/components/home/featured-businesses";
 import { VerificationHero } from "@/components/home/verification-hero";
 import { HomeOverviewResponse } from "@/components/home/types";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/auth-context";
 import { PostCreator } from "@/components/feed/post-creator";
 import { ActivityFeed } from "@/components/feed/activity-feed";
 import { ConnectionDiscovery } from "@/components/widgets/connection-discovery";
@@ -22,6 +25,7 @@ const EMPTY_OVERVIEW: HomeOverviewResponse = {
 
 export default function Home() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [homeData, setHomeData] = useState<HomeOverviewResponse>(EMPTY_OVERVIEW);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -114,7 +118,21 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative isolate">
+      {/* Faded Cape Town hero background — fixed (not background-attachment:
+          fixed, which is unreliable on iOS Safari) so it stays put while the
+          page scrolls, with a gradient wash to keep foreground content
+          fully legible against the light theme. */}
+      <div
+        aria-hidden
+        className="fixed inset-0 -z-10 bg-cover bg-center opacity-[0.09]"
+        style={{ backgroundImage: "url('/hero-cape-town.jpg')" }}
+      />
+      <div
+        aria-hidden
+        className="fixed inset-0 -z-10 bg-gradient-to-b from-gray-50 via-gray-50/70 to-gray-50"
+      />
+
       {/* Mobile-only header */}
       <div className="md:hidden">
         <HomeHeader />
@@ -154,9 +172,38 @@ export default function Home() {
               onSelectCategory={setSelectedCategory}
             />
 
-            {/* Feed */}
-            <PostCreator onPostCreated={() => setFeedRefresh((v) => v + 1)} />
-            <ActivityFeed refreshTrigger={feedRefresh} />
+            {/* Feed — the compose box and activity feed assume a logged-in
+                identity (whose post, whose likes, whose connections), so
+                anonymous visitors get a discovery-focused sign-up prompt
+                here instead of a feed they can't meaningfully use. */}
+            {user ? (
+              <>
+                <PostCreator onPostCreated={() => setFeedRefresh((v) => v + 1)} />
+                <ActivityFeed refreshTrigger={feedRefresh} />
+              </>
+            ) : (
+              <div className="rounded-2xl border border-yellow-400/30 bg-gradient-to-br from-yellow-50 to-white p-6 sm:p-8 text-center space-y-4 shadow-sm">
+                <div className="flex justify-center gap-3">
+                  <ShieldCheck className="h-8 w-8 text-yellow-600" />
+                  <Users className="h-8 w-8 text-yellow-600" />
+                  <TrendingUp className="h-8 w-8 text-yellow-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Join VerifiedBizLink</h2>
+                  <p className="text-gray-600 mt-1 max-w-md mx-auto">
+                    Create a free account to connect with verified businesses, post updates, and build your trusted network.
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-3 justify-center pt-1">
+                  <Link href="/signup" className="px-6 py-2.5 rounded-xl bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold transition-colors">
+                    Create Free Account
+                  </Link>
+                  <Link href="/login" className="px-6 py-2.5 rounded-xl border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold transition-colors">
+                    Sign In
+                  </Link>
+                </div>
+              </div>
+            )}
           </main>
 
           {/* Right column — desktop only */}
@@ -167,7 +214,7 @@ export default function Home() {
               connectingId={connectingId}
               onConnect={handleConnect}
             />
-            <ConnectionDiscovery />
+            {user && <ConnectionDiscovery />}
             <ComplianceNews />
           </aside>
 

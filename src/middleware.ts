@@ -6,6 +6,7 @@ const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
 
 // Routes that do NOT require authentication
 const PUBLIC_PATHS = [
+  '/',
   '/login',
   '/signup',
   '/forgot-password',
@@ -30,6 +31,15 @@ const PUBLIC_PREFIXES = [
   '/api/payfast/notify', // PayFast's server calls this webhook directly — it has no user session cookie
   '/_next/',
   '/favicon',
+];
+
+// Read-only: public for GET (the home feed and posts must be visible to
+// anonymous visitors and search crawlers), but still gated for mutations —
+// falls through to the normal session/verification checks below for
+// anything other than GET.
+const PUBLIC_GET_PREFIXES = [
+  '/api/home/',
+  '/api/posts',
 ];
 
 // Mutating requests to these API prefixes are blocked until the account's
@@ -73,6 +83,12 @@ export async function middleware(request: NextRequest) {
     PUBLIC_BUSINESS_PROFILE.test(pathname) ||
     PUBLIC_BUSINESS_API.test(pathname)
   ) {
+    return NextResponse.next();
+  }
+
+  // Read-only home feed/posts data — public for GET, still gated below for
+  // any mutating method.
+  if (request.method === 'GET' && PUBLIC_GET_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return NextResponse.next();
   }
 
