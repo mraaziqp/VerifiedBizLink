@@ -90,6 +90,16 @@ export async function PUT(request: NextRequest) {
       cover_image_url, tagline, highlights,
     } = body;
 
+    // The client already caps these, but the API is the real boundary —
+    // don't trust it to be the only thing enforcing sane limits.
+    if (highlights !== undefined && (!Array.isArray(highlights) || highlights.length > 6)) {
+      return NextResponse.json({ error: 'Highlights must be an array of at most 6 items' }, { status: 400 });
+    }
+    if (tagline !== undefined && typeof tagline === 'string' && tagline.length > 100) {
+      return NextResponse.json({ error: 'Tagline must be 100 characters or fewer' }, { status: 400 });
+    }
+    const cappedHighlights = highlights?.map((h: unknown) => String(h).slice(0, 80));
+
     const updated = await db`
       UPDATE businesses
       SET
@@ -103,7 +113,7 @@ export async function PUT(request: NextRequest) {
         social_links = COALESCE(${social_links ? JSON.stringify(social_links) : null}, social_links),
         cover_image_url = COALESCE(${cover_image_url}, cover_image_url),
         tagline = COALESCE(${tagline}, tagline),
-        highlights = COALESCE(${highlights ? JSON.stringify(highlights) : null}, highlights),
+        highlights = COALESCE(${cappedHighlights ? JSON.stringify(cappedHighlights) : null}, highlights),
         updated_at = NOW()
       WHERE user_id = ${session.id}
       RETURNING *

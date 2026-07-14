@@ -16,15 +16,30 @@ const DISPOSABLE_DOMAINS = new Set([
   'getnada.com', 'maildrop.cc', 'fakeinbox.com', 'sharklasers.com', 'dispostable.com',
 ]);
 
+// A slow/unresponsive DNS resolver shouldn't be able to hang signup
+// indefinitely — fail open (allow) rather than block real users on a
+// network hiccup that has nothing to do with whether their email is real.
+const MX_LOOKUP_TIMEOUT_MS = 3000;
+
 async function isRegistrableEmailDomain(email: string): Promise<boolean> {
   const domain = email.split('@')[1]?.toLowerCase();
   if (!domain) return false;
   if (DISPOSABLE_DOMAINS.has(domain)) return false;
   try {
-    const records = await resolveMx(domain);
+    const records = await Promise.race([
+      resolveMx(domain),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('MX lookup timed out')), MX_LOOKUP_TIMEOUT_MS)
+      ),
+    ]);
     return records.length > 0;
-  } catch {
-    return false;
+  } catch (err) {
+    // Genuine "no such domain" errors (ENOTFOUND/ENODATA) mean the domain
+    // really can't receive mail — reject those. A timeout or any other
+    // transient DNS failure shouldn't block a real signup, so allow it.
+    const code = (err as { code?: string })?.code;
+    if (code === 'ENOTFOUND' || code === 'ENODATA') return false;
+    return true;
   }
 }
 
