@@ -14,7 +14,6 @@ import {
   Bell,
   Eye,
   MousePointerClick,
-  Award,
   Menu,
   X,
   User,
@@ -27,14 +26,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import AdCreator from "@/components/dashboard/ad-creator";
 import UserAccountSettings from "@/components/dashboard/account-settings";
-import SubscriptionManager from "@/components/dashboard/subscription-manager";
 import PerformanceAnalytics from "@/components/dashboard/performance-analytics";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
-  const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -42,21 +39,9 @@ export default function Dashboard() {
     if (!user) {
       router.push("/login");
     } else {
-      fetchSubscription();
-    }
-  }, [user, router]);
-
-  const fetchSubscription = async () => {
-    try {
-      const res = await fetch(`/api/user/tier`);
-      const data = await res.json();
-      setSubscription(data);
-    } catch (error) {
-      console.error("Failed to fetch subscription:", error);
-    } finally {
       setLoading(false);
     }
-  };
+  }, [user, router]);
 
   const handleLogout = async () => {
     await logout();
@@ -110,16 +95,6 @@ export default function Dashboard() {
       bgColor: "from-green-500/10 to-green-600/10",
       subtext: "engagement rate",
     },
-    {
-      label: "Current Plan",
-      value: subscription?.tier || "Free",
-      trend: subscription?.tier === "Free" ? "Upgrade" : "Active",
-      trendUp: subscription?.tier !== "Free",
-      icon: Award,
-      color: "from-purple-500 to-purple-600",
-      bgColor: "from-purple-500/10 to-purple-600/10",
-      subtext: subscription?.tier === "Free" ? "limited features" : "all features",
-    },
   ];
 
   return (
@@ -156,9 +131,6 @@ export default function Dashboard() {
             <div className="flex items-center gap-3">
               <div className="text-right">
                 <p className="text-white font-semibold text-sm">{user?.email}</p>
-                <p className="text-yellow-400 text-xs font-bold tracking-wider">
-                  {subscription?.tier || "Free"} Plan
-                </p>
               </div>
               <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center border border-gray-600 shadow-lg">
                 <span className="text-white font-bold">{user?.email?.charAt(0).toUpperCase()}</span>
@@ -193,7 +165,6 @@ export default function Dashboard() {
               </div>
               <div>
                 <p className="text-white font-semibold text-sm">{user?.email}</p>
-                <p className="text-yellow-400 text-xs font-bold">{subscription?.tier || "Free"} Plan</p>
               </div>
             </div>
             <Button onClick={handleLogout} className="w-full" variant="outline">
@@ -258,7 +229,7 @@ export default function Dashboard() {
         </div>
 
         {/* Premium Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {stats.map((stat, idx) => {
             const Icon = stat.icon;
             const TrendIcon = stat.trendUp ? TrendingUp : TrendingDown;
@@ -308,11 +279,10 @@ export default function Dashboard() {
             onValueChange={setActiveTab}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-gray-800/50 to-gray-900/50 border border-gray-700/50 rounded-xl p-1 mb-8 shadow-lg">
+            <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-gray-800/50 to-gray-900/50 border border-gray-700/50 rounded-xl p-1 mb-8 shadow-lg">
               {[
                 { value: "overview", label: "Overview", icon: "📊" },
                 { value: "ads", label: "Ads", icon: "📢" },
-                { value: "subscription", label: "Subscription", icon: "💳" },
                 { value: "settings", label: "Settings", icon: "⚙️" },
               ].map((tab) => (
                 <TabsTrigger
@@ -396,13 +366,6 @@ export default function Dashboard() {
             <TabsContent value="ads" className="animate-in fade-in duration-500">
               <div className="rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 p-6 shadow-lg">
                 <AdCreator />
-              </div>
-            </TabsContent>
-
-            {/* Subscription Tab */}
-            <TabsContent value="subscription" className="animate-in fade-in duration-500">
-              <div className="rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 p-6 shadow-lg">
-                <SubscriptionManager subscription={subscription} onUpdate={fetchSubscription} />
               </div>
             </TabsContent>
 

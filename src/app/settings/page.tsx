@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { compressImage, fetchWithTimeout } from "@/lib/image-compress";
 import { SidebarLeft } from "@/components/layout/sidebar-left";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,12 +15,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Shield, Bell, CreditCard, Loader2, Camera, Trash2, Download, AlertTriangle, Lock, CheckCircle2, LogOut, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { PACKAGES } from "@/lib/tiers";
 
-export default function SettingsPage() {
+function SettingsForm() {
   const { user, refresh } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const validTabs = ["profile", "security", "notifications", "billing", "privacy"];
+  const requestedTab = searchParams.get("tab");
+  const initialTab = requestedTab && validTabs.includes(requestedTab) ? requestedTab : "profile";
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -36,6 +41,7 @@ export default function SettingsPage() {
   const [payments, setPayments] = useState<any[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [business, setBusiness] = useState<any>(null);
 
   useEffect(() => {
     setLoadingPayments(true);
@@ -49,6 +55,14 @@ export default function SettingsPage() {
       .catch(err => console.error('Error fetching payments:', err))
       .finally(() => setLoadingPayments(false));
   }, []);
+
+  useEffect(() => {
+    if (user?.role !== 'business') return;
+    fetch('/api/business/profile', { cache: 'no-store' })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (data?.business) setBusiness(data.business); })
+      .catch(err => console.error('Error fetching business profile:', err));
+  }, [user?.role]);
 
   const handleCheckout = async (amount: number, description: string, purchaseType?: string) => {
     setCheckoutLoading(description);
@@ -337,7 +351,7 @@ export default function SettingsPage() {
               </Button>
             </div>
 
-            <Tabs defaultValue="profile" className="w-full space-y-6">
+            <Tabs defaultValue={initialTab} className="w-full space-y-6">
               <TabsList className="bg-white border p-1 rounded-2xl h-auto shadow-sm w-full lg:w-fit flex overflow-x-auto gap-0">
                 <TabsTrigger value="profile" className="h-11 px-4 lg:px-6 rounded-xl font-bold gap-2 shrink-0">
                   <User className="h-4 w-4" />
@@ -602,9 +616,17 @@ export default function SettingsPage() {
                       <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
                         <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Current Tier</p>
                         <p className="text-2xl font-extrabold text-white">
-                          {user?.role === 'business' ? 'Standard Listing' : 'Professional Account'}
+                          {user?.role === 'business'
+                            ? PACKAGES[(business?.package_type as keyof typeof PACKAGES) || 'free']?.name ?? 'Free'
+                            : 'Personal Account'}
                         </p>
-                        <p className="text-xs text-slate-500">Free tier list visibility</p>
+                        <p className="text-xs text-slate-500">
+                          {user?.role === 'business'
+                            ? (PACKAGES[(business?.package_type as keyof typeof PACKAGES) || 'free']?.price
+                                ? `R${PACKAGES[(business?.package_type as keyof typeof PACKAGES) || 'free'].price}/month`
+                                : 'Free tier list visibility')
+                            : 'No subscription — personal accounts are always free'}
+                        </p>
                       </div>
                       <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
                         <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">SARS/CIPC Status</p>
@@ -672,7 +694,7 @@ export default function SettingsPage() {
                         <p className="text-sm text-gray-500 font-medium">Build trust and gain priority search visibility.</p>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-extrabold text-gray-900">R99</span>
+                        <span className="text-3xl font-extrabold text-gray-900">R299</span>
                         <span className="text-sm text-gray-500 font-bold">/ month</span>
                       </div>
                       <ul className="space-y-2.5 pt-2 text-sm text-gray-600 font-medium">
@@ -684,14 +706,14 @@ export default function SettingsPage() {
                     </div>
                     <div className="p-6 bg-gray-50 border-t flex justify-end">
                       <Button
-                        onClick={() => handleCheckout(99, 'Verified Business Subscription (R99/month)', 'subscription_standard')}
+                        onClick={() => handleCheckout(299, 'Standard Business Subscription (R299/month)', 'subscription_standard')}
                         disabled={checkoutLoading !== null}
                         className="bg-[#EAB308] hover:bg-[#EAB308]/90 text-slate-950 font-bold px-6 h-11 rounded-xl transition-all shadow-md shadow-yellow-500/20"
                       >
-                        {checkoutLoading === 'Verified Business Subscription (R99/month)' ? (
+                        {checkoutLoading === 'Standard Business Subscription (R299/month)' ? (
                           <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Redirecting…</>
                         ) : (
-                          'Upgrade to Verified'
+                          'Upgrade to Standard'
                         )}
                       </Button>
                     </div>
@@ -708,11 +730,11 @@ export default function SettingsPage() {
                         <p className="text-sm text-gray-500 font-medium">Maximum exposure, advanced leads, and custom branding.</p>
                       </div>
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-extrabold text-gray-900">R299</span>
+                        <span className="text-3xl font-extrabold text-gray-900">R699</span>
                         <span className="text-sm text-gray-500 font-bold">/ month</span>
                       </div>
                       <ul className="space-y-2.5 pt-2 text-sm text-gray-600 font-medium">
-                        <li className="flex items-center gap-2 text-slate-700">✓ All features in Verified tier</li>
+                        <li className="flex items-center gap-2 text-slate-700">✓ All features in Standard tier</li>
                         <li className="flex items-center gap-2 text-slate-700">✓ Homepage exposure and spotlight listings</li>
                         <li className="flex items-center gap-2 text-slate-700">✓ Advanced lead dashboard &amp; viewer analytics</li>
                         <li className="flex items-center gap-2 text-slate-700">✓ AI-assisted ad builder and campaign tools</li>
@@ -720,11 +742,11 @@ export default function SettingsPage() {
                     </div>
                     <div className="p-6 bg-gray-50 border-t flex justify-end">
                       <Button
-                        onClick={() => handleCheckout(299, 'Premium Business Subscription (R299/month)', 'subscription_premium')}
+                        onClick={() => handleCheckout(699, 'Premium Business Subscription (R699/month)', 'subscription_premium')}
                         disabled={checkoutLoading !== null}
                         className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 h-11 rounded-xl transition-all"
                       >
-                        {checkoutLoading === 'Premium Business Subscription (R299/month)' ? (
+                        {checkoutLoading === 'Premium Business Subscription (R699/month)' ? (
                           <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Redirecting…</>
                         ) : (
                           'Upgrade to Premium'
@@ -733,40 +755,6 @@ export default function SettingsPage() {
                     </div>
                   </Card>
                 </div>
-
-                {/* Payment Sanity Check */}
-                <Card className="border border-gray-100 shadow-sm overflow-hidden bg-white">
-                  <CardHeader className="bg-white border-b py-6">
-                    <CardTitle className="text-lg font-bold">Test Payment Gateway</CardTitle>
-                    <CardDescription>
-                      Verify checkout works end-to-end with a tiny R5 charge. To boost a specific ad, go to{' '}
-                      <a href="/business/ads" className="text-yellow-600 hover:underline font-semibold">Ad Campaigns</a> instead.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-6 md:p-8">
-                    <div className="max-w-xs p-5 rounded-2xl border border-gray-200 hover:border-yellow-400 transition-all flex flex-col justify-between gap-4 bg-white">
-                      <div>
-                        <h4 className="font-bold text-gray-900">Test Payment</h4>
-                        <p className="text-xs text-gray-500 mt-1">R5 — confirms your card and PayFast checkout work</p>
-                      </div>
-                      <div className="flex items-center justify-between mt-2">
-                        <span className="text-xl font-extrabold text-gray-900">R5</span>
-                        <Button
-                          onClick={() => handleCheckout(5, 'Test Payment', 'test')}
-                          disabled={checkoutLoading !== null}
-                          size="sm"
-                          className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold rounded-lg px-3"
-                        >
-                          {checkoutLoading === 'Test Payment' ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            'Pay R5'
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
 
                 {/* Spent Transaction Ledger */}
                 <Card className="border border-gray-100 shadow-sm overflow-hidden bg-white">
@@ -800,9 +788,10 @@ export default function SettingsPage() {
                           </thead>
                           <tbody className="divide-y text-gray-700">
                             {payments.map((p) => {
-                              // Standardize amount display: Stripe uses cents (amount/100), Payfast now does too.
-                              // If value is stored as gross (unconverted legacy), show directly.
-                              const displayAmount = p.amount > 2000 ? (p.amount / 100).toFixed(2) : p.amount.toFixed(2);
+                              // payments.amount is always stored in cents (see /api/payfast/init) —
+                              // a size-based heuristic here previously misread small amounts like a
+                              // R5 test payment (500 cents) as R500.
+                              const displayAmount = (p.amount / 100).toFixed(2);
                               return (
                                 <tr key={p.id} className="hover:bg-gray-50/50">
                                   <td className="px-6 py-4 font-mono text-xs">{p.reference || p.id.substring(0, 8).toUpperCase()}</td>
@@ -985,5 +974,17 @@ export default function SettingsPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SettingsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-yellow-400" />
+      </div>
+    }>
+      <SettingsForm />
+    </Suspense>
   );
 }

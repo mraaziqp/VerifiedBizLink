@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
-
-// Active-ad allowance per package — keep in sync with PACKAGES in
-// /api/businesses/packages/route.ts.
-const AD_LIMITS: Record<string, number> = {
-  free: 0,
-  standard: 1,
-  premium: 5,
-  premium_half: 3,
-};
+import { AD_LIMITS, getEffectivePackage } from '@/lib/tiers';
 
 async function getOwnBusiness(userId: string) {
   const rows = await db`
-    SELECT id, company_name, package_type FROM businesses WHERE user_id = ${userId} LIMIT 1
+    SELECT id, company_name, package_type, trial_package, trial_ends_at
+    FROM businesses WHERE user_id = ${userId} LIMIT 1
   `;
   return rows[0] ?? null;
 }
@@ -31,7 +24,7 @@ export async function GET() {
            created_at, expires_at, impressions, clicks
     FROM ads WHERE business_id = ${biz.id} ORDER BY created_at DESC
   `;
-  const limit = AD_LIMITS[biz.package_type] ?? 0;
+  const limit = AD_LIMITS[getEffectivePackage(biz)] ?? 0;
   const active = ads.filter((a) => a.is_active).length;
 
   return NextResponse.json({ ads, limit, active, packageType: biz.package_type });
@@ -47,7 +40,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Create your business profile first' }, { status: 400 });
   }
 
-  const limit = AD_LIMITS[biz.package_type] ?? 0;
+  const limit = AD_LIMITS[getEffectivePackage(biz)] ?? 0;
   if (limit === 0) {
     return NextResponse.json(
       { error: 'Sponsored listings require a paid plan. Upgrade on the Pricing page to create one.' },

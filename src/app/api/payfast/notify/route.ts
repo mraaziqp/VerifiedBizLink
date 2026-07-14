@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import crypto from 'crypto';
+import { PACKAGES, PURCHASE_TYPE_TO_PACKAGE } from '@/lib/tiers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -98,14 +99,24 @@ export async function POST(request: NextRequest) {
             AND business_id IN (SELECT id FROM businesses WHERE user_id = ${userId})
         `.catch(err => console.log('Ad update note:', err.message));
         grantMessage = 'Your ad has been boosted for 7 days — it will get priority placement.';
-      } else if (purchaseType === 'subscription_standard' || purchaseType === 'subscription_premium') {
-        const tier = purchaseType === 'subscription_premium' ? 'premium' : 'standard';
-        await db`
-          UPDATE businesses
-          SET package_type = ${tier}, updated_at = NOW()
-          WHERE user_id = ${userId}
-        `.catch(err => console.log('Subscription upgrade note:', err.message));
-        grantMessage = `Your business has been upgraded to the ${tier === 'premium' ? 'Premium' : 'Verified'} plan.`;
+      } else if (purchaseType in PURCHASE_TYPE_TO_PACKAGE) {
+        const tier = PURCHASE_TYPE_TO_PACKAGE[purchaseType];
+        const paidAmount = parseFloat(payfastData.amount_gross as string);
+        const expectedPrice = PACKAGES[tier].price;
+        // Guard against a forged/tampered client request paying less than the
+        // tier actually costs (e.g. amount=5 with purchaseType=subscription_premium)
+        // and still getting upgraded — the webhook must never trust purchaseType alone.
+        if (Number.isFinite(paidAmount) && paidAmount >= expectedPrice - 0.01) {
+          await db`
+            UPDATE businesses
+            SET package_type = ${tier}, updated_at = NOW()
+            WHERE user_id = ${userId}
+          `.catch(err => console.log('Subscription upgrade note:', err.message));
+          grantMessage = `Your business has been upgraded to the ${PACKAGES[tier].name} plan.`;
+        } else {
+          console.error(`Blocked subscription upgrade: paid R${paidAmount} for ${tier} (requires R${expectedPrice})`, { userId, paymentRef });
+          grantMessage = 'Your payment was received, but the amount did not match the selected plan. Please contact support.';
+        }
       }
 
       // Create notification

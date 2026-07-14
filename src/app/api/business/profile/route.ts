@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
+import { AD_LIMITS, getEffectivePackage } from '@/lib/tiers';
 
 const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
-const AD_LIMITS: Record<string, number> = { free: 0, standard: 1, premium: 5, premium_half: 3 };
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const business = await db`
       SELECT
         id, user_id, company_name, description, industry, status, trust_score,
-        logo_url, website, phone, address, package_type, created_at, social_links,
+        logo_url, website, phone, address, package_type, trial_package, trial_ends_at, created_at, social_links,
         cover_image_url, tagline, highlights,
         (SELECT COUNT(*) FROM documents WHERE business_id = businesses.id) as doc_count
       FROM businesses
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       reviews: reviews[0].n,
       verified: biz.status === 'verified',
       ads_active: activeAds[0].n,
-      ads_limit: AD_LIMITS[biz.package_type] ?? 0,
+      ads_limit: AD_LIMITS[getEffectivePackage(biz)] ?? 0,
       profile_completion: Math.round(
         (biz.company_name ? 15 : 0) +
         (biz.description ? 15 : 0) +

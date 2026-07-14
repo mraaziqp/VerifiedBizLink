@@ -4,6 +4,7 @@ import { CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
+import { useAuth } from "@/contexts/auth-context";
 
 const tiers = [
   {
@@ -28,7 +29,7 @@ const tiers = [
   },
   {
     name: "Verified Business",
-    price: 99,
+    price: 299,
     period: "/month",
     description: "Build trust and credibility",
     color: "from-yellow-500 to-yellow-600",
@@ -46,7 +47,7 @@ const tiers = [
   },
   {
     name: "Premium Business",
-    price: 299,
+    price: 699,
     period: "/month",
     description: "For growing businesses",
     color: "from-blue-500 to-blue-600",
@@ -65,8 +66,8 @@ const tiers = [
   },
   {
     name: "Enterprise Partner",
-    price: 999,
-    period: "/month",
+    price: null,
+    period: "Custom",
     description: "For established brands",
     color: "from-purple-500 to-purple-600",
     features: [
@@ -85,6 +86,14 @@ const tiers = [
 ];
 
 export default function PricingPage() {
+  const { user } = useAuth();
+  // Paid tiers actually check out on /settings (Billing tab); anonymous
+  // visitors go to /signup first. Enterprise has no self-serve checkout.
+  const ctaHref = (tier: (typeof tiers)[number]) => {
+    if (tier.name === "Enterprise Partner") return "/contact";
+    if (!tier.price) return user ? "/business/dashboard" : "/signup";
+    return user ? "/settings?tab=billing" : "/signup";
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
       {/* Header */}
@@ -149,7 +158,7 @@ export default function PricingPage() {
                   <span className={`text-3xl font-bold ${
                     tier.highlighted ? "text-gray-900" : "text-white"
                   }`}>
-                    Free
+                    {tier.period}
                   </span>
                 )}
               </div>
@@ -184,7 +193,7 @@ export default function PricingPage() {
               </div>
 
               {/* CTA Button */}
-              <Link href={tier.price ? "/signup?tier=" + tier.name.toLowerCase() : "/signup"}>
+              <Link href={ctaHref(tier)}>
                 <Button className={`w-full ${
                   tier.highlighted
                     ? "bg-gray-900 text-yellow-400 hover:bg-gray-800"

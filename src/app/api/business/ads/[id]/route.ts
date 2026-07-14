@@ -1,17 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
-
-const AD_LIMITS: Record<string, number> = {
-  free: 0,
-  standard: 1,
-  premium: 5,
-  premium_half: 3,
-};
+import { AD_LIMITS, getEffectivePackage } from '@/lib/tiers';
 
 async function findOwnedAd(userId: string, adId: string) {
   const rows = await db`
-    SELECT a.id, a.is_active, b.id AS business_id, b.package_type
+    SELECT a.id, a.is_active, b.id AS business_id, b.package_type, b.trial_package, b.trial_ends_at
     FROM ads a
     JOIN businesses b ON b.id = a.business_id
     WHERE a.id = ${adId} AND b.user_id = ${userId}
@@ -36,7 +30,7 @@ export async function PATCH(
 
   if (typeof body.isActive === 'boolean') {
     if (body.isActive && !existing.is_active) {
-      const limit = AD_LIMITS[existing.package_type] ?? 0;
+      const limit = AD_LIMITS[getEffectivePackage(existing)] ?? 0;
       const [{ count }] = await db`
         SELECT COUNT(*)::int AS count FROM ads
         WHERE business_id = ${existing.business_id} AND is_active = true AND id != ${id}

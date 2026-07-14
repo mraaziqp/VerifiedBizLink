@@ -1,57 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
-
-const PACKAGES = {
-  free: {
-    name: 'Free',
-    price: 0,
-    features: [
-      'Basic business listing',
-      'Up to 10 network connections',
-      'Standard trust badge',
-      '1 post per day',
-    ],
-  },
-  standard: {
-    name: 'Standard',
-    price: 299,
-    features: [
-      'Enhanced business profile',
-      'Unlimited connections',
-      'Priority discovery listing',
-      'Unlimited posts',
-      '1 active ad',
-      'Basic analytics',
-    ],
-  },
-  premium: {
-    name: 'Premium',
-    price: 699,
-    features: [
-      'Everything in Standard',
-      'Gold Verified badge (fast-tracked)',
-      'Boosted ad placement',
-      '5 active ads',
-      'Full analytics dashboard',
-      'AI content assistant (unlimited)',
-      'Priority vetting review',
-      'Dedicated account manager',
-    ],
-  },
-  premium_half: {
-    name: 'Premium Trial',
-    price: 0,
-    features: [
-      'Gold Verified badge eligibility',
-      'Up to 3 active ads',
-      'Enhanced analytics',
-      'AI content assistant',
-      'Priority vetting review',
-    ],
-    note: '2-week trial — half of Premium features',
-  },
-} as const;
+import { PACKAGES } from '@/lib/tiers';
 
 // GET /api/businesses/packages — return package definitions + current business package
 export async function GET() {
