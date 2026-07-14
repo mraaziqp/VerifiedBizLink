@@ -302,10 +302,15 @@ export default function BusinessDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button className="p-2 hover:bg-slate-700 rounded-lg transition text-yellow-400 hover:text-yellow-300 relative">
-                <Bell className="h-5 w-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
+              <Link href={`/business/${business.id}`} target="_blank">
+                <Button
+                  variant="outline"
+                  className="gap-2 border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 hidden sm:flex"
+                >
+                  <Eye className="h-4 w-4" />
+                  View Public Page
+                </Button>
+              </Link>
               <Button
                 variant="outline"
                 onClick={handleLogout}
@@ -316,6 +321,16 @@ export default function BusinessDashboard() {
               </Button>
             </div>
           </div>
+
+          <Link href={`/business/${business.id}`} target="_blank" className="sm:hidden">
+            <Button
+              variant="outline"
+              className="w-full gap-2 border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 mb-4"
+            >
+              <Eye className="h-4 w-4" />
+              View Public Page
+            </Button>
+          </Link>
 
           {/* Tab Navigation */}
           <div className="flex gap-2 overflow-x-auto [-webkit-overflow-scrolling:touch]">

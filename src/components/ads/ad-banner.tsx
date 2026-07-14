@@ -122,9 +122,34 @@ export function AdBanner() {
     return () => clearInterval(interval);
   }, [user, visible, adsEnabled, ads.length, checkShouldShow]);
 
+  // Log one impression each time a (real) ad is actually shown to a viewer.
+  useEffect(() => {
+    if (!visible) return;
+    const ad = ads[currentAdIndex] || ads[0];
+    if (ad && !ad.id.startsWith("sample-")) {
+      fetch(`/api/ads/${ad.id}/track`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "impression" }),
+        keepalive: true,
+      }).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, currentAdIndex]);
+
   const handleDismiss = () => {
     localStorage.setItem(DISMISS_KEY, Date.now().toString());
     setVisible(false);
+  };
+
+  const trackAd = (adId: string, type: "impression" | "click") => {
+    if (adId.startsWith("sample-")) return; // fallback ads aren't real DB rows
+    fetch(`/api/ads/${adId}/track`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type }),
+      keepalive: true,
+    }).catch(() => {});
   };
 
   if (!user || !["user", "business"].includes(user.role) || !visible || !adsEnabled) return null;
@@ -182,6 +207,7 @@ export function AdBanner() {
             size="sm"
             className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl text-xs h-8 gap-1 flex-1"
             onClick={() => {
+              trackAd(ad.id, "click");
               window.location.href = ad.cta_url;
               handleDismiss();
             }}
@@ -194,7 +220,7 @@ export function AdBanner() {
             className="text-xs h-8 text-gray-400 hover:text-gray-600 rounded-xl"
             asChild
           >
-            <a href={ad.cta_url} target="_blank" rel="noopener noreferrer">
+            <a href={ad.cta_url} target="_blank" rel="noopener noreferrer" onClick={() => trackAd(ad.id, "click")}>
               <ExternalLink className="h-3 w-3" />
             </a>
           </Button>

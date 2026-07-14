@@ -9,10 +9,11 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const DISMISSED_KEY = 'vbl_pwa_install_dismissed';
-// Chrome only fires beforeinstallprompt once it decides engagement
-// heuristics are met — it can simply never fire on a given visit. Don't
-// wait forever for it before offering the manual fallback instead.
-const NATIVE_PROMPT_TIMEOUT_MS = 4000;
+// How long to give a browser that's *known* to support beforeinstallprompt
+// before assuming it isn't going to fire this visit (engagement heuristics
+// can suppress it indefinitely). Kept short — this isn't a real signal of
+// installability, just a courtesy wait before showing manual steps anyway.
+const NATIVE_PROMPT_TIMEOUT_MS = 2500;
 
 function isStandalone() {
   if (typeof window === 'undefined') return false;
@@ -22,15 +23,38 @@ function isStandalone() {
   );
 }
 
-function isIOS() {
-  if (typeof window === 'undefined') return false;
-  return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
-}
+type Platform = 'ios-safari' | 'ios-other' | 'chromium-android' | 'oem-android' | 'other';
 
-function isSafari() {
-  if (typeof window === 'undefined') return false;
+// Chromium-based browsers (Chrome, Edge, Samsung Internet 12+, Brave, Opera
+// on Android) reliably support beforeinstallprompt. OEM/forked browsers
+// (Huawei Browser, MIUI Browser, UC Browser) and Firefox are inconsistent
+// or don't support it at all — for those, skip waiting and go straight to
+// manual instructions instead of gambling on an event that likely never
+// fires.
+function detectPlatform(): Platform {
+  if (typeof window === 'undefined') return 'other';
   const ua = window.navigator.userAgent;
-  return /safari/i.test(ua) && !/chrome|crios|fxios|edgios/i.test(ua);
+
+  const isIOSDevice = /iphone|ipad|ipod/i.test(ua);
+  if (isIOSDevice) {
+    const isRealSafari = /safari/i.test(ua) && !/crios|fxios|edgios|opios/i.test(ua);
+    return isRealSafari ? 'ios-safari' : 'ios-other';
+  }
+
+  const isAndroid = /android/i.test(ua);
+  if (!isAndroid) return 'other';
+
+  // OEM/forked browsers known to not reliably fire beforeinstallprompt.
+  const isOemBrowser = /huaweibrowser|hmscore|honor|miuibrowser|ucbrowser|ucweb|opera mini|opr\/\d+.*mobile/i.test(ua);
+  if (isOemBrowser) return 'oem-android';
+
+  // Chrome, Edge (EdgA), Samsung Internet (SamsungBrowser), and Brave all
+  // support the event.
+  const isChromiumFamily = /chrome|crios|edga|samsungbrowser|brave/i.test(ua);
+  if (isChromiumFamily) return 'chromium-android';
+
+  // Firefox for Android and anything unrecognized — no reliable support.
+  return 'oem-android';
 }
 
 type Mode = 'native' | 'ios' | 'manual' | null;
@@ -45,13 +69,27 @@ export function PwaInstallPrompt() {
     if (sessionStorage.getItem(DISMISSED_KEY)) return;
     setDismissed(false);
 
-    if (isIOS()) {
-      // Only Safari on iOS can actually add to home screen — Chrome/Firefox
-      // on iOS use Safari's engine but can't trigger the share-sheet install.
-      setMode(isSafari() ? 'ios' : 'manual');
+    const platform = detectPlatform();
+
+    if (platform === 'ios-safari') {
+      setMode('ios');
+      return;
+    }
+    if (platform === 'ios-other') {
+      // Non-Safari iOS browsers can't add a real installable PWA at all —
+      // they all run on Safari's engine but don't expose the share-sheet
+      // install action. Tell people to switch rather than showing a dead end.
+      setMode('manual');
+      return;
+    }
+    if (platform === 'oem-android') {
+      // Known unreliable/no support for beforeinstallprompt — don't wait.
+      setMode('manual');
       return;
     }
 
+    // platform === 'chromium-android' or desktop Chrome/Edge: genuinely
+    // supports the event, worth a short wait.
     let settled = false;
     const handler = (e: Event) => {
       e.preventDefault();
@@ -61,9 +99,6 @@ export function PwaInstallPrompt() {
     };
     window.addEventListener('beforeinstallprompt', handler);
 
-    // beforeinstallprompt may never fire (engagement heuristics, or the
-    // browser doesn't support it at all e.g. Firefox desktop) — fall back
-    // to manual browser-menu instructions rather than showing nothing.
     const timer = setTimeout(() => {
       if (!settled) setMode('manual');
     }, NATIVE_PROMPT_TIMEOUT_MS);
@@ -100,7 +135,7 @@ export function PwaInstallPrompt() {
         )}
         {mode === 'manual' && (
           <p className="text-xs font-semibold text-yellow-200 truncate">
-            Install this app: open your browser menu <Menu className="h-3 w-3 inline mx-0.5" /> and tap &quot;Install app&quot; or &quot;Add to Home Screen&quot;.
+            Install this app: open your browser menu <Menu className="h-3 w-3 inline mx-0.5" /> and look for &quot;Install app&quot; or &quot;Add to Home screen&quot;.
           </p>
         )}
         {mode === 'native' && (

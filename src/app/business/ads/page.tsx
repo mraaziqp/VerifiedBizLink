@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Zap, Trash2, Pause, Play, Loader2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Plus, Zap, Trash2, Pause, Play, Loader2, Sparkles, Eye, MousePointerClick } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,8 @@ interface Ad {
   is_active: boolean;
   boost_expires_at: string | null;
   created_at: string;
+  impressions: number;
+  clicks: number;
 }
 
 const BOOST_PRICE = 100;
@@ -310,6 +312,25 @@ export default function BusinessAdsPage() {
                     <Badge className={ad.is_active ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'}>
                       {ad.is_active ? 'Active' : 'Paused'}
                     </Badge>
+                  </div>
+
+                  <div className="flex items-center gap-5 text-sm">
+                    <div className="flex items-center gap-1.5 text-slate-300">
+                      <Eye className="h-4 w-4 text-slate-500" />
+                      <span className="font-semibold">{(ad.impressions ?? 0).toLocaleString()}</span>
+                      <span className="text-slate-500">impressions</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-300">
+                      <MousePointerClick className="h-4 w-4 text-slate-500" />
+                      <span className="font-semibold">{(ad.clicks ?? 0).toLocaleString()}</span>
+                      <span className="text-slate-500">clicks</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-slate-300">
+                      <span className="text-slate-500">CTR</span>
+                      <span className="font-semibold">
+                        {ad.impressions > 0 ? `${((ad.clicks / ad.impressions) * 100).toFixed(1)}%` : '—'}
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-700">
