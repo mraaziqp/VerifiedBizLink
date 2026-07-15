@@ -9,7 +9,7 @@ import {
 } from "recharts";
 import {
   TrendingUp, Users, Building2, Activity, Settings, LogOut, CreditCard,
-  Shield, ArrowLeft, CheckCircle2, Clock, FileText, Link2,
+  Shield, ArrowLeft, CheckCircle2, Clock, FileText, Link2, Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,6 +18,7 @@ import { AdminProfilePanel } from "@/components/admin/admin-profile-panel";
 import TierManagement from "@/components/admin/tier-management";
 import UserSubscriptionManager from "@/components/admin/user-subscription-manager";
 import PaymentGatewayConfig from "@/components/admin/payment-gateway-config";
+import AppearanceSettings from "@/components/admin/appearance-settings";
 import {
   AdminBackground, AdminCard, AdminPageHeader, StatCard, SectionTitle,
 } from "@/components/admin/ui";
@@ -138,12 +139,13 @@ export default function OrchestratorDashboard() {
       <div className="sticky top-[57px] z-40 border-b border-white/10 bg-black/40 backdrop-blur-xl sm:top-[65px]">
         <div className="mx-auto max-w-7xl px-4">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid h-auto w-full grid-cols-2 border-0 bg-transparent p-0 sm:grid-cols-4">
+            <TabsList className="grid h-auto w-full grid-cols-2 border-0 bg-transparent p-0 sm:grid-cols-5">
               {[
                 { v: "overview", label: "Overview", Icon: Activity },
                 { v: "tiers", label: "Tiers", Icon: TrendingUp },
                 { v: "users", label: "Users", Icon: Shield },
                 { v: "payment", label: "Payment", Icon: CreditCard },
+                { v: "appearance", label: "Appearance", Icon: ImageIcon },
               ].map(({ v, label, Icon }) => (
                 <TabsTrigger key={v} value={v}
                   className="rounded-none border-b-2 border-transparent px-3 py-3 text-gray-400 data-[state=active]:border-amber-400 data-[state=active]:bg-transparent data-[state=active]:text-amber-400">
@@ -229,6 +231,7 @@ export default function OrchestratorDashboard() {
           <TabsContent value="tiers"><TierManagement /></TabsContent>
           <TabsContent value="users"><UserSubscriptionManager /></TabsContent>
           <TabsContent value="payment"><PaymentGatewayConfig /></TabsContent>
+          <TabsContent value="appearance"><AppearanceSettings /></TabsContent>
         </Tabs>
       </div>
     </AdminBackground>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -37,26 +37,21 @@ const SA_PROVINCES = [
   "Mpumalanga","North West","Northern Cape","Western Cape",
 ];
 
-const PACKAGES = [
-  {
-    id: "free", name: "Free", price: "R0/mo",
-    color: "border-gray-200 bg-gray-50", activeColor: "border-gray-400 bg-gray-100",
-    badge: null as string | null, badgeColor: "",
-    features: ["Basic business listing","Up to 10 connections","Standard trust badge","1 post per day"],
-  },
-  {
-    id: "standard", name: "Standard", price: "R299/mo",
-    color: "border-blue-200 bg-blue-50", activeColor: "border-blue-500 bg-blue-100",
-    badge: "Popular" as string | null, badgeColor: "bg-blue-500",
-    features: ["Enhanced business profile","Unlimited connections","Priority discovery","Unlimited posts","1 active ad","Basic analytics"],
-  },
-  {
-    id: "premium", name: "Premium", price: "R699/mo",
-    color: "border-yellow-200 bg-yellow-50", activeColor: "border-yellow-400 bg-yellow-100",
-    badge: "Best Value" as string | null, badgeColor: "bg-yellow-500",
-    features: ["Everything in Standard","Gold Verified badge","Boosted ad placement","5 active ads","Full analytics","AI assistant","Priority vetting"],
-  },
-];
+// Presentation metadata per tier key — prices and features come live from
+// /api/tiers (admin-managed), this just controls how each card looks.
+const PACKAGE_STYLES: Record<string, { color: string; activeColor: string; badge: string | null; badgeColor: string }> = {
+  free: { color: "border-gray-200 bg-gray-50", activeColor: "border-gray-400 bg-gray-100", badge: null, badgeColor: "" },
+  standard: { color: "border-blue-200 bg-blue-50", activeColor: "border-blue-500 bg-blue-100", badge: "Popular", badgeColor: "bg-blue-500" },
+  premium: { color: "border-yellow-200 bg-yellow-50", activeColor: "border-yellow-400 bg-yellow-100", badge: "Best Value", badgeColor: "bg-yellow-500" },
+};
+const PACKAGE_ORDER = ["free", "standard", "premium"];
+
+interface ApiTier {
+  key: string;
+  name: string;
+  price: number;
+  features: string[];
+}
 
 const CUSTOMER_STEPS = [
   { id: 1, title: "Welcome", subtitle: "You're in the right place" },
@@ -83,10 +78,26 @@ export default function OnboardingPage() {
   const [selectedProvince, setSelectedProvince] = useState("");
   const [selectedPackage, setSelectedPackage] = useState("free");
   const [saving, setSaving] = useState(false);
+  const [packages, setPackages] = useState<ApiTier[]>(
+    PACKAGE_ORDER.map((key) => ({ key, name: key, price: 0, features: [] }))
+  );
 
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+
+  useEffect(() => {
+    fetch("/api/tiers")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const tiers: ApiTier[] = data?.tiers || [];
+        const ordered = PACKAGE_ORDER
+          .map((key) => tiers.find((t) => t.key === key))
+          .filter((t): t is ApiTier => !!t);
+        if (ordered.length) setPackages(ordered);
+      })
+      .catch(() => {});
+  }, []);
 
   const isBusiness = user?.role === "business";
   const STEPS = isBusiness ? BUSINESS_STEPS : CUSTOMER_STEPS;
@@ -417,23 +428,24 @@ export default function OnboardingPage() {
                     <p className="text-gray-500 mt-1 text-sm">You can upgrade anytime. Your trial gives you Premium features right now.</p>
                   </div>
                   <div className="space-y-3">
-                    {PACKAGES.map((pkg) => {
-                      const active = selectedPackage === pkg.id;
+                    {packages.map((pkg) => {
+                      const active = selectedPackage === pkg.key;
+                      const style = PACKAGE_STYLES[pkg.key] || PACKAGE_STYLES.free;
                       return (
-                        <button key={pkg.id} onClick={() => setSelectedPackage(pkg.id)}
+                        <button key={pkg.key} onClick={() => setSelectedPackage(pkg.key)}
                           className={cn("w-full p-4 rounded-2xl border-2 text-left transition-all",
-                            active ? pkg.activeColor : pkg.color, active ? "shadow-md" : "hover:shadow-sm")}>
+                            active ? style.activeColor : style.color, active ? "shadow-md" : "hover:shadow-sm")}>
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <span className="font-extrabold text-gray-900">{pkg.name}</span>
-                              {pkg.badge && (
-                                <span className={cn("text-xs text-white font-bold px-2 py-0.5 rounded-full", pkg.badgeColor)}>
-                                  {pkg.badge}
+                              {style.badge && (
+                                <span className={cn("text-xs text-white font-bold px-2 py-0.5 rounded-full", style.badgeColor)}>
+                                  {style.badge}
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-gray-700">{pkg.price}</span>
+                              <span className="font-bold text-gray-700">{pkg.price ? `R${pkg.price}/mo` : "R0/mo"}</span>
                               {active && <CheckCircle2 className="h-5 w-5 text-green-500" />}
                             </div>
                           </div>

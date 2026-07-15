@@ -4,68 +4,53 @@ import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit2, Save, X, Loader2 } from "lucide-react";
-
-const MOCK_TIERS = [
-  {
-    id: "1",
-    name: "Free",
-    price_usd: 0,
-    price_zar: 0,
-    description: "For new businesses",
-    billing_interval: "monthly",
-    is_active: true,
-    display_order: 1,
-  },
-  {
-    id: "2",
-    name: "Verified Business",
-    price_usd: 99,
-    price_zar: 1500,
-    description: "Build trust and credibility",
-    billing_interval: "monthly",
-    is_active: true,
-    display_order: 2,
-  },
-  {
-    id: "3",
-    name: "Premium Business",
-    price_usd: 299,
-    price_zar: 4500,
-    description: "For growing SMEs",
-    billing_interval: "monthly",
-    is_active: true,
-    display_order: 3,
-  },
-  {
-    id: "4",
-    name: "Enterprise Partner",
-    price_usd: 999,
-    price_zar: 15000,
-    description: "For established brands",
-    billing_interval: "monthly",
-    is_active: true,
-    display_order: 4,
-  },
-];
+import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
+import { Edit2, Save, X, Loader2, Plus, Trash2, Megaphone } from "lucide-react";
 
 interface Tier {
-  id: string;
+  key: string;
   name: string;
-  price_usd: number;
-  price_zar: number;
-  description: string;
-  billing_interval: string;
-  is_active: boolean;
-  display_order: number;
+  price: number;
+  adLimit: number;
+  monthlyAdCredits: number;
+  features: string[];
+  note?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+type TierForm = {
+  name: string;
+  price: number;
+  adLimit: number;
+  monthlyAdCredits: number;
+  features: string;
+};
+
+const emptyForm: TierForm = { name: "", price: 0, adLimit: 0, monthlyAdCredits: 0, features: "" };
+
+function toForm(tier: Tier): TierForm {
+  return {
+    name: tier.name,
+    price: tier.price,
+    adLimit: tier.adLimit,
+    monthlyAdCredits: tier.monthlyAdCredits,
+    features: tier.features.join("\n"),
+  };
 }
 
 export default function TierManagement() {
-  const [tiers, setTiers] = useState<Tier[]>(MOCK_TIERS);
+  const { toast } = useToast();
+  const [tiers, setTiers] = useState<Tier[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ price_usd: 0, price_zar: 0 });
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<TierForm>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [newKey, setNewKey] = useState("");
+  const [newForm, setNewForm] = useState<TierForm>(emptyForm);
 
   useEffect(() => {
     fetchTiers();
@@ -77,48 +62,96 @@ export default function TierManagement() {
       const res = await fetch("/api/admin/tiers");
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setTiers(data);
-        } else {
-          setTiers(MOCK_TIERS);
-        }
-      } else {
-        setTiers(MOCK_TIERS);
+        setTiers(data.tiers || []);
       }
     } catch (error) {
       console.error("Error fetching tiers:", error);
-      setTiers(MOCK_TIERS);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEditPrice = (tier: Tier) => {
-    setEditingId(tier.id);
-    setEditForm({ price_usd: tier.price_usd, price_zar: tier.price_zar });
+  const startEdit = (tier: Tier) => {
+    setEditingKey(tier.key);
+    setEditForm(toForm(tier));
   };
 
-  const handleSavePrice = async () => {
-    if (!editingId) return;
-
+  const handleSave = async (key: string) => {
+    setIsSaving(true);
     try {
-      setIsSaving(true);
-      const res = await fetch(`/api/admin/tiers/${editingId}`, {
+      const res = await fetch(`/api/admin/tiers/${key}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify({
+          name: editForm.name,
+          price: Number(editForm.price),
+          adLimit: Number(editForm.adLimit),
+          monthlyAdCredits: Number(editForm.monthlyAdCredits),
+          features: editForm.features.split("\n").map((f) => f.trim()).filter(Boolean),
+        }),
       });
-
       if (res.ok) {
-        setTiers(tiers.map((t) => (t.id === editingId ? { ...t, ...editForm } : t)));
-        setEditingId(null);
-        alert("✅ Price updated successfully!");
+        const { tier } = await res.json();
+        setTiers((prev) => prev.map((t) => (t.key === key ? tier : t)));
+        setEditingKey(null);
+        toast({ title: "Tier updated" });
       } else {
-        alert("❌ Failed to update price");
+        const data = await res.json().catch(() => ({}));
+        toast({ title: "Could not update tier", description: data.error, variant: "destructive" });
       }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("❌ Error updating price");
+    } catch {
+      toast({ title: "Could not update tier", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleToggleActive = async (tier: Tier) => {
+    try {
+      const res = await fetch(`/api/admin/tiers/${tier.key}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !tier.isActive }),
+      });
+      if (res.ok) {
+        const { tier: updated } = await res.json();
+        setTiers((prev) => prev.map((t) => (t.key === tier.key ? updated : t)));
+      }
+    } catch {
+      toast({ title: "Could not update tier", variant: "destructive" });
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!newKey.trim() || !newForm.name.trim()) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/admin/tiers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: newKey.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_"),
+          name: newForm.name,
+          price: Number(newForm.price),
+          adLimit: Number(newForm.adLimit),
+          monthlyAdCredits: Number(newForm.monthlyAdCredits),
+          features: newForm.features.split("\n").map((f) => f.trim()).filter(Boolean),
+          sortOrder: tiers.length + 1,
+        }),
+      });
+      if (res.ok) {
+        const { tier } = await res.json();
+        setTiers((prev) => [...prev, tier]);
+        setShowNewForm(false);
+        setNewKey("");
+        setNewForm(emptyForm);
+        toast({ title: "Tier created" });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast({ title: "Could not create tier", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Could not create tier", variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -135,60 +168,110 @@ export default function TierManagement() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white">Subscription Tiers</h2>
-        <p className="text-gray-400 text-sm mt-1">Manage pricing and features for each tier</p>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Tier Management</h2>
+          <p className="text-gray-400 text-sm mt-1">
+            Prices, ad limits, and monthly ad-credit allowances — these blocks are enforced live: a business's
+            package_type determines exactly what they can do.
+          </p>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => setShowNewForm((v) => !v)}
+          className="gap-2 bg-cyan-600 hover:bg-cyan-700 text-white"
+        >
+          <Plus className="h-4 w-4" /> New Tier
+        </Button>
       </div>
+
+      {showNewForm && (
+        <Card className="bg-gray-900/60 border-cyan-500/30 p-6 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Key (used internally, e.g. "gold")</label>
+              <Input value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="gold" className="bg-gray-800 border-gray-700 text-white" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Display Name</label>
+              <Input value={newForm.name} onChange={(e) => setNewForm({ ...newForm, name: e.target.value })} placeholder="Gold" className="bg-gray-800 border-gray-700 text-white" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Price (R/month)</label>
+              <Input type="number" value={newForm.price} onChange={(e) => setNewForm({ ...newForm, price: Number(e.target.value) || 0 })} className="bg-gray-800 border-gray-700 text-white" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Max simultaneous ads</label>
+              <Input type="number" value={newForm.adLimit} onChange={(e) => setNewForm({ ...newForm, adLimit: Number(e.target.value) || 0 })} className="bg-gray-800 border-gray-700 text-white" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-400 block mb-1">Monthly ad credits (ad-days)</label>
+              <Input type="number" value={newForm.monthlyAdCredits} onChange={(e) => setNewForm({ ...newForm, monthlyAdCredits: Number(e.target.value) || 0 })} className="bg-gray-800 border-gray-700 text-white" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400 block mb-1">Features (one per line)</label>
+            <textarea
+              value={newForm.features}
+              onChange={(e) => setNewForm({ ...newForm, features: e.target.value })}
+              rows={4}
+              className="w-full bg-gray-800 border border-gray-700 text-white rounded-md p-2 text-sm"
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button size="sm" variant="outline" onClick={() => setShowNewForm(false)} className="border-gray-700 text-gray-300">Cancel</Button>
+            <Button size="sm" onClick={handleCreate} disabled={isSaving || !newKey.trim() || !newForm.name.trim()} className="bg-green-600 hover:bg-green-700 text-white gap-1">
+              {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Create
+            </Button>
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {tiers.map((tier) => (
           <Card
-            key={tier.id}
-            className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 border-cyan-500/20 hover:border-cyan-500/40 transition-all p-6"
+            key={tier.key}
+            className={`bg-gradient-to-br from-gray-800/40 to-gray-900/40 border-cyan-500/20 hover:border-cyan-500/40 transition-all p-6 ${!tier.isActive ? "opacity-50" : ""}`}
           >
-            <h3 className="text-xl font-bold text-white mb-2">{tier.name}</h3>
-            <p className="text-gray-400 text-sm mb-4">{tier.description}</p>
+            <div className="flex items-start justify-between mb-2">
+              <h3 className="text-xl font-bold text-white">{tier.name}</h3>
+              <Switch checked={tier.isActive} onCheckedChange={() => handleToggleActive(tier)} />
+            </div>
+            <p className="text-gray-500 text-xs font-mono mb-4">{tier.key}</p>
 
-            {editingId === tier.id ? (
+            {editingKey === tier.key ? (
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">USD Price</label>
-                  <Input
-                    type="number"
-                    value={editForm.price_usd}
-                    onChange={(e) => setEditForm({ ...editForm, price_usd: parseFloat(e.target.value) || 0 })}
-                    className="bg-gray-800 border-gray-700 text-white"
-                    placeholder="0"
-                  />
+                  <label className="text-xs text-gray-400 block mb-1">Name</label>
+                  <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="bg-gray-800 border-gray-700 text-white" />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">ZAR Price</label>
-                  <Input
-                    type="number"
-                    value={editForm.price_zar}
-                    onChange={(e) => setEditForm({ ...editForm, price_zar: parseFloat(e.target.value) || 0 })}
-                    className="bg-gray-800 border-gray-700 text-white"
-                    placeholder="0"
+                  <label className="text-xs text-gray-400 block mb-1">Price (R/month)</label>
+                  <Input type="number" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: Number(e.target.value) || 0 })} className="bg-gray-800 border-gray-700 text-white" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Max simultaneous ads</label>
+                  <Input type="number" value={editForm.adLimit} onChange={(e) => setEditForm({ ...editForm, adLimit: Number(e.target.value) || 0 })} className="bg-gray-800 border-gray-700 text-white" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Monthly ad credits (ad-days)</label>
+                  <Input type="number" value={editForm.monthlyAdCredits} onChange={(e) => setEditForm({ ...editForm, monthlyAdCredits: Number(e.target.value) || 0 })} className="bg-gray-800 border-gray-700 text-white" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 block mb-1">Features (one per line)</label>
+                  <textarea
+                    value={editForm.features}
+                    onChange={(e) => setEditForm({ ...editForm, features: e.target.value })}
+                    rows={4}
+                    className="w-full bg-gray-800 border border-gray-700 text-white rounded-md p-2 text-xs"
                   />
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={handleSavePrice}
-                    disabled={isSaving}
-                    className="flex-1 bg-green-600 text-white hover:bg-green-700 gap-1"
-                  >
-                    {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
-                    Save
+                  <Button size="sm" onClick={() => handleSave(tier.key)} disabled={isSaving} className="flex-1 bg-green-600 text-white hover:bg-green-700 gap-1">
+                    {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Save
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => setEditingId(null)}
-                    variant="outline"
-                    className="flex-1 border-gray-700 text-gray-300 gap-1"
-                  >
-                    <X className="h-3 w-3" />
-                    Cancel
+                  <Button size="sm" onClick={() => setEditingKey(null)} variant="outline" className="flex-1 border-gray-700 text-gray-300 gap-1">
+                    <X className="h-3 w-3" /> Cancel
                   </Button>
                 </div>
               </div>
@@ -196,17 +279,26 @@ export default function TierManagement() {
               <>
                 <div className="mb-4">
                   <p className="text-3xl font-bold text-cyan-400">
-                    R{Number(tier.price_zar).toLocaleString('en-ZA')}
+                    R{Number(tier.price).toLocaleString("en-ZA")}
                     <span className="text-base font-medium text-gray-400">/month</span>
                   </p>
                 </div>
-                <Button
-                  size="sm"
-                  onClick={() => handleEditPrice(tier)}
-                  className="w-full bg-yellow-500 text-gray-900 hover:bg-yellow-600 font-semibold gap-2"
-                >
-                  <Edit2 className="h-4 w-4" />
-                  Edit Price
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge className="bg-gray-800 text-gray-300 border-gray-700 gap-1">
+                    <Megaphone className="h-3 w-3" /> {tier.adLimit} active ad{tier.adLimit === 1 ? "" : "s"}
+                  </Badge>
+                  <Badge className="bg-gray-800 text-gray-300 border-gray-700">
+                    {tier.monthlyAdCredits} ad-days/mo
+                  </Badge>
+                </div>
+                <ul className="space-y-1 mb-4 text-xs text-gray-400">
+                  {tier.features.slice(0, 4).map((f) => (
+                    <li key={f}>• {f}</li>
+                  ))}
+                  {tier.features.length > 4 && <li>+{tier.features.length - 4} more</li>}
+                </ul>
+                <Button size="sm" onClick={() => startEdit(tier)} className="w-full bg-yellow-500 text-gray-900 hover:bg-yellow-600 font-semibold gap-2">
+                  <Edit2 className="h-4 w-4" /> Edit Tier
                 </Button>
               </>
             )}

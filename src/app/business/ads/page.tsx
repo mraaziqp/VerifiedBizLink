@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Zap, Trash2, Pause, Play, Loader2, Sparkles, Eye, MousePointerClick, Pencil } from 'lucide-react';
+import { ArrowLeft, Plus, Zap, Trash2, Pause, Play, Loader2, Sparkles, Eye, MousePointerClick, Pencil, Coins } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,11 +22,20 @@ interface Ad {
   is_active: boolean;
   boost_expires_at: string | null;
   created_at: string;
+  expires_at: string | null;
+  duration_days: number | null;
   impressions: number;
   clicks: number;
 }
 
 const BOOST_PRICE = 100;
+const AD_CREDIT_PRICE_PER_DAY = 10;
+const DURATION_PRESETS = [7, 14, 30, 60];
+const CREDIT_PACKS = [
+  { days: 10, price: 10 * AD_CREDIT_PRICE_PER_DAY },
+  { days: 30, price: 30 * AD_CREDIT_PRICE_PER_DAY },
+  { days: 60, price: 60 * AD_CREDIT_PRICE_PER_DAY },
+];
 
 export default function BusinessAdsPage() {
   const { toast } = useToast();
@@ -41,7 +50,9 @@ export default function BusinessAdsPage() {
   const [boostingId, setBoostingId] = useState<string | null>(null);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({ title: '', description: '', ctaText: 'Learn More', ctaUrl: '' });
+  const [formData, setFormData] = useState({ title: '', description: '', ctaText: 'Learn More', ctaUrl: '', durationDays: 14 });
+  const [adCredits, setAdCredits] = useState(0);
+  const [buyingCredits, setBuyingCredits] = useState<number | null>(null);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState({ title: '', description: '', ctaText: '', ctaUrl: '' });
@@ -56,6 +67,7 @@ export default function BusinessAdsPage() {
         setLimit(data.limit || 0);
         setActive(data.active || 0);
         setPackageType(data.packageType || 'free');
+        setAdCredits(data.adCredits || 0);
       }
     } catch {
       /* keep whatever is shown */
@@ -78,8 +90,10 @@ export default function BusinessAdsPage() {
         body: JSON.stringify(formData),
       });
       if (res.ok) {
-        setFormData({ title: '', description: '', ctaText: 'Learn More', ctaUrl: '' });
+        const data = await res.json();
+        setFormData({ title: '', description: '', ctaText: 'Learn More', ctaUrl: '', durationDays: 14 });
         setShowCreateForm(false);
+        setAdCredits(data.adCredits ?? adCredits);
         toast({ title: 'Ad created' });
         fetchAds();
       } else {
@@ -90,6 +104,47 @@ export default function BusinessAdsPage() {
       toast({ title: 'Could not create ad', variant: 'destructive' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleBuyCredits = async (days: number, price: number) => {
+    setBuyingCredits(days);
+    try {
+      const res = await fetch('/api/payfast/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: price,
+          description: `${days} Ad-Day Credits`,
+          purchaseType: 'ad_credits_topup',
+        }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to start payment');
+      }
+      const { payfastUrl, data, signature } = await res.json();
+
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = payfastUrl;
+      Object.keys(data).forEach((key) => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = key;
+        input.value = String(data[key]);
+        form.appendChild(input);
+      });
+      const sigInput = document.createElement('input');
+      sigInput.type = 'hidden';
+      sigInput.name = 'signature';
+      sigInput.value = signature;
+      form.appendChild(sigInput);
+      document.body.appendChild(form);
+      form.submit();
+    } catch (err: any) {
+      toast({ title: 'Could not start payment', description: err.message, variant: 'destructive' });
+      setBuyingCredits(null);
     }
   };
 
@@ -236,6 +291,37 @@ export default function BusinessAdsPage() {
           </Button>
         </div>
 
+        {/* Ad Credits Balance */}
+        <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
+          <CardContent className="p-6 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-yellow-400/10 flex items-center justify-center shrink-0">
+                <Coins className="h-5 w-5 text-yellow-400" />
+              </div>
+              <div>
+                <p className="text-slate-400 text-xs uppercase tracking-wider font-bold">Ad Credits</p>
+                <p className="text-2xl font-bold text-white">{loading ? '…' : adCredits} <span className="text-sm font-normal text-slate-400">ad-days</span></p>
+                <p className="text-xs text-slate-500 mt-0.5">1 credit = 1 day an ad can run. Your plan tops these up monthly.</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {CREDIT_PACKS.map((pack) => (
+                <Button
+                  key={pack.days}
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleBuyCredits(pack.days, pack.price)}
+                  disabled={buyingCredits !== null}
+                  className="gap-1.5 border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10"
+                >
+                  {buyingCredits === pack.days ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  +{pack.days} days — R{pack.price}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         {limit === 0 && !loading && (
           <Card className="bg-yellow-400/10 border-yellow-400/30">
             <CardContent className="p-6 flex items-center justify-between gap-4 flex-wrap">
@@ -297,6 +383,31 @@ export default function BusinessAdsPage() {
                   />
                 </div>
               </div>
+              <div>
+                <label className="text-slate-400 text-sm mb-2 block">How long should it run?</label>
+                <div className="flex flex-wrap gap-2">
+                  {DURATION_PRESETS.map((days) => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => setFormData({ ...formData, durationDays: days })}
+                      className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${
+                        formData.durationDays === days
+                          ? 'bg-yellow-400 text-slate-900 border-yellow-400'
+                          : 'bg-slate-700 text-slate-300 border-slate-600 hover:border-yellow-400/50'
+                      }`}
+                    >
+                      {days} days
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Costs {formData.durationDays} ad-credit{formData.durationDays === 1 ? '' : 's'} — you have {adCredits}.
+                  {formData.durationDays > adCredits && (
+                    <span className="text-red-400 font-semibold"> Not enough credits — buy more above.</span>
+                  )}
+                </p>
+              </div>
               <div className="flex gap-2 justify-end">
                 <Button
                   onClick={() => setShowCreateForm(false)}
@@ -307,7 +418,7 @@ export default function BusinessAdsPage() {
                 </Button>
                 <Button
                   onClick={handleCreateAd}
-                  disabled={saving || !formData.title.trim() || !formData.description.trim()}
+                  disabled={saving || !formData.title.trim() || !formData.description.trim() || formData.durationDays > adCredits}
                   className="bg-yellow-400 text-slate-900 hover:bg-yellow-300"
                 >
                   {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Ad'}
@@ -397,6 +508,16 @@ export default function BusinessAdsPage() {
                           )}
                         </div>
                         <p className="text-slate-400 text-sm mt-1">{ad.description}</p>
+                        {ad.expires_at && (
+                          <p className="text-xs text-slate-500 mt-1">
+                            {(() => {
+                              const daysLeft = Math.ceil((new Date(ad.expires_at as string).getTime() - Date.now()) / 86400000);
+                              return daysLeft > 0
+                                ? `${daysLeft} day${daysLeft === 1 ? '' : 's'} left on its ${ad.duration_days}-day run`
+                                : 'Run finished — paused automatically';
+                            })()}
+                          </p>
+                        )}
                       </div>
                       <Badge className={ad.is_active ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'}>
                         {ad.is_active ? 'Active' : 'Paused'}

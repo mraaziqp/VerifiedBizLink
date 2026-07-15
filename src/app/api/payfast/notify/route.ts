@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import crypto from 'crypto';
-import { PACKAGES, PURCHASE_TYPE_TO_PACKAGE } from '@/lib/tiers';
+import { getTier, PURCHASE_TYPE_TO_PACKAGE, AD_CREDIT_PRICE_PER_DAY } from '@/lib/tiers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,22 +100,32 @@ export async function POST(request: NextRequest) {
         `.catch(err => console.log('Ad update note:', err.message));
         grantMessage = 'Your ad has been boosted for 7 days — it will get priority placement.';
       } else if (purchaseType in PURCHASE_TYPE_TO_PACKAGE) {
-        const tier = PURCHASE_TYPE_TO_PACKAGE[purchaseType];
+        const tierKey = PURCHASE_TYPE_TO_PACKAGE[purchaseType];
+        const tier = await getTier(tierKey);
         const paidAmount = parseFloat(payfastData.amount_gross as string);
-        const expectedPrice = PACKAGES[tier].price;
         // Guard against a forged/tampered client request paying less than the
         // tier actually costs (e.g. amount=5 with purchaseType=subscription_premium)
         // and still getting upgraded — the webhook must never trust purchaseType alone.
-        if (Number.isFinite(paidAmount) && paidAmount >= expectedPrice - 0.01) {
+        if (tier && Number.isFinite(paidAmount) && paidAmount >= tier.price - 0.01) {
           await db`
             UPDATE businesses
-            SET package_type = ${tier}, updated_at = NOW()
+            SET package_type = ${tierKey}, updated_at = NOW()
             WHERE user_id = ${userId}
           `.catch(err => console.log('Subscription upgrade note:', err.message));
-          grantMessage = `Your business has been upgraded to the ${PACKAGES[tier].name} plan.`;
+          grantMessage = `Your business has been upgraded to the ${tier.name} plan.`;
         } else {
-          console.error(`Blocked subscription upgrade: paid R${paidAmount} for ${tier} (requires R${expectedPrice})`, { userId, paymentRef });
+          console.error(`Blocked subscription upgrade: paid R${paidAmount} for ${tierKey} (requires R${tier?.price})`, { userId, paymentRef });
           grantMessage = 'Your payment was received, but the amount did not match the selected plan. Please contact support.';
+        }
+      } else if (purchaseType === 'ad_credits_topup') {
+        const paidAmount = parseFloat(payfastData.amount_gross as string);
+        const creditDays = Number.isFinite(paidAmount) ? Math.floor(paidAmount / AD_CREDIT_PRICE_PER_DAY) : 0;
+        if (creditDays > 0) {
+          await db`
+            UPDATE businesses SET ad_credits = ad_credits + ${creditDays}, updated_at = NOW()
+            WHERE user_id = ${userId}
+          `.catch(err => console.log('Ad credit top-up note:', err.message));
+          grantMessage = `${creditDays} ad-day credit${creditDays === 1 ? '' : 's'} added to your account.`;
         }
       }
 

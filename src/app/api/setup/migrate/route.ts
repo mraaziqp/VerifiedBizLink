@@ -173,9 +173,51 @@ export async function POST(request: NextRequest) {
     await db`ALTER TABLE payments ADD COLUMN IF NOT EXISTS ad_id UUID`;
     await db`ALTER TABLE payments ADD COLUMN IF NOT EXISTS payfast_reference VARCHAR(100)`;
 
+    // --- v7: Dynamic tiers, site settings, ad credits ---
+    await db`
+      CREATE TABLE IF NOT EXISTS tiers (
+        key VARCHAR(50) PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        price INTEGER NOT NULL DEFAULT 0,
+        ad_limit INTEGER NOT NULL DEFAULT 0,
+        monthly_ad_credits INTEGER NOT NULL DEFAULT 0,
+        features JSONB NOT NULL DEFAULT '[]',
+        note TEXT,
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await db`
+      INSERT INTO tiers (key, name, price, ad_limit, monthly_ad_credits, features, note, sort_order)
+      VALUES
+        ('free', 'Free', 0, 0, 0, '["Basic business listing","Up to 10 network connections","Standard trust badge","1 post per day"]', NULL, 1),
+        ('standard', 'Standard', 299, 1, 14, '["Enhanced business profile","Unlimited connections","Priority discovery listing","Unlimited posts","1 active ad","Basic analytics"]', NULL, 2),
+        ('premium', 'Premium', 699, 5, 45, '["Everything in Standard","Gold Verified badge (fast-tracked)","Boosted ad placement","5 active ads","Full analytics dashboard","AI content assistant (unlimited)","Priority vetting review","Dedicated account manager"]', NULL, 3),
+        ('premium_half', 'Premium Trial', 0, 3, 21, '["Gold Verified badge eligibility","Up to 3 active ads","Enhanced analytics","AI content assistant","Priority vetting review"]', '2-week trial — half of Premium features', 4)
+      ON CONFLICT (key) DO NOTHING
+    `;
+
+    await db`
+      CREATE TABLE IF NOT EXISTS site_settings (
+        key VARCHAR(100) PRIMARY KEY,
+        value TEXT,
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await db`
+      INSERT INTO site_settings (key, value)
+      VALUES ('home_hero_image_url', '/hero-cape-town.jpg'), ('home_hero_opacity', '0.16')
+      ON CONFLICT (key) DO NOTHING
+    `;
+
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS ad_credits INTEGER NOT NULL DEFAULT 0`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS credits_last_topped_up_at TIMESTAMPTZ`;
+    await db`ALTER TABLE ads ADD COLUMN IF NOT EXISTS duration_days INTEGER`;
+
     return NextResponse.json({
       success: true,
-      message: 'Migration v6 applied: password recovery, verification expiry, and Payfast support columns added.',
+      message: 'Migration v7 applied: dynamic tiers, site settings, and ad credits added.',
     });
   } catch (error) {
     console.error('Migration error:', error);

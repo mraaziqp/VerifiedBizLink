@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
-import { AD_LIMITS, getEffectivePackage } from '@/lib/tiers';
+import { getAdLimit, getEffectivePackage } from '@/lib/tiers';
 
 async function findOwnedAd(userId: string, adId: string) {
   const rows = await db`
-    SELECT a.id, a.is_active, b.id AS business_id, b.package_type, b.trial_package, b.trial_ends_at
+    SELECT a.id, a.is_active, a.expires_at, b.id AS business_id, b.package_type, b.trial_package, b.trial_ends_at
     FROM ads a
     JOIN businesses b ON b.id = a.business_id
     WHERE a.id = ${adId} AND b.user_id = ${userId}
@@ -30,7 +30,13 @@ export async function PATCH(
 
   if (typeof body.isActive === 'boolean') {
     if (body.isActive && !existing.is_active) {
-      const limit = AD_LIMITS[getEffectivePackage(existing)] ?? 0;
+      if (existing.expires_at && new Date(existing.expires_at) < new Date()) {
+        return NextResponse.json(
+          { error: "This ad's paid run has ended. Create a new ad to keep advertising." },
+          { status: 403 }
+        );
+      }
+      const limit = await getAdLimit(getEffectivePackage(existing));
       const [{ count }] = await db`
         SELECT COUNT(*)::int AS count FROM ads
         WHERE business_id = ${existing.business_id} AND is_active = true AND id != ${id}

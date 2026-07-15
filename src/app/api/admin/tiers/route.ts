@@ -1,61 +1,60 @@
-import db from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, isStaff } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
+import db from '@/lib/db';
+import { getAllTiers } from '@/lib/tiers';
 
-// GET all tiers
+const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
+
+// GET /api/admin/tiers — all tiers including inactive ones (admin management view)
 export async function GET() {
-  try {
-    const session = await getSession();
-    if (!isStaff(session)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    const tiers = await db`
-      SELECT
-        id, name, description, price_usd, price_zar,
-        billing_interval, is_active, display_order,
-        stripe_product_id, paypal_plan_id,
-        created_at, updated_at
-      FROM subscription_tiers
-      ORDER BY display_order ASC
-    `;
-
-    return NextResponse.json(tiers);
-  } catch (error) {
-    console.error('Error fetching tiers:', error);
-    return NextResponse.json({ error: 'Failed to fetch tiers' }, { status: 500 });
+  const session = await getSession();
+  if (!session || !STAFF_ROLES.includes(session.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+  const tiers = await getAllTiers(true);
+  return NextResponse.json({ tiers });
 }
 
-// POST create new tier
-export async function POST(req: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!isStaff(session)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const body = await req.json();
-    const { name, description, price_usd, price_zar, billing_interval, features, permissions, display_order } = body;
-
-    if (!name || price_usd === undefined) {
-      return NextResponse.json(
-        { error: 'Missing required fields: name, price_usd' },
-        { status: 400 }
-      );
-    }
-
-    const result = await db`
-      INSERT INTO subscription_tiers
-        (name, description, price_usd, price_zar, billing_interval, features, permissions, display_order, is_active)
-      VALUES
-        (${name}, ${description || null}, ${price_usd}, ${price_zar || 0}, ${billing_interval || 'monthly'},
-         ${JSON.stringify(features || {})}, ${JSON.stringify(permissions || {})}, ${display_order || 0}, true)
-      RETURNING *
-    `;
-
-    return NextResponse.json(result[0], { status: 201 });
-  } catch (error) {
-    console.error('Error creating tier:', error);
-    return NextResponse.json({ error: 'Failed to create tier' }, { status: 500 });
+// POST /api/admin/tiers — create a new tier
+export async function POST(request: NextRequest) {
+  const session = await getSession();
+  if (!session || !STAFF_ROLES.includes(session.role)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+
+  const { key, name, price, adLimit, monthlyAdCredits, features, note, sortOrder } = await request.json();
+
+  if (!key || typeof key !== 'string' || !/^[a-z0-9_]+$/.test(key)) {
+    return NextResponse.json({ error: 'Key is required and must be lowercase letters, numbers, or underscores' }, { status: 400 });
+  }
+  if (!name || typeof name !== 'string') {
+    return NextResponse.json({ error: 'Name is required' }, { status: 400 });
+  }
+  if (typeof price !== 'number' || price < 0) {
+    return NextResponse.json({ error: 'Price must be a non-negative number' }, { status: 400 });
+  }
+  if (typeof adLimit !== 'number' || adLimit < 0) {
+    return NextResponse.json({ error: 'Ad limit must be a non-negative number' }, { status: 400 });
+  }
+  if (typeof monthlyAdCredits !== 'number' || monthlyAdCredits < 0) {
+    return NextResponse.json({ error: 'Monthly ad credits must be a non-negative number' }, { status: 400 });
+  }
+
+  const existing = await db`SELECT key FROM tiers WHERE key = ${key}`;
+  if (existing.length > 0) {
+    return NextResponse.json({ error: 'A tier with this key already exists' }, { status: 409 });
+  }
+
+  const [tier] = await db`
+    INSERT INTO tiers (key, name, price, ad_limit, monthly_ad_credits, features, note, sort_order)
+    VALUES (${key}, ${name}, ${price}, ${adLimit}, ${monthlyAdCredits}, ${JSON.stringify(features || [])}, ${note || null}, ${sortOrder ?? 99})
+    RETURNING *
+  `;
+
+  await db`
+    INSERT INTO audit_logs (admin_id, admin_name, action, target_type, target_name)
+    VALUES (${session.id}, ${session.fullName}, ${'Created tier: ' + name}, 'tier', ${key})
+  `.catch(() => {});
+
+  return NextResponse.json({ tier }, { status: 201 });
 }

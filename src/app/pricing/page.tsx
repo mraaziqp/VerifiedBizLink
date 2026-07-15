@@ -1,99 +1,102 @@
 "use client";
 
-import { CheckCircle2, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { useAuth } from "@/contexts/auth-context";
 
-const tiers = [
-  {
-    name: "Basic Listing",
-    price: null,
-    period: "Free",
-    description: "Perfect for getting started",
-    color: "from-gray-600 to-gray-700",
-    features: [
-      "Business profile",
-      "Contact details",
-      "Category listing",
-      "Basic search visibility",
-    ],
-    limitations: [
-      "No verification badge",
-      "No customer reviews",
-      "Limited visibility",
-    ],
-    cta: "Get Started",
-    highlighted: false,
-  },
-  {
-    name: "Verified Business",
-    price: 299,
-    period: "/month",
-    description: "Build trust and credibility",
-    color: "from-yellow-500 to-yellow-600",
-    features: [
-      "CIPC verification",
-      "SARS verification",
-      "Verified badge",
-      "Customer reviews & ratings",
-      "Trust Score",
-      "Priority support",
-    ],
-    limitations: [],
-    cta: "Upgrade Now",
-    highlighted: true,
-  },
-  {
-    name: "Premium Business",
-    price: 699,
-    period: "/month",
-    description: "For growing businesses",
-    color: "from-blue-500 to-blue-600",
-    features: [
-      "Everything in Verified plus:",
-      "Featured search placement",
-      "Homepage exposure",
-      "Lead analytics",
-      "Business networking",
-      "Monthly reports",
-      "Priority support",
-    ],
-    limitations: [],
-    cta: "Upgrade Now",
-    highlighted: false,
-  },
-  {
-    name: "Enterprise Partner",
-    price: null,
-    period: "Custom",
-    description: "For established brands",
-    color: "from-purple-500 to-purple-600",
-    features: [
-      "Multiple branches",
-      "Dedicated account manager",
-      "Featured homepage",
-      "Advanced analytics",
-      "Sponsored content",
-      "Networking access",
-      "Custom solutions",
-    ],
-    limitations: [],
-    cta: "Contact Sales",
-    highlighted: false,
-  },
-];
+interface Tier {
+  key: string;
+  name: string;
+  price: number;
+  features: string[];
+  note?: string | null;
+}
+
+interface DisplayTier {
+  key: string;
+  name: string;
+  price: number | null;
+  period: string;
+  description: string;
+  color: string;
+  features: string[];
+  cta: string;
+  highlighted: boolean;
+}
+
+const DESCRIPTIONS: Record<string, string> = {
+  free: "Perfect for getting started",
+  standard: "Build trust and credibility",
+  premium: "For growing businesses",
+};
+
+const COLORS: Record<string, string> = {
+  free: "from-gray-600 to-gray-700",
+  standard: "from-yellow-500 to-yellow-600",
+  premium: "from-blue-500 to-blue-600",
+};
+
+const ENTERPRISE_CARD: DisplayTier = {
+  key: "enterprise",
+  name: "Enterprise Partner",
+  price: null,
+  period: "Custom",
+  description: "For established brands",
+  color: "from-purple-500 to-purple-600",
+  features: [
+    "Multiple branches",
+    "Dedicated account manager",
+    "Featured homepage",
+    "Advanced analytics",
+    "Sponsored content",
+    "Networking access",
+    "Custom solutions",
+  ],
+  cta: "Contact Sales",
+  highlighted: false,
+};
 
 export default function PricingPage() {
   const { user } = useAuth();
+  const [tiers, setTiers] = useState<DisplayTier[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/tiers")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const rows: Tier[] = data?.tiers || [];
+        const display = rows
+          .filter((t) => ["free", "standard", "premium"].includes(t.key))
+          .sort((a, b) => ["free", "standard", "premium"].indexOf(a.key) - ["free", "standard", "premium"].indexOf(b.key))
+          .map((t): DisplayTier => ({
+            key: t.key,
+            name: t.key === "free" ? "Basic Listing" : t.key === "standard" ? "Verified Business" : "Premium Business",
+            price: t.price || null,
+            period: t.price ? "/month" : "Free",
+            description: DESCRIPTIONS[t.key] || t.name,
+            color: COLORS[t.key] || "from-gray-600 to-gray-700",
+            features: t.features,
+            cta: t.price ? "Upgrade Now" : "Get Started",
+            highlighted: t.key === "standard",
+          }));
+        setTiers([...display, ENTERPRISE_CARD]);
+      })
+      .catch(() => setTiers([ENTERPRISE_CARD]))
+      .finally(() => setLoading(false));
+  }, []);
+
   // Paid tiers actually check out on /settings (Billing tab); anonymous
   // visitors go to /signup first. Enterprise has no self-serve checkout.
-  const ctaHref = (tier: (typeof tiers)[number]) => {
-    if (tier.name === "Enterprise Partner") return "/contact";
+  const ctaHref = (tier: DisplayTier) => {
+    if (tier.key === "enterprise") return "/contact";
     if (!tier.price) return user ? "/business/dashboard" : "/signup";
     return user ? "/settings?tab=billing" : "/signup";
   };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
       {/* Header */}
@@ -108,103 +111,96 @@ export default function PricingPage() {
 
       {/* Pricing Cards */}
       <div className="max-w-7xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {tiers.map((tier) => (
-            <Card
-              key={tier.name}
-              className={`border transition-all flex flex-col ${
-                tier.highlighted
-                  ? `bg-gradient-to-br ${tier.color} shadow-2xl shadow-yellow-500/20 border-yellow-500/50`
-                  : "bg-gradient-to-br from-gray-800/40 to-gray-900/40 border-gray-700/50 hover:border-gray-600/50"
-              } p-6`}
-            >
-              {/* Badge */}
-              {tier.highlighted && (
-                <div className="mb-4">
-                  <span className="inline-block px-3 py-1 rounded-full bg-yellow-400 text-gray-900 text-xs font-bold">
-                    MOST POPULAR
-                  </span>
-                </div>
-              )}
-
-              {/* Title */}
-              <h3 className={`text-2xl font-bold mb-2 ${
-                tier.highlighted ? "text-gray-900" : "text-white"
-              }`}>
-                {tier.name}
-              </h3>
-              <p className={`text-sm mb-4 ${
-                tier.highlighted ? "text-gray-800" : "text-gray-400"
-              }`}>
-                {tier.description}
-              </p>
-
-              {/* Price */}
-              <div className="mb-6">
-                {tier.price ? (
-                  <>
-                    <span className={`text-4xl font-bold ${
-                      tier.highlighted ? "text-gray-900" : "text-white"
-                    }`}>
-                      R{tier.price}
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-8 w-8 text-yellow-400 animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {tiers.map((tier) => (
+              <Card
+                key={tier.key}
+                className={`border transition-all flex flex-col ${
+                  tier.highlighted
+                    ? `bg-gradient-to-br ${tier.color} shadow-2xl shadow-yellow-500/20 border-yellow-500/50`
+                    : "bg-gradient-to-br from-gray-800/40 to-gray-900/40 border-gray-700/50 hover:border-gray-600/50"
+                } p-6`}
+              >
+                {/* Badge */}
+                {tier.highlighted && (
+                  <div className="mb-4">
+                    <span className="inline-block px-3 py-1 rounded-full bg-yellow-400 text-gray-900 text-xs font-bold">
+                      MOST POPULAR
                     </span>
-                    <span className={`text-sm ${
-                      tier.highlighted ? "text-gray-800" : "text-gray-400"
+                  </div>
+                )}
+
+                {/* Title */}
+                <h3 className={`text-2xl font-bold mb-2 ${
+                  tier.highlighted ? "text-gray-900" : "text-white"
+                }`}>
+                  {tier.name}
+                </h3>
+                <p className={`text-sm mb-4 ${
+                  tier.highlighted ? "text-gray-800" : "text-gray-400"
+                }`}>
+                  {tier.description}
+                </p>
+
+                {/* Price */}
+                <div className="mb-6">
+                  {tier.price ? (
+                    <>
+                      <span className={`text-4xl font-bold ${
+                        tier.highlighted ? "text-gray-900" : "text-white"
+                      }`}>
+                        R{tier.price}
+                      </span>
+                      <span className={`text-sm ${
+                        tier.highlighted ? "text-gray-800" : "text-gray-400"
+                      }`}>
+                        {tier.period}
+                      </span>
+                    </>
+                  ) : (
+                    <span className={`text-3xl font-bold ${
+                      tier.highlighted ? "text-gray-900" : "text-white"
                     }`}>
                       {tier.period}
                     </span>
-                  </>
-                ) : (
-                  <span className={`text-3xl font-bold ${
-                    tier.highlighted ? "text-gray-900" : "text-white"
+                  )}
+                </div>
+
+                {/* Features */}
+                <div className="space-y-3 flex-1 mb-6">
+                  {tier.features.map((feature, idx) => (
+                    <div key={idx} className="flex items-start gap-2">
+                      <CheckCircle2 className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
+                        tier.highlighted ? "text-gray-900" : "text-green-400"
+                      }`} />
+                      <span className={`text-sm ${
+                        tier.highlighted ? "text-gray-900" : "text-gray-300"
+                      }`}>
+                        {feature}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* CTA Button */}
+                <Link href={ctaHref(tier)}>
+                  <Button className={`w-full ${
+                    tier.highlighted
+                      ? "bg-gray-900 text-yellow-400 hover:bg-gray-800"
+                      : "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
                   }`}>
-                    {tier.period}
-                  </span>
-                )}
-              </div>
-
-              {/* Features */}
-              <div className="space-y-3 flex-1 mb-6">
-                {tier.features.map((feature, idx) => (
-                  <div key={idx} className="flex items-start gap-2">
-                    <CheckCircle2 className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
-                      tier.highlighted ? "text-gray-900" : "text-green-400"
-                    }`} />
-                    <span className={`text-sm ${
-                      tier.highlighted ? "text-gray-900" : "text-gray-300"
-                    }`}>
-                      {feature}
-                    </span>
-                  </div>
-                ))}
-
-                {tier.limitations.map((limitation, idx) => (
-                  <div key={`limit-${idx}`} className="flex items-start gap-2">
-                    <X className={`h-5 w-5 flex-shrink-0 mt-0.5 ${
-                      tier.highlighted ? "text-gray-600" : "text-gray-600"
-                    }`} />
-                    <span className={`text-sm ${
-                      tier.highlighted ? "text-gray-700" : "text-gray-500"
-                    }`}>
-                      {limitation}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* CTA Button */}
-              <Link href={ctaHref(tier)}>
-                <Button className={`w-full ${
-                  tier.highlighted
-                    ? "bg-gray-900 text-yellow-400 hover:bg-gray-800"
-                    : "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
-                }`}>
-                  {tier.cta}
-                </Button>
-              </Link>
-            </Card>
-          ))}
-        </div>
+                    {tier.cta}
+                  </Button>
+                </Link>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* FAQ Section */}

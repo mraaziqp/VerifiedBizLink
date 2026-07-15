@@ -34,6 +34,18 @@ export default function Home() {
   const [refreshingLocation, setRefreshingLocation] = useState(false);
   const [connectingId, setConnectingId] = useState<string | null>(null);
   const [feedRefresh, setFeedRefresh] = useState(0);
+  const [heroImageUrl, setHeroImageUrl] = useState("/hero-cape-town.jpg");
+  const [heroOpacity, setHeroOpacity] = useState(0.16);
+
+  useEffect(() => {
+    fetch("/api/site-settings")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.heroImageUrl) setHeroImageUrl(data.heroImageUrl);
+        if (typeof data?.heroOpacity === "number") setHeroOpacity(data.heroOpacity);
+      })
+      .catch(() => {});
+  }, []);
 
   const refreshLocation = async () => {
     if (typeof window === "undefined" || !navigator.geolocation) {
@@ -119,14 +131,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50 relative isolate">
-      {/* Faded Cape Town hero background — fixed (not background-attachment:
-          fixed, which is unreliable on iOS Safari) so it stays put while the
-          page scrolls, with a gradient wash to keep foreground content
-          fully legible against the light theme. */}
+      {/* Faded hero background — image and opacity are admin-configurable
+          (Admin > Appearance). Fixed (not background-attachment: fixed,
+          which is unreliable on iOS Safari) so it stays put while the page
+          scrolls, with a gradient wash to keep foreground content legible. */}
       <div
         aria-hidden
-        className="fixed inset-0 -z-10 bg-cover bg-center opacity-[0.16]"
-        style={{ backgroundImage: "url('/hero-cape-town.jpg')" }}
+        className="fixed inset-0 -z-10 bg-cover bg-center"
+        style={{ backgroundImage: `url('${heroImageUrl}')`, opacity: heroOpacity }}
       />
       <div
         aria-hidden

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
-import { AD_LIMITS, getEffectivePackage } from '@/lib/tiers';
+import { getAdLimit, getEffectivePackage } from '@/lib/tiers';
 
 const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
 
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       reviews: reviews[0].n,
       verified: biz.status === 'verified',
       ads_active: activeAds[0].n,
-      ads_limit: AD_LIMITS[getEffectivePackage(biz)] ?? 0,
+      ads_limit: await getAdLimit(getEffectivePackage(biz)),
       profile_completion: Math.round(
         (biz.company_name ? 15 : 0) +
         (biz.description ? 15 : 0) +
