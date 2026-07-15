@@ -106,7 +106,7 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
     const wasLiked = likedPosts.has(postId);
     setLikedPosts(prev => {
       const next = new Set(prev);
-      wasLiked ? next.delete(postId) : next.add(postId);
+      if (wasLiked) { next.delete(postId); } else { next.add(postId); }
       return next;
     });
     setPosts(prev =>
@@ -122,7 +122,7 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
         // Revert on server failure
         setLikedPosts(prev => {
           const next = new Set(prev);
-          wasLiked ? next.add(postId) : next.delete(postId);
+          if (wasLiked) { next.add(postId); } else { next.delete(postId); }
           return next;
         });
         setPosts(prev =>
@@ -138,7 +138,7 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
     } catch {
       setLikedPosts(prev => {
         const next = new Set(prev);
-        wasLiked ? next.add(postId) : next.delete(postId);
+        if (wasLiked) { next.add(postId); } else { next.delete(postId); }
         return next;
       });
       setPosts(prev =>

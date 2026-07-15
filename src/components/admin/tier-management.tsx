@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Edit2, Save, X, Loader2, Plus, Trash2, Megaphone } from "lucide-react";
+import { Edit2, Save, X, Loader2, Plus, Megaphone } from "lucide-react";
 
 interface Tier {
   key: string;
@@ -52,11 +52,7 @@ export default function TierManagement() {
   const [newKey, setNewKey] = useState("");
   const [newForm, setNewForm] = useState<TierForm>(emptyForm);
 
-  useEffect(() => {
-    fetchTiers();
-  }, []);
-
-  const fetchTiers = async () => {
+  const fetchTiers = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch("/api/admin/tiers");
@@ -69,7 +65,11 @@ export default function TierManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchTiers();
+  }, [fetchTiers]);
 
   const startEdit = (tier: Tier) => {
     setEditingKey(tier.key);
@@ -172,7 +172,7 @@ export default function TierManagement() {
         <div>
           <h2 className="text-2xl font-bold text-white">Tier Management</h2>
           <p className="text-gray-400 text-sm mt-1">
-            Prices, ad limits, and monthly ad-credit allowances — these blocks are enforced live: a business's
+            Prices, ad limits, and monthly ad-credit allowances — these blocks are enforced live: a business&apos;s
             package_type determines exactly what they can do.
           </p>
         </div>
@@ -189,7 +189,7 @@ export default function TierManagement() {
         <Card className="bg-gray-900/60 border-cyan-500/30 p-6 space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-gray-400 block mb-1">Key (used internally, e.g. "gold")</label>
+              <label className="text-xs text-gray-400 block mb-1">Key (used internally, e.g. &ldquo;gold&rdquo;)</label>
               <Input value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="gold" className="bg-gray-800 border-gray-700 text-white" />
             </div>
             <div>
