@@ -16,24 +16,39 @@ export async function PUT(
     }
 
     const { id } = await params;
-    const { status, reviewNotes, trustScore } = await request.json();
+    const { status, reviewNotes, trustScore, packageType } = await request.json();
 
     const validStatuses = ['pending', 'reviewing', 'verified', 'rejected', 'unregistered'];
-    if (!validStatuses.includes(status)) {
+    if (status !== undefined && !validStatuses.includes(status)) {
       return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    }
+    if (status === undefined && packageType === undefined) {
+      return NextResponse.json({ error: 'Nothing to update' }, { status: 400 });
     }
 
     if (trustScore !== undefined && trustScore !== null && (trustScore < 0 || trustScore > 100)) {
       return NextResponse.json({ error: 'Trust score must be between 0 and 100' }, { status: 400 });
     }
 
+    if (packageType !== undefined) {
+      const [validTier] = await db`SELECT key FROM tiers WHERE key = ${packageType}`;
+      if (!validTier) {
+        return NextResponse.json({ error: 'Invalid package type' }, { status: 400 });
+      }
+    }
+
+    const computedTrustScore = status === undefined
+      ? undefined
+      : trustScore ?? (status === 'verified' ? 95 : status === 'reviewing' ? 60 : 30);
+
     const updated = await db`
       UPDATE businesses SET
-        status = ${status},
-        review_notes = ${reviewNotes || ''},
-        trust_score = ${trustScore ?? (status === 'verified' ? 95 : status === 'reviewing' ? 60 : 30)},
-        reviewed_by = ${session.id},
-        verified_at = ${status === 'verified' ? new Date() : null},
+        status = COALESCE(${status}, status),
+        review_notes = COALESCE(${reviewNotes}, review_notes),
+        trust_score = COALESCE(${computedTrustScore}, trust_score),
+        reviewed_by = COALESCE(${status !== undefined ? session.id : null}, reviewed_by),
+        verified_at = CASE WHEN ${status}::text = 'verified' THEN NOW() WHEN ${status}::text IS NOT NULL THEN NULL ELSE verified_at END,
+        package_type = COALESCE(${packageType}, package_type),
         updated_at = NOW()
       WHERE id = ${id}
       RETURNING *
@@ -44,30 +59,41 @@ export async function PUT(
     }
 
     // Log the action
+    const actionParts: string[] = [];
+    if (status !== undefined) actionParts.push(`status to ${status.toUpperCase()}`);
+    if (packageType !== undefined) actionParts.push(`plan to ${packageType.toUpperCase()}`);
     await db`
       INSERT INTO audit_logs (admin_id, admin_name, action, target_type, target_id, target_name)
       VALUES (
         ${session.id},
         ${session.fullName},
-        ${'Updated business status to ' + status.toUpperCase()},
+        ${'Updated business ' + actionParts.join(', ')},
         'business',
         ${id},
         ${updated[0].company_name}
       )
     `;
 
-    // Notify the business owner of the status change
-    const statusMessages: Record<string, string> = {
-      verified: `Your business "${updated[0].company_name}" has been verified. You now have a Gold Checkmark!`,
-      rejected: `Your business "${updated[0].company_name}" verification was not successful. Review the feedback in Vetting Hub.`,
-      reviewing: `Your business "${updated[0].company_name}" is now under active review by our compliance team.`,
-    };
-    const message = statusMessages[status];
-    if (message) {
+    // Notify the business owner of a status change
+    if (status !== undefined) {
+      const statusMessages: Record<string, string> = {
+        verified: `Your business "${updated[0].company_name}" has been verified. You now have a Gold Checkmark!`,
+        rejected: `Your business "${updated[0].company_name}" verification was not successful. Review the feedback in Vetting Hub.`,
+        reviewing: `Your business "${updated[0].company_name}" is now under active review by our compliance team.`,
+      };
+      const message = statusMessages[status];
+      if (message) {
+        await db`
+          INSERT INTO notifications (user_id, type, title, content)
+          VALUES (${updated[0].user_id}, ${'vetting_update'}, 'Vetting update', ${message})
+        `.catch((err) => console.error('Vetting status notification failed:', err)); // non-fatal
+      }
+    }
+    if (packageType !== undefined) {
       await db`
         INSERT INTO notifications (user_id, type, title, content)
-        VALUES (${updated[0].user_id}, ${'vetting_update'}, 'Vetting update', ${message})
-      `.catch((err) => console.error('Vetting status notification failed:', err)); // non-fatal
+        VALUES (${updated[0].user_id}, 'payment_success', 'Plan updated', ${`Your business "${updated[0].company_name}" plan was changed to ${packageType} by an administrator.`})
+      `.catch((err) => console.error('Plan-change notification failed:', err)); // non-fatal
     }
 
     return NextResponse.json({ business: updated[0] });

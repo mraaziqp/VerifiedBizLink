@@ -3,7 +3,7 @@ import { getSession, isStaff } from '@/lib/auth';
 import { hash } from 'bcryptjs';
 import db from '@/lib/db';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getSession();
     if (!isStaff(session)) {
@@ -11,10 +11,10 @@ export async function GET(request: NextRequest) {
     }
 
     const users = await db`
-      SELECT 
-        u.id, u.email, u.full_name, u.role, u.headline, u.avatar_url, 
+      SELECT
+        u.id, u.email, u.full_name, u.role, u.headline, u.avatar_url,
         u.connections_count, u.vetting_score, u.created_at,
-        b.company_name, b.status AS business_status
+        b.id AS business_id, b.company_name, b.status AS business_status, b.package_type
       FROM users u
       LEFT JOIN businesses b ON b.user_id = u.id
       ORDER BY u.created_at DESC
