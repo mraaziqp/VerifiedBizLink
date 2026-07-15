@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell, MapPin, Building2 } from "lucide-react";
+import { Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell, MapPin, Building2, Zap, Megaphone } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { GoldCheckmark } from "@/components/ui/gold-checkmark";
@@ -34,8 +34,10 @@ const navigation = [
   { name: "My Network", href: "/network", icon: Users },
   { name: "Explore", href: "/explore", icon: MapPin },
   { name: "My Business", href: "/business/dashboard", icon: Building2 },
+  { name: "Ad Manager", href: "/business/ads", icon: Megaphone },
   { name: "Vetting Hub", href: "/vetting", icon: ShieldCheck },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Pricing & Plans", href: "/pricing", icon: Zap },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
@@ -126,10 +128,11 @@ export function SidebarLeft() {
       {/* Main Navigation */}
       <nav className="flex flex-col gap-1">
         {navigation.map((item) => {
-          // My Business and Vetting Hub are for business accounts (to manage
-          // their profile and upload verification docs) and staff (who need
-          // to view/support both) — hidden for plain customer accounts.
-          if ((item.name === "My Business" || item.name === "Vetting Hub") && !canManageBusiness) {
+          // My Business, Ad Manager and Vetting Hub are for business accounts
+          // (to manage their profile, run ad campaigns, and upload
+          // verification docs) and staff (who need to view/support all of
+          // these) — hidden for plain customer accounts.
+          if ((item.name === "My Business" || item.name === "Ad Manager" || item.name === "Vetting Hub") && !canManageBusiness) {
             return null;
           }
           return (

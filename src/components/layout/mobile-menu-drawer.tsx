@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   X, Home, Users, MapPin, ShieldCheck, BarChart3,
-  UserCircle, Settings, Shield, LogOut, Building2,
+  UserCircle, Settings, Shield, LogOut, Building2, Megaphone, Zap,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useMobileMenu } from "@/contexts/mobile-menu-context";
@@ -16,6 +16,7 @@ const MENU_ITEMS = [
   { name: "Explore", href: "/explore", icon: MapPin },
   { name: "Vetting Hub", href: "/vetting", icon: ShieldCheck },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Pricing & Plans", href: "/pricing", icon: Zap },
   { name: "My Profile", href: "/settings/profile", icon: UserCircle },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
@@ -91,11 +92,23 @@ export function MobileMenuDrawer() {
                   href="/business/dashboard"
                   onClick={() => setOpen(false)}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
-                    pathname.startsWith("/business") ? "bg-yellow-500/15 text-yellow-500" : "text-white/80 hover:bg-white/5"
+                    pathname.startsWith("/business/dashboard") ? "bg-yellow-500/15 text-yellow-500" : "text-white/80 hover:bg-white/5"
                   }`}
                 >
                   <Building2 size={18} />
                   Business Dashboard
+                </Link>
+              )}
+              {isBusiness && (
+                <Link
+                  href="/business/ads"
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                    pathname.startsWith("/business/ads") ? "bg-yellow-500/15 text-yellow-500" : "text-white/80 hover:bg-white/5"
+                  }`}
+                >
+                  <Megaphone size={18} />
+                  Ad Manager
                 </Link>
               )}
               {isStaff && (
