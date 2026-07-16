@@ -16,6 +16,7 @@ import { User, Shield, Bell, CreditCard, Loader2, Camera, Trash2, Download, Aler
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 
 interface Tier {
   key: string;
@@ -659,88 +660,52 @@ function SettingsForm() {
                   </CardContent>
                 </Card>
 
-                {/* Subscriptions Grid — every purchasable tier from the admin
-                    Tiers panel shows up here automatically; nothing is
-                    hardcoded to a specific tier key. */}
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {/* Test Sandbox Upgrade */}
-                  <Card className="border border-yellow-250 shadow-sm overflow-hidden flex flex-col justify-between bg-yellow-50/10">
-                    <div className="p-6 md:p-8 space-y-4">
-                      <div className="h-10 w-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-                        <Zap className="h-6 w-6 text-yellow-600 animate-pulse" />
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className="text-xl font-bold text-gray-900 flex items-center gap-1.5">
-                          Developer Test Tier
-                          <span className="text-[10px] bg-yellow-500 text-slate-950 font-extrabold px-1.5 py-0.5 rounded-full uppercase">Test</span>
-                        </h3>
-                        <p className="text-sm text-gray-500 font-medium">Simulate checkout integration with a real R5 micropayment.</p>
-                      </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-extrabold text-gray-900">R5</span>
-                        <span className="text-sm text-gray-500 font-bold">/ month</span>
-                      </div>
-                      <ul className="space-y-2.5 pt-2 text-sm text-gray-600 font-medium">
-                        <li className="flex items-center gap-2 text-slate-700">✓ R5.00 sandbox micropayment</li>
-                        <li className="flex items-center gap-2 text-slate-700">✓ Secure PayFast sandbox gateway</li>
-                        <li className="flex items-center gap-2 text-slate-700">✓ Automated payment status callback</li>
-                        <li className="flex items-center gap-2 text-slate-700">✓ Instantly writes to spent ledger</li>
-                      </ul>
+                {/* One canonical place to browse plans and upgrade — /pricing.
+                    Having a second, separate set of upgrade cards here too
+                    was exactly the confusing "pricing page vs billing page"
+                    duplication we removed. */}
+                <Card className="border border-gray-150 shadow-sm overflow-hidden bg-white">
+                  <CardContent className="p-6 md:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">Change or upgrade your plan</h3>
+                      <p className="text-sm text-gray-500 mt-1">Compare all plans and switch instantly — same account, no separate signup.</p>
                     </div>
-                    <div className="p-6 bg-gray-50 border-t flex justify-end">
-                      <Button
-                        onClick={() => handleCheckout(5, 'Developer Test Subscription (R5/month)')}
-                        disabled={checkoutLoading !== null}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold px-6 h-11 rounded-xl transition-all shadow-md shadow-yellow-500/20"
-                      >
-                        {checkoutLoading === 'Developer Test Subscription (R5/month)' ? (
-                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Redirecting…</>
-                        ) : (
-                          'Upgrade R5'
-                        )}
+                    <Link href="/pricing" className="shrink-0">
+                      <Button className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-6 h-11 rounded-xl">
+                        View Plans
                       </Button>
-                    </div>
-                  </Card>
+                    </Link>
+                  </CardContent>
+                </Card>
 
-                  {tiers.filter((t) => t.key !== 'free').map((tier) => {
-                    const desc = `${tier.name} Subscription (R${tier.price}/month)`;
-                    return (
-                      <Card key={tier.key} className="border border-gray-150 shadow-sm overflow-hidden flex flex-col justify-between bg-white">
-                        <div className="p-6 md:p-8 space-y-4">
-                          <div className="h-10 w-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
-                            <Shield className="h-6 w-6 text-yellow-500" />
-                          </div>
-                          <div className="space-y-1">
-                            <h3 className="text-xl font-bold text-gray-900">{tier.name}</h3>
-                            <p className="text-sm text-gray-500 font-medium">Build trust and gain priority search visibility.</p>
-                          </div>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-extrabold text-gray-900">R{tier.price}</span>
-                            <span className="text-sm text-gray-500 font-bold">/ month</span>
-                          </div>
-                          <ul className="space-y-2.5 pt-2 text-sm text-gray-600 font-medium">
-                            {tier.features.map((f) => (
-                              <li key={f} className="flex items-center gap-2 text-slate-700">✓ {f}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div className="p-6 bg-gray-50 border-t flex justify-end">
-                          <Button
-                            onClick={() => handleCheckout(tier.price, desc, `subscription_${tier.key}`)}
-                            disabled={checkoutLoading !== null}
-                            className="bg-[#EAB308] hover:bg-[#EAB308]/90 text-slate-950 font-bold px-6 h-11 rounded-xl transition-all shadow-md shadow-yellow-500/20"
-                          >
-                            {checkoutLoading === desc ? (
-                              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Redirecting…</>
-                            ) : (
-                              `Upgrade to ${tier.name}`
-                            )}
-                          </Button>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
+                {/* Developer test payment — separate from real plans on purpose,
+                    kept out of the customer-facing pricing page. */}
+                <Card className="border border-yellow-250 shadow-sm overflow-hidden bg-yellow-50/10 max-w-sm">
+                  <div className="p-6 space-y-3">
+                    <div className="h-10 w-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
+                      <Zap className="h-5 w-5 text-yellow-600 animate-pulse" />
+                    </div>
+                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
+                      Developer Test Payment
+                      <span className="text-[10px] bg-yellow-500 text-slate-950 font-extrabold px-1.5 py-0.5 rounded-full uppercase">Test</span>
+                    </h3>
+                    <p className="text-xs text-gray-500">Confirms your PayFast checkout works end-to-end with a tiny R5 charge.</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 border-t flex justify-end">
+                    <Button
+                      onClick={() => handleCheckout(5, 'Developer Test Subscription (R5/month)')}
+                      disabled={checkoutLoading !== null}
+                      size="sm"
+                      className="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold px-4 h-9 rounded-lg"
+                    >
+                      {checkoutLoading === 'Developer Test Subscription (R5/month)' ? (
+                        <><Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />Redirecting…</>
+                      ) : (
+                        'Pay R5'
+                      )}
+                    </Button>
+                  </div>
+                </Card>
 
                 {/* Spent Transaction Ledger */}
                 <Card className="border border-gray-100 shadow-sm overflow-hidden bg-white">
