@@ -1,6 +1,8 @@
 import { SignJWT } from 'jose/jwt/sign';
 import { jwtVerify } from 'jose/jwt/verify';
 import { cookies } from 'next/headers';
+import type { NextRequest } from 'next/server';
+import db from '@/lib/db';
 
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is not set. Set it in .env.local or your deployment environment.');
@@ -40,15 +42,35 @@ export interface SessionUser {
   avatarUrl: string;
   headline: string;
   emailVerified: boolean;
+  sid?: string;
 }
 
-export async function createSession(user: SessionUser): Promise<string> {
-  const token = await new SignJWT({ ...user })
+export async function createSession(user: SessionUser, sid?: string): Promise<string> {
+  const token = await new SignJWT({ ...user, sid })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
     .sign(JWT_SECRET);
   return token;
+}
+
+// Registers a row in user_sessions (for the real Settings > Security "active
+// sessions" list and remote sign-out) and embeds its id in the JWT as `sid`.
+// Tokens issued before this existed have no `sid` — getSession() below treats
+// that as "not tracked" rather than "invalid", so already-logged-in users
+// aren't signed out by this change.
+export async function createTrackedSession(user: SessionUser, request: Request | NextRequest): Promise<string> {
+  const userAgent = request.headers.get('user-agent') || '';
+  const ip =
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    '';
+  const [row] = await db`
+    INSERT INTO user_sessions (user_id, user_agent, ip_address)
+    VALUES (${user.id}, ${userAgent}, ${ip})
+    RETURNING id
+  `;
+  return createSession(user, row.id);
 }
 
 export async function verifyToken(token: string): Promise<SessionUser | null> {
@@ -64,7 +86,19 @@ export async function getSession(): Promise<SessionUser | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
-  return verifyToken(token);
+  const user = await verifyToken(token);
+  if (!user) return null;
+
+  if (user.sid) {
+    const [row] = await db`SELECT revoked_at FROM user_sessions WHERE id = ${user.sid}`;
+    if (!row || row.revoked_at) return null; // session was remotely signed out or the row was cleaned up
+    db`
+      UPDATE user_sessions SET last_seen_at = NOW()
+      WHERE id = ${user.sid} AND last_seen_at < NOW() - INTERVAL '60 seconds'
+    `.catch(() => {}); // best-effort; never block a request on this
+  }
+
+  return user;
 }
 
 export async function setSessionCookie(token: string) {
@@ -86,4 +120,26 @@ export async function clearSession() {
 // True for admin, banker, and lawyer roles — use in all admin API routes
 export function isStaff(session: SessionUser | null): boolean {
   return !!session && ['admin', 'banker', 'lawyer'].includes(session.role);
+}
+
+// Short-lived token for the gap between "password verified" and "TOTP code
+// verified" during a 2FA login — deliberately NOT a full session (no `sid`,
+// 5-minute expiry, distinct `purpose` claim) so it can't be replayed as a
+// real session cookie even if intercepted.
+export async function createMfaChallenge(userId: string): Promise<string> {
+  return new SignJWT({ userId, purpose: 'mfa-challenge' })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('5m')
+    .sign(JWT_SECRET);
+}
+
+export async function verifyMfaChallenge(token: string): Promise<string | null> {
+  try {
+    const { payload } = await jwtVerify(token, JWT_SECRET);
+    if (payload.purpose !== 'mfa-challenge' || typeof payload.userId !== 'string') return null;
+    return payload.userId;
+  } catch {
+    return null;
+  }
 }

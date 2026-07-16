@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { resolveMx } from 'dns/promises';
-import { createSession } from '@/lib/auth';
+import { createTrackedSession } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { sendVerificationEmail } from '@/lib/email';
 import db from '@/lib/db';
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
       emailVerified: user.email_verified ?? false,
     };
 
-    const token = await createSession(sessionUser);
+    const token = await createTrackedSession(sessionUser, request);
     const response = NextResponse.json({ user: sessionUser, success: true });
     response.cookies.set('vbl_session', token, {
       httpOnly: true,

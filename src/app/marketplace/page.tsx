@@ -31,11 +31,8 @@ interface MarketNews {
   title: string;
   summary: string;
   source: string;
-  category: string;
   date: string;
-  impact: 'positive' | 'negative' | 'neutral' | 'mixed';
-  importance: 'high' | 'medium' | 'low';
-  relatedCommodities: string[];
+  link: string;
 }
 
 const generateHistoricalData = (currentPrice: number) => {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
-import { createSession, sessionCookieOptions } from '@/lib/auth';
+import { createTrackedSession, sessionCookieOptions } from '@/lib/auth';
 import db from '@/lib/db';
 
 export async function POST(request: NextRequest) {
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
       emailVerified: user.email_verified === true,
     };
 
-    const jwt = await createSession(sessionUser);
+    const jwt = await createTrackedSession(sessionUser, request);
     const response = NextResponse.json({ success: true, user: sessionUser });
     response.cookies.set('vbl_session', jwt, sessionCookieOptions(request.headers.get('host')));
     return response;

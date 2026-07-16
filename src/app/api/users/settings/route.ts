@@ -45,6 +45,8 @@ export async function PUT(request: NextRequest) {
     `;
 
     // Keep avatarUrl out of the JWT — /api/auth/me fetches it fresh from DB.
+    // This reissues the JWT for the SAME session (not a new login) — carry
+    // over session.sid rather than registering a new user_sessions row.
     const token = await createSession({
       id: updated[0].id,
       email: updated[0].email,
@@ -53,7 +55,7 @@ export async function PUT(request: NextRequest) {
       avatarUrl: '',
       headline: updated[0].headline || '',
       emailVerified: updated[0].email_verified ?? session.emailVerified ?? false,
-    });
+    }, session.sid);
 
     const response = NextResponse.json({ user: updated[0], success: true });
     response.cookies.set('vbl_session', token, {

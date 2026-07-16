@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { createSession, sessionCookieOptions } from '@/lib/auth';
+import { createTrackedSession, createMfaChallenge, sessionCookieOptions } from '@/lib/auth';
 import { compare } from 'bcryptjs';
 import db from '@/lib/db';
 
@@ -83,10 +83,11 @@ export async function POST(request: NextRequest) {
     let avatarUrl = '';
     let headline = '';
     let emailVerified = false;
+    let twoFactorEnabled = false;
 
     try {
       const users = await db`
-        SELECT id, full_name, role, avatar_url, headline, email_verified
+        SELECT id, full_name, role, avatar_url, headline, email_verified, two_factor_enabled
         FROM users
         WHERE id = ${userId}
         LIMIT 1
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
         avatarUrl = profileData.avatar_url || avatarUrl;
         headline = profileData.headline || headline;
         emailVerified = profileData.email_verified === true;
+        twoFactorEnabled = profileData.two_factor_enabled === true;
       }
     } catch (dbError) {
       console.log('Profile fetch from database completed');
@@ -114,7 +116,15 @@ export async function POST(request: NextRequest) {
       emailVerified,
     };
 
-    const token = await createSession(sessionUser);
+    // Password verified, but 2FA is enabled — hold off on creating a real
+    // session until the caller also proves possession of the authenticator
+    // via POST /api/auth/login/verify-2fa.
+    if (twoFactorEnabled) {
+      const challengeToken = await createMfaChallenge(userId);
+      return NextResponse.json({ requiresTwoFactor: true, challengeToken });
+    }
+
+    const token = await createTrackedSession(sessionUser, request);
     const response = NextResponse.json({ user: sessionUser, success: true });
     response.cookies.set('vbl_session', token, sessionCookieOptions(request.headers.get('host')));
     return response;

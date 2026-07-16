@@ -3,11 +3,10 @@
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
-  FileText, CheckCircle2, Clock, AlertCircle, TrendingUp, BarChart3,
-  Settings, ArrowRight, Zap, Users, Shield, Download, LogOut
+  FileText, CheckCircle2, Clock, ArrowRight, Shield, LogOut, type LucideIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -15,29 +14,42 @@ interface AdminTool {
   id: string;
   name: string;
   description: string;
-  icon: any;
+  icon: LucideIcon;
   href: string;
   color: string;
   badge?: string;
-  isNew?: boolean;
 }
+
+interface Stats {
+  pendingBusinesses: number;
+  verifiedBusinesses: number;
+}
+
+const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
 
 export default function RamoneAdminPanel() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
     if (user) {
-      const userEmail = user.email?.toLowerCase() || '';
-      const isRamone = userEmail.includes('ramone');
-
-      if (!isRamone) {
+      if (!STAFF_ROLES.includes(user.role)) {
         router.push('/admin/dashboard');
       }
       setLoading(false);
     }
   }, [user, router]);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/admin/stats')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (active && data?.stats) setStats(data.stats); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   if (loading) {
     return <div className="min-h-screen bg-black flex items-center justify-center">Loading...</div>;
@@ -47,7 +59,6 @@ export default function RamoneAdminPanel() {
     return null;
   }
 
-  // Ramone's comprehensive admin tools
   const vettingTools: AdminTool[] = [
     {
       id: 'vetting-desk',
@@ -57,7 +68,6 @@ export default function RamoneAdminPanel() {
       href: '/admin/vetting',
       color: 'from-blue-500 to-cyan-500',
       badge: 'Primary Tool',
-      isNew: false,
     },
     {
       id: 'document-review',
@@ -66,8 +76,6 @@ export default function RamoneAdminPanel() {
       icon: CheckCircle2,
       href: '/admin/ramone/documents',
       color: 'from-green-500 to-emerald-500',
-      badge: 'In Queue',
-      isNew: true,
     },
     {
       id: 'pending-businesses',
@@ -76,8 +84,7 @@ export default function RamoneAdminPanel() {
       icon: Clock,
       href: '/admin/ramone/pending',
       color: 'from-yellow-500 to-orange-500',
-      badge: '12 Pending',
-      isNew: true,
+      badge: stats ? `${stats.pendingBusinesses} pending` : undefined,
     },
     {
       id: 'verified-list',
@@ -86,65 +93,9 @@ export default function RamoneAdminPanel() {
       icon: Shield,
       href: '/admin/ramone/verified',
       color: 'from-purple-500 to-pink-500',
-      badge: '847 Verified',
-      isNew: true,
+      badge: stats ? `${stats.verifiedBusinesses} verified` : undefined,
     },
   ];
-
-  const analyticsTools: AdminTool[] = [
-    {
-      id: 'vetting-stats',
-      name: 'Vetting Statistics',
-      description: 'Real-time dashboard of verification metrics and trends',
-      icon: BarChart3,
-      href: '/admin/ramone/stats',
-      color: 'from-indigo-500 to-blue-500',
-      badge: 'Real-time',
-      isNew: true,
-    },
-    {
-      id: 'performance',
-      name: 'Your Performance',
-      description: 'Track your verifications, average processing time, and quality metrics',
-      icon: TrendingUp,
-      href: '/admin/ramone/performance',
-      color: 'from-pink-500 to-rose-500',
-      badge: 'Personal',
-      isNew: true,
-    },
-    {
-      id: 'audit-trail',
-      name: 'Audit Trail',
-      description: 'Complete log of all your actions and decisions for compliance',
-      icon: AlertCircle,
-      href: '/admin/ramone/audit',
-      color: 'from-red-500 to-orange-500',
-      badge: 'Compliant',
-      isNew: true,
-    },
-  ];
-
-  const utilityTools: AdminTool[] = [
-    {
-      id: 'settings',
-      name: 'Preferences',
-      description: 'Manage your admin preferences and notification settings',
-      icon: Settings,
-      href: '/admin/ramone/settings',
-      color: 'from-gray-600 to-gray-700',
-    },
-    {
-      id: 'reports',
-      name: 'Generate Reports',
-      description: 'Export verification reports and statistics for analysis',
-      icon: Download,
-      href: '/admin/ramone/reports',
-      color: 'from-teal-500 to-cyan-500',
-      isNew: true,
-    },
-  ];
-
-  const allTools = [...vettingTools, ...analyticsTools, ...utilityTools];
 
   const handleLogout = async () => {
     await logout();
@@ -160,9 +111,9 @@ export default function RamoneAdminPanel() {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <Shield className="h-8 w-8 text-green-400" />
-                <h1 className="text-4xl font-bold text-white">👑 Ramone's Vetting Command Center</h1>
+                <h1 className="text-4xl font-bold text-white">Vetting Command Center</h1>
               </div>
-              <p className="text-gray-400">Complete business verification and vetting management workspace</p>
+              <p className="text-gray-400">Business verification and vetting management workspace</p>
             </div>
             <div className="flex gap-2">
               <Link href="/admin/dashboard">
@@ -204,52 +155,8 @@ export default function RamoneAdminPanel() {
           </CardContent>
         </Card>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-12">
-          <Card className="bg-gray-800/40 border-gray-700">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-400 text-sm">Pending Verifications</p>
-                <Clock className="h-5 w-5 text-yellow-400" />
-              </div>
-              <p className="text-3xl font-bold text-yellow-400 mt-2">12</p>
-              <p className="text-xs text-gray-500 mt-2">Awaiting your review</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-800/40 border-gray-700">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-400 text-sm">This Month</p>
-                <TrendingUp className="h-5 w-5 text-green-400" />
-              </div>
-              <p className="text-3xl font-bold text-green-400 mt-2">247</p>
-              <p className="text-xs text-gray-500 mt-2">Verifications completed</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-800/40 border-gray-700">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-400 text-sm">Avg Quality</p>
-                <CheckCircle2 className="h-5 w-5 text-blue-400" />
-              </div>
-              <p className="text-3xl font-bold text-blue-400 mt-2">98.7%</p>
-              <p className="text-xs text-gray-500 mt-2">Approval rate</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-gray-800/40 border-gray-700">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-gray-400 text-sm">Avg Time</p>
-                <Zap className="h-5 w-5 text-purple-400" />
-              </div>
-              <p className="text-3xl font-bold text-purple-400 mt-2">2.3h</p>
-              <p className="text-xs text-gray-500 mt-2">Per verification</p>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Vetting Tools Section */}
-        <div className="mb-12">
+        <div>
           <h2 className="text-2xl font-bold text-white mb-6">
             <FileText className="inline h-6 w-6 mr-2" />
             Business Vetting Tools
@@ -266,9 +173,7 @@ export default function RamoneAdminPanel() {
                           <Icon className="h-6 w-6 text-white" />
                         </div>
                         {tool.badge && (
-                          <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                            tool.isNew ? 'bg-green-500/20 text-green-300' : 'bg-blue-500/20 text-blue-300'
-                          }`}>
+                          <span className="text-xs font-semibold px-2 py-1 rounded-full bg-blue-500/20 text-blue-300">
                             {tool.badge}
                           </span>
                         )}
@@ -283,90 +188,6 @@ export default function RamoneAdminPanel() {
                       </div>
                       <div className="flex items-center text-primary text-sm font-semibold pt-2">
                         Open <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Analytics & Reports Section */}
-        <div className="mb-12">
-          <h2 className="text-2xl font-bold text-white mb-6">
-            <BarChart3 className="inline h-6 w-6 mr-2" />
-            Analytics & Performance
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {analyticsTools.map((tool) => {
-              const Icon = tool.icon;
-              return (
-                <Link key={tool.id} href={tool.href}>
-                  <Card className="bg-gray-800/40 border-gray-700 hover:border-gray-600 transition-all hover:shadow-lg hover:shadow-gray-900 cursor-pointer group h-full">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className={`h-12 w-12 rounded-lg bg-gradient-to-r ${tool.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                          <Icon className="h-6 w-6 text-white" />
-                        </div>
-                        {tool.badge && (
-                          <span className="text-xs font-semibold px-2 py-1 bg-green-500/20 text-green-300 rounded-full">
-                            {tool.badge}
-                          </span>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div>
-                        <h3 className="text-lg font-bold text-white group-hover:text-gray-200">
-                          {tool.name}
-                        </h3>
-                        <p className="text-gray-400 text-sm mt-2">{tool.description}</p>
-                      </div>
-                      <div className="flex items-center text-primary text-sm font-semibold pt-2">
-                        View <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Utilities Section */}
-        <div>
-          <h2 className="text-2xl font-bold text-white mb-6">
-            <Settings className="inline h-6 w-6 mr-2" />
-            Utilities
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {utilityTools.map((tool) => {
-              const Icon = tool.icon;
-              return (
-                <Link key={tool.id} href={tool.href}>
-                  <Card className="bg-gray-800/40 border-gray-700 hover:border-gray-600 transition-all hover:shadow-lg hover:shadow-gray-900 cursor-pointer group h-full">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className={`h-12 w-12 rounded-lg bg-gradient-to-r ${tool.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                          <Icon className="h-6 w-6 text-white" />
-                        </div>
-                        {tool.badge && (
-                          <span className="text-xs font-semibold px-2 py-1 bg-green-500/20 text-green-300 rounded-full">
-                            {tool.badge}
-                          </span>
-                        )}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div>
-                        <h3 className="text-lg font-bold text-white group-hover:text-gray-200">
-                          {tool.name}
-                        </h3>
-                        <p className="text-gray-400 text-sm mt-2">{tool.description}</p>
-                      </div>
-                      <div className="flex items-center text-primary text-sm font-semibold pt-2">
-                        Access <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-1 transition-transform" />
                       </div>
                     </CardContent>
                   </Card>

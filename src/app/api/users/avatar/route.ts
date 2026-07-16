@@ -62,6 +62,8 @@ export async function POST(request: NextRequest) {
 
     // A Supabase URL is short enough for the JWT; base64 is not, so keep it
     // empty in that case (/api/auth/me always reads avatar_url fresh from DB).
+    // This reissues the JWT for the SAME session (not a new login) — carry
+    // over session.sid rather than registering a new user_sessions row.
     const token = await createSession({
       id: updated[0].id,
       email: updated[0].email,
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
       avatarUrl: storedUrl.startsWith('http') ? storedUrl : '',
       headline: updated[0].headline || '',
       emailVerified: updated[0].email_verified ?? session.emailVerified ?? false,
-    });
+    }, session.sid);
 
     const response = NextResponse.json({ avatarUrl: storedUrl, success: true });
     response.cookies.set('vbl_session', token, sessionCookieOptions(request.headers.get('host')));

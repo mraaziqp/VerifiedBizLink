@@ -237,9 +237,27 @@ export async function POST(request: NextRequest) {
     await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_preferences JSONB`;
     await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS privacy_settings JSONB`;
 
+    // --- v10: real TOTP 2FA + session tracking (backed Settings > Security,
+    // which previously had a fake toggle and a single hardcoded fake session) ---
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret TEXT`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_enabled BOOLEAN NOT NULL DEFAULT false`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_backup_codes JSONB`;
+    await db`
+      CREATE TABLE IF NOT EXISTS user_sessions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        user_agent TEXT,
+        ip_address TEXT,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        revoked_at TIMESTAMPTZ
+      )
+    `;
+    await db`CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)`;
+
     return NextResponse.json({
       success: true,
-      message: 'Migration v9 applied: users.notification_preferences, users.privacy_settings.',
+      message: 'Migration v10 applied: TOTP 2FA columns, user_sessions table.',
     });
   } catch (error) {
     console.error('Migration error:', error);

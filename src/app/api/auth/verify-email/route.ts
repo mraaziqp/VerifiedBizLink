@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createSession } from '@/lib/auth';
+import { createTrackedSession } from '@/lib/auth';
 import db from '@/lib/db';
 
 export async function GET(request: NextRequest) {
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       emailVerified: true,
     };
 
-    const newJwt = await createSession(sessionUser);
+    const newJwt = await createTrackedSession(sessionUser, request);
     const response = NextResponse.redirect(new URL('/verify-email?success=1', request.url));
     response.cookies.set('vbl_session', newJwt, {
       httpOnly: true,

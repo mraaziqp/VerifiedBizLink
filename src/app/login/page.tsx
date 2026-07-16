@@ -22,10 +22,23 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [challengeToken, setChallengeToken] = useState<string | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { refresh } = useAuth();
+
+  const completeLogin = (user: { email: string; role: string }) => {
+    refresh();
+    toast({ title: "Welcome back!", description: `Signed in as ${user.email}` });
+    const from = searchParams.get("from");
+    if (STAFF_ROLES.includes(user.role)) {
+      router.push("/admin");
+    } else {
+      router.push(from && from !== "/login" ? from : "/");
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,15 +50,10 @@ function LoginForm() {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      if (res.ok) {
-        await refresh();
-        toast({ title: "Welcome back!", description: `Signed in as ${data.user.email}` });
-        const from = searchParams.get("from");
-        if (STAFF_ROLES.includes(data.user.role)) {
-          router.push("/admin");
-        } else {
-          router.push(from && from !== "/login" ? from : "/");
-        }
+      if (res.ok && data.requiresTwoFactor) {
+        setChallengeToken(data.challengeToken);
+      } else if (res.ok) {
+        await completeLogin(data.user);
       } else {
         toast({
           title: "Login Failed",
@@ -59,6 +67,71 @@ function LoginForm() {
       setIsLoading(false);
     }
   };
+
+  const handleVerifyTwoFactor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/login/verify-2fa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ challengeToken, code: twoFactorCode }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        await completeLogin(data.user);
+      } else {
+        toast({
+          title: "Verification Failed",
+          description: data.error || "Invalid code. Please try again.",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({ title: "Verification Failed", description: "Could not connect to server.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (challengeToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white p-8">
+        <div className="w-full max-w-[420px]">
+          <div className="mb-8 text-center">
+            <ShieldCheck className="h-10 w-10 text-yellow-500 mx-auto mb-3" />
+            <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Two-factor verification</h2>
+            <p className="mt-2 text-gray-500 text-sm">Enter the 6-digit code from your authenticator app.</p>
+          </div>
+          <form className="space-y-5" onSubmit={handleVerifyTwoFactor}>
+            <Input
+              autoFocus
+              inputMode="numeric"
+              placeholder="123456"
+              className="h-14 rounded-xl border-gray-200 bg-gray-50 focus:bg-white text-center text-2xl tracking-[0.3em] text-gray-900"
+              value={twoFactorCode}
+              onChange={(e) => setTwoFactorCode(e.target.value)}
+              maxLength={10}
+            />
+            <Button
+              type="submit"
+              disabled={isLoading || twoFactorCode.length < 6}
+              className="w-full h-12 bg-yellow-400 text-gray-900 hover:bg-yellow-300 font-bold rounded-xl text-base"
+            >
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Verify & Sign In"}
+            </Button>
+            <button
+              type="button"
+              onClick={() => { setChallengeToken(null); setTwoFactorCode(""); }}
+              className="w-full text-sm text-gray-400 hover:text-gray-600"
+            >
+              Back to sign in
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex">
