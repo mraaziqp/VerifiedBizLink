@@ -15,6 +15,7 @@ export interface Tier {
   note?: string | null;
   sortOrder: number;
   isActive: boolean;
+  isPurchasable: boolean;
 }
 
 function mapRow(row: Record<string, any>): Tier {
@@ -30,6 +31,7 @@ function mapRow(row: Record<string, any>): Tier {
     note: row.note ?? null,
     sortOrder: row.sort_order,
     isActive: row.is_active,
+    isPurchasable: row.is_purchasable,
   };
 }
 
@@ -54,12 +56,6 @@ export async function getAdLimit(packageKey: string): Promise<number> {
   const tier = await getTier(packageKey);
   return tier?.adLimit ?? 0;
 }
-
-// PayFast purchaseType -> the tier key it grants once the ITN confirms payment.
-export const PURCHASE_TYPE_TO_PACKAGE: Record<string, string> = {
-  subscription_standard: 'standard',
-  subscription_premium: 'premium',
-};
 
 // Price (in Rand) per extra ad-day of credit when a business tops up beyond
 // their tier's monthly allowance.

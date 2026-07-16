@@ -659,8 +659,10 @@ function SettingsForm() {
                   </CardContent>
                 </Card>
 
-                {/* Subscriptions Grid */}
-                <div className="grid md:grid-cols-3 gap-6">
+                {/* Subscriptions Grid — every purchasable tier from the admin
+                    Tiers panel shows up here automatically; nothing is
+                    hardcoded to a specific tier key. */}
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {/* Test Sandbox Upgrade */}
                   <Card className="border border-yellow-250 shadow-sm overflow-hidden flex flex-col justify-between bg-yellow-50/10">
                     <div className="p-6 md:p-8 space-y-4">
@@ -700,99 +702,44 @@ function SettingsForm() {
                     </div>
                   </Card>
 
-                  {/* Verified Business Upgrade */}
-                  {(() => {
-                    const standardTier = tiers.find((t) => t.key === 'standard');
-                    const standardPrice = standardTier?.price ?? 299;
-                    const standardDesc = `Standard Business Subscription (R${standardPrice}/month)`;
+                  {tiers.filter((t) => t.key !== 'free').map((tier) => {
+                    const desc = `${tier.name} Subscription (R${tier.price}/month)`;
                     return (
-                      <Card className="border border-gray-150 shadow-sm overflow-hidden flex flex-col justify-between bg-white">
+                      <Card key={tier.key} className="border border-gray-150 shadow-sm overflow-hidden flex flex-col justify-between bg-white">
                         <div className="p-6 md:p-8 space-y-4">
                           <div className="h-10 w-10 rounded-xl bg-yellow-500/10 flex items-center justify-center">
                             <Shield className="h-6 w-6 text-yellow-500" />
                           </div>
                           <div className="space-y-1">
-                            <h3 className="text-xl font-bold text-gray-900">Verified Business</h3>
+                            <h3 className="text-xl font-bold text-gray-900">{tier.name}</h3>
                             <p className="text-sm text-gray-500 font-medium">Build trust and gain priority search visibility.</p>
                           </div>
                           <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-extrabold text-gray-900">R{standardPrice}</span>
+                            <span className="text-3xl font-extrabold text-gray-900">R{tier.price}</span>
                             <span className="text-sm text-gray-500 font-bold">/ month</span>
                           </div>
                           <ul className="space-y-2.5 pt-2 text-sm text-gray-600 font-medium">
-                            {(standardTier?.features ?? [
-                              'Verified trust badge on profile',
-                              'Dynamic CIPC & SARS database validation',
-                              'Reviews and rating capabilities enabled',
-                              'Priority placement in category queries',
-                            ]).map((f) => (
+                            {tier.features.map((f) => (
                               <li key={f} className="flex items-center gap-2 text-slate-700">✓ {f}</li>
                             ))}
                           </ul>
                         </div>
                         <div className="p-6 bg-gray-50 border-t flex justify-end">
                           <Button
-                            onClick={() => handleCheckout(standardPrice, standardDesc, 'subscription_standard')}
+                            onClick={() => handleCheckout(tier.price, desc, `subscription_${tier.key}`)}
                             disabled={checkoutLoading !== null}
                             className="bg-[#EAB308] hover:bg-[#EAB308]/90 text-slate-950 font-bold px-6 h-11 rounded-xl transition-all shadow-md shadow-yellow-500/20"
                           >
-                            {checkoutLoading === standardDesc ? (
+                            {checkoutLoading === desc ? (
                               <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Redirecting…</>
                             ) : (
-                              'Upgrade to Standard'
+                              `Upgrade to ${tier.name}`
                             )}
                           </Button>
                         </div>
                       </Card>
                     );
-                  })()}
-
-                  {/* Premium Business Upgrade */}
-                  {(() => {
-                    const premiumTier = tiers.find((t) => t.key === 'premium');
-                    const premiumPrice = premiumTier?.price ?? 699;
-                    const premiumDesc = `Premium Business Subscription (R${premiumPrice}/month)`;
-                    return (
-                      <Card className="border border-gray-150 shadow-sm overflow-hidden flex flex-col justify-between bg-white">
-                        <div className="p-6 md:p-8 space-y-4">
-                          <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
-                            <Zap className="h-6 w-6 text-blue-505" />
-                          </div>
-                          <div className="space-y-1">
-                            <h3 className="text-xl font-bold text-gray-900">Premium Partner</h3>
-                            <p className="text-sm text-gray-500 font-medium">Maximum exposure, advanced leads, and custom branding.</p>
-                          </div>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-extrabold text-gray-900">R{premiumPrice}</span>
-                            <span className="text-sm text-gray-500 font-bold">/ month</span>
-                          </div>
-                          <ul className="space-y-2.5 pt-2 text-sm text-gray-600 font-medium">
-                            {(premiumTier?.features ?? [
-                              'All features in Standard tier',
-                              'Homepage exposure and spotlight listings',
-                              'Advanced lead dashboard & viewer analytics',
-                              'AI-assisted ad builder and campaign tools',
-                            ]).map((f) => (
-                              <li key={f} className="flex items-center gap-2 text-slate-700">✓ {f}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div className="p-6 bg-gray-50 border-t flex justify-end">
-                          <Button
-                            onClick={() => handleCheckout(premiumPrice, premiumDesc, 'subscription_premium')}
-                            disabled={checkoutLoading !== null}
-                            className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 h-11 rounded-xl transition-all"
-                          >
-                            {checkoutLoading === premiumDesc ? (
-                              <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Redirecting…</>
-                            ) : (
-                              'Upgrade to Premium'
-                            )}
-                          </Button>
-                        </div>
-                      </Card>
-                    );
-                  })()}
+                  })}
                 </div>
 
                 {/* Spent Transaction Ledger */}

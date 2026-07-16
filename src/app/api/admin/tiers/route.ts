@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const { key, name, price, adLimit, monthlyAdCredits, features, note, sortOrder } = await request.json();
+  const { key, name, price, adLimit, monthlyAdCredits, features, note, sortOrder, isPurchasable } = await request.json();
 
   if (!key || typeof key !== 'string' || !/^[a-z0-9_]+$/.test(key)) {
     return NextResponse.json({ error: 'Key is required and must be lowercase letters, numbers, or underscores' }, { status: 400 });
@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
   }
 
   const [tier] = await db`
-    INSERT INTO tiers (key, name, price, ad_limit, monthly_ad_credits, features, note, sort_order)
-    VALUES (${key}, ${name}, ${price}, ${adLimit}, ${monthlyAdCredits}, ${JSON.stringify(features || [])}, ${note || null}, ${sortOrder ?? 99})
+    INSERT INTO tiers (key, name, price, ad_limit, monthly_ad_credits, features, note, sort_order, is_purchasable)
+    VALUES (${key}, ${name}, ${price}, ${adLimit}, ${monthlyAdCredits}, ${JSON.stringify(features || [])}, ${note || null}, ${sortOrder ?? 99}, ${isPurchasable ?? true})
     RETURNING *
   `;
 

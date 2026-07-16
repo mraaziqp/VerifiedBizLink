@@ -40,6 +40,8 @@ const PUBLIC_PREFIXES = [
 const PUBLIC_GET_PREFIXES = [
   '/api/home/',
   '/api/posts',
+  '/api/tiers', // pricing page must be readable by anonymous visitors deciding whether to sign up
+  '/api/site-settings', // homepage hero image/opacity — read by the public home page
 ];
 
 // Mutating requests to these API prefixes are blocked until the account's

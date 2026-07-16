@@ -39,7 +39,7 @@ export async function PUT(
   }
 
   const body = await request.json();
-  const { name, price, adLimit, monthlyAdCredits, features, note, sortOrder, isActive } = body;
+  const { name, price, adLimit, monthlyAdCredits, features, note, sortOrder, isActive, isPurchasable } = body;
 
   if (price !== undefined && (typeof price !== 'number' || price < 0)) {
     return NextResponse.json({ error: 'Price must be a non-negative number' }, { status: 400 });
@@ -61,6 +61,7 @@ export async function PUT(
       note = COALESCE(${note}, note),
       sort_order = COALESCE(${sortOrder}, sort_order),
       is_active = COALESCE(${isActive}, is_active),
+      is_purchasable = COALESCE(${isPurchasable}, is_purchasable),
       updated_at = NOW()
     WHERE key = ${id}
     RETURNING *

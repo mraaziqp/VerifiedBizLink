@@ -19,6 +19,7 @@ interface Tier {
   note?: string | null;
   sortOrder: number;
   isActive: boolean;
+  isPurchasable: boolean;
 }
 
 type TierForm = {
@@ -112,6 +113,22 @@ export default function TierManagement() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !tier.isActive }),
+      });
+      if (res.ok) {
+        const { tier: updated } = await res.json();
+        setTiers((prev) => prev.map((t) => (t.key === tier.key ? updated : t)));
+      }
+    } catch {
+      toast({ title: "Could not update tier", variant: "destructive" });
+    }
+  };
+
+  const handleTogglePurchasable = async (tier: Tier) => {
+    try {
+      const res = await fetch(`/api/admin/tiers/${tier.key}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPurchasable: !tier.isPurchasable }),
       });
       if (res.ok) {
         const { tier: updated } = await res.json();
@@ -235,9 +252,21 @@ export default function TierManagement() {
           >
             <div className="flex items-start justify-between mb-2">
               <h3 className="text-xl font-bold text-white">{tier.name}</h3>
-              <Switch checked={tier.isActive} onCheckedChange={() => handleToggleActive(tier)} />
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-gray-500 uppercase tracking-wide">Active</span>
+                <Switch checked={tier.isActive} onCheckedChange={() => handleToggleActive(tier)} />
+              </div>
             </div>
-            <p className="text-gray-500 text-xs font-mono mb-4">{tier.key}</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-gray-500 text-xs font-mono">{tier.key}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-gray-500 uppercase tracking-wide">On pricing page</span>
+                <Switch checked={tier.isPurchasable} onCheckedChange={() => handleTogglePurchasable(tier)} />
+              </div>
+            </div>
+            {!tier.isPurchasable && (
+              <p className="text-[11px] text-yellow-500/80 mb-2">Hidden from pricing/checkout — e.g. a trial state, not something someone manually buys.</p>
+            )}
 
             {editingKey === tier.key ? (
               <div className="space-y-3">

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import crypto from 'crypto';
-import { getTier, PURCHASE_TYPE_TO_PACKAGE, AD_CREDIT_PRICE_PER_DAY } from '@/lib/tiers';
+import { getTier, AD_CREDIT_PRICE_PER_DAY } from '@/lib/tiers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -99,14 +99,18 @@ export async function POST(request: NextRequest) {
             AND business_id IN (SELECT id FROM businesses WHERE user_id = ${userId})
         `.catch(err => console.log('Ad update note:', err.message));
         grantMessage = 'Your ad has been boosted for 7 days — it will get priority placement.';
-      } else if (purchaseType in PURCHASE_TYPE_TO_PACKAGE) {
-        const tierKey = PURCHASE_TYPE_TO_PACKAGE[purchaseType];
+      } else if (purchaseType.startsWith('subscription_')) {
+        // Derived from the key, not a hardcoded map — any tier an admin adds
+        // in Tier Management is purchasable through this same path with no
+        // code change needed.
+        const tierKey = purchaseType.slice('subscription_'.length);
         const tier = await getTier(tierKey);
         const paidAmount = parseFloat(payfastData.amount_gross as string);
         // Guard against a forged/tampered client request paying less than the
-        // tier actually costs (e.g. amount=5 with purchaseType=subscription_premium)
-        // and still getting upgraded — the webhook must never trust purchaseType alone.
-        if (tier && Number.isFinite(paidAmount) && paidAmount >= tier.price - 0.01) {
+        // tier actually costs (e.g. amount=5 with purchaseType=subscription_premium),
+        // or targeting a tier that isn't meant to be purchased at all (e.g. the
+        // auto-granted trial) — the webhook must never trust purchaseType alone.
+        if (tier && tier.isPurchasable && Number.isFinite(paidAmount) && paidAmount >= tier.price - 0.01) {
           await db`
             UPDATE businesses
             SET package_type = ${tierKey}, updated_at = NOW()
@@ -114,7 +118,7 @@ export async function POST(request: NextRequest) {
           `.catch(err => console.log('Subscription upgrade note:', err.message));
           grantMessage = `Your business has been upgraded to the ${tier.name} plan.`;
         } else {
-          console.error(`Blocked subscription upgrade: paid R${paidAmount} for ${tierKey} (requires R${tier?.price})`, { userId, paymentRef });
+          console.error(`Blocked subscription upgrade: paid R${paidAmount} for ${tierKey} (requires R${tier?.price}, purchasable=${tier?.isPurchasable})`, { userId, paymentRef });
           grantMessage = 'Your payment was received, but the amount did not match the selected plan. Please contact support.';
         }
       } else if (purchaseType === 'ad_credits_topup') {

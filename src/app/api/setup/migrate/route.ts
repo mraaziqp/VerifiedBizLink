@@ -215,9 +215,25 @@ export async function POST(request: NextRequest) {
     await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS credits_last_topped_up_at TIMESTAMPTZ`;
     await db`ALTER TABLE ads ADD COLUMN IF NOT EXISTS duration_days INTEGER`;
 
+    // --- v8: tiers.is_purchasable (trial tier is auto-granted, never bought) ---
+    await db`ALTER TABLE tiers ADD COLUMN IF NOT EXISTS is_purchasable BOOLEAN NOT NULL DEFAULT true`;
+    await db`UPDATE tiers SET is_purchasable = false WHERE key = 'premium_half'`;
+    await db`
+      INSERT INTO tiers (key, name, price, ad_limit, monthly_ad_credits, features, sort_order, is_purchasable)
+      VALUES (
+        'verified', 'Verified Business', 99, 0, 0,
+        '["CIPC & SARS verification","Verified trust badge","Customer reviews & ratings","Trust Score","Priority support"]',
+        2, true
+      )
+      ON CONFLICT (key) DO NOTHING
+    `;
+    await db`UPDATE tiers SET sort_order = 3 WHERE key = 'standard'`;
+    await db`UPDATE tiers SET sort_order = 4 WHERE key = 'premium'`;
+    await db`UPDATE tiers SET sort_order = 5 WHERE key = 'premium_half'`;
+
     return NextResponse.json({
       success: true,
-      message: 'Migration v7 applied: dynamic tiers, site settings, and ad credits added.',
+      message: 'Migration v8 applied: tiers.is_purchasable, restored the R99 Verified Business tier.',
     });
   } catch (error) {
     console.error('Migration error:', error);

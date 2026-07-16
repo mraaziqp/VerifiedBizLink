@@ -296,30 +296,30 @@ export default function BusinessDashboard() {
 
       {/* Premium Header */}
       <div className="bg-slate-950/70 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4 flex-1">
-              <div className="relative">
-                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center ring-2 ring-yellow-300">
-                  <Building2 className="h-8 w-8 text-slate-900" />
+        <div className="max-w-7xl mx-auto px-4 py-5 sm:py-6 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between gap-3 mb-4 sm:mb-5">
+            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+              <div className="relative shrink-0">
+                <div className="h-11 w-11 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 flex items-center justify-center ring-2 ring-yellow-300">
+                  <Building2 className="h-5 w-5 sm:h-8 sm:w-8 text-slate-900" />
                 </div>
                 {business.status === 'verified' && (
                   <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1 ring-2 ring-slate-800">
-                    <CheckCircle2 className="h-4 w-4 text-white" />
+                    <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                   </div>
                 )}
               </div>
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-3xl font-bold text-white">{business.company_name}</h1>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                  <h1 className="text-lg sm:text-3xl font-bold text-white truncate">{business.company_name}</h1>
                   {business.status === 'verified' && (
-                    <Badge className="bg-green-500 text-white border-0">VERIFIED</Badge>
+                    <Badge className="bg-green-500 text-white border-0 text-[10px] sm:text-xs shrink-0">VERIFIED</Badge>
                   )}
                 </div>
-                <p className="text-slate-400 text-sm mt-1">{business.industry || 'Business'} • Profile {profileCompletion}% Complete</p>
+                <p className="text-slate-400 text-xs sm:text-sm mt-0.5 sm:mt-1">{business.industry || 'Business'} • {profileCompletion}% Complete</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <Link href={`/business/${business.id}`} target="_blank">
                 <Button
                   variant="outline"
@@ -331,8 +331,17 @@ export default function BusinessDashboard() {
               </Link>
               <Button
                 variant="outline"
+                size="icon"
                 onClick={handleLogout}
-                className="gap-2 border-slate-600 text-white hover:bg-slate-700"
+                className="gap-2 border-slate-600 text-white hover:bg-slate-700 sm:hidden h-9 w-9"
+                title="Logout"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleLogout}
+                className="gap-2 border-slate-600 text-white hover:bg-slate-700 hidden sm:flex"
               >
                 <LogOut className="h-4 w-4" />
                 Logout
@@ -340,10 +349,10 @@ export default function BusinessDashboard() {
             </div>
           </div>
 
-          <Link href={`/business/${business.id}`} target="_blank" className="sm:hidden">
+          <Link href={`/business/${business.id}`} target="_blank" className="sm:hidden block mb-4">
             <Button
               variant="outline"
-              className="w-full gap-2 border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 mb-4"
+              className="w-full gap-2 border-yellow-500/40 text-yellow-400 hover:bg-yellow-500/10 h-11"
             >
               <Eye className="h-4 w-4" />
               View Public Page
@@ -351,10 +360,10 @@ export default function BusinessDashboard() {
           </Link>
 
           {/* Tab Navigation */}
-          <div className="flex gap-2 overflow-x-auto [-webkit-overflow-scrolling:touch]">
+          <div className="flex gap-2 overflow-x-auto [-webkit-overflow-scrolling:touch] -mx-4 px-4 sm:mx-0 sm:px-0">
             <button
               onClick={() => setActiveTab('overview')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
+              className={`px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base whitespace-nowrap transition ${
                 activeTab === 'overview'
                   ? 'bg-yellow-400 text-slate-900'
                   : 'text-slate-300 hover:bg-slate-700'
@@ -364,7 +373,7 @@ export default function BusinessDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('insights')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
+              className={`px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base whitespace-nowrap transition ${
                 activeTab === 'insights'
                   ? 'bg-yellow-400 text-slate-900'
                   : 'text-slate-300 hover:bg-slate-700'
@@ -375,7 +384,7 @@ export default function BusinessDashboard() {
             </button>
             <button
               onClick={() => setActiveTab('tasks')}
-              className={`px-4 py-2 rounded-lg font-medium transition ${
+              className={`px-4 py-2.5 rounded-lg font-medium text-sm sm:text-base whitespace-nowrap transition ${
                 activeTab === 'tasks'
                   ? 'bg-yellow-400 text-slate-900'
                   : 'text-slate-300 hover:bg-slate-700'

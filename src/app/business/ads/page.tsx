@@ -272,19 +272,21 @@ export default function BusinessAdsPage() {
         </Link>
       </div>
 
-      <div className="max-w-6xl mx-auto p-4 pb-20 space-y-6">
+      <div className="max-w-6xl mx-auto p-4 sm:p-6 pb-20 space-y-5 sm:space-y-8">
         {/* Header */}
-        <div className="flex flex-wrap justify-between items-center gap-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white">Sponsored Listings</h1>
-            <p className="text-slate-400 mt-1">
-              {loading ? 'Loading your plan…' : `${active} of ${limit} active — ${packageType === 'free' ? 'Free plan' : packageType} plan`}
+            <h1 className="text-2xl sm:text-3xl font-bold text-white">Sponsored Listings</h1>
+            <p className="text-slate-400 mt-1.5 text-sm sm:text-base">
+              {loading
+                ? 'Loading your plan…'
+                : `${active} of ${limit} active — ${packageType === 'free' ? 'Free plan' : `${packageType} plan`}`}
             </p>
           </div>
           <Button
             onClick={() => setShowCreateForm(true)}
             disabled={limit === 0}
-            className="gap-2 bg-yellow-400 text-slate-900 hover:bg-yellow-300 disabled:opacity-50"
+            className="gap-2 bg-yellow-400 text-slate-900 hover:bg-yellow-300 disabled:opacity-50 h-11 w-full sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             Create Ad
@@ -293,7 +295,7 @@ export default function BusinessAdsPage() {
 
         {/* Ad Credits Balance */}
         <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
-          <CardContent className="p-6 flex flex-wrap items-center justify-between gap-4">
+          <CardContent className="p-5 sm:p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-yellow-400/10 flex items-center justify-center shrink-0">
                 <Coins className="h-5 w-5 text-yellow-400" />
@@ -301,18 +303,16 @@ export default function BusinessAdsPage() {
               <div>
                 <p className="text-slate-400 text-xs uppercase tracking-wider font-bold">Ad Credits</p>
                 <p className="text-2xl font-bold text-white">{loading ? '…' : adCredits} <span className="text-sm font-normal text-slate-400">ad-days</span></p>
-                <p className="text-xs text-slate-500 mt-0.5">1 credit = 1 day an ad can run. Your plan tops these up monthly.</p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <p className="text-xs text-slate-500">1 credit = 1 day an ad can run. Your plan tops these up monthly.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {CREDIT_PACKS.map((pack) => (
                 <Button
                   key={pack.days}
-                  size="sm"
-                  variant="outline"
                   onClick={() => handleBuyCredits(pack.days, pack.price)}
                   disabled={buyingCredits !== null}
-                  className="gap-1.5 border-yellow-400/30 text-yellow-400 hover:bg-yellow-400/10"
+                  className="gap-1.5 bg-slate-800 hover:bg-slate-700 border border-yellow-400/30 text-yellow-400 h-11 font-semibold"
                 >
                   {buyingCredits === pack.days ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                   +{pack.days} days — R{pack.price}
@@ -324,15 +324,15 @@ export default function BusinessAdsPage() {
 
         {limit === 0 && !loading && (
           <Card className="bg-yellow-400/10 border-yellow-400/30">
-            <CardContent className="p-6 flex items-center justify-between gap-4 flex-wrap">
+            <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
                 <Sparkles className="h-6 w-6 text-yellow-400 shrink-0" />
                 <p className="text-slate-200 text-sm">
                   Sponsored listings appear across VerifiedBizLink to boost your visibility. Upgrade your plan to create one.
                 </p>
               </div>
-              <Link href="/pricing">
-                <Button className="bg-yellow-400 text-slate-900 hover:bg-yellow-300 shrink-0">View Plans</Button>
+              <Link href="/pricing" className="w-full sm:w-auto">
+                <Button className="bg-yellow-400 text-slate-900 hover:bg-yellow-300 w-full sm:w-auto h-11">View Plans</Button>
               </Link>
             </CardContent>
           </Card>
@@ -429,8 +429,8 @@ export default function BusinessAdsPage() {
         )}
 
         {/* Ads List */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-white">Your Ads ({ads.length})</h2>
+        <div className="space-y-4 sm:space-y-5">
+          <h2 className="text-xl sm:text-2xl font-bold text-white">Your Ads ({ads.length})</h2>
 
           {loading ? (
             <div className="flex justify-center py-16">
@@ -445,7 +445,7 @@ export default function BusinessAdsPage() {
           ) : (
             ads.map((ad) => (
               <Card key={ad.id} className="bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400/30 transition-colors">
-                <CardContent className="p-6 space-y-4">
+                <CardContent className="p-5 sm:p-6 space-y-4">
                   {editingId === ad.id ? (
                     <div className="space-y-3">
                       <div>
@@ -549,10 +549,9 @@ export default function BusinessAdsPage() {
                   {editingId !== ad.id && (
                   <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-700">
                     <Button
-                      size="sm"
                       onClick={() => handleToggleStatus(ad)}
                       disabled={togglingId === ad.id}
-                      className={`gap-2 ${ad.is_active ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+                      className={`gap-2 h-10 ${ad.is_active ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
                     >
                       {togglingId === ad.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -563,28 +562,25 @@ export default function BusinessAdsPage() {
                       )}
                     </Button>
                     <Button
-                      size="sm"
                       onClick={() => startEdit(ad)}
-                      className="gap-2 bg-slate-700 hover:bg-slate-600 text-white"
+                      className="gap-2 h-10 bg-slate-700 hover:bg-slate-600 text-white"
                     >
                       <Pencil className="h-4 w-4" /> Edit
                     </Button>
                     {!(ad.is_boosted && ad.boost_expires_at && new Date(ad.boost_expires_at) > new Date()) && (
                       <Button
-                        size="sm"
                         onClick={() => handleBoostAd(ad)}
                         disabled={boostingId === ad.id}
-                        className="gap-2 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold"
+                        className="gap-2 h-10 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold"
                       >
                         {boostingId === ad.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
                         Boost — R{BOOST_PRICE}
                       </Button>
                     )}
                     <Button
-                      size="sm"
                       onClick={() => handleDeleteAd(ad.id)}
                       disabled={deletingId === ad.id}
-                      className="gap-2 bg-red-600/20 text-red-400 hover:bg-red-600/30 ml-auto"
+                      className="gap-2 h-10 bg-red-600/20 text-red-400 hover:bg-red-600/30 sm:ml-auto"
                     >
                       {deletingId === ad.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       Delete
