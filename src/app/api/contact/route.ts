@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     // Try to get AI response from Gemini
     try {
-      const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
       const prompt = `A user is contacting our support team with this query:
 
 Name: ${name}

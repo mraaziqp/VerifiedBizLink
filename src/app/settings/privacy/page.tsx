@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Eye, ChevronLeft, Save, Loader2, AlertCircle } from 'lucide-react';
 
 export default function PrivacySettingsPage() {
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [privacySettings, setPrivacySettings] = useState({
     profileVisibility: 'verified_only',
@@ -14,17 +15,27 @@ export default function PrivacySettingsPage() {
     marketingConsent: false,
   });
 
+  useEffect(() => {
+    fetch('/api/users/privacy-settings', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (data?.settings) setPrivacySettings(data.settings); })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, []);
+
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      const response = await fetch('/api/admin/settings', {
-        method: 'POST',
+      const response = await fetch('/api/users/privacy-settings', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ privacySettings }),
+        body: JSON.stringify({ settings: privacySettings }),
       });
 
       if (response.ok) {
         alert('Privacy settings updated!');
+      } else {
+        alert('Failed to save settings');
       }
     } catch (error) {
       alert('Failed to save settings');
@@ -32,6 +43,14 @@ export default function PrivacySettingsPage() {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-gray-900 to-black">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">

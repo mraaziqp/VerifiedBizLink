@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Bell, ChevronLeft, Save, Loader2 } from 'lucide-react';
 
 export default function NotificationsSettingsPage() {
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [notificationPreferences, setNotificationPreferences] = useState({
     emailVerification: true,
@@ -17,17 +18,27 @@ export default function NotificationsSettingsPage() {
     marketingEmails: false,
   });
 
+  useEffect(() => {
+    fetch('/api/users/notification-preferences', { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (data?.preferences) setNotificationPreferences(data.preferences); })
+      .catch(() => {})
+      .finally(() => setIsLoading(false));
+  }, []);
+
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      const response = await fetch('/api/admin/settings', {
-        method: 'POST',
+      const response = await fetch('/api/users/notification-preferences', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notificationPreferences }),
+        body: JSON.stringify({ preferences: notificationPreferences }),
       });
 
       if (response.ok) {
         alert('Notification preferences updated!');
+      } else {
+        alert('Failed to save preferences');
       }
     } catch (error) {
       alert('Failed to save preferences');
@@ -73,6 +84,14 @@ export default function NotificationsSettingsPage() {
       ],
     },
   ];
+
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-gray-900 to-black">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">

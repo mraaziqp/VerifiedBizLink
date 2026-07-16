@@ -68,13 +68,10 @@ export default function AdminDashboard() {
   const fmt = (n?: number) =>
     n === undefined ? '—' : n >= 1000 ? `${(n / 1000).toFixed(1)}K` : `${n}`;
 
-  const userEmail = user.email?.toLowerCase() || '';
-  const userFullName = user.fullName?.toLowerCase() || '';
-  const isRamone = userEmail.includes('ramone') || userFullName.includes('ramone');
-  const isWesley = userEmail.includes('wesley') || userFullName.includes('wesley');
-  // DB role is the source of truth — any 'admin' role is a super admin.
-  const isSuperAdmin = user.role === 'admin' || userEmail.includes('mraaziq') || userEmail.includes('backupe9') || isRamone || isWesley;
-  const isAdmin = isRamone || isSuperAdmin;
+  // DB role is the only source of truth for tool access — no name/email matching.
+  const isSuperAdmin = user.role === 'admin';
+  const isBanker = user.role === 'banker' || user.role === 'lawyer';
+  const isAdmin = isSuperAdmin;
 
   const adminTools: AdminTool[] = [
     { id: 'business-vetting', name: 'Business Vetting Desk', description: 'Review and grade business documents, manage verification status', icon: FileText, href: '/admin/vetting', color: 'from-blue-500 to-cyan-500', badge: statsLoading ? undefined : `${stats?.pendingBusinesses ?? 0} pending` },
@@ -94,18 +91,14 @@ export default function AdminDashboard() {
   let tools: AdminTool[] = [];
   let dashboardTitle = '';
   let dashboardDescription = '';
-  if (isRamone) {
-    tools = adminTools;
-    dashboardTitle = '👑 Admin Control Center';
-    dashboardDescription = 'Manage platform, businesses, and verification';
-  } else if (isWesley) {
+  if (isSuperAdmin) {
+    tools = [...adminTools, ...bankingTools.filter((t) => !adminTools.find((a) => a.id === t.id))];
+    dashboardTitle = '⭐ Admin Dashboard';
+    dashboardDescription = 'Full platform access and control';
+  } else if (isBanker) {
     tools = bankingTools;
     dashboardTitle = '🏦 Banking Portal';
     dashboardDescription = 'Review and approve business vetting requests';
-  } else if (isSuperAdmin) {
-    tools = [...adminTools, ...bankingTools.filter((t) => !adminTools.find((a) => a.id === t.id))];
-    dashboardTitle = '⭐ Super Admin Dashboard';
-    dashboardDescription = 'Full platform access and control';
   }
 
   return (
@@ -131,8 +124,8 @@ export default function AdminDashboard() {
               <p className="text-lg font-semibold text-white">{user.fullName || user.email}</p>
               <p className="mt-1 text-sm text-gray-400">
                 Role:{' '}
-                <span className={`font-semibold ${isSuperAdmin ? 'text-yellow-400' : isRamone ? 'text-green-400' : 'text-blue-400'}`}>
-                  {isSuperAdmin ? 'Super Admin' : isRamone ? 'Admin' : 'Banker'}
+                <span className={`font-semibold ${isSuperAdmin ? 'text-yellow-400' : 'text-blue-400'}`}>
+                  {isSuperAdmin ? 'Admin' : user.role === 'lawyer' ? 'Legal' : 'Banker'}
                 </span>
               </p>
             </div>
@@ -173,7 +166,7 @@ export default function AdminDashboard() {
           })}
         </div>
 
-        {(isRamone || isSuperAdmin) && (
+        {isSuperAdmin && (
           <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             <StatCard label="Pending Verifications" value={fmt(stats?.pendingBusinesses)} icon={Clock} gradient="from-amber-500 to-orange-500" loading={statsLoading} onClick={() => router.push('/admin/vetting')} />
             <StatCard label="Total Businesses" value={fmt(stats?.totalBusinesses)} icon={Building2} gradient="from-blue-500 to-cyan-500" loading={statsLoading} onClick={() => router.push('/admin/vetting')} />

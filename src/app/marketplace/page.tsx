@@ -51,7 +51,9 @@ const generateHistoricalData = (currentPrice: number) => {
   return data;
 };
 
-const CATEGORIES = ['Precious Metals', 'Industrial Metals', 'Energy', 'Agriculture'];
+// Matches only the categories /api/market/prices actually returns (Forex + Precious Metals) —
+// Industrial Metals/Energy/Agriculture were listed here with no backing data source.
+const CATEGORIES = ['Forex', 'Precious Metals'];
 type SortOption = 'name' | 'price' | 'change' | 'changePercent';
 
 export default function MarketplacePage() {

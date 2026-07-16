@@ -9,13 +9,11 @@ export default function BusinessSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [businessData, setBusinessData] = useState({
     companyName: '',
-    registrationNumber: '',
     industry: '',
     description: '',
     website: '',
     phone: '',
     address: '',
-    employees: '',
   });
 
   useEffect(() => {
@@ -25,19 +23,20 @@ export default function BusinessSettingsPage() {
   const loadBusinessData = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/auth/me');
+      const response = await fetch('/api/business/profile', { cache: 'no-store' });
       if (response.ok) {
-        const user = await response.json();
-        setBusinessData({
-          companyName: user.company_name || '',
-          registrationNumber: user.registration_number || '',
-          industry: user.industry || '',
-          description: user.company_description || '',
-          website: user.website || '',
-          phone: user.phone || '',
-          address: user.address || '',
-          employees: user.employees || '',
-        });
+        const data = await response.json();
+        const biz = data?.business;
+        if (biz) {
+          setBusinessData({
+            companyName: biz.company_name || '',
+            industry: biz.industry || '',
+            description: biz.description || '',
+            website: biz.website || '',
+            phone: biz.phone || '',
+            address: biz.address || '',
+          });
+        }
       }
     } catch (error) {
       console.error('Failed to load business data:', error);
@@ -49,14 +48,23 @@ export default function BusinessSettingsPage() {
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      const response = await fetch('/api/admin/settings', {
-        method: 'POST',
+      const response = await fetch('/api/business/profile', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...businessData }),
+        body: JSON.stringify({
+          company_name: businessData.companyName,
+          industry: businessData.industry,
+          description: businessData.description,
+          website: businessData.website,
+          phone: businessData.phone,
+          address: businessData.address,
+        }),
       });
 
       if (response.ok) {
         alert('Business information updated successfully!');
+      } else {
+        alert('Failed to save business information');
       }
     } catch (error) {
       alert('Failed to save business information');
@@ -96,35 +104,18 @@ export default function BusinessSettingsPage() {
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="rounded-xl border border-gray-700 bg-gray-900/50 p-8 backdrop-blur-sm">
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Company Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Company Name
-                </label>
-                <input
-                  type="text"
-                  value={businessData.companyName}
-                  onChange={(e) => setBusinessData({ ...businessData, companyName: e.target.value })}
-                  className="w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
-                  placeholder="Your company name"
-                />
-              </div>
-
-              {/* Registration Number */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Registration Number
-                </label>
-                <input
-                  type="text"
-                  value={businessData.registrationNumber}
-                  className="w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none disabled:opacity-50"
-                  placeholder="CIPC Registration"
-                  disabled
-                />
-                <p className="mt-2 text-sm text-gray-500">Auto-filled from verification</p>
-              </div>
+            {/* Company Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Company Name
+              </label>
+              <input
+                type="text"
+                value={businessData.companyName}
+                onChange={(e) => setBusinessData({ ...businessData, companyName: e.target.value })}
+                className="w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+                placeholder="Your company name"
+              />
             </div>
 
             {/* Industry */}
@@ -205,25 +196,6 @@ export default function BusinessSettingsPage() {
                 className="w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
                 placeholder="Street address"
               />
-            </div>
-
-            {/* Employees */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Number of Employees
-              </label>
-              <select
-                value={businessData.employees}
-                onChange={(e) => setBusinessData({ ...businessData, employees: e.target.value })}
-                className="w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-3 text-white focus:border-blue-500 focus:outline-none"
-              >
-                <option value="">Select size</option>
-                <option value="1-10">1-10</option>
-                <option value="11-50">11-50</option>
-                <option value="51-100">51-100</option>
-                <option value="100-500">100-500</option>
-                <option value="500+">500+</option>
-              </select>
             </div>
 
             {/* Save Button */}

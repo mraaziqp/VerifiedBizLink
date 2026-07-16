@@ -231,9 +231,15 @@ export async function POST(request: NextRequest) {
     await db`UPDATE tiers SET sort_order = 4 WHERE key = 'premium'`;
     await db`UPDATE tiers SET sort_order = 5 WHERE key = 'premium_half'`;
 
+    // --- v9: real notification/privacy preference persistence ---
+    // These backed the Settings > Notifications and Settings > Privacy pages,
+    // which previously POSTed to an endpoint that silently discarded the data.
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS notification_preferences JSONB`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS privacy_settings JSONB`;
+
     return NextResponse.json({
       success: true,
-      message: 'Migration v8 applied: tiers.is_purchasable, restored the R99 Verified Business tier.',
+      message: 'Migration v9 applied: users.notification_preferences, users.privacy_settings.',
     });
   } catch (error) {
     console.error('Migration error:', error);

@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
   const updated = await db`
     UPDATE businesses SET
       package_type = ${packageType || 'free'},
-      industry = ${industry || ''},
+      industry = COALESCE(NULLIF(${industry || ''}, ''), industry),
       description = COALESCE(NULLIF(${description || ''}, ''), description),
       onboarding_completed = ${onboardingCompleted ?? true},
       updated_at = NOW()
