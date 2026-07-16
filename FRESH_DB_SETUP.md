@@ -255,7 +255,7 @@ Check Vercel has these env variables (Settings → Environment Variables):
 ```
 DATABASE_URL=postgresql://...                    ✅
 JWT_SECRET=vbl-super-secret-jwt-key-2026...     ✅
-SETUP_SECRET=dev-seed-secret-2024-vbl            ✅
+SETUP_SECRET=<REDACTED-generate-a-new-random-secret-do-not-commit>            ✅
 NEXT_PUBLIC_APP_URL=https://your-domain.com      ✅
 RESEND_API_KEY=re_...                            ✅
 RESEND_FROM_EMAIL=noreply@verifiedbizlink.co.za  ✅
@@ -309,7 +309,7 @@ Then seed their roles:
 ```bash
 curl -X POST https://your-deployment-url/api/setup/seed-neon-admins \
   -H "Content-Type: application/json" \
-  -d '{"setupSecret": "dev-seed-secret-2024-vbl"}'
+  -d '{"setupSecret": "<REDACTED-generate-a-new-random-secret-do-not-commit>"}'
 ```
 
 ---

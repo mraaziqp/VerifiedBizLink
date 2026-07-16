@@ -4,9 +4,10 @@ import { jwtVerify } from 'jose/jwt/verify';
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
 
-// Routes that do NOT require authentication
+// Routes that do NOT require authentication. The home feed ('/') is
+// deliberately NOT here — it requires login, unlike /explore, /pricing, and
+// public business trust profiles below, which stay reachable pre-signup.
 const PUBLIC_PATHS = [
-  '/',
   '/login',
   '/signup',
   '/forgot-password',
@@ -33,15 +34,13 @@ const PUBLIC_PREFIXES = [
   '/favicon',
 ];
 
-// Read-only: public for GET (the home feed and posts must be visible to
-// anonymous visitors and search crawlers), but still gated for mutations —
-// falls through to the normal session/verification checks below for
-// anything other than GET.
+// Read-only: public for GET, but still gated for mutations — falls through
+// to the normal session/verification checks below for anything other than
+// GET. The home feed itself ('/api/home/', '/api/posts') is deliberately
+// NOT here — feed content requires login, same as the page.
 const PUBLIC_GET_PREFIXES = [
-  '/api/home/',
-  '/api/posts',
   '/api/tiers', // pricing page must be readable by anonymous visitors deciding whether to sign up
-  '/api/site-settings', // homepage hero image/opacity — read by the public home page
+  '/api/site-settings', // homepage hero image/opacity — still used by the public /explore page
 ];
 
 // Mutating requests to these API prefixes are blocked until the account's

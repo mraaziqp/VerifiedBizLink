@@ -43,7 +43,7 @@ Copy these EXACTLY into Vercel Settings → Environment Variables:
 4.  RESEND_API_KEY = re_6gvgFyxf_NnyxMc1G27jSNQHRhgLuYWah
 5.  RESEND_FROM_EMAIL = noreply@verifiedbizlink.co.za
 6.  JWT_SECRET = vbl-super-secret-jwt-key-2026-do-not-expose
-7.  SETUP_SECRET = dev-seed-secret-2024-vbl
+7.  SETUP_SECRET = <REDACTED-generate-a-new-random-secret-do-not-commit>
 8.  NEXT_PUBLIC_APP_URL = https://www.verifiedbizlink.co.za
 9.  GOOGLE_API_KEY = AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E
 ```

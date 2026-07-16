@@ -92,7 +92,7 @@ After creating accounts, seed the roles:
 ```bash
 curl -X POST https://www.verifiedbizlink.co.za/api/setup/seed-neon-admins \
   -H "Content-Type: application/json" \
-  -d '{"setupSecret": "dev-seed-secret-2024-vbl"}'
+  -d '{"setupSecret": "<REDACTED-generate-a-new-random-secret-do-not-commit>"}'
 ```
 
 ---

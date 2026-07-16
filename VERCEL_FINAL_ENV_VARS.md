@@ -74,7 +74,7 @@ Env:   ✅ Production ✅ Preview ✅ Development
 ### **8. SETUP_SECRET** (Setup Protection)
 ```
 Name:  SETUP_SECRET
-Value: dev-seed-secret-2024-vbl
+Value: <REDACTED-generate-a-new-random-secret-do-not-commit>
 Env:   ✅ Production ✅ Preview ✅ Development
 ```
 
@@ -109,7 +109,7 @@ Env:   ✅ Production ✅ Preview ✅ Development
 | 5 | `RESEND_API_KEY` | `re_6gvgFyxf_NnyxMc1G27jSNQHRhgLuYWah` | Email |
 | 6 | `RESEND_FROM_EMAIL` | `noreply@verifiedbizlink.co.za` | Email |
 | 7 | `JWT_SECRET` | `vbl-super-secret-jwt-key-2026-do-not-expose` | Auth |
-| 8 | `SETUP_SECRET` | `dev-seed-secret-2024-vbl` | Security |
+| 8 | `SETUP_SECRET` | `<REDACTED-generate-a-new-random-secret-do-not-commit>` | Security |
 | 9 | `NEXT_PUBLIC_APP_URL` | `https://www.verifiedbizlink.co.za` | Config |
 | 10 | `GOOGLE_API_KEY` | `AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E` | AI |
 
@@ -245,7 +245,7 @@ RESEND_API_KEY="re_6gvgFyxf_NnyxMc1G27jSNQHRhgLuYWah"
 RESEND_FROM_EMAIL="noreply@verifiedbizlink.co.za"
 
 JWT_SECRET="vbl-super-secret-jwt-key-2026-do-not-expose"
-SETUP_SECRET="dev-seed-secret-2024-vbl"
+SETUP_SECRET="<REDACTED-generate-a-new-random-secret-do-not-commit>"
 
 NEXT_PUBLIC_APP_URL="http://localhost:9002"
 GOOGLE_API_KEY="AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E"

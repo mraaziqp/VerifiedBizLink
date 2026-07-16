@@ -42,7 +42,7 @@ Call the seeding endpoint from your deployed app:
 ```bash
 curl -X POST https://www.verifiedbizlink.co.za/api/setup/seed-neon-admins \
   -H "Content-Type: application/json" \
-  -d '{"setupSecret": "dev-seed-secret-2024-vbl"}'
+  -d '{"setupSecret": "<REDACTED-generate-a-new-random-secret-do-not-commit>"}'
 ```
 
 Or from browser console:
@@ -51,7 +51,7 @@ Or from browser console:
 fetch('https://www.verifiedbizlink.co.za/api/setup/seed-neon-admins', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ setupSecret: 'dev-seed-secret-2024-vbl' })
+  body: JSON.stringify({ setupSecret: '<REDACTED-generate-a-new-random-secret-do-not-commit>' })
 })
 .then(r => r.json())
 .then(console.log);
@@ -355,7 +355,7 @@ After setting up admin accounts:
 ### **"Invalid setup secret" error**
 ```
 Cause: Wrong SETUP_SECRET value
-Fix: Use: dev-seed-secret-2024-vbl
+Fix: Use: <REDACTED-generate-a-new-random-secret-do-not-commit>
 ```
 
 ### **"Connection error" in API call**

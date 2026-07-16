@@ -222,9 +222,9 @@ Password: SuperAdmin@123456
 ### Seed All Passwords (if needed):
 ```bash
 curl -X POST http://localhost:9002/api/setup/seed-passwords \
-  -H "x-setup-secret: dev-seed-secret-2024-vbl" \
+  -H "x-setup-secret: <REDACTED-generate-a-new-random-secret-do-not-commit>" \
   -H "Content-Type: application/json" \
-  -d '{"setupSecret": "dev-seed-secret-2024-vbl"}'
+  -d '{"setupSecret": "<REDACTED-generate-a-new-random-secret-do-not-commit>"}'
 ```
 
 ---

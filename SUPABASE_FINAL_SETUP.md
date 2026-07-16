@@ -111,7 +111,7 @@ Server should start on: http://localhost:9002
 ```bash
 curl -X POST http://localhost:9002/api/setup/seed-accounts \
   -H "Content-Type: application/json" \
-  -d '{"setupSecret": "dev-seed-secret-2024-vbl"}'
+  -d '{"setupSecret": "<REDACTED-generate-a-new-random-secret-do-not-commit>"}'
 ```
 
 **Expected Response:**
@@ -250,7 +250,7 @@ id                  | email                              | full_name           |
 - [ ] `NEXT_PUBLIC_SUPABASE_URL` set
 - [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY` set
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` set
-- [ ] `SETUP_SECRET` set to `"dev-seed-secret-2024-vbl"`
+- [ ] `SETUP_SECRET` set to `"<REDACTED-generate-a-new-random-secret-do-not-commit>"`
 - [ ] `RESEND_API_KEY` set
 - [ ] Dev server restarted
 
