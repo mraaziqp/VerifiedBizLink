@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import crypto from 'crypto';
+import { getSession, isStaff } from '@/lib/auth';
 
 /**
  * Generate a secure API key
@@ -20,8 +21,12 @@ function hashApiKey(key: string): string {
  * POST: Create a new API key
  */
 export async function POST(request: NextRequest) {
+  const session = await getSession();
+  if (!isStaff(session)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
-    // TODO: Add authentication check to ensure only admins can create keys
     const body = await request.json();
     const { name, appName, environment = 'production', expiresInDays } = body;
 
@@ -86,23 +91,22 @@ export async function POST(request: NextRequest) {
  * GET: List all API keys (mask the actual keys)
  */
 export async function GET(request: NextRequest) {
+  const session = await getSession();
+  if (!isStaff(session)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const appName = request.nextUrl.searchParams.get('appName');
 
-    let query = `
+    const keys = await db`
       SELECT id, name, app_name, environment, active,
              SUBSTRING(key_hash, 1, 8) || '...' as key_preview,
              last_used_at, expires_at, created_at
       FROM api_keys
+      WHERE ${appName}::text IS NULL OR app_name = ${appName}
+      ORDER BY created_at DESC
     `;
-
-    if (appName) {
-      query += ` WHERE app_name = '${appName}'`;
-    }
-
-    query += ` ORDER BY created_at DESC`;
-
-    const keys = await db(query as any);
 
     return NextResponse.json({
       success: true,

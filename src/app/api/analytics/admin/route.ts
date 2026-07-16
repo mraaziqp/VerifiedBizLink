@@ -12,6 +12,9 @@ export async function GET(request: NextRequest) {
     // Total users
     const totalUsers = await db`SELECT COUNT(*) as count FROM users`;
 
+    // Total businesses
+    const totalBusinesses = await db`SELECT COUNT(*) as count, AVG(trust_score) as avg_trust FROM businesses`;
+
     // Verified businesses
     const verifiedBusinesses = await db`
       SELECT COUNT(*) as count FROM businesses WHERE status = 'verified'
@@ -22,7 +25,7 @@ export async function GET(request: NextRequest) {
       SELECT COUNT(*) as count FROM businesses WHERE status IN ('pending', 'reviewing')
     `;
 
-    // Total revenue (mock for now)
+    // Total revenue
     const payments = await db`
       SELECT COUNT(*) as count, SUM(amount) as total
       FROM payments
@@ -34,6 +37,15 @@ export async function GET(request: NextRequest) {
       SELECT COUNT(DISTINCT user_id) as count
       FROM posts
       WHERE created_at > NOW() - INTERVAL '7 days'
+    `;
+
+    // New users/verifications this month (real counts, not mocked)
+    const newUsersThisMonth = await db`
+      SELECT COUNT(*) as count FROM users WHERE created_at > date_trunc('month', NOW())
+    `;
+    const newVerificationsThisMonth = await db`
+      SELECT COUNT(*) as count FROM businesses
+      WHERE status = 'verified' AND verified_at > date_trunc('month', NOW())
     `;
 
     // Top verified businesses
@@ -52,19 +64,23 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      totalUsers: Number(totalUsers[0]?.count) || 0,
+      totalBusinesses: Number(totalBusinesses[0]?.count) || 0,
+      verifiedBusinesses: Number(verifiedBusinesses[0]?.count) || 0,
+      pendingVerifications: Number(pendingVerifications[0]?.count) || 0,
+      avgTrustScore: totalBusinesses[0]?.avg_trust ? Math.round(Number(totalBusinesses[0].avg_trust)) : 0,
       overview: {
-        totalUsers: totalUsers[0]?.count || 0,
-        verifiedBusinesses: verifiedBusinesses[0]?.count || 0,
-        pendingVerifications: pendingVerifications[0]?.count || 0,
+        totalUsers: Number(totalUsers[0]?.count) || 0,
+        verifiedBusinesses: Number(verifiedBusinesses[0]?.count) || 0,
+        pendingVerifications: Number(pendingVerifications[0]?.count) || 0,
         verificationRate: parseFloat(verifyRate as string),
-        activeUsers: activeUsers[0]?.count || 0,
-        totalRevenue: payments[0]?.total || 0,
+        activeUsers: Number(activeUsers[0]?.count) || 0,
+        totalRevenue: Number(payments[0]?.total) || 0,
       },
       topBusinesses: topBusinesses || [],
       trends: {
-        newUsersThisMonth: Math.floor(Math.random() * 500) + 10,
-        newVerificationsThisMonth: Math.floor(Math.random() * 50) + 5,
-        averageVerificationTime: '3-5 days',
+        newUsersThisMonth: Number(newUsersThisMonth[0]?.count) || 0,
+        newVerificationsThisMonth: Number(newVerificationsThisMonth[0]?.count) || 0,
       },
     });
   } catch (error) {

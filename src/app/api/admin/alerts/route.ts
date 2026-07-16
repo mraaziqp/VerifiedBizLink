@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { getSession, isStaff } from '@/lib/auth';
 
 /**
  * POST: Create a new alert rule
  */
 export async function POST(request: NextRequest) {
+  const session = await getSession();
+  if (!isStaff(session)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const body = await request.json();
     const {
@@ -71,25 +77,24 @@ export async function POST(request: NextRequest) {
  * GET: List all alert rules and triggered alerts
  */
 export async function GET(request: NextRequest) {
+  const session = await getSession();
+  if (!isStaff(session)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const alertType = request.nextUrl.searchParams.get('type') || 'rules'; // 'rules' or 'triggered'
     const appName = request.nextUrl.searchParams.get('appName');
     const status = request.nextUrl.searchParams.get('status'); // for triggered alerts
 
     if (alertType === 'rules') {
-      let query = `
+      const rules = await db`
         SELECT id, name, app_name, log_level, condition, threshold,
                time_window_minutes, enabled, created_at
         FROM alert_rules
+        WHERE ${appName}::text IS NULL OR app_name = ${appName}
+        ORDER BY created_at DESC
       `;
-
-      if (appName) {
-        query += ` WHERE (app_name IS NULL OR app_name = '${appName}')`;
-      }
-
-      query += ` ORDER BY created_at DESC`;
-
-      const rules = await db(query as any);
 
       return NextResponse.json({
         success: true,
@@ -97,30 +102,16 @@ export async function GET(request: NextRequest) {
       });
     } else {
       // Return triggered alerts
-      let query = `
+      const alerts = await db`
         SELECT id, rule_id, app_name, severity, title, description,
                affected_users, status, acknowledged_by, resolved_by,
                created_at, updated_at
         FROM alerts
+        WHERE (${appName}::text IS NULL OR app_name = ${appName})
+          AND (${status}::text IS NULL OR status = ${status})
+        ORDER BY created_at DESC
+        LIMIT 100
       `;
-
-      const conditions: string[] = [];
-
-      if (appName) {
-        conditions.push(`app_name = '${appName}'`);
-      }
-
-      if (status) {
-        conditions.push(`status = '${status}'`);
-      }
-
-      if (conditions.length > 0) {
-        query += ` WHERE ${conditions.join(' AND ')}`;
-      }
-
-      query += ` ORDER BY created_at DESC LIMIT 100`;
-
-      const alerts = await db(query as any);
 
       return NextResponse.json({
         success: true,

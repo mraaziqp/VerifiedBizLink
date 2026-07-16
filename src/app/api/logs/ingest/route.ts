@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import crypto from 'crypto';
+import { getSession, isStaff } from '@/lib/auth';
 
 // Hash API key for comparison (never store raw keys)
 function hashApiKey(key: string): string {
@@ -245,6 +246,11 @@ async function checkAndTriggerAlerts(
  * GET handler to fetch logs with optional filtering
  */
 export async function GET(request: NextRequest) {
+  const session = await getSession();
+  if (!isStaff(session)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const appName = searchParams.get('appName');
@@ -253,42 +259,23 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const hours = parseInt(searchParams.get('hours') || '24');
 
-    // Build query
-    let query = `
+    const logs = await db`
       SELECT id, app_name, environment, log_level, message, error_code,
              endpoint, method, status_code, response_time_ms, user_id, created_at
       FROM application_logs
-      WHERE created_at > NOW() - INTERVAL '${hours} hours'
+      WHERE created_at > NOW() - (${hours} || ' hours')::interval
+        AND (${appName}::text IS NULL OR app_name = ${appName})
+        AND (${logLevel}::text IS NULL OR log_level = ${logLevel ? logLevel.toUpperCase() : null})
+      ORDER BY created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
     `;
 
-    const params: any[] = [];
-
-    if (appName) {
-      query += ` AND app_name = $${params.length + 1}`;
-      params.push(appName);
-    }
-
-    if (logLevel) {
-      query += ` AND log_level = $${params.length + 1}`;
-      params.push(logLevel.toUpperCase());
-    }
-
-    query += ` ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
-
-    const logs = await db(query as any, ...params);
-
-    // Get total count
-    let countQuery = `SELECT COUNT(*) as count FROM application_logs
-      WHERE created_at > NOW() - INTERVAL '${hours} hours'`;
-
-    if (appName) {
-      countQuery += ` AND app_name = $${params.indexOf(appName) + 1}`;
-    }
-    if (logLevel) {
-      countQuery += ` AND log_level = $${params.lastIndexOf(logLevel.toUpperCase()) + 1}`;
-    }
-
-    const totalResult = await db(countQuery as any, ...params);
+    const totalResult = await db`
+      SELECT COUNT(*) as count FROM application_logs
+      WHERE created_at > NOW() - (${hours} || ' hours')::interval
+        AND (${appName}::text IS NULL OR app_name = ${appName})
+        AND (${logLevel}::text IS NULL OR log_level = ${logLevel ? logLevel.toUpperCase() : null})
+    `;
     const total = totalResult[0]?.count || 0;
 
     return NextResponse.json({

@@ -39,12 +39,12 @@ export async function GET(request: NextRequest) {
       const similarIndustry = await db`
         SELECT
           id, company_name, industry, trust_score,
-          connections_count, user_id
+          connections_count, user_id, address, description
         FROM businesses
         WHERE industry = ${userBusiness[0].industry}
         AND status = 'verified'
         AND id != ${userBusiness[0].id}
-        AND user_id NOT IN (${connectedUserIds.length > 0 ? connectedUserIds.join(',') : 'NULL'})
+        AND NOT (user_id = ANY(${connectedUserIds}::uuid[]))
         ORDER BY trust_score DESC, connections_count DESC
         LIMIT ${Math.ceil(limit / 2)}
       `;
@@ -53,12 +53,12 @@ export async function GET(request: NextRequest) {
       const highTrust = await db`
         SELECT
           id, company_name, industry, trust_score,
-          connections_count, user_id
+          connections_count, user_id, address, description
         FROM businesses
         WHERE status = 'verified'
         AND trust_score >= 90
         AND id != ${userBusiness[0].id}
-        AND user_id NOT IN (${connectedUserIds.length > 0 ? connectedUserIds.join(',') : 'NULL'})
+        AND NOT (user_id = ANY(${connectedUserIds}::uuid[]))
         ORDER BY trust_score DESC, connections_count DESC
         LIMIT ${Math.ceil(limit / 2)}
       `;
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       recommendations = await db`
         SELECT
           id, company_name, industry, trust_score,
-          connections_count, user_id
+          connections_count, user_id, address, description
         FROM businesses
         WHERE status = 'verified'
         ORDER BY trust_score DESC, connections_count DESC
@@ -88,6 +88,7 @@ export async function GET(request: NextRequest) {
         `;
         return {
           ...b,
+          verified: true, // every query above filters WHERE status = 'verified'
           ownerName: owner[0]?.full_name,
           ownerHeadline: owner[0]?.headline,
         };

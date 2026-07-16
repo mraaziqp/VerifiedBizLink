@@ -1,63 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { getSession, isStaff } from '@/lib/auth';
 
 /**
- * PUT: Update alert status (acknowledge, resolve)
+ * PUT: Update alert status (acknowledge, resolve). acknowledged_by/resolved_by
+ * are always the acting staff member's own name — never trust the client for
+ * who performed the action.
  */
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getSession();
+  if (!isStaff(session)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const { id } = await params;
     const body = await request.json();
-    const { status, acknowledgedBy, resolvedBy, suggestedFix } = body;
+    const { status, suggestedFix } = body;
 
-    let updateFields: string[] = [];
-    let updateValues: any[] = [];
-
-    if (status) {
-      updateFields.push(`status = $${updateFields.length + 1}`);
-      updateValues.push(status);
-    }
-
-    if (status === 'acknowledged' && acknowledgedBy) {
-      updateFields.push(`acknowledged_by = $${updateFields.length + 1}`);
-      updateValues.push(acknowledgedBy);
-      updateFields.push(`acknowledged_at = NOW()`);
-    }
-
-    if (status === 'resolved' && resolvedBy) {
-      updateFields.push(`resolved_by = $${updateFields.length + 1}`);
-      updateValues.push(resolvedBy);
-      updateFields.push(`resolved_at = NOW()`);
-    }
-
-    if (suggestedFix) {
-      updateFields.push(`agent_suggested_fix = $${updateFields.length + 1}`);
-      updateValues.push(suggestedFix);
-    }
-
-    updateFields.push(`updated_at = NOW()`);
-
-    if (updateFields.length === 1) {
-      // Only updated_at
+    if (!status && !suggestedFix) {
       return NextResponse.json(
         { error: 'No fields to update' },
         { status: 400 }
       );
     }
 
-    const query = `
-      UPDATE alerts
-      SET ${updateFields.join(', ')}
-      WHERE id = $${updateFields.length}
+    const actor = session!.fullName;
+
+    const result = await db`
+      UPDATE alerts SET
+        status = COALESCE(${status ?? null}, status),
+        acknowledged_by = CASE WHEN ${status}::text = 'acknowledged' THEN ${actor} ELSE acknowledged_by END,
+        acknowledged_at = CASE WHEN ${status}::text = 'acknowledged' THEN NOW() ELSE acknowledged_at END,
+        resolved_by = CASE WHEN ${status}::text = 'resolved' THEN ${actor} ELSE resolved_by END,
+        resolved_at = CASE WHEN ${status}::text = 'resolved' THEN NOW() ELSE resolved_at END,
+        agent_suggested_fix = COALESCE(${suggestedFix ?? null}, agent_suggested_fix),
+        updated_at = NOW()
+      WHERE id = ${id}
       RETURNING id, status, acknowledged_by, resolved_by, updated_at
     `;
-
-    updateValues.push(id);
-
-    const result = await db(query as any, ...updateValues);
 
     if (!result || result.length === 0) {
       return NextResponse.json(
@@ -88,6 +72,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const session = await getSession();
+  if (!isStaff(session)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
     const { id } = await params;
 

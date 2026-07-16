@@ -97,10 +97,7 @@ export default function MonitoringDashboard() {
       const response = await fetch(`/api/admin/alerts/${alertId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'acknowledged',
-          acknowledgedBy: 'admin' // Should be current user ID
-        })
+        body: JSON.stringify({ status: 'acknowledged' })
       });
 
       if (response.ok) {
@@ -116,10 +113,7 @@ export default function MonitoringDashboard() {
       const response = await fetch(`/api/admin/alerts/${alertId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status: 'resolved',
-          resolvedBy: 'admin'
-        })
+        body: JSON.stringify({ status: 'resolved' })
       });
 
       if (response.ok) {

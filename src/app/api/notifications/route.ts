@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 
+// Every notification type is created without a related_id (see the INSERT
+// call sites in connections/, businesses/submit/, payfast/notify/, etc.), so
+// the link is derived from `type` alone rather than depending on a column
+// that's never actually populated.
+const TYPE_LINK: Record<string, string> = {
+  connection_accepted: '/network',
+  connection_request: '/network',
+  payment_success: '/settings?tab=billing',
+  vetting_update: '/business/dashboard',
+  new_review: '/business/dashboard',
+  document_graded: '/business/documents',
+};
+
 // GET  /api/notifications        — list unread notifications
 // POST /api/notifications/read   — mark all as read (handled by [action] route)
 export async function GET() {
@@ -11,20 +24,20 @@ export async function GET() {
   try {
     // Real schema: title / content / related_id. Alias to the shape the UI
     // expects (message / link).
-    const notifications = await db`
+    const rows = await db`
       SELECT
         id,
         type,
         COALESCE(content, title, '') AS message,
         title,
         read,
-        NULL AS link,
         created_at
       FROM notifications
       WHERE user_id = ${session.id}
       ORDER BY created_at DESC
       LIMIT 30
     `;
+    const notifications = rows.map((row) => ({ ...row, link: TYPE_LINK[row.type] || '/network' }));
     return NextResponse.json({ notifications });
   } catch (error) {
     console.error('Notifications fetch error:', error);

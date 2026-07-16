@@ -16,12 +16,16 @@ export async function GET() {
     const [users] = await db`SELECT COUNT(*)::int AS n FROM users`;
     const dbLatency = Date.now() - t0;
 
-    // Most-connected user (real)
+    // Most-connected user (real) — each accepted connection touches two
+    // users (requester_id, receiver_id), so count appearances across both.
     const top = await db`
-      SELECT u.full_name, COUNT(c.id)::int AS n
-      FROM connections c
+      SELECT u.full_name, COUNT(*)::int AS n
+      FROM (
+        SELECT requester_id AS user_id FROM connections WHERE status = 'accepted'
+        UNION ALL
+        SELECT receiver_id AS user_id FROM connections WHERE status = 'accepted'
+      ) c
       JOIN users u ON u.id = c.user_id
-      WHERE c.status = 'accepted'
       GROUP BY u.id, u.full_name
       ORDER BY n DESC
       LIMIT 1

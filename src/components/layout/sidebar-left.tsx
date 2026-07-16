@@ -16,7 +16,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -43,6 +43,7 @@ const navigation = [
 
 export function SidebarLeft() {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, loading, logout } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -230,6 +231,8 @@ export function SidebarLeft() {
                       setNotifications((prev) =>
                         prev.map((x) => (x.id === n.id ? { ...x, read: true } : x))
                       );
+                      setNotifOpen(false);
+                      router.push(n.link || '/network');
                     }}
                   >
                     <p className={cn("text-sm", !n.read ? "font-semibold text-gray-900" : "text-gray-600")}>
