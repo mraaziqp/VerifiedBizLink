@@ -75,7 +75,7 @@ Go to: `https://vercel.com/dashboard/VerifiedBizLink/settings/environment-variab
 
 **Variable:** `JWT_SECRET`  
 **Type:** Secret  
-**Value:** `vbl-super-secret-jwt-key-2026-do-not-expose`  
+**Value:** `<REDACTED-generate-a-new-random-secret-do-not-commit>`  
 **Environment:** Production + Preview + Development  
 **Purpose:** JWT token signing  
 **Note:** May already be set in Vercel  
@@ -86,7 +86,7 @@ Go to: `https://vercel.com/dashboard/VerifiedBizLink/settings/environment-variab
 
 **Variable:** `GOOGLE_API_KEY`  
 **Type:** Secret  
-**Value:** `AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E`  
+**Value:** `<REDACTED-rotate-in-Google-Cloud-console>`  
 **Environment:** Production + Preview + Development  
 **Purpose:** Google Gemini AI for chat features  
 **Note:** May already be set in Vercel  

@@ -24,9 +24,9 @@ You need to provide your **Supabase Project URL** before we can proceed.
 
 ```
 Project Ref:              [NEED FROM YOU]
-Publishable Key:          sb_publishable_d0uG6lWk6iuugnlYtrnvtQ_DWVC5M3i
-Secret Key:               sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp
-Service Role Key:         sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp
+Publishable Key:          <REDACTED-supabase-anon-key-public-by-design-but-rotate-with-service-role>
+Secret Key:               <REDACTED-rotate-in-Supabase-dashboard>
+Service Role Key:         <REDACTED-rotate-in-Supabase-dashboard>
 ```
 
 ---

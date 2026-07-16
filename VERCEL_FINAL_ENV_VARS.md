@@ -17,7 +17,7 @@ Add each variable exactly as shown:
 ### **1. DATABASE_URL** (Neon PostgreSQL)
 ```
 Name:  DATABASE_URL
-Value: postgresql://neondb_owner:npg_fNXAh3ri2mDC@ep-fancy-lake-abff641p.eu-west-2.aws.neon.tech/neondb?sslmode=require
+Value: <REDACTED-rotate-in-Neon-console-full-connection-string>
 Env:   ✅ Production ✅ Preview ✅ Development
 ```
 
@@ -31,14 +31,14 @@ Env:   ✅ Production ✅ Preview ✅ Development
 ### **3. NEXT_PUBLIC_SUPABASE_ANON_KEY** (Supabase Public)
 ```
 Name:  NEXT_PUBLIC_SUPABASE_ANON_KEY
-Value: sb_publishable_d0uG6lWk6iuugnlYtrnvtQ_DWVC5M3i
+Value: <REDACTED-supabase-anon-key-public-by-design-but-rotate-with-service-role>
 Env:   ✅ Production ✅ Preview ✅ Development
 ```
 
 ### **4. SUPABASE_SERVICE_ROLE_KEY** (Supabase Admin)
 ```
 Name:  SUPABASE_SERVICE_ROLE_KEY
-Value: sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp
+Value: <REDACTED-rotate-in-Supabase-dashboard>
 Env:   ✅ Production ✅ Preview ✅ Development
 ```
 
@@ -67,7 +67,7 @@ Env:   ✅ Production ✅ Preview ✅ Development
 ### **7. JWT_SECRET** (Authentication)
 ```
 Name:  JWT_SECRET
-Value: vbl-super-secret-jwt-key-2026-do-not-expose
+Value: <REDACTED-generate-a-new-random-secret-do-not-commit>
 Env:   ✅ Production ✅ Preview ✅ Development
 ```
 
@@ -92,7 +92,7 @@ Env:   ✅ Production ✅ Preview ✅ Development
 ### **10. GOOGLE_API_KEY** (AI Service)
 ```
 Name:  GOOGLE_API_KEY
-Value: AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E
+Value: <REDACTED-rotate-in-Google-Cloud-console>
 Env:   ✅ Production ✅ Preview ✅ Development
 ```
 
@@ -102,16 +102,16 @@ Env:   ✅ Production ✅ Preview ✅ Development
 
 | # | Name | Value | Type |
 |---|------|-------|------|
-| 1 | `DATABASE_URL` | `postgresql://neondb_owner:npg_fNXAh3ri2mDC@ep-fancy-lake-abff641p.eu-west-2.aws.neon.tech/neondb?sslmode=require` | Database |
+| 1 | `DATABASE_URL` | `<REDACTED-rotate-in-Neon-console-full-connection-string> | Database |
 | 2 | `NEXT_PUBLIC_SUPABASE_URL` | `https://zfiidmgfgimkgpcyolg.supabase.co` | Storage |
-| 3 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `sb_publishable_d0uG6lWk6iuugnlYtrnvtQ_DWVC5M3i` | Storage |
-| 4 | `SUPABASE_SERVICE_ROLE_KEY` | `sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp` | Storage |
+| 3 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `<REDACTED-supabase-anon-key-public-by-design-but-rotate-with-service-role>` | Storage |
+| 4 | `SUPABASE_SERVICE_ROLE_KEY` | `<REDACTED-rotate-in-Supabase-dashboard>` | Storage |
 | 5 | `RESEND_API_KEY` | `re_6gvgFyxf_NnyxMc1G27jSNQHRhgLuYWah` | Email |
 | 6 | `RESEND_FROM_EMAIL` | `noreply@verifiedbizlink.co.za` | Email |
-| 7 | `JWT_SECRET` | `vbl-super-secret-jwt-key-2026-do-not-expose` | Auth |
+| 7 | `JWT_SECRET` | `<REDACTED-generate-a-new-random-secret-do-not-commit>` | Auth |
 | 8 | `SETUP_SECRET` | `<REDACTED-generate-a-new-random-secret-do-not-commit>` | Security |
 | 9 | `NEXT_PUBLIC_APP_URL` | `https://www.verifiedbizlink.co.za` | Config |
-| 10 | `GOOGLE_API_KEY` | `AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E` | AI |
+| 10 | `GOOGLE_API_KEY` | `<REDACTED-rotate-in-Google-Cloud-console>` | AI |
 
 ---
 
@@ -235,20 +235,20 @@ GOOGLE_API_KEY
 Your local `.env.local` already has these values:
 
 ```
-DATABASE_URL="postgresql://neondb_owner:npg_fNXAh3ri2mDC@ep-fancy-lake-abff641p.eu-west-2.aws.neon.tech/neondb?sslmode=require"
+DATABASE_URL="<REDACTED-rotate-in-Neon-console-full-connection-string>"
 
 NEXT_PUBLIC_SUPABASE_URL="https://zfiidmgfgimkgpcyolg.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="sb_publishable_d0uG6lWk6iuugnlYtrnvtQ_DWVC5M3i"
-SUPABASE_SERVICE_ROLE_KEY="sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="<REDACTED-supabase-anon-key-public-by-design-but-rotate-with-service-role>"
+SUPABASE_SERVICE_ROLE_KEY="<REDACTED-rotate-in-Supabase-dashboard>"
 
 RESEND_API_KEY="re_6gvgFyxf_NnyxMc1G27jSNQHRhgLuYWah"
 RESEND_FROM_EMAIL="noreply@verifiedbizlink.co.za"
 
-JWT_SECRET="vbl-super-secret-jwt-key-2026-do-not-expose"
+JWT_SECRET="<REDACTED-generate-a-new-random-secret-do-not-commit>"
 SETUP_SECRET="<REDACTED-generate-a-new-random-secret-do-not-commit>"
 
 NEXT_PUBLIC_APP_URL="http://localhost:9002"
-GOOGLE_API_KEY="AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E"
+GOOGLE_API_KEY="<REDACTED-rotate-in-Google-Cloud-console>"
 ```
 
 ---

@@ -34,7 +34,7 @@ psql $DATABASE_URL -f migrations/004_add_email_verification_fields.sql
 
 ### Environment Variables Required:
 ```env
-RESEND_API_KEY="re_4nBTH2rM_81og1QJnJH5TGVghcVrH3ggi"
+RESEND_API_KEY="<REDACTED-rotate-in-Resend-dashboard>"
 RESEND_FROM_EMAIL="noreply@verifiedbizlink.co.za"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"  # or production domain
 ```

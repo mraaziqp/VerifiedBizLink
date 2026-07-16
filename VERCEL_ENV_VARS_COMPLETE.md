@@ -29,13 +29,13 @@ Environment: Production, Preview, Development
 
 ### **2. NEXT_PUBLIC_SUPABASE_ANON_KEY**
 ```
-Value: sb_publishable_d0uG6lWk6iuugnlYtrnvtQ_DWVC5M3i
+Value: <REDACTED-supabase-anon-key-public-by-design-but-rotate-with-service-role>
 Environment: Production, Preview, Development
 ```
 
 ### **3. SUPABASE_SERVICE_ROLE_KEY**
 ```
-Value: sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp
+Value: <REDACTED-rotate-in-Supabase-dashboard>
 Environment: Production, Preview, Development
 ```
 
@@ -53,7 +53,7 @@ Environment: Production, Preview, Development
 
 ### **6. JWT_SECRET**
 ```
-Value: vbl-super-secret-jwt-key-2026-do-not-expose
+Value: <REDACTED-generate-a-new-random-secret-do-not-commit>
 Environment: Production, Preview, Development
 ```
 
@@ -71,7 +71,7 @@ Environment: Production, Preview, Development
 
 ### **9. GOOGLE_API_KEY**
 ```
-Value: AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E
+Value: <REDACTED-rotate-in-Google-Cloud-console>
 Environment: Production, Preview, Development
 ```
 
@@ -82,14 +82,14 @@ Environment: Production, Preview, Development
 | # | Name | Value |
 |---|------|-------|
 | 1 | `NEXT_PUBLIC_SUPABASE_URL` | `https://zfiidmgfgimkgpcyolg.supabase.co` |
-| 2 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `sb_publishable_d0uG6lWk6iuugnlYtrnvtQ_DWVC5M3i` |
-| 3 | `SUPABASE_SERVICE_ROLE_KEY` | `sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp` |
+| 2 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `<REDACTED-supabase-anon-key-public-by-design-but-rotate-with-service-role>` |
+| 3 | `SUPABASE_SERVICE_ROLE_KEY` | `<REDACTED-rotate-in-Supabase-dashboard>` |
 | 4 | `RESEND_API_KEY` | `re_6gvgFyxf_NnyxMc1G27jSNQHRhgLuYWah` |
 | 5 | `RESEND_FROM_EMAIL` | `noreply@verifiedbizlink.co.za` |
-| 6 | `JWT_SECRET` | `vbl-super-secret-jwt-key-2026-do-not-expose` |
+| 6 | `JWT_SECRET` | `<REDACTED-generate-a-new-random-secret-do-not-commit>` |
 | 7 | `SETUP_SECRET` | `<REDACTED-generate-a-new-random-secret-do-not-commit>` |
 | 8 | `NEXT_PUBLIC_APP_URL` | `https://www.verifiedbizlink.co.za` |
-| 9 | `GOOGLE_API_KEY` | `AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E` |
+| 9 | `GOOGLE_API_KEY` | `<REDACTED-rotate-in-Google-Cloud-console>` |
 
 ---
 
@@ -126,14 +126,14 @@ Your `.env.local` is already updated with these values:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL="https://zfiidmgfgimkgpcyolg.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="sb_publishable_d0uG6lWk6iuugnlYtrnvtQ_DWVC5M3i"
-SUPABASE_SERVICE_ROLE_KEY="sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="<REDACTED-supabase-anon-key-public-by-design-but-rotate-with-service-role>"
+SUPABASE_SERVICE_ROLE_KEY="<REDACTED-rotate-in-Supabase-dashboard>"
 RESEND_API_KEY="re_6gvgFyxf_NnyxMc1G27jSNQHRhgLuYWah"
 RESEND_FROM_EMAIL="noreply@verifiedbizlink.co.za"
-JWT_SECRET="vbl-super-secret-jwt-key-2026-do-not-expose"
+JWT_SECRET="<REDACTED-generate-a-new-random-secret-do-not-commit>"
 SETUP_SECRET="<REDACTED-generate-a-new-random-secret-do-not-commit>"
 NEXT_PUBLIC_APP_URL="http://localhost:9002"
-GOOGLE_API_KEY="AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E"
+GOOGLE_API_KEY="<REDACTED-rotate-in-Google-Cloud-console>"
 ```
 
 ---

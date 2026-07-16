@@ -63,7 +63,7 @@ To get the Service Role Key:
 
 #### **Optional - JWT Secret (if using auth)**
 ```
-JWT_SECRET = "vbl-super-secret-jwt-key-2026-do-not-expose"
+JWT_SECRET = "<REDACTED-generate-a-new-random-secret-do-not-commit>"
 ```
 
 ---

@@ -115,7 +115,7 @@ Run the TypeScript script locally:
 ### **Step 1: Set Environment**
 
 ```bash
-export DATABASE_URL="postgresql://neondb_owner:npg_fNXAh3ri2mDC@ep-fancy-lake-abff641p.eu-west-2.aws.neon.tech/neondb?sslmode=require"
+export DATABASE_URL="<REDACTED-rotate-in-Neon-console-full-connection-string>"
 ```
 
 ### **Step 2: Run Script**

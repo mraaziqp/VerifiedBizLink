@@ -9,8 +9,8 @@
 From your new Supabase account, here are your keys:
 
 ```
-Publishable Key:  sb_publishable_d0uG6lWk6iuugnlYtrnvtQ_DWVC5M3i
-Secret Key:       sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp
+Publishable Key:  <REDACTED-supabase-anon-key-public-by-design-but-rotate-with-service-role>
+Secret Key:       <REDACTED-rotate-in-Supabase-dashboard>
 ```
 
 ---
@@ -43,8 +43,8 @@ https://hllycop.supabase.co
 
 ```
 NEXT_PUBLIC_SUPABASE_URL = https://[YOUR-PROJECT-REF].supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY = sb_publishable_d0uG6lWk6iuugnlYtrnvtQ_DWVC5M3i
-SUPABASE_SERVICE_ROLE_KEY = sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp
+NEXT_PUBLIC_SUPABASE_ANON_KEY = <REDACTED-supabase-anon-key-public-by-design-but-rotate-with-service-role>
+SUPABASE_SERVICE_ROLE_KEY = <REDACTED-rotate-in-Supabase-dashboard>
 ```
 
 ### **2. Email Service (Resend)**
@@ -57,7 +57,7 @@ RESEND_FROM_EMAIL = noreply@verifiedbizlink.co.za
 ### **3. JWT & Security**
 
 ```
-JWT_SECRET = vbl-super-secret-jwt-key-2026-do-not-expose
+JWT_SECRET = <REDACTED-generate-a-new-random-secret-do-not-commit>
 SETUP_SECRET = <REDACTED-generate-a-new-random-secret-do-not-commit>
 ```
 
@@ -70,7 +70,7 @@ NEXT_PUBLIC_APP_URL = https://www.verifiedbizlink.co.za
 ### **5. AI (Google Gemini)**
 
 ```
-GOOGLE_API_KEY = AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E
+GOOGLE_API_KEY = <REDACTED-rotate-in-Google-Cloud-console>
 ```
 
 ---
@@ -110,14 +110,14 @@ After adding all variables:
 | Name | Value | Environment | Secret |
 |------|-------|-------------|--------|
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://[PROJECT-REF].supabase.co` | All | No |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `sb_publishable_d0uG6lWk6iuugnlYtrnvtQ_DWVC5M3i` | All | No |
-| `SUPABASE_SERVICE_ROLE_KEY` | `sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp` | All | Yes |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `<REDACTED-supabase-anon-key-public-by-design-but-rotate-with-service-role>` | All | No |
+| `SUPABASE_SERVICE_ROLE_KEY` | `<REDACTED-rotate-in-Supabase-dashboard>` | All | Yes |
 | `RESEND_API_KEY` | `re_6gvgFyxf_NnyxMc1G27jSNQHRhgLuYWah` | All | Yes |
 | `RESEND_FROM_EMAIL` | `noreply@verifiedbizlink.co.za` | All | No |
-| `JWT_SECRET` | `vbl-super-secret-jwt-key-2026-do-not-expose` | All | Yes |
+| `JWT_SECRET` | `<REDACTED-generate-a-new-random-secret-do-not-commit>` | All | Yes |
 | `SETUP_SECRET` | `<REDACTED-generate-a-new-random-secret-do-not-commit>` | All | Yes |
 | `NEXT_PUBLIC_APP_URL` | `https://www.verifiedbizlink.co.za` | All | No |
-| `GOOGLE_API_KEY` | `AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E` | All | Yes |
+| `GOOGLE_API_KEY` | `<REDACTED-rotate-in-Google-Cloud-console>` | All | Yes |
 
 ---
 
@@ -155,14 +155,14 @@ For local development, your `.env.local` should match these values:
 
 ```
 NEXT_PUBLIC_SUPABASE_URL="https://[YOUR-PROJECT-REF].supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="sb_publishable_d0uG6lWk6iuugnlYtrnvtQ_DWVC5M3i"
-SUPABASE_SERVICE_ROLE_KEY="sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="<REDACTED-supabase-anon-key-public-by-design-but-rotate-with-service-role>"
+SUPABASE_SERVICE_ROLE_KEY="<REDACTED-rotate-in-Supabase-dashboard>"
 RESEND_API_KEY="re_6gvgFyxf_NnyxMc1G27jSNQHRhgLuYWah"
 RESEND_FROM_EMAIL="noreply@verifiedbizlink.co.za"
-JWT_SECRET="vbl-super-secret-jwt-key-2026-do-not-expose"
+JWT_SECRET="<REDACTED-generate-a-new-random-secret-do-not-commit>"
 SETUP_SECRET="<REDACTED-generate-a-new-random-secret-do-not-commit>"
 NEXT_PUBLIC_APP_URL="http://localhost:9002"
-GOOGLE_API_KEY="AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E"
+GOOGLE_API_KEY="<REDACTED-rotate-in-Google-Cloud-console>"
 ```
 
 ---

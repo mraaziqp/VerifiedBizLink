@@ -97,7 +97,7 @@
 Host:       ep-fancy-lake-abff641p.eu-west-2.aws.neon.tech
 Database:   neondb
 User:       neondb_owner
-Password:   npg_fNXAh3ri2mDC
+Password:   <REDACTED-rotate-in-Neon-console>
 Region:     EU (eu-west-2)
 SSL:        Required
 ```
@@ -134,8 +134,8 @@ SSL:        Required
 ```
 Project:     zfiidmgfgimkgpcyolg
 URL:         https://zfiidmgfgimkgpcyolg.supabase.co
-Anon Key:    sb_publishable_d0uG6lWk6iuugnlYtrnvtQ_DWVC5M3i
-Service Key: sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp
+Anon Key:    <REDACTED-supabase-anon-key-public-by-design-but-rotate-with-service-role>
+Service Key: <REDACTED-rotate-in-Supabase-dashboard>
 Region:      EU (eu-west-2)
 ```
 
@@ -562,20 +562,20 @@ Deployment:
 All 10 variables for this architecture:
 
 ```
-DATABASE_URL=postgresql://neondb_owner:npg_fNXAh3ri2mDC@ep-fancy-lake-abff641p.eu-west-2.aws.neon.tech/neondb?sslmode=require
+DATABASE_URL=<REDACTED-rotate-in-Neon-console-full-connection-string>
 
 NEXT_PUBLIC_SUPABASE_URL=https://zfiidmgfgimkgpcyolg.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_d0uG6lWk6iuugnlYtrnvtQ_DWVC5M3i
-SUPABASE_SERVICE_ROLE_KEY=sb_secret_YhzPINKhJ57QFRmLDsHl1A_6NFfZvjp
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<REDACTED-supabase-anon-key-public-by-design-but-rotate-with-service-role>
+SUPABASE_SERVICE_ROLE_KEY=<REDACTED-rotate-in-Supabase-dashboard>
 
 RESEND_API_KEY=re_6gvgFyxf_NnyxMc1G27jSNQHRhgLuYWah
 RESEND_FROM_EMAIL=noreply@verifiedbizlink.co.za
 
-JWT_SECRET=vbl-super-secret-jwt-key-2026-do-not-expose
+JWT_SECRET=<REDACTED-generate-a-new-random-secret-do-not-commit>
 SETUP_SECRET=<REDACTED-generate-a-new-random-secret-do-not-commit>
 
 NEXT_PUBLIC_APP_URL=https://www.verifiedbizlink.co.za
-GOOGLE_API_KEY=AIzaSyC-2hJG77miGxQVdefyTAk2t-PF34WUq8E
+GOOGLE_API_KEY=<REDACTED-rotate-in-Google-Cloud-console>
 ```
 
 ---
