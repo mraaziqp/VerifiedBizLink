@@ -1,21 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import crypto from 'crypto';
-import { getTier, AD_CREDIT_PRICE_PER_DAY } from '@/lib/tiers';
+import { getTier, AD_CREDIT_PRICE_PER_DAY, AD_BOOST_PRICE, AD_BOOST_DURATION_DAYS } from '@/lib/tiers';
+
+// PayFast's official anti-spoofing check (required by their integration
+// guide, not optional): post the exact ITN body back to PayFast and only
+// trust it if they confirm it as a transaction they actually processed.
+// Without this — and without a PAYFAST_PASSPHRASE, which this deployment
+// doesn't have configured — the signature check above proves nothing:
+// merchant_id is not secret (it's sent to the browser on every checkout),
+// so anyone can compute a "valid" signature for a completely fabricated
+// POST straight to this endpoint and grant themselves (or any user_id they
+// guess) a free tier upgrade, ad boost, or ad credits. This closes that.
+async function isGenuineItn(rawBody: string): Promise<boolean> {
+  const payfastUrl = process.env.PAYFAST_URL || '';
+  const validateUrl =
+    process.env.PAYFAST_VALIDATE_URL ||
+    (payfastUrl.includes('sandbox')
+      ? 'https://sandbox.payfast.co.za/eng/query/validate'
+      : 'https://www.payfast.co.za/eng/query/validate');
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(validateUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: rawBody,
+      signal: controller.signal,
+    }).finally(() => clearTimeout(timeout));
+    const text = (await res.text()).trim();
+    return text === 'VALID';
+  } catch (err) {
+    console.error('PayFast ITN validation call failed:', err);
+    return false; // fail closed — an unreachable validator is not proof of authenticity
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const formData = await request.formData();
+    const rawBody = await request.text();
+    const formData = new URLSearchParams(rawBody);
     const payfastData: Record<string, any> = {};
-
-    // Convert FormData to object
     formData.forEach((value, key) => {
       payfastData[key] = value;
     });
 
     // Verify signature
     const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || '';
-    const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY || '';
 
     // Create signature for verification matching Payfast signature guidelines (RFC 3986, spaces to +)
     let dataString = Object.keys(payfastData)
@@ -64,6 +96,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid merchant' }, { status: 403 });
     }
 
+    // Confirm this request actually came from PayFast, not just something
+    // that knows the (non-secret) merchant_id and the signature algorithm.
+    if (!(await isGenuineItn(rawBody))) {
+      console.error('PayFast ITN failed server-side validation — treating as spoofed', {
+        paymentRef: payfastData.m_payment_id,
+      });
+      // Still 200: a real ITN we can't validate would otherwise retry
+      // forever, and a forged one deserves no signal either way.
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
     // Update payment status based on payment_status
     const paymentStatus = payfastData.payment_status as string;
     const paymentRef = payfastData.m_payment_id as string;
@@ -77,10 +120,17 @@ export async function POST(request: NextRequest) {
       dbStatus = 'pending';
     }
 
-    // Update payment record
+    // Update payment record. payments has no updated_at column (only
+    // created_at/completed_at) — an earlier version of this query set
+    // updated_at, which doesn't exist, so it always threw and was silently
+    // swallowed by the .catch() below: every payment stayed 'pending'
+    // forever even though the grant below succeeded. completed_at is the
+    // real column for "when did this finish."
     await db`
       UPDATE payments
-      SET status = ${dbStatus}, payfast_reference = ${payfastData.pf_payment_id || null}, updated_at = NOW()
+      SET status = ${dbStatus},
+          payfast_reference = ${payfastData.pf_payment_id || null},
+          completed_at = CASE WHEN ${dbStatus} = 'completed' THEN NOW() ELSE completed_at END
       WHERE reference = ${paymentRef}
     `.catch(err => console.log('Payment update note:', err.message));
 
@@ -92,13 +142,21 @@ export async function POST(request: NextRequest) {
       let grantMessage = `Your payment of R${payfastData.amount_gross} has been received`;
 
       if (purchaseType === 'ad_boost' && adId) {
-        await db`
-          UPDATE ads
-          SET is_boosted = TRUE, is_active = TRUE, boost_expires_at = NOW() + INTERVAL '7 days'
-          WHERE id = ${adId}
-            AND business_id IN (SELECT id FROM businesses WHERE user_id = ${userId})
-        `.catch(err => console.log('Ad update note:', err.message));
-        grantMessage = 'Your ad has been boosted for 7 days — it will get priority placement.';
+        const paidAmount = parseFloat(payfastData.amount_gross as string);
+        // Same underpayment guard as subscriptions below — this branch used
+        // to grant the boost unconditionally regardless of amount_gross.
+        if (Number.isFinite(paidAmount) && paidAmount >= AD_BOOST_PRICE - 0.01) {
+          await db`
+            UPDATE ads
+            SET is_boosted = TRUE, is_active = TRUE, boost_expires_at = NOW() + (${AD_BOOST_DURATION_DAYS} || ' days')::interval
+            WHERE id = ${adId}
+              AND business_id IN (SELECT id FROM businesses WHERE user_id = ${userId})
+          `.catch(err => console.log('Ad update note:', err.message));
+          grantMessage = `Your ad has been boosted for ${AD_BOOST_DURATION_DAYS} days — it will get priority placement.`;
+        } else {
+          console.error(`Blocked ad boost: paid R${paidAmount}, requires R${AD_BOOST_PRICE}`, { userId, adId, paymentRef });
+          grantMessage = 'Your payment was received, but the amount did not match the ad boost price. Please contact support.';
+        }
       } else if (purchaseType.startsWith('subscription_')) {
         // Derived from the key, not a hardcoded map — any tier an admin adds
         // in Tier Management is purchasable through this same path with no

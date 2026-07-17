@@ -61,6 +61,12 @@ export async function getAdLimit(packageKey: string): Promise<number> {
 // their tier's monthly allowance.
 export const AD_CREDIT_PRICE_PER_DAY = 10;
 
+// One-off ad boost: price in Rand and how long the boost lasts once paid.
+// Mirrored client-side in src/app/business/ads/page.tsx (BOOST_PRICE) — keep
+// both in sync, same convention as AD_CREDIT_PRICE_PER_DAY above.
+export const AD_BOOST_PRICE = 100;
+export const AD_BOOST_DURATION_DAYS = 7;
+
 // A business on an active premium_half trial should get the trial's ad
 // allowance even though package_type itself stays 'free' (the trial doesn't
 // mutate package_type — it just temporarily elevates what's effective, and
