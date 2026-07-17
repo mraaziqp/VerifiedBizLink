@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   ExternalLink,
@@ -100,8 +101,15 @@ export function NewsViewer({ isOpen, onClose, newsItem }: NewsViewerProps) {
     ? CATEGORY_COLORS[selectedNews.category] || CATEGORY_COLORS.REGULATORY
     : CATEGORY_COLORS.REGULATORY;
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+  // Portal straight to document.body: the page wrapper (src/app/page.tsx)
+  // uses Tailwind's `isolate`, which creates a CSS stacking context. Any
+  // z-index inside that boundary — no matter how high — can never out-rank
+  // position:fixed elements declared OUTSIDE it (the floating chat button,
+  // the "Get Verified" nudge, the mobile bottom nav all live in the root
+  // layout, outside this page's isolate wrapper). Without the portal those
+  // floating buttons rendered on top of this modal.
+  return createPortal(
+    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-gray-900 border border-gray-700 rounded-2xl max-w-4xl w-full max-h-[95vh] overflow-hidden flex flex-col my-auto">
         {/* Header */}
         <div className="border-b border-gray-700 p-6">
@@ -253,6 +261,7 @@ export function NewsViewer({ isOpen, onClose, newsItem }: NewsViewerProps) {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
