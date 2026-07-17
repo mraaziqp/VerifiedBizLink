@@ -32,6 +32,18 @@ export async function POST(request: NextRequest) {
     WHERE id = ${session.id}
   `;
 
+  // Enabling 2FA should protect the account immediately, not just future
+  // logins — revoke every other active session (any device/browser that's
+  // currently logged in without having passed the 2FA challenge) so there's
+  // no leftover pre-2FA session sitting around. Keep the session doing this
+  // setup itself, or the user would lock themselves out right now.
+  if (session.sid) {
+    await db`
+      UPDATE user_sessions SET revoked_at = NOW()
+      WHERE user_id = ${session.id} AND id != ${session.sid} AND revoked_at IS NULL
+    `.catch(() => {});
+  }
+
   // Backup codes are only ever shown once, right here — the DB only ever stores hashes.
   return NextResponse.json({ success: true, backupCodes });
 }
