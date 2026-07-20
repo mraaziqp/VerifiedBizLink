@@ -50,7 +50,6 @@ function SettingsForm() {
   const [aiAssistantEnabled, setAiAssistantEnabled] = useState(true);
   const [payments, setPayments] = useState<any[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [business, setBusiness] = useState<any>(null);
   const [tiers, setTiers] = useState<Tier[]>([]);
 
@@ -81,60 +80,6 @@ function SettingsForm() {
       .then(data => { if (data?.business) setBusiness(data.business); })
       .catch(err => console.error('Error fetching business profile:', err));
   }, [user?.role]);
-
-  const handleCheckout = async (amount: number, description: string, purchaseType?: string) => {
-    setCheckoutLoading(description);
-    try {
-      const res = await fetch('/api/payfast/init', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount,
-          description,
-          purchaseType,
-        }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to initialize payment');
-      }
-
-      const { payfastUrl, data, signature } = await res.json();
-
-      // Dynamically create a hidden form and submit it to redirect to Payfast
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = payfastUrl;
-
-      // Append all Payfast payload parameters
-      Object.keys(data).forEach(key => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = String(data[key]);
-        form.appendChild(input);
-      });
-
-      // Append signature
-      const sigInput = document.createElement('input');
-      sigInput.type = 'hidden';
-      sigInput.name = 'signature';
-      sigInput.value = signature;
-      form.appendChild(sigInput);
-
-      document.body.appendChild(form);
-      form.submit();
-    } catch (err: any) {
-      toast({
-        title: 'Payment Error',
-        description: err.message || 'Could not connect to payment gateway.',
-        variant: 'destructive',
-      });
-    } finally {
-      setCheckoutLoading(null);
-    }
-  };
 
   const [profileForm, setProfileForm] = useState({
     fullName: "",
@@ -676,35 +621,6 @@ function SettingsForm() {
                       </Button>
                     </Link>
                   </CardContent>
-                </Card>
-
-                {/* Developer test payment — separate from real plans on purpose,
-                    kept out of the customer-facing pricing page. */}
-                <Card className="border border-yellow-250 shadow-sm overflow-hidden bg-yellow-50/10 max-w-sm">
-                  <div className="p-6 space-y-3">
-                    <div className="h-10 w-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
-                      <Zap className="h-5 w-5 text-yellow-600 animate-pulse" />
-                    </div>
-                    <h3 className="text-base font-bold text-gray-900 flex items-center gap-1.5">
-                      Developer Test Payment
-                      <span className="text-[10px] bg-yellow-500 text-slate-950 font-extrabold px-1.5 py-0.5 rounded-full uppercase">Test</span>
-                    </h3>
-                    <p className="text-xs text-gray-500">Confirms your PayFast checkout works end-to-end with a tiny R5 charge.</p>
-                  </div>
-                  <div className="p-4 bg-gray-50 border-t flex justify-end">
-                    <Button
-                      onClick={() => handleCheckout(5, 'Developer Test Subscription (R5/month)')}
-                      disabled={checkoutLoading !== null}
-                      size="sm"
-                      className="bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-bold px-4 h-9 rounded-lg"
-                    >
-                      {checkoutLoading === 'Developer Test Subscription (R5/month)' ? (
-                        <><Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />Redirecting…</>
-                      ) : (
-                        'Pay R5'
-                      )}
-                    </Button>
-                  </div>
                 </Card>
 
                 {/* Spent Transaction Ledger */}
