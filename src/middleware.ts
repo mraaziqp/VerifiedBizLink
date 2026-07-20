@@ -69,6 +69,11 @@ const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 // /api/posts left every unverified account — the majority of real users —
 // unable to like or comment, with the request silently rejected client-side.
 const VERIFICATION_EXEMPT = new RegExp(`^/api/posts/${UUID}/(like|comments)$`, 'i');
+// Choosing a package is part of finishing onboarding itself, not content
+// creation — a brand-new business account hasn't had time to verify their
+// email yet, so gating this the same way as posting/messaging blocked
+// every new signup from ever completing onboarding.
+const VERIFICATION_EXEMPT_PATHS = ['/api/businesses/packages'];
 // A verified business's public trust profile (page + the API it reads from)
 // must be viewable without an account — that's the whole point of showing
 // a trust score to prospective customers. Owner-management routes like
@@ -135,7 +140,8 @@ export async function middleware(request: NextRequest) {
   if (
     MUTATING_METHODS.includes(request.method) &&
     VERIFIED_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix)) &&
-    !VERIFICATION_EXEMPT.test(pathname)
+    !VERIFICATION_EXEMPT.test(pathname) &&
+    !VERIFICATION_EXEMPT_PATHS.includes(pathname)
   ) {
     try {
       const { payload } = await jwtVerify(session.value, JWT_SECRET);
