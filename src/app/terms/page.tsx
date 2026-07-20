@@ -168,12 +168,12 @@ export default function TermsPage() {
 
             <section>
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">14. Contact</h2>
-              <p>Questions about these Terms can be sent to <a href="mailto:legal@verifiedbizlink.co.za" className="text-cyan-400 hover:underline">legal@verifiedbizlink.co.za</a>.</p>
+              <p>Questions about these Terms can be sent to <a href="mailto:info@verifiedbizlink.co.za" className="text-cyan-400 hover:underline">info@verifiedbizlink.co.za</a>.</p>
             </section>
 
             <div className="mt-12 p-6 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
               <p className="text-sm">Last updated: 8 July 2026</p>
-              <p className="text-sm mt-2">For questions, contact: legal@verifiedbizlink.co.za</p>
+              <p className="text-sm mt-2">For questions, contact: info@verifiedbizlink.co.za</p>
               <p className="text-xs text-gray-500 mt-3">
                 This document is a general template intended to reflect how VerifiedBizLink actually operates. It is
                 not a substitute for advice from a South African attorney, and we recommend legal review before

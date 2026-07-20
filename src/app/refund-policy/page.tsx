@@ -30,7 +30,7 @@ export default function RefundPolicyPage() {
                 In line with the cooling-off right for electronic transactions under South Africa's Electronic
                 Communications and Transactions Act, if this is your <strong>first time subscribing</strong> to a
                 paid tier, you may cancel within <strong>7 calendar days</strong> of your initial payment for a full
-                refund, no questions asked — email <a href="mailto:billing@verifiedbizlink.co.za" className="text-cyan-400 hover:underline">billing@verifiedbizlink.co.za</a> from
+                refund, no questions asked — email <a href="mailto:info@verifiedbizlink.co.za" className="text-cyan-400 hover:underline">info@verifiedbizlink.co.za</a> from
                 the email address on your account.
               </p>
               <p className="mt-3">
@@ -76,7 +76,7 @@ export default function RefundPolicyPage() {
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">6. How to Cancel or Request a Refund</h2>
               <ol className="list-decimal list-inside space-y-2">
                 <li>Go to <strong>Settings → Subscription</strong> and select "Cancel Subscription," or</li>
-                <li>Email <a href="mailto:billing@verifiedbizlink.co.za" className="text-cyan-400 hover:underline">billing@verifiedbizlink.co.za</a> from your account's registered email address with your business name and the reason for the request.</li>
+                <li>Email <a href="mailto:info@verifiedbizlink.co.za" className="text-cyan-400 hover:underline">info@verifiedbizlink.co.za</a> from your account's registered email address with your business name and the reason for the request.</li>
               </ol>
               <p className="mt-3">
                 We aim to acknowledge refund requests within 2 business days and, where a refund is due, to process
@@ -106,7 +106,7 @@ export default function RefundPolicyPage() {
 
             <section>
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">9. Contact</h2>
-              <p>Billing and refund questions: <a href="mailto:billing@verifiedbizlink.co.za" className="text-cyan-400 hover:underline">billing@verifiedbizlink.co.za</a></p>
+              <p>Billing and refund questions: <a href="mailto:info@verifiedbizlink.co.za" className="text-cyan-400 hover:underline">info@verifiedbizlink.co.za</a></p>
             </section>
 
             <div className="mt-12 p-6 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">

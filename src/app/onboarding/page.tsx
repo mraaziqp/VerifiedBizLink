@@ -299,7 +299,7 @@ export default function OnboardingPage() {
                     {[
                       { icon: Lock, title: "Encrypted Storage", desc: "Passwords are bcrypt-hashed. Preferences stored securely and never sold." },
                       { icon: User, title: "Edit Anytime", desc: "Update or delete your preferences at any time from Settings." },
-                      { icon: FileText, title: "Data Access", desc: "Request a full export at privacy@verifiedbizlink.co.za." },
+                      { icon: FileText, title: "Data Access", desc: "Request a full export at info@verifiedbizlink.co.za." },
                       { icon: Globe, title: "No Third-Party Sale", desc: "We do not sell or share your personal data with third parties." },
                     ].map((item, i) => (
                       <div key={i} className="flex items-start gap-3 p-3.5 bg-gray-50 rounded-2xl border">

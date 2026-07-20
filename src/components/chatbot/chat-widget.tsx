@@ -40,11 +40,11 @@ const FAQ: Array<{ patterns: string[]; response: string }> = [
   },
   {
     patterns: ["ad", "ads", "advertise", "boost", "advertising", "promote", "campaign", "banner"],
-    response: "**Advertising on VerifiedBizLink:**\n\nFree Customer accounts may see ads from verified businesses. Ads are dismissible — click **X** and they return after 5 minutes.\n\n**For businesses:** Advertise to thousands of verified professionals. Boost your ad for premium placement or extend duration from **Settings**.\n\nContact sales@verifiedbizlink.co.za for advertising packages.",
+    response: "**Advertising on VerifiedBizLink:**\n\nFree Customer accounts may see ads from verified businesses. Ads are dismissible — click **X** and they return after 5 minutes.\n\n**For businesses:** Advertise to thousands of verified professionals. Boost your ad for premium placement or extend duration from **Settings**.\n\nContact info@verifiedbizlink.co.za for advertising packages.",
   },
   {
     patterns: ["contact", "support", "help", "reach", "email", "phone", "speak to"],
-    response: "Get in touch with us:\n\n📧 **Support:** info@verifiedbizlink.co.za\n🔒 **Privacy/POPI:** privacy@verifiedbizlink.co.za\n⚖️ **Legal:** legal@verifiedbizlink.co.za\n💼 **Sales:** sales@verifiedbizlink.co.za\n\n🕐 Hours: Mon–Fri, **08:00–17:00 SAST**\n⚡ Response: within **24 hours**\n\nOr use our [Contact Page](/contact) to submit a ticket.",
+    response: "Get in touch with us:\n\n📧 **Email:** info@verifiedbizlink.co.za\n\n🕐 Hours: Mon–Fri, **08:00–17:00 SAST**\n⚡ Response: within **24 hours**\n\nOr use our [Contact Page](/contact) to submit a ticket.",
   },
   {
     patterns: ["signup", "register", "create account", "join", "new account", "sign up", "getting started"],
@@ -68,7 +68,7 @@ const FAQ: Array<{ patterns: string[]; response: string }> = [
   },
   {
     patterns: ["breach", "hacked", "data breach", "security incident", "compromised", "security"],
-    response: "**If you suspect a security issue:**\n1. **Change your password immediately** in Settings → Security\n2. Email **privacy@verifiedbizlink.co.za** with details\n3. We respond within **2 hours** for security incidents\n\nIn a confirmed data breach, we notify **all affected users within 72 hours** as required by the POPI Act.",
+    response: "**If you suspect a security issue:**\n1. **Change your password immediately** in Settings → Security\n2. Email **info@verifiedbizlink.co.za** with details\n3. We respond within **2 hours** for security incidents\n\nIn a confirmed data breach, we notify **all affected users within 72 hours** as required by the POPI Act.",
   },
   {
     patterns: ["post", "posting", "create post", "share update", "publish", "write post", "feed"],
@@ -76,7 +76,7 @@ const FAQ: Array<{ patterns: string[]; response: string }> = [
   },
   {
     patterns: ["plan", "pricing", "cost", "free", "premium", "price", "subscription", "membership", "paid"],
-    response: "**VerifiedBizLink is free to join!**\n\n🆓 **Customer (Free)**\n• Connect with verified businesses\n• View the network feed\n• Ads may appear\n\n🏢 **Business (Free)**\n• Business profile & verification\n• Gold Trust Badge\n• No ads shown\n\n📢 **Advertising** — paid packages available.\nEmail sales@verifiedbizlink.co.za for pricing.",
+    response: "**VerifiedBizLink is free to join!**\n\n🆓 **Customer (Free)**\n• Connect with verified businesses\n• View the network feed\n• Ads may appear\n\n🏢 **Business (Free)**\n• Business profile & verification\n• Gold Trust Badge\n• No ads shown\n\n📢 **Advertising** — paid packages available.\nEmail info@verifiedbizlink.co.za for pricing.",
   },
   {
     patterns: ["thanks", "thank you", "thank", "cheers", "great", "awesome", "perfect", "bye", "goodbye", "cool"],

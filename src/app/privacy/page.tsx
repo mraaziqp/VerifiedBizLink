@@ -62,7 +62,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">8. Contact Us</h2>
-              <p>If you have any questions about this Privacy Policy, please contact us at: privacy@verifiedbizlink.co.za</p>
+              <p>If you have any questions about this Privacy Policy, please contact us at: info@verifiedbizlink.co.za</p>
             </section>
 
             <div className="mt-12 p-6 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">

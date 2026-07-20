@@ -73,9 +73,7 @@ export default function LegalPage() {
           <section className="bg-gradient-to-br from-gray-800/40 to-gray-900/40 border border-cyan-500/20 rounded-lg p-6">
             <h2 className="text-2xl font-bold text-cyan-400 mb-4">Contact & Support</h2>
             <div className="space-y-4 text-gray-300">
-              <p><strong>Legal Inquiries:</strong> legal@verifiedbizlink.co.za</p>
-              <p><strong>Data Privacy:</strong> privacy@verifiedbizlink.co.za</p>
-              <p><strong>Support:</strong> info@verifiedbizlink.co.za</p>
+              <p><strong>Legal, privacy, and support inquiries:</strong> info@verifiedbizlink.co.za</p>
               <p className="text-sm text-gray-400 mt-4">We are committed to addressing all legal and compliance matters promptly and professionally.</p>
             </div>
           </section>
