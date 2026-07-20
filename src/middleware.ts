@@ -29,6 +29,7 @@ const PUBLIC_PREFIXES = [
   '/api/auth/',
   '/api/setup',
   '/api/chat',
+  '/api/contact', // the /contact page is public — the route itself handles anonymous submitters (userId is nullable)
   '/api/explore/',
   '/api/ads', // AdBanner renders on every page, including public ones for anonymous visitors
   '/api/payfast/notify', // PayFast's server calls this webhook directly — it has no user session cookie

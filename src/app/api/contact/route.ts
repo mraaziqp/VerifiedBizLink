@@ -2,12 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getSession } from '@/lib/auth';
+import { checkRateLimit } from '@/lib/rate-limit';
 import db from '@/lib/db';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const rl = checkRateLimit(`contact:${ip}`, 5, 900);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Too many requests. Try again in ${rl.retryAfterSecs} seconds.` },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSecs) } },
+    );
+  }
+
   try {
     const { name, email, subject, message } = await request.json();
 
@@ -51,8 +61,12 @@ Provide a helpful, professional, and concise response to their query. If it's a 
       aiResponse = 'Our AI assistant is temporarily unavailable. Your query will be reviewed by our team.';
     }
 
-    // Send email to support
-    await resend.emails.send({
+    // Send email to support. Resend returns { data, error } rather than
+    // throwing on API-level failures (e.g. invalid key, domain issues), so
+    // failures here would otherwise be invisible — the ticket is still
+    // saved in support_tickets above, but nobody would know the notification
+    // email never went out.
+    const supportSend = await resend.emails.send({
       from: 'info@verifiedbizlink.co.za',
       to: process.env.SUPPORT_EMAIL || 'info@verifiedbizlink.co.za',
       subject: `[SUPPORT] ${subject} - ${name}`,
@@ -78,9 +92,12 @@ Provide a helpful, professional, and concise response to their query. If it's a 
         </div>
       `,
     });
+    if (supportSend.error) {
+      console.error('Resend error sending support notification for', email, supportSend.error);
+    }
 
     // Send confirmation email to user
-    await resend.emails.send({
+    const confirmSend = await resend.emails.send({
       from: 'info@verifiedbizlink.co.za',
       to: email,
       subject: `We received your query - ${subject}`,
@@ -102,6 +119,9 @@ Provide a helpful, professional, and concise response to their query. If it's a 
         </div>
       `,
     });
+    if (confirmSend.error) {
+      console.error('Resend error sending confirmation to', email, confirmSend.error);
+    }
 
     console.log(`[SUPPORT] Query from ${name} (${email}) - AI: ${usedAI ? 'Success' : 'Failed'}`);
 

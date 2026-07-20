@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { sendUsernameRecoveryEmail } from '@/lib/email';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const GENERIC_RESPONSE = {
   success: true,
@@ -8,6 +9,15 @@ const GENERIC_RESPONSE = {
 };
 
 export async function POST(request: NextRequest) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const rl = checkRateLimit(`forgot-username:${ip}`, 5, 900);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: `Too many requests. Try again in ${rl.retryAfterSecs} seconds.` },
+      { status: 429, headers: { 'Retry-After': String(rl.retryAfterSecs) } },
+    );
+  }
+
   try {
     const { email } = await request.json();
     if (!email) {
