@@ -8,6 +8,7 @@ export async function GET() {
       SELECT id, title, description, business_name, cta_text, cta_url, badge, is_boosted
       FROM ads
       WHERE is_active = true
+        AND (expires_at IS NULL OR expires_at > NOW())
       ORDER BY is_boosted DESC, created_at DESC
       LIMIT 10
     `;
