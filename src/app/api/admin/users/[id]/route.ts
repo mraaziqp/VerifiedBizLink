@@ -2,7 +2,10 @@ import db from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 
-// PUT update admin user
+// PUT update a platform user — staff accounts (email/role) or a business
+// owner's vetting score from the admin vetting desk. `admin_users` is a
+// legacy table that no longer exists; every real account (staff or
+// customer) lives in `users`.
 export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -15,31 +18,30 @@ export async function PUT(
 
     const { id } = await params;
     const body = await req.json();
-    const { email, username, role } = body;
+    const { email, role, vettingScore } = body;
 
     const result = await db`
-      UPDATE admin_users
-      SET
-        email = ${email},
-        username = ${username},
-        role = ${role || 'admin'},
+      UPDATE users SET
+        email = COALESCE(${email}, email),
+        role = COALESCE(${role}, role),
+        vetting_score = COALESCE(${vettingScore}, vetting_score),
         updated_at = NOW()
       WHERE id = ${id}
-      RETURNING id, email, username, role, created_at
+      RETURNING id, email, full_name, role, vetting_score, created_at
     `;
 
     if (result.length === 0) {
-      return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     return NextResponse.json(result[0]);
   } catch (error) {
-    console.error('Error updating admin:', error);
-    return NextResponse.json({ error: 'Failed to update admin' }, { status: 500 });
+    console.error('Error updating user:', error);
+    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
   }
 }
 
-// DELETE admin user
+// DELETE a platform user account.
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -53,18 +55,18 @@ export async function DELETE(
     const { id } = await params;
 
     const result = await db`
-      DELETE FROM admin_users
+      DELETE FROM users
       WHERE id = ${id}
       RETURNING id
     `;
 
     if (result.length === 0) {
-      return NextResponse.json({ error: 'Admin not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting admin:', error);
-    return NextResponse.json({ error: 'Failed to delete admin' }, { status: 500 });
+    console.error('Error deleting user:', error);
+    return NextResponse.json({ error: 'Failed to delete user' }, { status: 500 });
   }
 }

@@ -16,23 +16,11 @@ export async function POST(request: NextRequest) {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Query standard users (they use full_name as identifier)
     const users = await db`
       SELECT full_name FROM users WHERE LOWER(email) = ${normalizedEmail}
     `;
 
-    // Query admin users (they have a specific username column)
-    const admins = await db`
-      SELECT username FROM admin_users WHERE LOWER(email) = ${normalizedEmail}
-    `.catch(() => []); // Avoid failure if table is missing
-
-    const usernames: string[] = [];
-    if (users.length > 0) {
-      usernames.push(...users.map(u => u.full_name || 'VBL User'));
-    }
-    if (admins.length > 0) {
-      usernames.push(...admins.map(a => a.username));
-    }
+    const usernames: string[] = users.map(u => u.full_name || 'VBL User');
 
     if (usernames.length === 0) {
       return NextResponse.json(GENERIC_RESPONSE);
