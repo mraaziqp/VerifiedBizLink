@@ -2,21 +2,22 @@
 
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import Image from 'next/image';
+import { useCallback, useEffect, useState } from 'react';
 import {
   BarChart3, Building2, FileText, ImageIcon, TrendingUp, Users,
-  Settings, LogOut, Plus, Edit2, Eye, Share2, Loader2, AlertCircle,
-  Zap, Award, Globe, MessageSquare, Calendar, ArrowRight, CheckCircle2,
-  AlertTriangle, DollarSign, Activity, Clock, Star, Sparkles, Target,
-  TrendingDown, Lightbulb, CheckSquare, Flame, Radio, Mail,
-  BarChart, Filter, Search, Bell
+  Settings, LogOut, Edit2, Eye, Loader2, AlertCircle,
+  Zap, Award, Globe, MessageSquare, ArrowRight, CheckCircle2,
+  AlertTriangle, Activity, Clock, Star, Sparkles, Target,
+  Lightbulb, CheckSquare, Flame, Radio,
+  BarChart, Bell
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
-import { GlassBackground, GlassCard, glassInteractive } from '@/components/shared/glass-ui';
+import { GlassBackground, glassInteractive } from '@/components/shared/glass-ui';
 
 interface Business {
   id: string;
@@ -148,23 +149,10 @@ export default function BusinessDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'insights' | 'tasks'>('overview');
-  const [showFilters, setShowFilters] = useState(false);
 
   const canManage = !!user && (user.role === 'business' || ['admin', 'banker', 'lawyer'].includes(user.role));
 
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) {
-      router.push('/login');
-    } else if (!canManage) {
-      router.push('/dashboard');
-    } else {
-      fetchBusinessData();
-      fetchActivity();
-    }
-  }, [user, authLoading, canManage, router]);
-
-  const fetchActivity = async () => {
+  const fetchActivity = useCallback(async () => {
     try {
       const res = await fetch('/api/notifications');
       if (res.ok) {
@@ -174,7 +162,7 @@ export default function BusinessDashboard() {
     } catch {
       /* Recent Activity card just shows nothing — not worth an error state */
     }
-  };
+  }, []);
 
   const activityIcon = (type: string) => {
     if (type.includes('review')) return Star;
@@ -184,7 +172,7 @@ export default function BusinessDashboard() {
     return Bell;
   };
 
-  const fetchBusinessData = async () => {
+  const fetchBusinessData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch('/api/business/profile');
@@ -201,7 +189,19 @@ export default function BusinessDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push('/login');
+    } else if (!canManage) {
+      router.push('/dashboard');
+    } else {
+      fetchBusinessData();
+      fetchActivity();
+    }
+  }, [user, authLoading, canManage, router, fetchBusinessData, fetchActivity]);
 
   const handleLogout = async () => {
     await logout();
@@ -276,7 +276,14 @@ export default function BusinessDashboard() {
           cover photo without opening their public page in another tab. */}
       {business.cover_image_url && (
         <div className="relative w-full h-32 sm:h-44 overflow-hidden">
-          <img src={business.cover_image_url} alt="" className="w-full h-full object-cover" />
+          <Image
+            src={business.cover_image_url}
+            alt=""
+            fill
+            unoptimized
+            sizes="100vw"
+            className="object-cover"
+          />
           <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent" />
           <Link
             href="/business/profile"
@@ -707,7 +714,7 @@ export default function BusinessDashboard() {
               <CardContent className="p-0">
                 {activity.length === 0 ? (
                   <div className="p-6 text-center text-slate-400 text-sm">
-                    No activity yet — it'll show up here as customers view your profile, connect, and review you.
+                    No activity yet — it&apos;ll show up here as customers view your profile, connect, and review you.
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-700">

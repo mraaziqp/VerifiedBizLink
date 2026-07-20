@@ -28,6 +28,21 @@ interface Tier {
   note?: string | null;
 }
 
+interface Payment {
+  id: string;
+  reference?: string | null;
+  description?: string | null;
+  plan_type?: string | null;
+  amount: number;
+  status?: string | null;
+  created_at?: string | null;
+  completed_at?: string | null;
+}
+
+interface BusinessProfile {
+  package_type?: string | null;
+}
+
 function SettingsForm() {
   const { user, refresh } = useAuth();
   const { toast } = useToast();
@@ -48,9 +63,9 @@ function SettingsForm() {
     complianceAlerts: false,
   });
   const [aiAssistantEnabled, setAiAssistantEnabled] = useState(true);
-  const [payments, setPayments] = useState<any[]>([]);
-  const [loadingPayments, setLoadingPayments] = useState(false);
-  const [business, setBusiness] = useState<any>(null);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState(true);
+  const [business, setBusiness] = useState<BusinessProfile | null>(null);
   const [tiers, setTiers] = useState<Tier[]>([]);
 
   useEffect(() => {
@@ -61,7 +76,6 @@ function SettingsForm() {
   }, []);
 
   useEffect(() => {
-    setLoadingPayments(true);
     fetch('/api/payments/create-intent', { cache: 'no-store' })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
@@ -664,7 +678,11 @@ function SettingsForm() {
                                   <td className="px-6 py-4 font-mono text-xs">{p.reference || p.id.substring(0, 8).toUpperCase()}</td>
                                   <td className="px-6 py-4 font-medium">{p.description || `VBL ${p.plan_type || 'Upgrade'}`}</td>
                                   <td className="px-6 py-4 font-bold text-gray-900">R{displayAmount}</td>
-                                  <td className="px-6 py-4 text-gray-400">{new Date(p.created_at || p.completed_at || Date.now()).toLocaleDateString()}</td>
+                                  <td className="px-6 py-4 text-gray-400">
+                                    {p.created_at || p.completed_at
+                                      ? new Date(p.created_at || p.completed_at || '').toLocaleDateString()
+                                      : '—'}
+                                  </td>
                                   <td className="px-6 py-4">
                                     <Badge variant="outline" className={
                                       p.status === 'completed' || p.status === 'success'
