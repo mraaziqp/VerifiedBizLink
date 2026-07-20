@@ -55,37 +55,30 @@ interface ActivityItem {
   created_at: string;
 }
 
-const STATUS_COLORS = {
-  pending: 'bg-yellow-900 border-yellow-400',
-  reviewing: 'bg-blue-900 border-blue-400',
-  verified: 'bg-green-100 text-green-800 border-green-300',
-  rejected: 'bg-red-900 border-red-400',
-};
-
 const QUICK_ACTIONS = [
   {
     href: '/business/posts',
     icon: MessageSquare,
     title: 'Write Post',
     description: 'Share updates with customers',
-    color: 'from-blue-500 to-blue-600',
-    textColor: 'text-blue-600'
+    iconBg: 'bg-blue-500/10 border border-blue-500/20',
+    textColor: 'text-blue-400'
   },
   {
     href: '/business/gallery',
     icon: ImageIcon,
     title: 'Upload Photos',
     description: 'Add images to your gallery',
-    color: 'from-purple-500 to-purple-600',
-    textColor: 'text-purple-600'
+    iconBg: 'bg-purple-500/10 border border-purple-500/20',
+    textColor: 'text-purple-400'
   },
   {
     href: '/business/ads',
     icon: Zap,
     title: 'Create Campaign',
     description: 'Launch a new ad campaign',
-    color: 'from-orange-500 to-orange-600',
-    textColor: 'text-orange-600'
+    iconBg: 'bg-amber-500/10 border border-amber-500/20',
+    textColor: 'text-amber-400'
   }
 ];
 
@@ -404,11 +397,11 @@ export default function BusinessDashboard() {
           <>
             {/* Status Alert */}
             {business.status !== 'verified' && (
-              <div className={`mb-6 p-4 rounded-lg border-l-4 flex items-start gap-4 ${
-                business.status === 'pending' ? 'bg-yellow-900 border-yellow-400' :
-                business.status === 'reviewing' ? 'bg-blue-900 border-blue-400' :
-                business.status === 'rejected' ? 'bg-red-900 border-red-400' :
-                'bg-slate-800 border-slate-500'
+              <div className={`mb-6 p-4 rounded-lg border-l-4 flex items-start gap-4 backdrop-blur-xl ${
+                business.status === 'pending' ? 'bg-yellow-500/10 border-yellow-500/50' :
+                business.status === 'reviewing' ? 'bg-blue-500/10 border-blue-500/50' :
+                business.status === 'rejected' ? 'bg-red-500/10 border-red-500/50' :
+                'bg-slate-800/60 border-slate-500'
               }`}>
                 <div className="flex-shrink-0 mt-0.5">
                   {business.status === 'reviewing' ? (
@@ -423,9 +416,9 @@ export default function BusinessDashboard() {
                 </div>
                 <div className="flex-1">
                   <h3 className="font-semibold text-white mb-1">
-                    {business.status === 'pending' ? '⏳ Complete Your Profile' :
-                     business.status === 'reviewing' ? '🔍 Under Review' :
-                     business.status === 'rejected' ? '⚠️ Action Required' :
+                    {business.status === 'pending' ? 'Complete Your Profile' :
+                     business.status === 'reviewing' ? 'Under Review' :
+                     business.status === 'rejected' ? 'Action Required' :
                      'Get Verified'}
                   </h3>
                   <p className={`text-sm ${
@@ -480,8 +473,7 @@ export default function BusinessDashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               {/* Views This Week */}
               <div className="group relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-lg blur opacity-20 group-hover:opacity-30 transition"></div>
-                <Card className="relative bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 transition">
+                <Card className="relative bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-500/30 transition-colors">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -505,8 +497,7 @@ export default function BusinessDashboard() {
 
               {/* Total Views */}
               <div className="group relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-lg blur opacity-20 group-hover:opacity-30 transition"></div>
-                <Card className="relative bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 transition">
+                <Card className="relative bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-500/30 transition-colors">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -526,8 +517,7 @@ export default function BusinessDashboard() {
 
               {/* Active Ads */}
               <Link href="/business/ads" className="group relative block">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-lg blur opacity-20 group-hover:opacity-30 transition"></div>
-                <Card className="relative bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 transition">
+                <Card className="relative bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-500/30 transition-colors">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -547,8 +537,7 @@ export default function BusinessDashboard() {
 
               {/* Trust Score */}
               <div className="group relative">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-lg blur opacity-20 group-hover:opacity-30 transition"></div>
-                <Card className="relative bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 transition">
+                <Card className="relative bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-500/30 transition-colors">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -580,19 +569,16 @@ export default function BusinessDashboard() {
                   const Icon = action.icon;
                   return (
                     <Link key={action.href} href={action.href}>
-                      <div className="group relative h-full">
-                        <div className={`absolute -inset-0.5 bg-gradient-to-r ${action.color} rounded-lg blur opacity-0 group-hover:opacity-50 transition`}></div>
-                        <div className={`relative rounded-2xl border border-white/5 bg-slate-900/60 backdrop-blur-xl p-5 shadow-2xl cursor-pointer group-hover:border-yellow-500/30 ${glassInteractive}`}>
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className={`inline-block p-2 ${action.textColor} bg-slate-700 rounded-lg mb-3`}>
-                                <Icon className="h-5 w-5" />
-                              </div>
-                              <h3 className="font-semibold text-white mb-1">{action.title}</h3>
-                              <p className="text-slate-400 text-sm">{action.description}</p>
+                      <div className={`group h-full rounded-2xl border border-white/5 bg-slate-900/60 backdrop-blur-xl p-5 shadow-lg cursor-pointer transition-colors hover:border-white/10 ${glassInteractive}`}>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className={`inline-flex p-2 ${action.textColor} ${action.iconBg} rounded-lg mb-3`}>
+                              <Icon className="h-5 w-5" />
                             </div>
-                            <ArrowRight className="h-5 w-5 text-slate-500 group-hover:text-yellow-400 transition mt-1" />
+                            <h3 className="font-semibold text-white mb-1">{action.title}</h3>
+                            <p className="text-slate-400 text-sm">{action.description}</p>
                           </div>
+                          <ArrowRight className="h-5 w-5 text-slate-500 group-hover:text-yellow-400 transition mt-1" />
                         </div>
                       </div>
                     </Link>
@@ -606,13 +592,13 @@ export default function BusinessDashboard() {
               <h2 className="text-2xl font-bold text-white mb-4">Manage Your Business</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Link href="/business/posts">
-                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-500/30 hover:shadow-lg transition-colors cursor-pointer">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 bg-cyan-900 rounded-lg">
+                        <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg">
                           <MessageSquare className="h-5 w-5 text-cyan-400" />
                         </div>
-                        <Badge className="bg-yellow-900 text-yellow-300 border-yellow-700">Popular</Badge>
+                        <Badge className="bg-yellow-500/10 text-yellow-300 border-yellow-500/20">Popular</Badge>
                       </div>
                       <h3 className="font-semibold text-white mb-2">Posts</h3>
                       <p className="text-slate-400 text-sm">Share updates with your audience</p>
@@ -621,13 +607,13 @@ export default function BusinessDashboard() {
                 </Link>
 
                 <Link href="/business/gallery">
-                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-500/30 hover:shadow-lg transition-colors cursor-pointer">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 bg-purple-900 rounded-lg">
+                        <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
                           <ImageIcon className="h-5 w-5 text-purple-400" />
                         </div>
-                        <Badge className="bg-yellow-900 text-yellow-300 border-yellow-700">{stats?.gallery_count ?? 0} images</Badge>
+                        <Badge className="bg-yellow-500/10 text-yellow-300 border-yellow-500/20">{stats?.gallery_count ?? 0} images</Badge>
                       </div>
                       <h3 className="font-semibold text-white mb-2">Gallery</h3>
                       <p className="text-slate-400 text-sm">Showcase your business</p>
@@ -636,13 +622,13 @@ export default function BusinessDashboard() {
                 </Link>
 
                 <Link href="/business/ads">
-                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-500/30 hover:shadow-lg transition-colors cursor-pointer">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 bg-orange-900 rounded-lg">
-                          <Zap className="h-5 w-5 text-orange-400" />
+                        <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                          <Zap className="h-5 w-5 text-amber-400" />
                         </div>
-                        <Badge className="bg-slate-700 text-slate-300 border-slate-600">New</Badge>
+                        <Badge className="bg-slate-500/10 text-slate-300 border-slate-500/20">New</Badge>
                       </div>
                       <h3 className="font-semibold text-white mb-2">Ad Campaigns</h3>
                       <p className="text-slate-400 text-sm">Boost your visibility</p>
@@ -651,13 +637,13 @@ export default function BusinessDashboard() {
                 </Link>
 
                 <Link href="/business/analytics">
-                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-500/30 hover:shadow-lg transition-colors cursor-pointer">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 bg-yellow-900 rounded-lg">
+                        <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
                           <BarChart3 className="h-5 w-5 text-yellow-400" />
                         </div>
-                        <Badge className="bg-slate-700 text-slate-300 border-slate-600">Live</Badge>
+                        <Badge className="bg-slate-500/10 text-slate-300 border-slate-500/20">Live</Badge>
                       </div>
                       <h3 className="font-semibold text-white mb-2">Analytics</h3>
                       <p className="text-slate-400 text-sm">Track performance</p>
@@ -666,10 +652,10 @@ export default function BusinessDashboard() {
                 </Link>
 
                 <Link href="/business/profile">
-                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-500/30 hover:shadow-lg transition-colors cursor-pointer">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 bg-blue-900 rounded-lg">
+                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                           <Edit2 className="h-5 w-5 text-blue-400" />
                         </div>
                       </div>
@@ -680,13 +666,13 @@ export default function BusinessDashboard() {
                 </Link>
 
                 <Link href="/business/documents">
-                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-500/30 hover:shadow-lg transition-colors cursor-pointer">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 bg-emerald-900 rounded-lg">
+                        <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg">
                           <FileText className="h-5 w-5 text-emerald-400" />
                         </div>
-                        <Badge className="bg-slate-700 text-slate-300 border-slate-600">{business?.doc_count ?? 0} docs</Badge>
+                        <Badge className="bg-slate-500/10 text-slate-300 border-slate-500/20">{business?.doc_count ?? 0} docs</Badge>
                       </div>
                       <h3 className="font-semibold text-white mb-2">Documents</h3>
                       <p className="text-slate-400 text-sm">Verification document status</p>
@@ -695,10 +681,10 @@ export default function BusinessDashboard() {
                 </Link>
 
                 <Link href="/business/settings">
-                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 hover:shadow-lg transition cursor-pointer">
+                  <Card className="h-full bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-500/30 hover:shadow-lg transition-colors cursor-pointer">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">
-                        <div className="p-3 bg-slate-700 rounded-lg">
+                        <div className="p-3 bg-slate-500/10 border border-slate-500/20 rounded-lg">
                           <Settings className="h-5 w-5 text-slate-300" />
                         </div>
                       </div>
@@ -760,21 +746,21 @@ export default function BusinessDashboard() {
                 return (
                   <div
                     key={i}
-                    className={`bg-slate-900/60 backdrop-blur-xl border-l-4 border border-white/5 rounded-2xl p-6 flex items-start justify-between shadow-2xl transition-all duration-300 ease-out hover:shadow-lg ${
+                    className={`bg-slate-900/60 backdrop-blur-xl border-l-4 border border-white/5 rounded-2xl p-6 flex items-start justify-between shadow-lg transition-colors hover:shadow-xl ${
                       rec.priority === 'high'
-                        ? 'border-orange-400'
-                        : 'border-blue-400'
+                        ? 'border-amber-500/60'
+                        : 'border-blue-500/60'
                     }`}
                   >
                     <div className="flex gap-4 flex-1">
-                      <div className={`p-3 rounded-lg flex-shrink-0 ${
+                      <div className={`p-3 rounded-lg flex-shrink-0 border ${
                         rec.priority === 'high'
-                          ? 'bg-orange-900'
-                          : 'bg-blue-900'
+                          ? 'bg-amber-500/10 border-amber-500/20'
+                          : 'bg-blue-500/10 border-blue-500/20'
                       }`}>
                         <Icon className={`h-6 w-6 ${
                           rec.priority === 'high'
-                            ? 'text-orange-400'
+                            ? 'text-amber-400'
                             : 'text-blue-400'
                         }`} />
                       </div>
@@ -784,8 +770,8 @@ export default function BusinessDashboard() {
                         <div className="flex items-center gap-4">
                           <Badge className={`${
                             rec.priority === 'high'
-                              ? 'bg-orange-900 text-orange-300 border-orange-700'
-                              : 'bg-blue-900 text-blue-300 border-blue-700'
+                              ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                              : 'bg-blue-500/10 text-blue-300 border-blue-500/20'
                           }`}>
                             Impact: {rec.impact}
                           </Badge>
@@ -857,19 +843,19 @@ export default function BusinessDashboard() {
               <CardContent>
                 <div className="space-y-4">
                   <div className="bg-slate-700/50 p-4 rounded-lg border-l-2 border-yellow-400">
-                    <p className="text-white font-medium mb-1">📸 Add More Photos</p>
+                    <p className="text-white font-medium mb-1">Add More Photos</p>
                     <p className="text-slate-400 text-sm">Profiles with 5+ photos get more visibility. You currently have {stats?.gallery_count ?? 0}.</p>
                   </div>
                   <div className="bg-slate-700/50 p-4 rounded-lg border-l-2 border-yellow-400">
-                    <p className="text-white font-medium mb-1">📝 Post Consistently</p>
+                    <p className="text-white font-medium mb-1">Post Consistently</p>
                     <p className="text-slate-400 text-sm">Businesses that post 2-3 times per week see 25% higher engagement and visibility.</p>
                   </div>
                   <div className="bg-slate-700/50 p-4 rounded-lg border-l-2 border-yellow-400">
-                    <p className="text-white font-medium mb-1">💰 Try Ads</p>
+                    <p className="text-white font-medium mb-1">Try Ads</p>
                     <p className="text-slate-400 text-sm">Verified businesses with ads get 3x more customer inquiries. Start with as little as R100.</p>
                   </div>
                   <div className="bg-slate-700/50 p-4 rounded-lg border-l-2 border-yellow-400">
-                    <p className="text-white font-medium mb-1">⭐ Get Verified</p>
+                    <p className="text-white font-medium mb-1">Get Verified</p>
                     <p className="text-slate-400 text-sm">Verified businesses rank higher and get verified badges. Upload all documents to speed up verification.</p>
                   </div>
                 </div>
@@ -965,7 +951,7 @@ export default function BusinessDashboard() {
                       description: 'Business registration, tax certificate, etc.',
                       done: business.doc_count > 0,
                       priority: 'High Priority',
-                      priorityClass: 'bg-orange-900 text-orange-300 border-orange-700',
+                      priorityClass: 'bg-amber-500/10 text-amber-300 border-amber-500/20',
                       href: '/business/documents',
                     },
                     {
@@ -973,7 +959,7 @@ export default function BusinessDashboard() {
                       description: '+60% more customer clicks when website is linked',
                       done: !!business.website,
                       priority: 'Medium Priority',
-                      priorityClass: 'bg-blue-900 text-blue-300 border-blue-700',
+                      priorityClass: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
                       href: '/business/profile',
                     },
                     {
@@ -981,7 +967,7 @@ export default function BusinessDashboard() {
                       description: 'Complete your gallery for better visibility',
                       done: (stats?.gallery_count ?? 0) >= 5,
                       priority: 'Medium Priority',
-                      priorityClass: 'bg-blue-900 text-blue-300 border-blue-700',
+                      priorityClass: 'bg-blue-500/10 text-blue-300 border-blue-500/20',
                       href: '/business/gallery',
                     },
                   ].map((item) => (
