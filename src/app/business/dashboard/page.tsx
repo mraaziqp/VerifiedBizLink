@@ -866,7 +866,7 @@ export default function BusinessDashboard() {
                   </div>
                   <div className="bg-slate-700/50 p-4 rounded-lg border-l-2 border-yellow-400">
                     <p className="text-white font-medium mb-1">💰 Try Ads</p>
-                    <p className="text-slate-400 text-sm">Verified businesses with ads get 3x more customer inquiries. Start with as little as R50.</p>
+                    <p className="text-slate-400 text-sm">Verified businesses with ads get 3x more customer inquiries. Start with as little as R100.</p>
                   </div>
                   <div className="bg-slate-700/50 p-4 rounded-lg border-l-2 border-yellow-400">
                     <p className="text-white font-medium mb-1">⭐ Get Verified</p>

@@ -54,7 +54,7 @@ Provide a helpful, professional, and concise response to their query. If it's a 
     // Send email to support
     await resend.emails.send({
       from: 'info@verifiedbizlink.co.za',
-      to: process.env.SUPPORT_EMAIL || 'mraaziqp@gmail.com',
+      to: process.env.SUPPORT_EMAIL || 'info@verifiedbizlink.co.za',
       subject: `[SUPPORT] ${subject} - ${name}`,
       html: `
         <div style="font-family: Arial, sans-serif; background: #f4f4f5; padding: 20px;">

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, createSession } from '@/lib/auth';
+import { getSession, createSession, sessionCookieOptions } from '@/lib/auth';
 import db from '@/lib/db';
 import { hash, compare } from 'bcryptjs';
 
@@ -58,13 +58,7 @@ export async function PUT(request: NextRequest) {
     }, session.sid);
 
     const response = NextResponse.json({ user: updated[0], success: true });
-    response.cookies.set('vbl_session', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
-    });
+    response.cookies.set('vbl_session', token, sessionCookieOptions(request.headers.get('host')));
     return response;
   } catch (error) {
     console.error('Settings update error:', error);

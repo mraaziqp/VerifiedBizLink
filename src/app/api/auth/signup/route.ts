@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { resolveMx } from 'dns/promises';
-import { createTrackedSession } from '@/lib/auth';
+import { createTrackedSession, sessionCookieOptions } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { sendVerificationEmail } from '@/lib/email';
 import db from '@/lib/db';
@@ -149,13 +149,7 @@ export async function POST(request: NextRequest) {
 
     const token = await createTrackedSession(sessionUser, request);
     const response = NextResponse.json({ user: sessionUser, success: true });
-    response.cookies.set('vbl_session', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
-    });
+    response.cookies.set('vbl_session', token, sessionCookieOptions(request.headers.get('host')));
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);

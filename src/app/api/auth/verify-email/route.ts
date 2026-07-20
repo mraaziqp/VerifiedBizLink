@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createTrackedSession } from '@/lib/auth';
+import { createTrackedSession, sessionCookieOptions } from '@/lib/auth';
 import db from '@/lib/db';
 
 export async function GET(request: NextRequest) {
@@ -51,13 +51,7 @@ export async function GET(request: NextRequest) {
 
     const newJwt = await createTrackedSession(sessionUser, request);
     const response = NextResponse.redirect(new URL('/verify-email?success=1', request.url));
-    response.cookies.set('vbl_session', newJwt, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-      path: '/',
-    });
+    response.cookies.set('vbl_session', newJwt, sessionCookieOptions(request.headers.get('host')));
     return response;
   } catch (error) {
     console.error('Email verification error:', error);
