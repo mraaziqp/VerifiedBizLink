@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Search, Loader2, Mail, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Search, Loader2, Mail, ShieldCheck, Ban, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -16,6 +16,7 @@ interface User {
   status: string;
   created_at: string;
   email_verified: boolean;
+  is_suspended: boolean;
 }
 
 const ROLE_STYLES: Record<string, string> = {
@@ -32,6 +33,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
+  const [suspendingId, setSuspendingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -87,6 +89,39 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleToggleSuspend = async (user: User) => {
+    const suspending = !user.is_suspended;
+    if (suspending) {
+      const reason = window.prompt('Reason for suspending this account (shown to the user):', '');
+      if (reason === null) return; // cancelled
+      await doSuspend(user.id, true, reason);
+    } else {
+      await doSuspend(user.id, false);
+    }
+  };
+
+  const doSuspend = async (id: string, isSuspended: boolean, suspendedReason?: string) => {
+    setSuspendingId(id);
+    try {
+      const res = await fetch(`/api/admin/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isSuspended, suspendedReason }),
+      });
+      if (res.ok) {
+        setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, is_suspended: isSuspended } : u)));
+        toast({ title: isSuspended ? 'Account suspended' : 'Account reinstated' });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast({ title: 'Could not update account', description: data.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not update account', variant: 'destructive' });
+    } finally {
+      setSuspendingId(null);
+    }
+  };
+
   const filteredUsers = users.filter(
     (u) =>
       u.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -135,6 +170,7 @@ export default function AdminUsersPage() {
                     <th className="px-5 py-3">Email</th>
                     <th className="px-5 py-3">Role</th>
                     <th className="px-5 py-3">Verified</th>
+                    <th className="px-5 py-3">Account</th>
                     <th className="px-5 py-3">Joined</th>
                   </tr>
                 </thead>
@@ -173,6 +209,33 @@ export default function AdminUsersPage() {
                               className="text-gray-400 hover:text-green-400 disabled:opacity-50 transition-colors"
                             >
                               {verifyingId === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        {isStaffUser ? (
+                          <span className="text-xs text-gray-500">—</span>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {user.is_suspended ? (
+                              <span className="rounded-full bg-red-500/15 px-2.5 py-1 text-xs font-semibold text-red-400">Suspended</span>
+                            ) : (
+                              <span className="rounded-full bg-white/5 px-2.5 py-1 text-xs font-semibold text-gray-400">Active</span>
+                            )}
+                            <button
+                              onClick={() => handleToggleSuspend(user)}
+                              disabled={suspendingId === user.id}
+                              title={user.is_suspended ? 'Reinstate this account' : 'Suspend this account'}
+                              className={`disabled:opacity-50 transition-colors ${user.is_suspended ? 'text-gray-400 hover:text-green-400' : 'text-gray-400 hover:text-red-400'}`}
+                            >
+                              {suspendingId === user.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : user.is_suspended ? (
+                                <RotateCcw className="h-4 w-4" />
+                              ) : (
+                                <Ban className="h-4 w-4" />
+                              )}
                             </button>
                           </div>
                         )}

@@ -18,20 +18,29 @@ export async function PUT(
 
     const { id } = await params;
     const body = await req.json();
-    const { email, role, vettingScore } = body;
+    const { email, role, vettingScore, isSuspended, suspendedReason } = body;
 
     const result = await db`
       UPDATE users SET
         email = COALESCE(${email}, email),
         role = COALESCE(${role}, role),
         vetting_score = COALESCE(${vettingScore}, vetting_score),
+        is_suspended = COALESCE(${isSuspended ?? null}, is_suspended),
+        suspended_reason = CASE WHEN ${isSuspended ?? null} = true THEN COALESCE(${suspendedReason ?? null}, '') WHEN ${isSuspended ?? null} = false THEN '' ELSE suspended_reason END,
+        suspended_at = CASE WHEN ${isSuspended ?? null} = true THEN NOW() WHEN ${isSuspended ?? null} = false THEN NULL ELSE suspended_at END,
         updated_at = NOW()
       WHERE id = ${id}
-      RETURNING id, email, full_name, role, vetting_score, created_at
+      RETURNING id, email, full_name, role, vetting_score, is_suspended, suspended_reason, created_at
     `;
 
     if (result.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Suspending should end any session right now, not just block the next
+    // login attempt.
+    if (isSuspended === true) {
+      await db`UPDATE user_sessions SET revoked_at = NOW() WHERE user_id = ${id} AND revoked_at IS NULL`.catch(() => {});
     }
 
     return NextResponse.json(result[0]);

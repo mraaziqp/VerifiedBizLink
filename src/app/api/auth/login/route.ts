@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
 
     try {
       const users = await db`
-        SELECT id, full_name, role, avatar_url, headline, email_verified, two_factor_enabled
+        SELECT id, full_name, role, avatar_url, headline, email_verified, two_factor_enabled, is_suspended, suspended_reason
         FROM users
         WHERE id = ${userId}
         LIMIT 1
@@ -95,6 +95,21 @@ export async function POST(request: NextRequest) {
 
       if (users.length > 0) {
         const profileData = users[0];
+
+        // Suspended accounts are blocked at login, not deleted — moderation
+        // needs a reversible action distinct from permanently erasing the
+        // account (only DELETE /api/admin/users/[id] does that).
+        if (profileData.is_suspended) {
+          return NextResponse.json(
+            {
+              error: profileData.suspended_reason
+                ? `Your account has been suspended: ${profileData.suspended_reason}. Contact info@verifiedbizlink.co.za to appeal.`
+                : 'Your account has been suspended. Contact info@verifiedbizlink.co.za to appeal.',
+            },
+            { status: 403 },
+          );
+        }
+
         fullName = profileData.full_name || fullName;
         role = profileData.role || role;
         avatarUrl = profileData.avatar_url || avatarUrl;

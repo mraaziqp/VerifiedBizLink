@@ -13,7 +13,7 @@ export async function GET() {
     const users = await db`
       SELECT
         u.id, u.email, u.full_name, u.role, u.headline, u.avatar_url,
-        u.connections_count, u.vetting_score, u.created_at, u.email_verified,
+        u.connections_count, u.vetting_score, u.created_at, u.email_verified, u.is_suspended,
         b.id AS business_id, b.company_name, b.status AS business_status, b.package_type
       FROM users u
       LEFT JOIN businesses b ON b.user_id = u.id

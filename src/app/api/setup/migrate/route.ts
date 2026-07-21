@@ -20,6 +20,9 @@ export async function POST(request: NextRequest) {
     await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT DEFAULT ''`;
     await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50) DEFAULT ''`;
     await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS date_of_birth DATE`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT FALSE`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended_reason TEXT DEFAULT ''`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspended_at TIMESTAMPTZ`;
     await db`ALTER TABLE documents ADD COLUMN IF NOT EXISTS grade INTEGER DEFAULT 0`;
     await db`ALTER TABLE documents ADD COLUMN IF NOT EXISTS review_notes TEXT DEFAULT ''`;
     await db`ALTER TABLE documents ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ`;
