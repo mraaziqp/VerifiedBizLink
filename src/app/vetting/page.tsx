@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { VerificationCelebration } from "@/components/ui/verification-celebration";
+import { TrustScoreInfo } from "@/components/ui/trust-score-info";
 import {
   ShieldCheck, FileCheck, Building, AlertCircle,
   Loader2, Upload, PencilLine, Save, Eye, Download, FileText,
@@ -402,7 +403,10 @@ export default function VettingPage() {
                         </div>
                         {business.trust_score !== undefined && business.trust_score > 0 && (
                           <div className="p-4 bg-gray-50 rounded-2xl border border-dashed flex flex-col gap-1">
-                            <span className="text-xs text-gray-400 font-bold uppercase tracking-wider">Trust Score</span>
+                            <span className="text-xs text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                              Trust Score
+                              <TrustScoreInfo score={business.trust_score} />
+                            </span>
                             <span className="text-sm font-bold text-primary">{business.trust_score}/100</span>
                           </div>
                         )}

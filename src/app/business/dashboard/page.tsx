@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { GlassBackground, glassInteractive } from '@/components/shared/glass-ui';
+import { TrustScoreInfo } from '@/components/ui/trust-score-info';
 
 interface Business {
   id: string;
@@ -548,7 +549,10 @@ export default function BusinessDashboard() {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-slate-400 text-sm mb-2">Trust Score</p>
+                        <p className="text-slate-400 text-sm mb-2 flex items-center gap-1">
+                          Trust Score
+                          <TrustScoreInfo score={business.trust_score} className="text-slate-400 hover:text-yellow-400" />
+                        </p>
                         <div className="flex items-end gap-2">
                           <p className="text-4xl font-bold text-white">{business.trust_score}%</p>
                           <p className={`text-sm font-medium mb-1 ${getTrustScoreLabel(business.trust_score).color}`}>

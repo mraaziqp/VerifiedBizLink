@@ -16,6 +16,7 @@ import { VBLLogo } from "@/components/ui/vbl-logo";
 import { RatingSummary } from "@/components/ui/star-rating";
 import { ReviewsList } from "@/components/reviews/reviews-list";
 import { GoldCheckmark } from "@/components/ui/gold-checkmark";
+import { TrustScoreInfo } from "@/components/ui/trust-score-info";
 import { Certificate } from "@/components/ui/certificate";
 import { ApprovalCelebrationModal } from "@/components/ui/approval-celebration-modal";
 import { useAuth } from "@/contexts/auth-context";
@@ -362,7 +363,10 @@ export default function BusinessProfilePage() {
                   </div>
                   <div>
                     <p className="text-2xl font-black text-foreground">{business.trustScore}</p>
-                    <p className="text-xs text-foreground/50">Trust Score / 100</p>
+                    <p className="text-xs text-foreground/50 flex items-center gap-1">
+                      Trust Score / 100
+                      <TrustScoreInfo score={business.trustScore} />
+                    </p>
                   </div>
                 </div>
 
