@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MapPin, Search, Map } from "lucide-react";
+import { MapPin, Search } from "lucide-react";
 import SmartMatchFeed from "@/components/discover/smart-match-feed";
 
 export default function DiscoverPage() {
@@ -38,18 +38,7 @@ export default function DiscoverPage() {
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <SmartMatchFeed searchQuery={searchQuery} />
-          </div>
-          <div className="h-[500px] rounded-lg border border-cyan-500/30 bg-gradient-to-br from-gray-800/40 to-gray-900/40 backdrop-blur-xl p-4 flex items-center justify-center">
-            <div className="text-center">
-              <Map className="h-12 w-12 text-cyan-400 mx-auto mb-4" />
-              <p className="text-gray-400">Interactive Map Coming Soon</p>
-              <p className="text-xs text-gray-500 mt-2">Verified businesses will appear as glowing pins</p>
-            </div>
-          </div>
-        </div>
+        <SmartMatchFeed searchQuery={searchQuery} />
       </div>
     </div>
   );
