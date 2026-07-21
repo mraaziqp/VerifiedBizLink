@@ -46,7 +46,7 @@ export default function RefundPolicyPage() {
               <p>Once the 7-day cooling-off period has passed:</p>
               <ul className="list-disc list-inside space-y-2 mt-4">
                 <li>Subscription fees already charged for the current billing month are <strong>non-refundable</strong>, including if you stop using the Platform partway through the month.</li>
-                <li>You can cancel auto-renewal at any time from Settings → Subscription, or by emailing us. Cancelling stops the <em>next</em> billing cycle — you keep paid features until the end of the period you've already paid for.</li>
+                <li>You can cancel auto-renewal at any time from Settings → Billing, or by emailing us. Cancelling stops the <em>next</em> billing cycle — you keep paid features until the end of the period you've already paid for.</li>
                 <li>We do not provide partial or pro-rated refunds for unused time in a billing period you cancel mid-cycle.</li>
               </ul>
             </section>
@@ -75,13 +75,13 @@ export default function RefundPolicyPage() {
             <section>
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">6. How to Cancel or Request a Refund</h2>
               <ol className="list-decimal list-inside space-y-2">
-                <li>Go to <strong>Settings → Subscription</strong> and select "Cancel Subscription," or</li>
+                <li>Go to <strong>Settings → Billing</strong> and select "Cancel Subscription," or</li>
                 <li>Email <a href="mailto:info@verifiedbizlink.co.za" className="text-cyan-400 hover:underline">info@verifiedbizlink.co.za</a> from your account's registered email address with your business name and the reason for the request.</li>
               </ol>
               <p className="mt-3">
                 We aim to acknowledge refund requests within 2 business days and, where a refund is due, to process
                 it within 10 business days. Refunds are returned to the original payment method via our payment
-                processor (PayFast, or Stripe/PayPal where used) and may take a few additional days to reflect,
+                processor (PayFast) and may take a few additional days to reflect,
                 depending on your bank or card issuer.
               </p>
             </section>

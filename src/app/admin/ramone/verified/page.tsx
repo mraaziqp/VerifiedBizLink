@@ -60,6 +60,23 @@ export default function RamoneVerifiedPage() {
     }
   });
 
+  const handleDownloadReport = () => {
+    const header = ['Company Name', 'Industry', 'Trust Score', 'Verified At', 'Owner Name', 'Owner Email', 'Address', 'Phone', 'Website'];
+    const rows = filteredBusinesses.map((b) => [
+      b.company_name, b.industry, String(b.trust_score), b.verified_at,
+      b.owner_name, b.owner_email, b.address || '', b.phone || '', b.website || '',
+    ]);
+    const escapeCell = (cell: string) => `"${cell.replace(/"/g, '""')}"`;
+    const csv = [header, ...rows].map((row) => row.map(escapeCell).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `verified-businesses-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -106,7 +123,7 @@ export default function RamoneVerifiedPage() {
           <Card className="bg-gray-800/40 border-gray-700">
             <CardContent className="p-6">
               <p className="text-gray-400 text-sm">Export Data</p>
-              <Button className="mt-2 w-full bg-purple-600 hover:bg-purple-700" size="sm">
+              <Button onClick={handleDownloadReport} disabled={filteredBusinesses.length === 0} className="mt-2 w-full bg-purple-600 hover:bg-purple-700" size="sm">
                 <Download className="h-4 w-4 mr-2" />
                 Download Report
               </Button>

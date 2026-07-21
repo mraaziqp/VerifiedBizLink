@@ -2,19 +2,56 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Bell, Eye, Lock, Shield } from 'lucide-react';
+import { ArrowLeft, Bell, Eye, Lock, Shield, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { GlassBackground, glassInteractive } from '@/components/shared/glass-ui';
 
 export default function BusinessSettingsPage() {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [visibility, setVisibility] = useState(true);
   const [notifications, setNotifications] = useState(true);
 
-  const handleSave = () => {
-    toast({ title: 'Preferences saved for this session' });
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/users/privacy-settings').then((r) => (r.ok ? r.json() : null)),
+      fetch('/api/users/notification-preferences').then((r) => (r.ok ? r.json() : null)),
+    ])
+      .then(([privacy, notif]) => {
+        if (privacy?.settings) setVisibility(privacy.settings.showInSearch ?? true);
+        if (notif?.preferences) setNotifications(notif.preferences.connectionRequests ?? true);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const [privacyRes, notifRes] = await Promise.all([
+        fetch('/api/users/privacy-settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ settings: { showInSearch: visibility } }),
+        }),
+        fetch('/api/users/notification-preferences', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ preferences: { connectionRequests: notifications } }),
+        }),
+      ]);
+      if (privacyRes.ok && notifRes.ok) {
+        toast({ title: 'Settings saved' });
+      } else {
+        toast({ title: 'Could not save all settings', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not save settings', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -30,6 +67,12 @@ export default function BusinessSettingsPage() {
 
         <h1 className="text-3xl font-bold text-slate-100 mb-8">Business Settings</h1>
 
+        {loading ? (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-8 w-8 text-yellow-500 animate-spin" />
+          </div>
+        ) : (
+        <>
         {/* Visibility Settings */}
         <Card className="mb-6 bg-slate-900/60 backdrop-blur-xl border-white/5 shadow-2xl">
           <CardHeader>
@@ -102,10 +145,14 @@ export default function BusinessSettingsPage() {
         {/* Save Button */}
         <Button
           onClick={handleSave}
+          disabled={saving}
           className={`w-full bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-bold ${glassInteractive}`}
         >
+          {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
           Save Settings
         </Button>
+        </>
+        )}
       </div>
     </GlassBackground>
   );

@@ -18,15 +18,13 @@ export default function AdminDashboard() {
       return;
     }
 
-    // Determine persona based on email
+    // Determine persona based on email. "architect" was removed — no
+    // /admin/architect page exists and no real staff role maps to it, so
+    // any account matching it 404'd instead of landing anywhere useful.
     let detectedPersona = "orchestrator"; // default
     const userEmail = user.email?.toLowerCase() || "";
 
-    if (userEmail.includes("mraaziqp")) {
-      detectedPersona = "orchestrator";
-    } else if (userEmail.includes("architect")) {
-      detectedPersona = "architect";
-    } else if (userEmail.includes("enforcer")) {
+    if (userEmail.includes("enforcer")) {
       detectedPersona = "enforcer";
     }
 

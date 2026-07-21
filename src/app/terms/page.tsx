@@ -71,7 +71,7 @@ export default function TermsPage() {
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">5. Subscriptions, Billing & Auto-Renewal</h2>
               <ul className="list-disc list-inside space-y-2">
                 <li>The Platform offers a free tier and paid subscription tiers (currently billed monthly in South African Rand), described on our <Link href="/pricing" className="text-cyan-400 hover:underline">Pricing</Link> page. Features and prices may change; where a change materially affects an active subscription, we will give reasonable notice before it takes effect at your next renewal.</li>
-                <li>Paid subscriptions automatically renew each billing cycle until you cancel. Payments are processed by third-party payment providers (including PayFast, and where enabled, Stripe or PayPal) — we do not store your full card details.</li>
+                <li>Paid subscriptions automatically renew each billing cycle until you cancel. Payments are processed by our third-party payment provider, PayFast — we do not store your full card details.</li>
                 <li>You can cancel auto-renewal at any time from your account settings. Cancelling stops future billing; it does not automatically refund the current billing period — see our <Link href="/refund-policy" className="text-cyan-400 hover:underline">Refund Policy</Link> for how refunds and cooling-off cancellations work.</li>
                 <li>If a payment fails, we may retry it, downgrade your account to the free tier, or suspend paid features until payment succeeds.</li>
               </ul>

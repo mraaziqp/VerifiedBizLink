@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { TrustScoreInfo } from "@/components/ui/trust-score-info";
 
 interface Tier {
   key: string;
@@ -41,6 +42,8 @@ interface Payment {
 
 interface BusinessProfile {
   package_type?: string | null;
+  status?: string | null;
+  trust_score?: number | null;
 }
 
 function SettingsForm() {
@@ -67,6 +70,30 @@ function SettingsForm() {
   const [loadingPayments, setLoadingPayments] = useState(true);
   const [business, setBusiness] = useState<BusinessProfile | null>(null);
   const [tiers, setTiers] = useState<Tier[]>([]);
+  const [cancelling, setCancelling] = useState(false);
+
+  const handleCancelSubscription = async () => {
+    if (!window.confirm('Cancel your subscription and move to the Free tier? You can upgrade again anytime.')) return;
+    setCancelling(true);
+    try {
+      const res = await fetch('/api/businesses/packages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageType: 'free', onboardingCompleted: true }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBusiness((prev) => (prev ? { ...prev, package_type: data.business?.package_type ?? 'free' } : prev));
+        toast({ title: 'Subscription cancelled', description: "You're now on the Free plan." });
+      } else {
+        toast({ title: 'Could not cancel subscription', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not cancel subscription', variant: 'destructive' });
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   useEffect(() => {
     fetch('/api/tiers')
@@ -607,12 +634,33 @@ function SettingsForm() {
                       </div>
                       <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
                         <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">SARS/CIPC Status</p>
-                        <p className="text-2xl font-extrabold text-amber-400">Vetting Pending</p>
-                        <p className="text-xs text-slate-500">Documents submitted for review</p>
+                        <p className={`text-2xl font-extrabold ${
+                          business?.status === 'verified' ? 'text-green-400'
+                          : business?.status === 'rejected' ? 'text-red-400'
+                          : 'text-amber-400'
+                        }`}>
+                          {user?.role !== 'business' ? 'N/A'
+                            : business?.status === 'verified' ? 'Verified'
+                            : business?.status === 'reviewing' ? 'Under Review'
+                            : business?.status === 'rejected' ? 'Action Required'
+                            : 'Not Submitted'}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {user?.role !== 'business' ? 'Personal accounts are not vetted'
+                            : business?.status === 'verified' ? 'CIPC & SARS verification complete'
+                            : business?.status === 'reviewing' ? 'Documents submitted for review'
+                            : business?.status === 'rejected' ? 'Review Vetting Hub for feedback'
+                            : 'Submit documents in Vetting Hub'}
+                        </p>
                       </div>
                       <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">Vetting Score</p>
-                        <p className="text-2xl font-extrabold text-green-400">85/100</p>
+                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                          Trust Score
+                          {user?.role === 'business' && <TrustScoreInfo score={business?.trust_score ?? 0} className="text-slate-400 hover:text-yellow-400" />}
+                        </p>
+                        <p className="text-2xl font-extrabold text-green-400">
+                          {user?.role === 'business' ? `${business?.trust_score ?? 0}/100` : 'N/A'}
+                        </p>
                         <p className="text-xs text-slate-500">Trust rating metric</p>
                       </div>
                     </div>
@@ -636,6 +684,26 @@ function SettingsForm() {
                     </Link>
                   </CardContent>
                 </Card>
+
+                {user?.role === 'business' && business?.package_type && business.package_type !== 'free' && (
+                  <Card className="border border-red-100 shadow-sm overflow-hidden bg-white">
+                    <CardContent className="p-6 md:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">Cancel subscription</h3>
+                        <p className="text-sm text-gray-500 mt-1">Move to the Free plan immediately. You can upgrade again anytime.</p>
+                      </div>
+                      <Button
+                        onClick={handleCancelSubscription}
+                        disabled={cancelling}
+                        variant="outline"
+                        className="shrink-0 border-red-300 text-red-600 hover:bg-red-50 font-bold px-6 h-11 rounded-xl"
+                      >
+                        {cancelling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Cancel Subscription
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {/* Spent Transaction Ledger */}
                 <Card className="border border-gray-100 shadow-sm overflow-hidden bg-white">

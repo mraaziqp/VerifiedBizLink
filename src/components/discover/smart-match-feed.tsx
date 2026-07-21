@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Star, MapPin, Zap, Loader2 } from "lucide-react";
+import { Star, MapPin, Zap, Loader2, Check } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface Recommendation {
   id: string;
+  user_id: string;
   company_name: string;
   industry: string;
   address: string;
@@ -16,8 +18,33 @@ interface Recommendation {
 }
 
 export default function SmartMatchFeed({ searchQuery = "" }: { searchQuery?: string }) {
+  const { toast } = useToast();
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connectingId, setConnectingId] = useState<string | null>(null);
+  const [connectedIds, setConnectedIds] = useState<Set<string>>(new Set());
+
+  const handleConnect = async (rec: Recommendation) => {
+    setConnectingId(rec.id);
+    try {
+      const res = await fetch('/api/connections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ receiverId: rec.user_id }),
+      });
+      if (res.ok) {
+        setConnectedIds((prev) => new Set(prev).add(rec.id));
+        toast({ title: 'Connection request sent', description: `Sent to ${rec.company_name}.` });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast({ title: 'Could not send request', description: data.error || data.message, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not send request', variant: 'destructive' });
+    } finally {
+      setConnectingId(null);
+    }
+  };
 
   useEffect(() => {
     fetchRecommendations();
@@ -92,8 +119,18 @@ export default function SmartMatchFeed({ searchQuery = "" }: { searchQuery?: str
                   💡 {rec.description}
                 </p>
               )}
-              <Button className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700 font-semibold">
-                Connect & Grow
+              <Button
+                onClick={() => handleConnect(rec)}
+                disabled={connectingId === rec.id || connectedIds.has(rec.id)}
+                className="w-full bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700 font-semibold disabled:opacity-60"
+              >
+                {connectingId === rec.id ? (
+                  <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending…</>
+                ) : connectedIds.has(rec.id) ? (
+                  <><Check className="h-4 w-4 mr-2" />Request Sent</>
+                ) : (
+                  "Connect & Grow"
+                )}
               </Button>
             </div>
           </Card>
