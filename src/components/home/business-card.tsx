@@ -42,7 +42,7 @@ export function BusinessCard({
           <div className="min-w-0 flex-1">
             <h3 className="font-bold text-foreground group-hover:text-primary transition-colors line-clamp-1 flex items-center gap-1">
               <span className="line-clamp-1">{business.displayName}</span>
-              <GoldCheckmark />
+              {business.isVerified && <GoldCheckmark />}
             </h3>
             <p className="text-xs text-foreground/60 line-clamp-1">{business.headline || business.companyName || "Verified Business"}</p>
           </div>
@@ -77,12 +77,14 @@ export function BusinessCard({
         <div className="h-px bg-border" />
 
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-primary">
-            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/20">
-              <Shield size={12} className="fill-primary" />
+          {business.isVerified && (
+            <div className="flex items-center gap-1.5 text-primary">
+              <div className="flex items-center justify-center w-5 h-5 rounded-full bg-primary/20">
+                <Shield size={12} className="fill-primary" />
+              </div>
+              <span className="text-xs font-bold tracking-wide">VERIFIED</span>
             </div>
-            <span className="text-xs font-bold tracking-wide">VERIFIED</span>
-          </div>
+          )}
 
           {onConnect && (
             <button

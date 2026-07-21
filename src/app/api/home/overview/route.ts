@@ -128,6 +128,10 @@ export async function GET() {
         avatarUrl: row.avatar_url,
         avgRating: row.avg_rating,
         reviewCount: row.review_count,
+        // Both queries above are already scoped to WHERE b.status = 'verified',
+        // but the client shouldn't have to trust that implicitly — the gold
+        // checkmark badge checks this field explicitly.
+        isVerified: true,
       })),
     });
   } catch (error) {

@@ -75,7 +75,7 @@ export function FeaturedBusinesses({
                   <div className="min-w-0">
                     <h4 className="font-bold text-foreground group-hover:text-primary transition-colors truncate flex items-center gap-1">
                       <span className="truncate">{business.displayName}</span>
-                      <GoldCheckmark />
+                      {business.isVerified && <GoldCheckmark />}
                     </h4>
                     <p className="text-xs text-foreground/60 mt-0.5 truncate">{business.industry || "General Services"}</p>
                   </div>

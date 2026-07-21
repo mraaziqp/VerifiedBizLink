@@ -22,6 +22,7 @@ export interface HomeBusiness {
   avatarUrl: string;
   avgRating: number;
   reviewCount: number;
+  isVerified: boolean;
 }
 
 export interface HomeOverviewResponse {

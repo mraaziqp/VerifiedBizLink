@@ -47,6 +47,7 @@ export function SidebarLeft() {
   const { user, loading, logout } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [businessVerified, setBusinessVerified] = useState(false);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -56,6 +57,21 @@ export function SidebarLeft() {
       .then((r) => r.ok ? r.json() : null)
       .then((d) => { if (d?.notifications) setNotifications(d.notifications); })
       .catch(() => {});
+  }, [user]);
+
+  useEffect(() => {
+    // The gold checkmark means "this business passed CIPC/SARS vetting" —
+    // it must never render just because someone is logged in. Only
+    // business/staff accounts can have a business at all, and only a
+    // 'verified' status earns the badge.
+    if (!user || !['business', 'admin', 'banker', 'lawyer'].includes(user.role)) {
+      setBusinessVerified(false);
+      return;
+    }
+    fetch('/api/business/profile')
+      .then((r) => r.ok ? r.json() : null)
+      .then((d) => setBusinessVerified(d?.business?.status === 'verified'))
+      .catch(() => setBusinessVerified(false));
   }, [user]);
 
   useEffect(() => {
@@ -106,7 +122,7 @@ export function SidebarLeft() {
               </Avatar>
               <div className="mt-3 flex items-center justify-center gap-1.5">
                 <h3 className="font-semibold text-lg text-gray-900">{user?.fullName || 'Guest'}</h3>
-                {user && <GoldCheckmark />}
+                {businessVerified && <GoldCheckmark />}
               </div>
               <p className="text-sm text-gray-500 font-medium">{user?.headline || 'VerifiedBizLink Member'}</p>
               {user && (
