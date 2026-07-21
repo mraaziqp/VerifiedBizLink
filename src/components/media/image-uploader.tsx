@@ -9,6 +9,10 @@ interface ImageUploaderProps {
   onUploadStateChange?: (uploading: boolean) => void;
   maxSize?: number;
   buttonClassName?: string;
+  /** Optional visible text next to the icon — without it this is an
+   * icon-only control, which is easy to lose against a custom background
+   * if buttonClassName doesn't also set a color (see gallery page fix). */
+  label?: string;
 }
 
 export function ImageUploader({
@@ -16,6 +20,7 @@ export function ImageUploader({
   onUploadStateChange,
   maxSize = 10 * 1024 * 1024,
   buttonClassName = 'text-gray-500 hover:text-gray-700',
+  label,
 }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
@@ -113,7 +118,7 @@ export function ImageUploader({
       <button
         onClick={() => fileInputRef.current?.click()}
         disabled={uploading}
-        className={`relative p-2 rounded transition-colors ${buttonClassName} ${
+        className={`relative p-2 rounded transition-colors ${label ? 'flex items-center justify-center gap-2' : ''} ${buttonClassName} ${
           uploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
         }`}
         title="Upload image"
@@ -127,6 +132,7 @@ export function ImageUploader({
         ) : (
           <Upload size={20} />
         )}
+        {label && <span className="font-medium">{uploading ? 'Uploading…' : success ? 'Uploaded' : label}</span>}
       </button>
 
       {/* Error message */}

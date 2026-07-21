@@ -16,13 +16,11 @@ import {
   Sparkles,
   ChevronRight,
   ExternalLink,
-  Map,
   Grid3X3,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
 import { GoldCheckmark } from '@/components/ui/gold-checkmark';
 
 interface Business {
@@ -66,11 +64,12 @@ const INDUSTRY_COLORS: Record<string, string> = {
 };
 
 export default function ExplorePage() {
-  const { toast } = useToast();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(() =>
+    typeof navigator !== 'undefined' && !navigator.geolocation ? { lat: -26.2023, lng: 28.0436 } : null
+  );
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndustry, setSelectedIndustry] = useState('all');
   const [radius, setRadius] = useState(25);
@@ -82,10 +81,7 @@ export default function ExplorePage() {
     if (locationAttempted.current) return;
     locationAttempted.current = true;
 
-    if (!navigator.geolocation) {
-      setUserLocation({ lat: -26.2023, lng: 28.0436 });
-      return;
-    }
+    if (!navigator.geolocation) return;
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -122,38 +118,6 @@ export default function ExplorePage() {
     fetchBusinesses();
   }, []);
 
-  // Calculate distance and filter businesses
-  useEffect(() => {
-    if (!userLocation) return;
-
-    let filtered = businesses.filter((b) => {
-      if (selectedIndustry !== 'all' && b.industry !== selectedIndustry) return false;
-      if (searchQuery && !b.company_name.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false;
-      }
-      return true;
-    });
-
-    // Calculate distances
-    filtered = filtered.map((b) => ({
-      ...b,
-      distance: calculateDistance(
-        userLocation.lat,
-        userLocation.lng,
-        b.latitude || 0,
-        b.longitude || 0
-      ),
-    }));
-
-    // Filter by radius
-    filtered = filtered.filter((b) => (b.distance || 0) <= radius);
-
-    // Sort by distance
-    filtered.sort((a, b) => (a.distance || 0) - (b.distance || 0));
-
-    setFilteredBusinesses(filtered);
-  }, [businesses, userLocation, searchQuery, selectedIndustry, radius]);
-
   const calculateDistance = (
     lat1: number,
     lon1: number,
@@ -172,6 +136,48 @@ export default function ExplorePage() {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
+
+  // Calculate distance and filter businesses
+  useEffect(() => {
+    let filtered = businesses.filter((b) => {
+      if (selectedIndustry !== 'all' && b.industry !== selectedIndustry) return false;
+      if (searchQuery && !b.company_name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+      return true;
+    });
+
+    // Distance is only meaningful when we know both where the visitor is
+    // and where the business actually is. Businesses without geocoded
+    // coordinates get `distance: undefined` rather than being silently
+    // pinned to a fake location — a fictional distance previously caused
+    // the radius filter below to hide them even from an exact name match.
+    filtered = filtered.map((b) => ({
+      ...b,
+      distance:
+        userLocation && b.latitude != null && b.longitude != null
+          ? calculateDistance(userLocation.lat, userLocation.lng, b.latitude, b.longitude)
+          : undefined,
+    }));
+
+    // Actively searching by name is a request for that specific business,
+    // not "what's nearby" — the radius filter (and its dependency on
+    // location resolving at all) shouldn't hide a real name match.
+    if (!searchQuery) {
+      filtered = filtered.filter((b) => b.distance === undefined || b.distance <= radius);
+    }
+
+    // Known distances first (closest first); unknown-location businesses
+    // last rather than dropped.
+    filtered.sort((a, b) => {
+      if (a.distance === undefined && b.distance === undefined) return 0;
+      if (a.distance === undefined) return 1;
+      if (b.distance === undefined) return -1;
+      return a.distance - b.distance;
+    });
+
+    setFilteredBusinesses(filtered);
+  }, [businesses, userLocation, searchQuery, selectedIndustry, radius]);
 
   const handleNavigate = (business: Business) => {
     if (business.latitude && business.longitude) {
