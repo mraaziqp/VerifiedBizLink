@@ -3,8 +3,9 @@
 import { useAuth } from "@/contexts/auth-context";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Shield, AlertTriangle, CheckCircle2, LogOut, Flag, Clock, Building2, ScrollText } from "lucide-react";
+import { Shield, AlertTriangle, CheckCircle2, LogOut, Flag, Clock, Building2, ScrollText, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { AdminProfilePanel } from "@/components/admin/admin-profile-panel";
 import { AdminBackground, AdminCard, AdminPageHeader, StatCard, SectionTitle } from "@/components/admin/ui";
 
@@ -66,6 +67,11 @@ export default function EnforcerDashboard() {
   return (
     <AdminBackground>
       <AdminPageHeader title="Enforcer Portal" subtitle="Reports, compliance & platform integrity">
+        <Link href="/">
+          <Button variant="outline" size="sm" className="gap-2 border-gray-500/30 text-gray-300 hover:bg-white/5">
+            <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back to App</span>
+          </Button>
+        </Link>
         <span className="hidden text-sm text-gray-400 lg:inline">{user?.email}</span>
         <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 border-red-500/30 text-red-400 hover:bg-red-500/10">
           <LogOut className="h-4 w-4" /> Logout

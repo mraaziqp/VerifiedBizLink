@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, AlertCircle, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 export default function MonitoringDashboard() {
   const [activeTab, setActiveTab] = useState('alerts');
@@ -127,6 +128,9 @@ export default function MonitoringDashboard() {
   return (
     <div className="space-y-8 p-6">
       <div>
+        <Link href="/admin" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-3">
+          <ArrowLeft className="h-4 w-4" /> Back to Admin
+        </Link>
         <h1 className="text-3xl font-bold">System Monitoring</h1>
         <p className="text-gray-500 mt-2">Real-time logs, alerts, and API key management</p>
       </div>
