@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ShieldCheck, Users, TrendingUp, Award, Building2, Heart } from "lucide-react";
+import { ShieldCheck, Users, TrendingUp, Building2 } from "lucide-react";
+import db from "@/lib/db";
+
+export const dynamic = 'force-dynamic';
 
 const VALUES = [
   {
@@ -20,14 +23,15 @@ const VALUES = [
   },
 ];
 
-const STATS = [
-  { label: "Verified Businesses", value: "500+" },
-  { label: "Provinces Covered", value: "9" },
-  { label: "Verification Turnaround", value: "3–7 days" },
-  { label: "POPI Act", value: "Compliant" },
-];
+export default async function AboutPage() {
+  const [verifiedRow] = await db`SELECT COUNT(*)::int AS count FROM businesses WHERE status = 'verified'`.catch(() => [{ count: 0 }]);
 
-export default function AboutPage() {
+  const stats = [
+    { label: "Verified Businesses", value: `${verifiedRow?.count ?? 0}` },
+    { label: "Verification Turnaround", value: "3–7 days" },
+    { label: "POPI Act", value: "Compliant" },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
       <div className="max-w-4xl mx-auto px-4 py-12">
@@ -44,8 +48,8 @@ export default function AboutPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12">
-          {STATS.map((stat) => (
+        <div className="grid grid-cols-3 gap-4 mb-12">
+          {stats.map((stat) => (
             <div key={stat.label} className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
               <p className="text-2xl font-bold text-yellow-500">{stat.value}</p>
               <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
@@ -104,21 +108,6 @@ export default function AboutPage() {
                 <p className="text-sm text-gray-400 leading-relaxed">{value.description}</p>
               </div>
             ))}
-          </div>
-        </section>
-
-        {/* Team / Story — placeholder for the founder to fill in */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold text-cyan-400 mb-4">Our Story</h2>
-          <div className="rounded-xl border border-dashed border-white/20 bg-white/5 p-6">
-            <div className="flex items-center gap-2 text-yellow-500 mb-2">
-              <Heart className="h-5 w-5" />
-              <span className="text-sm font-semibold">Add your story here</span>
-            </div>
-            <p className="text-sm text-gray-400 leading-relaxed">
-              This is where you can share how VerifiedBizLink started, who's behind it, and why you built it —
-              replace this placeholder with your own story, founding team photos, or a short video.
-            </p>
           </div>
         </section>
 

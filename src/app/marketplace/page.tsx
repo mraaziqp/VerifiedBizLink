@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PriceCard } from '@/components/market/price-card';
 import { MarketNewsCard } from '@/components/market/market-news-card';
-import { PriceChart } from '@/components/market/price-chart';
 import { MarketStats } from '@/components/market/market-stats';
 import { PriceComparator } from '@/components/market/price-comparator';
 import { Loader2, Search, ArrowLeft, AlertCircle, RotateCcw } from 'lucide-react';
@@ -34,19 +33,6 @@ interface MarketNews {
   date: string;
   link: string;
 }
-
-const generateHistoricalData = (currentPrice: number) => {
-  const data = [];
-  for (let i = 23; i >= 0; i--) {
-    const time = `${i}h ago`;
-    const variance = (Math.random() - 0.5) * 2 * currentPrice * 0.05;
-    data.push({
-      time,
-      price: parseFloat((currentPrice + variance).toFixed(2))
-    });
-  }
-  return data;
-};
 
 // Matches only the categories /api/market/prices actually returns (Forex + Precious Metals) —
 // Industrial Metals/Energy/Agriculture were listed here with no backing data source.
@@ -157,7 +143,6 @@ export default function MarketplacePage() {
     );
   };
 
-  const chartData = selectedCommodity ? generateHistoricalData(selectedCommodity.price) : [];
   const watchedPrices = prices.filter(p => watchlist.includes(p.symbol));
 
   return (
@@ -266,12 +251,27 @@ export default function MarketplacePage() {
                     Close
                   </Button>
                 </div>
-                <PriceChart
-                  data={chartData}
-                  commodity={selectedCommodity.symbol}
-                  color={selectedCommodity.change >= 0 ? '#22c55e' : '#ef4444'}
-                  height={300}
-                />
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wide">24h Change</p>
+                    <p className={`text-lg font-bold mt-1 ${selectedCommodity.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                      {selectedCommodity.change >= 0 ? '+' : ''}{selectedCommodity.change.toFixed(2)} ({selectedCommodity.changePercent.toFixed(2)}%)
+                    </p>
+                  </div>
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wide">24h High</p>
+                    <p className="text-lg font-bold mt-1 text-white">{selectedCommodity.high24h.toFixed(2)}</p>
+                  </div>
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wide">24h Low</p>
+                    <p className="text-lg font-bold mt-1 text-white">{selectedCommodity.low24h.toFixed(2)}</p>
+                  </div>
+                  <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wide">Last Updated</p>
+                    <p className="text-lg font-bold mt-1 text-white">{new Date(selectedCommodity.lastUpdated).toLocaleTimeString()}</p>
+                  </div>
+                </div>
+                <p className="text-xs text-zinc-500 mt-4">Intraday history charting isn&apos;t available yet — showing the latest real snapshot from the data provider.</p>
               </div>
             )}
 
