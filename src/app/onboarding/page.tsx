@@ -445,7 +445,7 @@ export default function OnboardingPage() {
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-gray-700">{pkg.price ? `R${pkg.price}/mo` : "R0/mo"}</span>
+                              <span className="font-bold text-gray-700">{pkg.price ? `R${pkg.price} one-time` : "Free"}</span>
                               {active && <CheckCircle2 className="h-5 w-5 text-green-500" />}
                             </div>
                           </div>
@@ -460,7 +460,7 @@ export default function OnboardingPage() {
                       );
                     })}
                   </div>
-                  <p className="text-xs text-gray-400 text-center">No credit card required for Free plan. Paid plans billed monthly.</p>
+                  <p className="text-xs text-gray-400 text-center">No credit card required for Free plan. Paid plans are a one-time payment — no recurring charge.</p>
                 </div>
               )}
               {step === 4 && (

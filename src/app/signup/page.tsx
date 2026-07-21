@@ -41,6 +41,7 @@ const strengthColor = ["", "bg-red-500", "bg-orange-400", "bg-yellow-400", "bg-l
 export default function SignupPage() {
   const [role, setRole] = useState<AccountRole>("business");
   const [formData, setFormData] = useState({
+    fullName: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -78,7 +79,7 @@ export default function SignupPage() {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          fullName: formData.companyName.trim(),
+          fullName: formData.fullName.trim(),
           role,
           companyName: formData.companyName,
           regNumber: formData.regNumber,
@@ -209,6 +210,20 @@ export default function SignupPage() {
             </div>
 
             <form className="space-y-4" onSubmit={handleSignup}>
+              {/* Account holder's own name */}
+              <div className="space-y-1.5">
+                <Label htmlFor="full-name" className="text-sm font-semibold text-gray-700">Your Full Name</Label>
+                <Input
+                  id="full-name"
+                  required
+                  autoComplete="name"
+                  placeholder="Jane Dlamini"
+                  className="h-11 rounded-xl border-gray-200 bg-white"
+                  value={formData.fullName}
+                  onChange={(e) => update("fullName", e.target.value)}
+                />
+              </div>
+
               {/* Business fields */}
               <div className="space-y-4 p-4 rounded-2xl border border-blue-100 bg-blue-50/50">
                 <p className="text-xs font-bold text-blue-700 uppercase tracking-wider flex items-center gap-2">
