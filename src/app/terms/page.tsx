@@ -68,12 +68,12 @@ export default function TermsPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-cyan-400 mb-4">5. Subscriptions, Billing & Auto-Renewal</h2>
+              <h2 className="text-2xl font-bold text-cyan-400 mb-4">5. Subscriptions & Billing</h2>
               <ul className="list-disc list-inside space-y-2">
-                <li>The Platform offers a free tier and paid subscription tiers (currently billed monthly in South African Rand), described on our <Link href="/pricing" className="text-cyan-400 hover:underline">Pricing</Link> page. Features and prices may change; where a change materially affects an active subscription, we will give reasonable notice before it takes effect at your next renewal.</li>
-                <li>Paid subscriptions automatically renew each billing cycle until you cancel. Payments are processed by our third-party payment provider, PayFast — we do not store your full card details.</li>
-                <li>You can cancel auto-renewal at any time from your account settings. Cancelling stops future billing; it does not automatically refund the current billing period — see our <Link href="/refund-policy" className="text-cyan-400 hover:underline">Refund Policy</Link> for how refunds and cooling-off cancellations work.</li>
-                <li>If a payment fails, we may retry it, downgrade your account to the free tier, or suspend paid features until payment succeeds.</li>
+                <li>The Platform offers a free tier and paid tiers (priced in South African Rand), described on our <Link href="/pricing" className="text-cyan-400 hover:underline">Pricing</Link> page. Features and prices may change; where a change materially affects your current tier, we will give reasonable notice before it takes effect.</li>
+                <li>Paid tiers are billed as a <strong>single, one-time payment</strong> — we do not automatically re-charge you on a recurring schedule. Once paid, your tier stays active indefinitely until you change it yourself. Payments are processed by our third-party payment provider, PayFast — we do not store your full card details.</li>
+                <li>You can upgrade, downgrade, or cancel back to the free tier at any time from Settings → Billing. Cancelling takes effect immediately; it does not refund the payment you already made — see our <Link href="/refund-policy" className="text-cyan-400 hover:underline">Refund Policy</Link> for how refunds and cooling-off cancellations work.</li>
+                <li>Because there is no recurring charge, there is no failed-payment scenario for an existing tier — if you want a different tier, you make a new payment for it via Settings → Billing.</li>
               </ul>
             </section>
 

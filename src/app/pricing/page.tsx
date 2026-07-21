@@ -78,7 +78,7 @@ export default function PricingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: tier.price,
-          description: `${tier.name} Subscription (R${tier.price}/month)`,
+          description: `${tier.name} Tier (R${tier.price} one-time)`,
           purchaseType: `subscription_${tier.key}`,
         }),
       });
@@ -136,7 +136,7 @@ export default function PricingPage() {
           Grow with the plan that fits you
         </h1>
         <p className="text-lg text-gray-500">
-          Every plan includes CIPC &amp; SARS verification support. Upgrade or downgrade anytime — changes
+          Paid plans include CIPC-backed business verification. Upgrade or downgrade anytime — changes
           take effect immediately, right here.
         </p>
       </div>
@@ -192,7 +192,7 @@ export default function PricingPage() {
                     ) : (
                       <>
                         <span className="text-4xl font-extrabold text-gray-900">R{tier.price}</span>
-                        <span className="text-sm text-gray-500 ml-1">/month</span>
+                        <span className="text-sm text-gray-500 ml-1">one-time</span>
                       </>
                     )}
                   </div>
@@ -260,12 +260,8 @@ export default function PricingPage() {
               a: "No! Cancel anytime. No hidden fees or long-term commitments.",
             },
             {
-              q: "How does CIPC verification work?",
-              a: "We verify your business is registered with CIPC. Takes 24-48 hours after signup.",
-            },
-            {
-              q: "What about SARS verification?",
-              a: "We verify your tax compliance status with SARS, so customers know you're legitimate.",
+              q: "How does business verification work?",
+              a: "Our compliance team manually reviews your CIPC registration certificate, director ID, proof of bank account, and proof of address, plus your social media presence and location. Verification typically takes 3–7 business days after you submit your documents.",
             },
           ].map((faq) => (
             <div

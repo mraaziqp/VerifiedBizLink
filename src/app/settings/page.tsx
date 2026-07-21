@@ -627,9 +627,9 @@ function SettingsForm() {
                         <p className="text-xs text-slate-500">
                           {user?.role === 'business'
                             ? (tiers.find((t) => t.key === (business?.package_type || 'free'))?.price
-                                ? `R${tiers.find((t) => t.key === business?.package_type)?.price}/month`
+                                ? `R${tiers.find((t) => t.key === business?.package_type)?.price} one-time — paid`
                                 : 'Free tier list visibility')
-                            : 'No subscription — personal accounts are always free'}
+                            : 'No paid tier — personal accounts are always free'}
                         </p>
                       </div>
                       <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
