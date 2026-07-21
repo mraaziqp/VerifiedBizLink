@@ -12,78 +12,6 @@ interface Message {
   timestamp: Date;
 }
 
-// ─── Knowledge Base ────────────────────────────────────────────────────────────
-const FAQ: Array<{ patterns: string[]; response: string }> = [
-  {
-    patterns: ["hi", "hello", "hey", "howzit", "greetings", "good morning", "good afternoon", "sup", "yo"],
-    response: "Hey there! 👋 Great to see you on **VerifiedBizLink**.\n\nI can help you with:\n• Business verification & documents\n• Privacy & POPI Act rights\n• Account management & settings\n• Connections & networking\n• Ads & platform features\n\nType your question or tap a quick reply below!",
-  },
-  {
-    patterns: ["verify", "verification", "vetting", "gold badge", "get verified", "trust badge", "checkmark", "verified"],
-    response: "To get your business **Gold Verification badge**, go to the **Vetting Hub** in the navigation.\n\nYou'll need to upload 5 documents:\n• CIPC Registration Certificate\n• VAT Compliance Letter\n• Identity Proof of Directors\n• Proof of Bank Account\n• Proof Business Exists (letterhead/lease/utility bill)\n\nVerification typically takes **3–7 business days**. Once verified, your trust score increases significantly.\n\nNeed help? Contact info@verifiedbizlink.co.za",
-  },
-  {
-    patterns: ["upload", "document", "docs", "file", "cipc", "vat", "id proof", "bank letter", "letterhead"],
-    response: "To upload verification documents:\n1. Go to the **Vetting** page from the sidebar\n2. Check each required document\n3. Click **'Mark Uploaded'** for each\n4. Once all 5 are uploaded, click **'Submit for Vetting'**\n\nAll documents are encrypted and only visible to our compliance team.",
-  },
-  {
-    patterns: ["privacy", "popi", "popia", "personal information", "gdpr", "data protection", "collect", "what data"],
-    response: "VerifiedBizLink is fully **POPI Act compliant** (Protection of Personal Information Act).\n\nWe collect:\n• Your name & email\n• Contact details & address\n• Business name & registration number\n\nWe **never** sell your data. Passwords are encrypted and never stored in plain text.\n\nManage your data in **Settings → Data & Privacy**.\nRead our full [Privacy Policy](/privacy).",
-  },
-  {
-    patterns: ["delete account", "close account", "remove account", "deletion", "delete my data"],
-    response: "To delete your account:\n1. Go to **Settings → Data & Privacy**\n2. Scroll to *Delete Account*\n3. Type **DELETE** to confirm\n4. Submit your deletion request\n\nYour data will be permanently deleted within **30–90 days**. You have **7 days** to cancel the request.",
-  },
-  {
-    patterns: ["password", "change password", "reset password", "forgot password", "update password"],
-    response: "To **change your password**:\n1. Go to **Settings → Security**\n2. Enter your current password\n3. Enter your new password (min. 8 characters)\n4. Click 'Update Password'\n\nForgot your password? Email info@verifiedbizlink.co.za — we respond within 24 hours.",
-  },
-  {
-    patterns: ["ad", "ads", "advertise", "boost", "advertising", "promote", "campaign", "banner"],
-    response: "**Advertising on VerifiedBizLink:**\n\nFree Customer accounts may see ads from verified businesses. Ads are dismissible — click **X** and they return after 5 minutes.\n\n**For businesses:** Advertise to thousands of verified professionals. Boost your ad for premium placement or extend duration from **Settings**.\n\nContact info@verifiedbizlink.co.za for advertising packages.",
-  },
-  {
-    patterns: ["contact", "support", "help", "reach", "email", "phone", "speak to"],
-    response: "Get in touch with us:\n\n📧 **Email:** info@verifiedbizlink.co.za\n\n🕐 Hours: Mon–Fri, **08:00–17:00 SAST**\n⚡ Response: within **24 hours**\n\nOr use our [Contact Page](/contact) to submit a ticket.",
-  },
-  {
-    patterns: ["signup", "register", "create account", "join", "new account", "sign up", "getting started"],
-    response: "Getting started is easy!\n\n1. Visit [Sign Up](/signup)\n2. Choose your account type (Customer, Business, or Shareholder)\n3. Fill in your details & accept Terms\n4. Complete the **Onboarding Wizard**\n5. You're live! Businesses can start verification immediately.\n\nAlready have an account? [Login here](/login).",
-  },
-  {
-    patterns: ["network", "connect", "connection", "find business", "discover", "search people"],
-    response: "VerifiedBizLink is South Africa's verified B2B professional network.\n\n**Network tab** lets you:\n• View all connections\n• Accept or decline incoming requests\n• Remove connections\n\nThe **right sidebar** on your feed shows business recommendations. Click **Connect** to send a request.\n\nOnly **Gold Verified** businesses appear in top recommendations.",
-  },
-  {
-    patterns: ["trust score", "vetting score", "score", "how scored"],
-    response: "Your **Trust Score (0–100)** reflects the authenticity of your business verification.\n\nIt's calculated based on:\n• Document quality & completeness\n• CIPC registration status\n• VAT compliance\n• Director ID verification\n• Business existence proof\n\nHigher score = higher placement in search results. Verified businesses typically score **85+**.",
-  },
-  {
-    patterns: ["review", "rating", "star rating", "leave a review", "customer review", "rate a business"],
-    response: "Customers can **rate and review** any verified business on VerifiedBizLink!\n\n⭐ **How to leave a review:**\n1. Visit a business profile\n2. Click **Write a Review**\n3. Select your star rating (1–5)\n4. Add a title and detailed comments\n5. Submit — done!\n\n**Rating scale:**\n• ⭐⭐⭐⭐⭐ Excellent\n• ⭐⭐⭐⭐ Very Good\n• ⭐⭐⭐ Good\n• ⭐⭐ Fair\n• ⭐ Poor\n\nReviews are public and help other users make informed decisions. You can mark reviews as 'Helpful' to boost useful feedback.",
-  },
-  {
-    patterns: ["terms", "conditions", "agreement", "rules", "terms of service"],
-    response: "Our Terms & Conditions set the platform rules.\n\nKey points:\n• Must be **18+** to register\n• All business documents must be **genuine** — forgery leads to banning\n• One account per person/business per role\n• Businesses agree to CIPC verification checks\n\nRead the full [Terms & Conditions](/terms).",
-  },
-  {
-    patterns: ["breach", "hacked", "data breach", "security incident", "compromised", "security"],
-    response: "**If you suspect a security issue:**\n1. **Change your password immediately** in Settings → Security\n2. Email **info@verifiedbizlink.co.za** with details\n3. We respond within **2 hours** for security incidents\n\nIn a confirmed data breach, we notify **all affected users within 72 hours** as required by the POPI Act.",
-  },
-  {
-    patterns: ["post", "posting", "create post", "share update", "publish", "write post", "feed"],
-    response: "To **create a post**:\n1. Go to your **Home feed** (main page)\n2. Click the post creator at the top\n3. Write your update — insights, news, announcements\n4. Click **Post**\n\nVerified business posts get a **Verified badge** next to your name for increased credibility.",
-  },
-  {
-    patterns: ["plan", "pricing", "cost", "free", "premium", "price", "subscription", "membership", "paid"],
-    response: "**VerifiedBizLink is free to join!**\n\n🆓 **Customer (Free)**\n• Connect with verified businesses\n• View the network feed\n• Ads may appear\n\n🏢 **Business (Free)**\n• Business profile & verification\n• Gold Trust Badge\n• No ads shown\n\n📢 **Advertising** — paid packages available.\nEmail info@verifiedbizlink.co.za for pricing.",
-  },
-  {
-    patterns: ["thanks", "thank you", "thank", "cheers", "great", "awesome", "perfect", "bye", "goodbye", "cool"],
-    response: "You're welcome! 😊 Happy to help anytime.\n\nHave a great day and welcome to **VerifiedBizLink** — South Africa's trusted B2B network! 🇿🇦",
-  },
-];
-
 // Quick reply chips shown before the user's first message
 const QUICK_REPLIES = [
   { label: "Check my status 🎫", text: "Where am I in the verification process?" },
@@ -101,24 +29,6 @@ const GREETING: Message = {
   text: "Hi! 👋 I'm the **VBL Assistant** — your guide to VerifiedBizLink.\n\nI can help with verification, privacy rights, account management, and more.\n\nTap a quick question below or type anything!",
   timestamp: new Date(),
 };
-
-function findResponse(query: string): string {
-  const q = query.toLowerCase().trim();
-  let bestScore = 0;
-  let bestResponse = "";
-  for (const entry of FAQ) {
-    let score = 0;
-    for (const p of entry.patterns) {
-      if (q.includes(p)) score += p.length;
-    }
-    if (score > bestScore) {
-      bestScore = score;
-      bestResponse = entry.response;
-    }
-  }
-  if (bestScore > 0) return bestResponse;
-  return "I'm not sure I can answer that specifically.\n\nHere's how you can get help:\n• Visit our [Contact Page](/contact) to submit a support ticket\n• Email **info@verifiedbizlink.co.za**\n• Response within **24 hours** on business days\n\nTry rephrasing — I know about verification, privacy, accounts, networking, ads, and more!";
-}
 
 function formatTime(date: Date) {
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
