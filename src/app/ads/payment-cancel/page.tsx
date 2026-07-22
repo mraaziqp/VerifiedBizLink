@@ -18,7 +18,7 @@ export default function PaymentCancelPage() {
 
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Payment Cancelled</h1>
-            <p className="text-slate-300">Your payment has been cancelled and your ad was not charged.</p>
+            <p className="text-slate-300">Your payment was cancelled — you were not charged.</p>
           </div>
 
           <div className="bg-slate-700 rounded-lg p-4 space-y-2">

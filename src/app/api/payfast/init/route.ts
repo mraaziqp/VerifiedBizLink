@@ -41,8 +41,8 @@ export async function POST(request: NextRequest) {
     const payfastData = {
       merchant_id: PAYFAST_MERCHANT_ID,
       merchant_key: PAYFAST_MERCHANT_KEY,
-      return_url: `${APP_URL}/ads/payment-success`,
-      cancel_url: `${APP_URL}/ads/payment-cancel`,
+      return_url: `${APP_URL}/ads/payment-success?ref=${encodeURIComponent(paymentRef)}`,
+      cancel_url: `${APP_URL}/ads/payment-cancel?ref=${encodeURIComponent(paymentRef)}`,
       notify_url: `${APP_URL}/api/payfast/notify`,
       name_first: session.fullName?.split(' ')[0] || 'User',
       name_last: session.fullName?.split(' ')[1] || 'Account',
