@@ -69,11 +69,16 @@ const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
 // /api/posts left every unverified account — the majority of real users —
 // unable to like or comment, with the request silently rejected client-side.
 const VERIFICATION_EXEMPT = new RegExp(`^/api/posts/${UUID}/(like|comments)$`, 'i');
-// Choosing a package is part of finishing onboarding itself, not content
-// creation — a brand-new business account hasn't had time to verify their
-// email yet, so gating this the same way as posting/messaging blocked
-// every new signup from ever completing onboarding.
-const VERIFICATION_EXEMPT_PATHS = ['/api/businesses/packages'];
+// Choosing a package, and uploading/submitting vetting documents, are part
+// of finishing verification itself, not the content creation the gate is
+// meant to guard — an unverified business account can now reach the Vetting
+// Hub page (see UNVERIFIED_ALLOWED_PREFIXES below), so it must also be able
+// to actually use it, or letting the page through would be pointless.
+const VERIFICATION_EXEMPT_PATHS = [
+  '/api/businesses/packages',
+  '/api/businesses/documents',
+  '/api/businesses/submit',
+];
 // A verified business's public trust profile (page + the API it reads from)
 // must be viewable without an account — that's the whole point of showing
 // a trust score to prospective customers. Owner-management routes like
@@ -81,6 +86,13 @@ const VERIFICATION_EXEMPT_PATHS = ['/api/businesses/packages'];
 // so this only opens the read-only profile paths.
 const PUBLIC_BUSINESS_PROFILE = new RegExp(`^/business/${UUID}$`, 'i');
 const PUBLIC_BUSINESS_API = new RegExp(`^/api/businesses/${UUID}(/reviews(/${UUID}/helpful)?|/gallery|/view)?$`, 'i');
+
+// Pages an unverified account can still reach — everything needed to finish
+// verifying (settings to resend/manage the account, onboarding, and the
+// Vetting Hub to actually submit business documents) without being able to
+// wander into the rest of the app and publish anything. Staff are exempt
+// (provisioned directly, not through the public signup+verify flow).
+const UNVERIFIED_ALLOWED_PREFIXES = ['/settings', '/onboarding', '/vetting'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -119,19 +131,38 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Admin area is staff-only: verify the JWT and check the role claim here so
-  // non-staff users never reach the admin UI (API routes also check server-side)
-  if (pathname.startsWith('/admin')) {
-    try {
-      const { payload } = await jwtVerify(session.value, JWT_SECRET);
-      if (!STAFF_ROLES.includes((payload as { role?: string }).role ?? '')) {
-        return NextResponse.redirect(new URL('/', request.url));
-      }
-    } catch {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('from', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
+  // Decode once and reuse below — every check past this point needs the
+  // role/emailVerified claims, and an invalid/expired token means the same
+  // thing everywhere: back to login.
+  let claims: { role?: string; emailVerified?: boolean };
+  try {
+    const { payload } = await jwtVerify(session.value, JWT_SECRET);
+    claims = payload as { role?: string; emailVerified?: boolean };
+  } catch {
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('from', pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+  const isStaffUser = STAFF_ROLES.includes(claims.role ?? '');
+
+  // Admin area is staff-only so non-staff users never reach the admin UI
+  // (API routes also check server-side).
+  if (pathname.startsWith('/admin') && !isStaffUser) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // An unverified account can browse Settings, Onboarding, and the Vetting
+  // Hub — everything needed to finish verifying — but nowhere else in the
+  // app, so they can't publish a post, message anyone, or build out a
+  // business profile before proving they own the email on file. Page
+  // navigation only; the public paths/API prefixes above are unaffected.
+  if (
+    !isStaffUser &&
+    !claims.emailVerified &&
+    !pathname.startsWith('/api') &&
+    !UNVERIFIED_ALLOWED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  ) {
+    return NextResponse.redirect(new URL('/settings', request.url));
   }
 
   // Lock creation/write actions behind email verification. Staff accounts
@@ -141,23 +172,14 @@ export async function middleware(request: NextRequest) {
     MUTATING_METHODS.includes(request.method) &&
     VERIFIED_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix)) &&
     !VERIFICATION_EXEMPT.test(pathname) &&
-    !VERIFICATION_EXEMPT_PATHS.includes(pathname)
+    !VERIFICATION_EXEMPT_PATHS.includes(pathname) &&
+    !isStaffUser &&
+    !claims.emailVerified
   ) {
-    try {
-      const { payload } = await jwtVerify(session.value, JWT_SECRET);
-      const claims = payload as { role?: string; emailVerified?: boolean };
-      const isStaffUser = STAFF_ROLES.includes(claims.role ?? '');
-      if (!isStaffUser && !claims.emailVerified) {
-        return NextResponse.json(
-          { error: 'Please verify your email address to unlock this feature.' },
-          { status: 403 },
-        );
-      }
-    } catch {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('from', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
+    return NextResponse.json(
+      { error: 'Please verify your email address to unlock this feature.' },
+      { status: 403 },
+    );
   }
 
   return NextResponse.next();
