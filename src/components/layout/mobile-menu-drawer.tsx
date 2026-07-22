@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -32,6 +33,24 @@ export function MobileMenuDrawer() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { open, setOpen } = useMobileMenu();
+  // Controls the slide-in transform directly instead of the `animate-in`
+  // utility classes, which left the panel stuck at its off-screen starting
+  // position — the drawer would "open" (state-wise) but render entirely
+  // outside the viewport, making Sign Out and every menu item unreachable.
+  const [slidIn, setSlidIn] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setSlidIn(false);
+      return;
+    }
+    // A timeout, not requestAnimationFrame — rAF is suspended while the tab
+    // is backgrounded, which would leave the panel stuck off-screen if the
+    // menu is opened right as the tab becomes visible again (e.g. switching
+    // back to the app on mobile).
+    const timer = setTimeout(() => setSlidIn(true), 10);
+    return () => clearTimeout(timer);
+  }, [open]);
 
   if (pathname === "/login" || pathname === "/signup" || !user) return null;
 
@@ -52,7 +71,11 @@ export function MobileMenuDrawer() {
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute left-0 top-0 h-full w-72 max-w-[80vw] bg-slate-950 border-r border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-left duration-200">
+          <div
+            className={`absolute left-0 top-0 h-full w-72 max-w-[80vw] bg-slate-950 border-r border-white/10 shadow-2xl flex flex-col transition-transform duration-200 ease-out ${
+              slidIn ? "translate-x-0" : "-translate-x-full"
+            }`}
+          >
             <div className="flex items-center justify-between border-b border-white/10 p-4">
               <VBLLogo variant="icon" size="md" theme="dark" />
               <button
