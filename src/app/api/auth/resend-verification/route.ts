@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { getSession, hashOneTimeToken } from '@/lib/auth';
 import { sendVerificationEmail } from '@/lib/email';
 import db from '@/lib/db';
 import { checkRateLimit } from '@/lib/rate-limit';
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   const token = crypto.randomUUID();
   const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-  await db`UPDATE users SET email_verification_token = ${token}, email_verification_token_expires_at = ${tokenExpiresAt.toISOString()}, updated_at = NOW() WHERE id = ${session.id}`;
+  await db`UPDATE users SET email_verification_token = ${hashOneTimeToken(token)}, email_verification_token_expires_at = ${tokenExpiresAt.toISOString()}, updated_at = NOW() WHERE id = ${session.id}`;
 
   sendVerificationEmail(rows[0].email, rows[0].full_name, token).catch((err) => {
     console.error('Resend-verification email failed for', rows[0].email, err);

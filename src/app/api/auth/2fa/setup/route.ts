@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { generateTotpSecret, getOtpAuthUri } from '@/lib/twofactor';
+import { generateTotpSecret, getOtpAuthUri, encryptTotpSecret } from '@/lib/twofactor';
 import db from '@/lib/db';
 
 // POST /api/auth/2fa/setup — generates (and stores, but does not yet enable)
@@ -12,7 +12,7 @@ export async function POST() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const secret = generateTotpSecret();
-  await db`UPDATE users SET two_factor_secret = ${secret}, two_factor_enabled = false WHERE id = ${session.id}`;
+  await db`UPDATE users SET two_factor_secret = ${encryptTotpSecret(secret)}, two_factor_enabled = false WHERE id = ${session.id}`;
 
   const otpauthUri = getOtpAuthUri(secret, session.email);
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpauthUri)}`;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import { verifyTotpToken, generateBackupCodes, hashBackupCode } from '@/lib/twofactor';
+import { verifyTotpToken, generateBackupCodes, hashBackupCode, decryptTotpSecret } from '@/lib/twofactor';
 import db from '@/lib/db';
 
 // POST /api/auth/2fa/verify-setup — confirms the user actually scanned the
@@ -14,12 +14,12 @@ export async function POST(request: NextRequest) {
   if (!code) return NextResponse.json({ error: 'code is required' }, { status: 400 });
 
   const rows = await db`SELECT two_factor_secret FROM users WHERE id = ${session.id}`;
-  const secret = rows[0]?.two_factor_secret;
-  if (!secret) {
+  const encryptedSecret = rows[0]?.two_factor_secret;
+  if (!encryptedSecret) {
     return NextResponse.json({ error: 'Call /api/auth/2fa/setup first' }, { status: 400 });
   }
 
-  const valid = await verifyTotpToken(String(code).trim(), secret);
+  const valid = await verifyTotpToken(String(code).trim(), decryptTotpSecret(encryptedSecret));
   if (!valid) {
     return NextResponse.json({ error: 'Invalid code — check the time on your device and try again' }, { status: 401 });
   }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createTrackedSession, sessionCookieOptions } from '@/lib/auth';
+import { createTrackedSession, sessionCookieOptions, hashOneTimeToken } from '@/lib/auth';
 import db from '@/lib/db';
 
 export async function GET(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const userRows = await db`
       SELECT id, email, full_name, role, avatar_url, headline, email_verification_token_expires_at
       FROM users
-      WHERE email_verification_token = ${token}
+      WHERE email_verification_token = ${hashOneTimeToken(token)}
       LIMIT 1
     `;
 

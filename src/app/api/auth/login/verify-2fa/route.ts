@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createTrackedSession, verifyMfaChallenge, sessionCookieOptions } from '@/lib/auth';
-import { verifyTotpToken, hashBackupCode } from '@/lib/twofactor';
+import { verifyTotpToken, hashBackupCode, decryptTotpSecret } from '@/lib/twofactor';
 import db from '@/lib/db';
 
 // POST /api/auth/login/verify-2fa — completes a login started by
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     const user = users[0];
 
     const cleanCode = String(code).trim();
-    let valid = user.two_factor_secret ? await verifyTotpToken(cleanCode, user.two_factor_secret) : false;
+    let valid = user.two_factor_secret ? await verifyTotpToken(cleanCode, decryptTotpSecret(user.two_factor_secret)) : false;
 
     // Fall back to a one-time backup code if the TOTP code didn't match.
     let remainingBackupCodes: string[] | null = null;

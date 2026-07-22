@@ -1,6 +1,38 @@
 import { generateSecret, generate, verify, generateURI } from 'otplib';
 import crypto from 'crypto';
 
+// TOTP secrets must be reversible (unlike a password, we need the raw
+// value back to compute valid codes), so they can't be one-way hashed —
+// they're encrypted at rest instead. A plaintext DB dump alone is then
+// not enough to generate valid codes for a user's authenticator; the
+// attacker would also need this app-side key, which never lives in the
+// database.
+function getEncryptionKey(): Buffer {
+  const raw = process.env.TWO_FACTOR_ENCRYPTION_KEY;
+  if (!raw || raw.length !== 64) {
+    throw new Error('TWO_FACTOR_ENCRYPTION_KEY must be set to a 64-character hex string (32 bytes)');
+  }
+  return Buffer.from(raw, 'hex');
+}
+
+export function encryptTotpSecret(plaintext: string): string {
+  const key = getEncryptionKey();
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted.toString('hex')}`;
+}
+
+export function decryptTotpSecret(payload: string): string {
+  const key = getEncryptionKey();
+  const [ivHex, tagHex, dataHex] = payload.split(':');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(ivHex, 'hex'));
+  decipher.setAuthTag(Buffer.from(tagHex, 'hex'));
+  const decrypted = Buffer.concat([decipher.update(Buffer.from(dataHex, 'hex')), decipher.final()]);
+  return decrypted.toString('utf8');
+}
+
 export function generateTotpSecret(): string {
   return generateSecret();
 }

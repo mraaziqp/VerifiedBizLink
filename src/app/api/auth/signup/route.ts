@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { resolveMx } from 'dns/promises';
-import { createTrackedSession, sessionCookieOptions } from '@/lib/auth';
+import { createTrackedSession, sessionCookieOptions, hashOneTimeToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { sendVerificationEmail } from '@/lib/email';
 import db from '@/lib/db';
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
         ${userRole},
         ${headline},
         ${''},
-        ${verificationToken},
+        ${hashOneTimeToken(verificationToken)},
         ${verificationTokenExpiresAt.toISOString()},
         ${dateOfBirth || null}
       )

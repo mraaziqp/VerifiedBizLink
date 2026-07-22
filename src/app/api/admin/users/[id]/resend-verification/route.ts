@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSession, isStaff } from '@/lib/auth';
+import { getSession, isStaff, hashOneTimeToken } from '@/lib/auth';
 import { sendVerificationEmail } from '@/lib/email';
 import db from '@/lib/db';
 
@@ -32,7 +32,7 @@ export async function POST(
   const token = crypto.randomUUID();
   const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
   await db`
-    UPDATE users SET email_verification_token = ${token}, email_verification_token_expires_at = ${tokenExpiresAt.toISOString()}, updated_at = NOW()
+    UPDATE users SET email_verification_token = ${hashOneTimeToken(token)}, email_verification_token_expires_at = ${tokenExpiresAt.toISOString()}, updated_at = NOW()
     WHERE id = ${id}
   `;
 

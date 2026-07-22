@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
-import { createTrackedSession, sessionCookieOptions } from '@/lib/auth';
+import { createTrackedSession, sessionCookieOptions, hashOneTimeToken } from '@/lib/auth';
 import db from '@/lib/db';
 
 export async function POST(request: NextRequest) {
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const users = await db`
       SELECT id, email, full_name, role, avatar_url, headline, email_verified
       FROM users
-      WHERE password_reset_token = ${token} AND password_reset_expires > NOW()
+      WHERE password_reset_token = ${hashOneTimeToken(token)} AND password_reset_expires > NOW()
       LIMIT 1
     `;
 

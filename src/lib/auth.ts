@@ -2,12 +2,22 @@ import { SignJWT } from 'jose/jwt/sign';
 import { jwtVerify } from 'jose/jwt/verify';
 import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
+import { createHash } from 'crypto';
 import db from '@/lib/db';
 
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is not set. Set it in .env.local or your deployment environment.');
 }
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+
+// One-time tokens (password reset, email verification) are high-entropy
+// random values, like API keys — a fast one-way hash is the standard,
+// appropriate protection here (unlike passwords, which need a slow,
+// salted hash to resist brute force over low-entropy human input). The
+// raw token only ever exists in the email link; the DB stores this hash.
+export function hashOneTimeToken(rawToken: string): string {
+  return createHash('sha256').update(rawToken).digest('hex');
+}
 
 const COOKIE_NAME = 'vbl_session';
 

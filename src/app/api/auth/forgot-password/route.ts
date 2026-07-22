@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import db from '@/lib/db';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { hashOneTimeToken } from '@/lib/auth';
 
 const GENERIC_RESPONSE = {
   success: true,
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     // back who (if anyone) it belongs to in the same query.
     const users = await db`
       UPDATE users
-      SET password_reset_token = ${token}, password_reset_expires = ${expires.toISOString()}
+      SET password_reset_token = ${hashOneTimeToken(token)}, password_reset_expires = ${expires.toISOString()}
       WHERE LOWER(email) = ${normalizedEmail}
       RETURNING id, email, full_name
     `;
