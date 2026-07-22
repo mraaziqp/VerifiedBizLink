@@ -34,7 +34,7 @@ export default function AdminTeamPage() {
             </strong>
             - System overview, tier management, platform analytics
             <strong className="block mt-2 text-slate-100">
-              🏦 Banker/Specialist (Wesley)
+              🏦 Compliance Officer (Wesley)
             </strong>
             - Business vetting, user management, compliance verification
             <strong className="block mt-2 text-slate-100">
