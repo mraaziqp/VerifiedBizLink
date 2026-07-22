@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MapPin, Search } from "lucide-react";
+import { MapPin, Search, ArrowLeft } from "lucide-react";
 import SmartMatchFeed from "@/components/discover/smart-match-feed";
 
 export default function DiscoverPage() {
@@ -15,6 +15,9 @@ export default function DiscoverPage() {
       {/* Header */}
       <div className="border-b border-gray-800 sticky top-0 z-40 backdrop-blur-xl bg-black/50">
         <div className="max-w-7xl mx-auto px-4 py-6">
+          <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-400 hover:text-white mb-3">
+            <ArrowLeft className="h-4 w-4" /> Back to Home
+          </Link>
           <h1 className="text-3xl font-bold text-white mb-4">Discover & Connect</h1>
           <div className="flex gap-2 flex-wrap">
             <div className="flex-1 min-w-[250px] relative">

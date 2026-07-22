@@ -147,6 +147,11 @@ function ResetPasswordForm() {
                 )}
               </Button>
             </form>
+            <p className="text-center text-sm text-gray-500 pt-6">
+              <Link href="/login" className="font-bold text-yellow-600 hover:text-yellow-700 hover:underline">
+                Back to sign in
+              </Link>
+            </p>
           </>
         )}
       </div>

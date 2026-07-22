@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, ShieldCheck, BadgeCheck, Zap, Crown, Building2, type LucideIcon } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck, BadgeCheck, Zap, Crown, Building2, ArrowLeft, ReceiptText, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -23,20 +23,6 @@ const TIER_ICON: Record<string, LucideIcon> = {
   premium: Crown,
 };
 
-const ENTERPRISE_TIER: Tier = {
-  key: "enterprise",
-  name: "Enterprise Partner",
-  price: -1, // sentinel: renders as "Custom" instead of a Rand amount
-  features: [
-    "Multiple branches",
-    "Dedicated account manager",
-    "Featured homepage placement",
-    "Advanced analytics",
-    "Sponsored content",
-    "Custom solutions",
-  ],
-};
-
 export default function PricingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -49,11 +35,8 @@ export default function PricingPage() {
   useEffect(() => {
     fetch("/api/tiers")
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        const rows: Tier[] = data?.tiers || [];
-        setTiers([...rows, ENTERPRISE_TIER]);
-      })
-      .catch(() => setTiers([ENTERPRISE_TIER]))
+      .then((data) => setTiers(data?.tiers || []))
+      .catch(() => setTiers([]))
       .finally(() => setLoading(false));
   }, []);
 
@@ -113,14 +96,12 @@ export default function PricingPage() {
   };
 
   const ctaAction = (tier: Tier) => {
-    if (tier.key === "enterprise") return { href: "/contact" };
     if (tier.key === "free") return { href: user ? "/business/dashboard" : "/signup" };
     return { onClick: () => handleCheckout(tier) };
   };
 
   const ctaLabel = (tier: Tier) => {
     if (currentTier === tier.key) return "Current Plan";
-    if (tier.key === "enterprise") return "Contact Sales";
     if (tier.key === "free") return "Get Started";
     return "Upgrade Now";
   };
@@ -128,7 +109,12 @@ export default function PricingPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="text-center py-16 px-4 max-w-3xl mx-auto">
+      <div className="max-w-7xl mx-auto px-4 pt-6">
+        <Link href={user ? "/business/dashboard" : "/"} className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-gray-800">
+          <ArrowLeft className="h-4 w-4" /> Back
+        </Link>
+      </div>
+      <div className="text-center pt-10 pb-16 px-4 max-w-3xl mx-auto">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-400 bg-yellow-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-yellow-700 mb-6">
           Simple, transparent pricing
         </span>
@@ -139,16 +125,20 @@ export default function PricingPage() {
           Paid plans include CIPC-backed business verification. Upgrade or downgrade anytime — changes
           take effect immediately, right here.
         </p>
+        <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-gray-900 text-white px-4 py-2 text-sm font-semibold">
+          <ReceiptText className="h-4 w-4 text-yellow-400" />
+          One-time payment per plan — no recurring billing, no surprise charges.
+        </div>
       </div>
 
       {/* Pricing Cards */}
-      <div className="max-w-7xl mx-auto px-4 pb-20">
+      <div className="max-w-6xl mx-auto px-4 pb-16">
         {loading ? (
           <div className="flex justify-center py-24">
             <Loader2 className="h-8 w-8 text-yellow-500 animate-spin" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
             {tiers.map((tier) => {
               const highlighted = tier.key === "standard";
               const isCurrent = currentTier === tier.key;
@@ -237,6 +227,29 @@ export default function PricingPage() {
             })}
           </div>
         )}
+      </div>
+
+      {/* Enterprise — separated from the self-serve cards since it's not a fixed price */}
+      <div className="max-w-6xl mx-auto px-4 pb-20">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-6 justify-between">
+          <div className="flex items-center gap-4">
+            <div className="h-12 w-12 rounded-xl bg-gray-900 flex items-center justify-center shrink-0">
+              <Building2 className="h-6 w-6 text-yellow-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Need something bigger?</h3>
+              <p className="text-sm text-gray-500 max-w-md">
+                Enterprise Partner: multiple branches, a dedicated account manager, featured homepage placement,
+                advanced analytics, and custom solutions — priced for your business.
+              </p>
+            </div>
+          </div>
+          <Link href="/contact" className="shrink-0 w-full sm:w-auto">
+            <Button className="w-full sm:w-auto bg-gray-900 text-white hover:bg-gray-800 font-bold rounded-xl h-11 px-6">
+              Contact Sales
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* FAQ Section */}

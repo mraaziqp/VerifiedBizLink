@@ -103,7 +103,7 @@ export default function Dashboard() {
       <div className="border-b border-gray-800/50 sticky top-0 z-40 backdrop-blur-xl bg-gradient-to-b from-black/80 to-black/50 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex-1">
-            <div className="flex items-center gap-3">
+            <Link href="/" className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center shadow-lg">
                 <span className="text-black font-bold text-lg">D</span>
               </div>
@@ -113,7 +113,7 @@ export default function Dashboard() {
                 </h1>
                 <p className="text-gray-400 text-xs">Welcome back, {user?.fullName?.split(' ')[0]}!</p>
               </div>
-            </div>
+            </Link>
           </div>
 
           {/* Desktop Navigation */}

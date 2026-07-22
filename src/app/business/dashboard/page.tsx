@@ -10,7 +10,7 @@ import {
   Zap, Award, Globe, MessageSquare, ArrowRight, CheckCircle2,
   AlertTriangle, Activity, Clock, Star, Sparkles, Target,
   Lightbulb, CheckSquare, Flame, Radio,
-  BarChart, Bell
+  BarChart, Bell, Home
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -321,6 +321,15 @@ export default function BusinessDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <Link href="/">
+                <Button
+                  variant="outline"
+                  className="gap-2 border-white/10 text-slate-300 hover:bg-white/5 hidden sm:flex"
+                >
+                  <Home className="h-4 w-4" />
+                  Home
+                </Button>
+              </Link>
               <Link href={`/business/${business.id}`} target="_blank">
                 <Button
                   variant="outline"

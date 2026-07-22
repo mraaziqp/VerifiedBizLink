@@ -158,7 +158,7 @@ export function AdBanner() {
 
   return (
     <div
-      className="fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100vw-2rem)] max-w-md
+      className="fixed bottom-20 md:bottom-6 inset-x-0 mx-auto z-40 w-[calc(100vw-2rem)] max-w-md
                  bg-white rounded-2xl border border-gray-200 shadow-2xl shadow-black/10 overflow-hidden
                  animate-in slide-in-from-bottom-4 fade-in duration-300"
       role="banner"
