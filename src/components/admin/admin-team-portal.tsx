@@ -296,7 +296,7 @@ export function AdminTeamPortal() {
               {selectedMember.role === 'admin' &&
                 'Lead administrator responsible for system overview, tier management, and platform analytics. Full access to all administrative tools and user management systems.'}
               {selectedMember.role === 'banker' &&
-                'Banking specialist focused on business verification and user management. Primary responsibility for vetting workflow and compliance analytics to ensure accurate business data.'}
+                'Compliance officer focused on business verification and user management. Primary responsibility for vetting workflow and compliance analytics to ensure accurate business data.'}
               {selectedMember.role === 'lawyer' &&
                 'Legal officer handling audit logs, compliance tracking, and regulatory adherence. Ensures all platform activities comply with South African legal requirements.'}
             </p>
