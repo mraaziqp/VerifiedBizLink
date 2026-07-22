@@ -27,6 +27,16 @@ const ROLE_STYLES: Record<string, string> = {
   customer: 'bg-gray-500/15 text-gray-400',
 };
 
+// 'banker' is the internal RBAC role name — show it as the friendly title
+// staff actually use instead of the raw role value.
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Admin',
+  banker: 'Compliance Officer',
+  lawyer: 'Lawyer',
+  business: 'Business',
+  customer: 'Customer',
+};
+
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,7 +193,7 @@ export default function AdminUsersPage() {
                       <td className="px-5 py-3 font-mono text-xs text-gray-400">{user.email}</td>
                       <td className="px-5 py-3">
                         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${ROLE_STYLES[user.role] || ROLE_STYLES.customer}`}>
-                          {user.role}
+                          {ROLE_LABELS[user.role] || user.role}
                         </span>
                       </td>
                       <td className="px-5 py-3">

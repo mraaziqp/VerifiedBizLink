@@ -117,7 +117,7 @@ export function AdminCredentialManager() {
             <strong>Logged in as:</strong> {user.email}
           </p>
           <p className="text-sm text-gray-600 mt-1">
-            <strong>Role:</strong> {user.role === "admin" ? "Administrator" : user.role}
+            <strong>Role:</strong> {user.role === "admin" ? "Administrator" : user.role === "banker" ? "Compliance Officer" : user.role}
           </p>
         </div>
       )}

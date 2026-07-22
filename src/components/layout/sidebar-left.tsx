@@ -29,6 +29,16 @@ interface Notification {
   created_at: string;
 }
 
+// 'banker' is the internal RBAC role name (shared with STAFF_ROLES checks
+// elsewhere) — show the friendly title staff actually use instead.
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Admin',
+  banker: 'Compliance Officer',
+  lawyer: 'Lawyer',
+  business: 'Business',
+  customer: 'Customer',
+};
+
 const navigation = [
   { name: "Home", href: "/", icon: Home },
   { name: "My Network", href: "/network", icon: Users },
@@ -129,7 +139,7 @@ export function SidebarLeft() {
                 <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Role</p>
-                    <p className="text-sm font-semibold text-gray-900 capitalize">{user.role}</p>
+                    <p className="text-sm font-semibold text-gray-900">{ROLE_LABELS[user.role] || user.role}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Status</p>

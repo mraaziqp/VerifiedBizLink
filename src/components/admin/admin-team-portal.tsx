@@ -29,6 +29,15 @@ const ROLE_COLORS: Record<string, { bg: string; text: string; icon: string }> = 
   lawyer: { bg: 'bg-purple-500/10', text: 'text-purple-400', icon: '⚖️' },
 };
 
+// Friendly label for the role badge — 'banker' is the internal RBAC role
+// name (shared with STAFF_ROLES checks elsewhere), not something to show
+// staff directly.
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Admin',
+  banker: 'Compliance Officer',
+  lawyer: 'Lawyer',
+};
+
 // Tools available to each staff role + where each tool lives.
 const ROLE_TOOLS: Record<string, string[]> = {
   admin: ['Overview', 'Tier Management', 'Analytics'],
@@ -162,7 +171,7 @@ export function AdminTeamPortal() {
                         <span
                           className={`text-xs font-semibold px-2 py-1 rounded ${memberColor.bg} ${memberColor.text}`}
                         >
-                          {member.role.charAt(0).toUpperCase() + member.role.slice(1)}
+                          {ROLE_LABELS[member.role] || member.role}
                         </span>
                         {member.status === 'active' ? (
                           <div className="flex items-center gap-1 text-xs text-green-400">
@@ -207,8 +216,7 @@ export function AdminTeamPortal() {
                 <div
                   className={`inline-flex items-center px-4 py-2 rounded-lg font-semibold ${roleColor.bg} ${roleColor.text}`}
                 >
-                  {selectedMember.role.charAt(0).toUpperCase() +
-                    selectedMember.role.slice(1)}
+                  {ROLE_LABELS[selectedMember.role] || selectedMember.role}
                 </div>
               </div>
             </div>
