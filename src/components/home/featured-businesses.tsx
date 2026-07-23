@@ -108,7 +108,10 @@ export function FeaturedBusinesses({
 
               <button
                 type="button"
-                onClick={() => onConnect(business.userId, business.displayName)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onConnect(business.userId, business.displayName);
+                }}
                 disabled={connectingId === business.userId}
                 className="w-full py-2 mt-2 px-3 bg-primary/10 border border-primary/30 rounded-lg text-primary font-semibold text-sm hover:bg-primary/15 hover:border-primary/50 transition-all duration-300 active:scale-95 disabled:opacity-50"
               >
