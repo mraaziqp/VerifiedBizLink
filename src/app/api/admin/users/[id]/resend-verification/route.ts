@@ -41,7 +41,7 @@ export async function POST(
   } catch (err) {
     console.error('Admin-triggered resend failed for', rows[0].email, err);
     return NextResponse.json(
-      { error: 'Could not send the email — Resend may be unreachable. Use "Verify Now" to unblock this user directly instead.' },
+      { error: 'Could not send the email — Postmark may be unreachable. Use "Verify Now" to unblock this user directly instead.' },
       { status: 502 },
     );
   }

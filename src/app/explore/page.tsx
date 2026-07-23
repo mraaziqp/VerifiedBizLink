@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   MapPin,
@@ -22,6 +23,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GoldCheckmark } from '@/components/ui/gold-checkmark';
+import { SubpageNav } from '@/components/layout/subpage-nav';
 
 interface Business {
   id: string;
@@ -64,17 +66,47 @@ const INDUSTRY_COLORS: Record<string, string> = {
 };
 
 export default function ExplorePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 className="animate-spin h-10 w-10 text-yellow-400 mx-auto mb-4" />
+            <p className="text-slate-300">Loading explore directory...</p>
+          </div>
+        </div>
+      }
+    >
+      <ExploreContent />
+    </Suspense>
+  );
+}
+
+function ExploreContent() {
+  const searchParams = useSearchParams();
+  const industryParam = searchParams.get('industry') || searchParams.get('category');
+  const queryParam = searchParams.get('query');
+
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(() =>
     typeof navigator !== 'undefined' && !navigator.geolocation ? { lat: -26.2023, lng: 28.0436 } : null
   );
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedIndustry, setSelectedIndustry] = useState('all');
+  const [searchQuery, setSearchQuery] = useState(queryParam || '');
+  const [selectedIndustry, setSelectedIndustry] = useState(industryParam || 'all');
   const [radius, setRadius] = useState(25);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const locationAttempted = useRef(false);
+
+  useEffect(() => {
+    if (industryParam) {
+      setSelectedIndustry(industryParam);
+    }
+    if (queryParam) {
+      setSearchQuery(queryParam);
+    }
+  }, [industryParam, queryParam]);
 
   // Get user location silently
   useEffect(() => {
@@ -140,7 +172,7 @@ export default function ExplorePage() {
   // Calculate distance and filter businesses
   useEffect(() => {
     let filtered = businesses.filter((b) => {
-      if (selectedIndustry !== 'all' && b.industry !== selectedIndustry) return false;
+      if (selectedIndustry !== 'all' && b.industry.toLowerCase() !== selectedIndustry.toLowerCase()) return false;
       if (searchQuery && !b.company_name.toLowerCase().includes(searchQuery.toLowerCase())) {
         return false;
       }
@@ -212,18 +244,8 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Navigation */}
-      <div className="bg-slate-900/50 backdrop-blur-md border-b border-slate-700/30 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-slate-300 hover:text-yellow-400 transition-colors font-medium"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Home
-          </Link>
-        </div>
-      </div>
+      {/* Top Navigation & Back Button */}
+      <SubpageNav title="Explore Businesses" />
 
       {/* Hero Section */}
       <div className="bg-gradient-to-b from-slate-800/50 to-transparent border-b border-slate-700/30 pb-12">

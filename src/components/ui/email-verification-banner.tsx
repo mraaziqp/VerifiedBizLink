@@ -54,26 +54,28 @@ export function EmailVerificationBanner() {
 
   return (
     <>
-      <div className="bg-yellow-500/10 backdrop-blur-xl border-b border-yellow-500/20 px-4 py-2.5 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <Mail className="h-4 w-4 text-yellow-500 shrink-0" />
-          <p className="text-xs font-semibold text-yellow-200 truncate">
-            Please verify your email address to secure your account.
+      <div className="bg-zinc-950 text-zinc-100 border-b border-zinc-800/80 px-4 py-2.5 flex items-center justify-between gap-3 shadow-md relative z-50">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-1 rounded-md bg-amber-500/10 text-amber-400 shrink-0">
+            <Mail className="h-4 w-4" />
+          </div>
+          <p className="text-xs sm:text-sm font-medium text-zinc-100 truncate">
+            Please verify your email address to secure your account and unlock full features.
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             onClick={() => handleOpenChange(true)}
-            className="text-xs font-bold text-yellow-400 hover:text-yellow-300 underline underline-offset-2 transition-colors"
+            className="text-xs font-bold bg-amber-400 text-zinc-950 hover:bg-amber-300 px-3 py-1 rounded-full transition-all shadow-sm active:scale-95"
           >
-            Didn&apos;t receive it?
+            Resend Email
           </button>
           <button
             onClick={() => setDismissed(true)}
-            className="text-yellow-500/70 hover:text-yellow-300 transition-colors"
+            className="text-zinc-400 hover:text-zinc-100 p-1 rounded-md hover:bg-zinc-800/80 transition-colors"
             aria-label="Dismiss"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
       </div>

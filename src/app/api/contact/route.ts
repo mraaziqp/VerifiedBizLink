@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
+import * as postmark from 'postmark';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getSession } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import db from '@/lib/db';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
+const postmarkToken = process.env.POSTMARK_SERVER_TOKEN || process.env.RESEND_API_KEY;
+const postmarkClient = postmarkToken ? new postmark.ServerClient(postmarkToken) : null;
+const FROM_EMAIL = process.env.POSTMARK_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'info@verifiedbizlink.co.za';
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
@@ -61,66 +63,64 @@ Provide a helpful, professional, and concise response to their query. If it's a 
       aiResponse = 'Our AI assistant is temporarily unavailable. Your query will be reviewed by our team.';
     }
 
-    // Send email to support. Resend returns { data, error } rather than
-    // throwing on API-level failures (e.g. invalid key, domain issues), so
-    // failures here would otherwise be invisible — the ticket is still
-    // saved in support_tickets above, but nobody would know the notification
-    // email never went out.
-    const supportSend = await resend.emails.send({
-      from: 'info@verifiedbizlink.co.za',
-      to: process.env.SUPPORT_EMAIL || 'info@verifiedbizlink.co.za',
-      subject: `[SUPPORT] ${subject} - ${name}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; background: #f4f4f5; padding: 20px;">
-          <div style="background: white; padding: 20px; border-radius: 8px;">
-            <h2>New Support Query</h2>
-            <p><strong>From:</strong> ${name}</p>
-            <p><strong>Email:</strong> ${email}</p>
-            <p><strong>Subject:</strong> ${subject}</p>
-            <hr/>
-            <h3>Message:</h3>
-            <p>${message.replace(/\n/g, '<br>')}</p>
-            <hr/>
-            <h3>AI Response Generated:</h3>
-            <div style="background: #f9f9f9; padding: 15px; border-left: 4px solid #FCC200;">
-              <p>${aiResponse.replace(/\n/g, '<br>')}</p>
+    if (postmarkClient) {
+      try {
+        await postmarkClient.sendEmail({
+          From: FROM_EMAIL,
+          To: process.env.SUPPORT_EMAIL || 'info@verifiedbizlink.co.za',
+          Subject: `[SUPPORT] ${subject} - ${name}`,
+          HtmlBody: `
+            <div style="font-family: Arial, sans-serif; background: #f4f4f5; padding: 20px;">
+              <div style="background: white; padding: 20px; border-radius: 8px;">
+                <h2>New Support Query</h2>
+                <p><strong>From:</strong> ${name}</p>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Subject:</strong> ${subject}</p>
+                <hr/>
+                <h3>Message:</h3>
+                <p>${message.replace(/\n/g, '<br>')}</p>
+                <hr/>
+                <h3>AI Response Generated:</h3>
+                <div style="background: #f9f9f9; padding: 15px; border-left: 4px solid #FCC200;">
+                  <p>${aiResponse.replace(/\n/g, '<br>')}</p>
+                </div>
+                <p style="color: #666; font-size: 12px; margin-top: 20px;">
+                  <em>AI-assisted response preview. Please review and send a personalized response to ${email}</em>
+                </p>
+              </div>
             </div>
-            <p style="color: #666; font-size: 12px; margin-top: 20px;">
-              <em>AI-assisted response preview. Please review and send a personalized response to ${email}</em>
-            </p>
-          </div>
-        </div>
-      `,
-    });
-    if (supportSend.error) {
-      console.error('Resend error sending support notification for', email, supportSend.error);
-    }
+          `,
+        });
+      } catch (supportErr) {
+        console.error('Postmark error sending support notification for', email, supportErr);
+      }
 
-    // Send confirmation email to user
-    const confirmSend = await resend.emails.send({
-      from: 'info@verifiedbizlink.co.za',
-      to: email,
-      subject: `We received your query - ${subject}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; background: #f4f4f5; padding: 20px;">
-          <div style="background: white; padding: 20px; border-radius: 8px;">
-            <h2>Thanks for reaching out, ${name}!</h2>
-            <p>We received your message and our team is looking into it.</p>
-            <div style="background: #f0f8ff; padding: 15px; border-radius: 6px; margin: 20px 0;">
-              <h3>Initial AI Response:</h3>
-              <p>${aiResponse.replace(/\n/g, '<br>')}</p>
+      try {
+        await postmarkClient.sendEmail({
+          From: FROM_EMAIL,
+          To: email,
+          Subject: `We received your query - ${subject}`,
+          HtmlBody: `
+            <div style="font-family: Arial, sans-serif; background: #f4f4f5; padding: 20px;">
+              <div style="background: white; padding: 20px; border-radius: 8px;">
+                <h2>Thanks for reaching out, ${name}!</h2>
+                <p>We received your message and our team is looking into it.</p>
+                <div style="background: #f0f8ff; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                  <h3>Initial AI Response:</h3>
+                  <p>${aiResponse.replace(/\n/g, '<br>')}</p>
+                </div>
+                <p>If you need further assistance, our team will contact you shortly.</p>
+                <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                  Best regards,<br/>
+                  <strong>VerifiedBizLink Support Team</strong>
+                </p>
+              </div>
             </div>
-            <p>If you need further assistance, our team will contact you shortly.</p>
-            <p style="color: #666; font-size: 14px; margin-top: 30px;">
-              Best regards,<br/>
-              <strong>VerifiedBizLink Support Team</strong>
-            </p>
-          </div>
-        </div>
-      `,
-    });
-    if (confirmSend.error) {
-      console.error('Resend error sending confirmation to', email, confirmSend.error);
+          `,
+        });
+      } catch (confirmErr) {
+        console.error('Postmark error sending confirmation to', email, confirmErr);
+      }
     }
 
     console.log(`[SUPPORT] Query from ${name} (${email}) - AI: ${usedAI ? 'Success' : 'Failed'}`);

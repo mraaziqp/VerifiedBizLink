@@ -29,15 +29,18 @@ function LoginForm() {
   const { toast } = useToast();
   const { refresh } = useAuth();
 
-  const completeLogin = (user: { email: string; role: string }) => {
-    refresh();
+  const completeLogin = async (user: { email: string; role: string }) => {
+    try {
+      await refresh();
+    } catch {
+      // ignore
+    }
     toast({ title: "Welcome back!", description: `Signed in as ${user.email}` });
     const from = searchParams.get("from");
-    if (STAFF_ROLES.includes(user.role)) {
-      router.push("/admin");
-    } else {
-      router.push(from && from !== "/login" ? from : "/");
-    }
+    const target = STAFF_ROLES.includes(user.role)
+      ? "/admin"
+      : (from && from !== "/login" ? from : "/");
+    window.location.href = target;
   };
 
   const handleLogin = async (e: React.FormEvent) => {

@@ -125,7 +125,7 @@ export default function AdminDashboard() {
               <p className="mt-1 text-sm text-gray-400">
                 Role:{' '}
                 <span className={`font-semibold ${isSuperAdmin ? 'text-yellow-400' : 'text-blue-400'}`}>
-                  {isSuperAdmin ? 'Admin' : user.role === 'lawyer' ? 'Legal' : 'Banker'}
+                  {isSuperAdmin ? 'Admin' : user.role === 'lawyer' ? 'Legal' : 'Compliance Officer'}
                 </span>
               </p>
             </div>
@@ -137,7 +137,7 @@ export default function AdminDashboard() {
         </AdminCard>
 
         <h2 className="mb-6 text-xl font-bold text-white sm:text-2xl">
-          {isAdmin ? 'Admin Tools' : 'Banking Tools'}
+          {isAdmin ? 'Admin Tools' : 'Compliance Tools'}
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           {tools.map((tool) => {

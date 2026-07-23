@@ -29,18 +29,20 @@ export async function POST(request: NextRequest) {
     `;
 
     // Fire-and-forget email notification (never blocks the message send)
-    if (process.env.RESEND_API_KEY && receiver[0].email) {
-      fetch('https://api.resend.com/emails', {
+    const postmarkToken = process.env.POSTMARK_SERVER_TOKEN || process.env.RESEND_API_KEY;
+    if (postmarkToken && receiver[0].email) {
+      fetch('https://api.postmarkapp.com/email', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+          'X-Postmark-Server-Token': postmarkToken,
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
         },
         body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL || 'info@verifiedbizlink.co.za',
-          to: receiver[0].email,
-          subject: `New message from ${session.fullName || 'a VerifiedBizLink member'}`,
-          html: `
+          From: process.env.POSTMARK_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'info@verifiedbizlink.co.za',
+          To: receiver[0].email,
+          Subject: `New message from ${session.fullName || 'a VerifiedBizLink member'}`,
+          HtmlBody: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <div style="background:#0f172a;padding:20px;border-radius:8px 8px 0 0;">
                 <h2 style="color:#fbbf24;margin:0;">New Message</h2>

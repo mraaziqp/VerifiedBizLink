@@ -95,7 +95,7 @@ export default function SignupPage() {
       if (res.ok) {
         await refresh();
         toast({ title: "Account Created!", description: "Welcome to VerifiedBizLink." });
-        router.push("/onboarding");
+        window.location.href = "/onboarding";
       } else {
         toast({ title: "Signup Failed", description: data.error, variant: "destructive" });
       }

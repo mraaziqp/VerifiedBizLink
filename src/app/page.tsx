@@ -181,8 +181,130 @@ export default function Home() {
             <PopularCategories
               categoriesData={homeData.categories}
               selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
+              onSelectCategory={(cat) => {
+                setSelectedCategory(cat);
+                if (cat !== "All") {
+                  toast({
+                    title: `Category: ${cat}`,
+                    description: `Showing verified businesses in ${cat}.`,
+                  });
+                }
+              }}
             />
+
+            {/* Filtered Category Results Block in Main Column */}
+            {(selectedCategory !== "All" || query.trim() !== "") && (
+              <div className="rounded-2xl border border-amber-300/80 bg-white/95 p-4 sm:p-5 space-y-4 shadow-sm animate-fade-in">
+                <div className="flex items-center justify-between border-b border-amber-100 pb-3">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                      <span>
+                        {selectedCategory !== "All"
+                          ? `Businesses in "${selectedCategory}"`
+                          : `Results for "${query}"`}
+                      </span>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                        {filteredBusinesses.length} found
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Showing verified businesses matching your active category filter
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedCategory("All");
+                        setQuery("");
+                      }}
+                      className="text-xs font-semibold text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg transition-colors"
+                    >
+                      Clear Filter
+                    </button>
+                    <Link
+                      href={
+                        selectedCategory !== "All"
+                          ? `/explore?industry=${encodeURIComponent(selectedCategory)}`
+                          : `/explore?query=${encodeURIComponent(query)}`
+                      }
+                      className="text-xs font-bold text-amber-800 hover:text-amber-950 bg-amber-200/80 hover:bg-amber-300/80 px-3 py-1 rounded-lg transition-colors inline-flex items-center gap-1 border border-amber-400/40"
+                    >
+                      Explore Directory →
+                    </Link>
+                  </div>
+                </div>
+
+                {filteredBusinesses.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {filteredBusinesses.map((b) => (
+                      <div
+                        key={b.userId}
+                        className="p-3.5 rounded-xl border border-amber-100 bg-amber-50/30 hover:border-amber-300 hover:bg-amber-50/80 transition-all flex flex-col justify-between space-y-2 shadow-sm"
+                      >
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <h4 className="font-bold text-slate-900 text-sm line-clamp-1">
+                              {b.displayName}
+                            </h4>
+                            <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200 flex-shrink-0">
+                              {b.trustScore}% Trust
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
+                            {b.industry || "General Services"}
+                          </p>
+                          {b.headline && (
+                            <p className="text-xs text-slate-600 mt-1 line-clamp-2 italic">
+                              "{b.headline}"
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-amber-100/60">
+                          <span className="text-[11px] font-medium text-slate-500">
+                            {b.connectionCount} connections
+                          </span>
+                          <div className="flex gap-1.5">
+                            {b.businessId && (
+                              <Link
+                                href={`/business/${b.businessId}`}
+                                className="text-xs font-semibold text-slate-700 bg-white hover:bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200 transition-colors"
+                              >
+                                View
+                              </Link>
+                            )}
+                            <button
+                              onClick={() => handleConnect(b.userId, b.displayName)}
+                              disabled={connectingId === b.userId}
+                              className="text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-500 disabled:opacity-50 px-2.5 py-1 rounded-md transition-colors"
+                            >
+                              {connectingId === b.userId ? "Connecting..." : "Connect"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center space-y-3 bg-amber-50/40 rounded-xl border border-amber-100">
+                    <p className="text-sm font-semibold text-slate-700">
+                      No featured businesses currently listed under "{selectedCategory}".
+                    </p>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      Search the full directory or be the first verified business in this category!
+                    </p>
+                    <div className="flex justify-center gap-2 pt-1">
+                      <Link
+                        href={`/explore?industry=${encodeURIComponent(selectedCategory)}`}
+                        className="text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-500 px-4 py-2 rounded-xl transition-colors shadow-sm"
+                      >
+                        Search Full Directory →
+                      </Link>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Feed — the compose box and activity feed assume a logged-in
                 identity (whose post, whose likes, whose connections), so

@@ -1,34 +1,32 @@
-import { Resend } from 'resend';
+import * as postmark from 'postmark';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { VerificationEmail } from '@/emails/VerificationEmail';
 import { PasswordResetEmail } from '@/emails/PasswordResetEmail';
 import { UsernameRecoveryEmail } from '@/emails/UsernameRecoveryEmail';
 
-const FROM = process.env.RESEND_FROM_EMAIL ?? 'info@verifiedbizlink.co.za';
+const FROM = process.env.POSTMARK_FROM_EMAIL ?? process.env.RESEND_FROM_EMAIL ?? 'info@verifiedbizlink.co.za';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.verifiedbizlink.co.za';
 
-function getResend() {
-  const apiKey = process.env.RESEND_API_KEY;
-  if (!apiKey) {
-    console.error('RESEND_API_KEY environment variable is missing.');
-    throw new Error('Resend API key missing');
+function getPostmarkClient() {
+  const serverToken = process.env.POSTMARK_SERVER_TOKEN ?? process.env.RESEND_API_KEY;
+  if (!serverToken) {
+    console.error('POSTMARK_SERVER_TOKEN environment variable is missing.');
+    throw new Error('Postmark Server Token missing');
   }
-  return new Resend(apiKey);
+  return new postmark.ServerClient(serverToken);
 }
 
 export async function sendPasswordResetEmail(to: string, fullName: string, token: string) {
   const link = `${APP_URL}/reset-password?token=${token}`;
   try {
-    const resend = getResend();
-    const result = await resend.emails.send({
-      from: `VerifiedBizLink <${FROM}>`,
-      to,
-      subject: 'Reset your VerifiedBizLink password',
-      react: PasswordResetEmail({ resetLink: link }),
+    const client = getPostmarkClient();
+    const html = renderToStaticMarkup(PasswordResetEmail({ resetLink: link }));
+    await client.sendEmail({
+      From: `VerifiedBizLink <${FROM}>`,
+      To: to,
+      Subject: 'Reset your VerifiedBizLink password',
+      HtmlBody: html,
     });
-    if (result.error) {
-      console.error('Resend error resetting password for:', to, result.error);
-      throw result.error;
-    }
   } catch (error) {
     console.error('Failed to dispatch password reset email to:', to, error);
     throw error;
@@ -38,17 +36,14 @@ export async function sendPasswordResetEmail(to: string, fullName: string, token
 export async function sendVerificationEmail(to: string, fullName: string, token: string) {
   const link = `${APP_URL}/api/auth/verify-email?token=${token}`;
   try {
-    const resend = getResend();
-    const result = await resend.emails.send({
-      from: `VerifiedBizLink <${FROM}>`,
-      to,
-      subject: 'Verify your VerifiedBizLink email address',
-      react: VerificationEmail({ userFirstName: fullName, verificationLink: link }),
+    const client = getPostmarkClient();
+    const html = renderToStaticMarkup(VerificationEmail({ userFirstName: fullName, verificationLink: link }));
+    await client.sendEmail({
+      From: `VerifiedBizLink <${FROM}>`,
+      To: to,
+      Subject: 'Verify your VerifiedBizLink email address',
+      HtmlBody: html,
     });
-    if (result.error) {
-      console.error('Resend error sending verification email to:', to, result.error);
-      throw result.error;
-    }
   } catch (error) {
     console.error('Failed to dispatch verification email to:', to, error);
     throw error;
@@ -58,17 +53,14 @@ export async function sendVerificationEmail(to: string, fullName: string, token:
 export async function sendUsernameRecoveryEmail(to: string, usernames: string[]) {
   const link = `${APP_URL}/login`;
   try {
-    const resend = getResend();
-    const result = await resend.emails.send({
-      from: `VerifiedBizLink <${FROM}>`,
-      to,
-      subject: 'Your VerifiedBizLink usernames',
-      react: UsernameRecoveryEmail({ usernames, loginLink: link }),
+    const client = getPostmarkClient();
+    const html = renderToStaticMarkup(UsernameRecoveryEmail({ usernames, loginLink: link }));
+    await client.sendEmail({
+      From: `VerifiedBizLink <${FROM}>`,
+      To: to,
+      Subject: 'Your VerifiedBizLink usernames',
+      HtmlBody: html,
     });
-    if (result.error) {
-      console.error('Resend error sending username recovery email to:', to, result.error);
-      throw result.error;
-    }
   } catch (error) {
     console.error('Failed to dispatch username recovery email to:', to, error);
     throw error;

@@ -1,13 +1,10 @@
-﻿import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { SubpageNav } from "@/components/layout/subpage-nav";
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+      <SubpageNav title="Privacy Policy" />
       <div className="max-w-4xl mx-auto px-4 py-12">
-        <Link href="/">
-          <Button variant="outline" className="mb-8">← Back</Button>
-        </Link>
         <h1 className="text-4xl font-bold text-white mb-8">Privacy Policy</h1>
         <div className="prose prose-invert max-w-none">
           <div className="space-y-6 text-gray-300">

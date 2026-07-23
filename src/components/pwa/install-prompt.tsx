@@ -125,40 +125,42 @@ export function PwaInstallPrompt() {
   if (dismissed || !mode) return null;
 
   return (
-    <div className="bg-yellow-500/10 backdrop-blur-xl border-b border-yellow-500/20 px-4 py-2.5 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2 min-w-0">
-        <Download className="h-4 w-4 text-yellow-500 shrink-0" />
+    <div className="bg-zinc-950 text-zinc-100 border-b border-zinc-800/80 px-4 py-2.5 flex items-center justify-between gap-3 shadow-md relative z-50">
+      <div className="flex items-center gap-2.5 min-w-0">
+        <div className="p-1 rounded-md bg-amber-500/10 text-amber-400 shrink-0">
+          <Download className="h-4 w-4" />
+        </div>
         {mode === 'ios' && (
-          <p className="text-xs font-semibold text-yellow-200 truncate">
-            Install this app: tap <Share className="h-3 w-3 inline mx-0.5" /> Share, then &quot;Add to Home Screen&quot;.
+          <p className="text-xs sm:text-sm font-medium text-zinc-100 truncate">
+            Install this app: tap <Share className="h-3.5 w-3.5 inline mx-1 text-amber-400" /> Share, then &quot;Add to Home Screen&quot;.
           </p>
         )}
         {mode === 'manual' && (
-          <p className="text-xs font-semibold text-yellow-200 truncate">
-            Install this app: open your browser menu <Menu className="h-3 w-3 inline mx-0.5" /> and look for &quot;Install app&quot; or &quot;Add to Home screen&quot;.
+          <p className="text-xs sm:text-sm font-medium text-zinc-100 truncate">
+            Install this app: open your browser menu <Menu className="h-3.5 w-3.5 inline mx-1 text-amber-400" /> and select &quot;Install app&quot; or &quot;Add to Home screen&quot;.
           </p>
         )}
         {mode === 'native' && (
-          <p className="text-xs font-semibold text-yellow-200 truncate">
+          <p className="text-xs sm:text-sm font-medium text-zinc-100 truncate">
             Install VerifiedBizLink for faster access and offline support.
           </p>
         )}
       </div>
-      <div className="flex items-center gap-3 shrink-0">
+      <div className="flex items-center gap-2.5 shrink-0">
         {mode === 'native' && (
           <button
             onClick={handleInstall}
-            className="text-xs font-bold text-yellow-400 hover:text-yellow-300 underline underline-offset-2 transition-colors"
+            className="text-xs font-bold bg-amber-400 text-zinc-950 hover:bg-amber-300 px-3 py-1 rounded-full transition-all shadow-sm active:scale-95"
           >
-            Install
+            Install App
           </button>
         )}
         <button
           onClick={dismiss}
-          className="text-yellow-500/70 hover:text-yellow-300 transition-colors"
+          className="text-zinc-400 hover:text-zinc-100 p-1 rounded-md hover:bg-zinc-800/80 transition-colors"
           aria-label="Dismiss"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
     </div>

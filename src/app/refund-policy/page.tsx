@@ -1,13 +1,11 @@
-import { Button } from "@/components/ui/button";
+import { SubpageNav } from "@/components/layout/subpage-nav";
 import Link from "next/link";
 
 export default function RefundPolicyPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+      <SubpageNav title="Refund Policy" />
       <div className="max-w-4xl mx-auto px-4 py-12">
-        <Link href="/">
-          <Button variant="outline" className="mb-8">← Back</Button>
-        </Link>
         <h1 className="text-4xl font-bold text-white mb-2">Refund Policy</h1>
         <p className="text-sm text-gray-500 mb-8">Effective date: 8 July 2026</p>
 

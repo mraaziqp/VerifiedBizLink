@@ -4,7 +4,7 @@ import db from '@/lib/db';
 
 // POST /api/admin/users/[id]/verify-email — the ultimate fallback for a
 // stuck client: mark a user verified directly in the database, completely
-// independent of whether Resend is reachable, the domain is authenticated,
+// independent of whether Postmark is reachable, the domain is authenticated,
 // or the client's inbox is cooperating. Staff can always unblock a real
 // client this way even if the entire email pipeline is down.
 export async function POST(

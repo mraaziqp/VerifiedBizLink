@@ -1,4 +1,4 @@
-﻿
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -139,7 +139,7 @@ export function SidebarLeft() {
                 <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Role</p>
-                    <p className="text-sm font-semibold text-gray-900">{ROLE_LABELS[user.role] || user.role}</p>
+                    <p className="text-sm font-semibold text-gray-900">{ROLE_LABELS[(user.role || '').toLowerCase()] || user.role}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Status</p>

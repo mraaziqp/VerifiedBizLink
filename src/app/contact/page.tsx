@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Send } from "lucide-react";
 import { SidebarLeft } from "@/components/layout/sidebar-left";
+import { SubpageNav } from "@/components/layout/subpage-nav";
 
 export default function ContactPage() {
   const { toast } = useToast();
@@ -59,6 +60,7 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SubpageNav title="Contact Support" />
       <div className="max-w-7xl mx-auto px-4 lg:px-6 py-12 overflow-x-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <aside className="hidden lg:block lg:col-span-3 sticky top-6">
