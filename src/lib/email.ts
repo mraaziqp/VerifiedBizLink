@@ -1,5 +1,5 @@
 import * as postmark from 'postmark';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { render } from '@react-email/render';
 import { VerificationEmail } from '@/emails/VerificationEmail';
 import { PasswordResetEmail } from '@/emails/PasswordResetEmail';
 import { UsernameRecoveryEmail } from '@/emails/UsernameRecoveryEmail';
@@ -20,7 +20,7 @@ export async function sendPasswordResetEmail(to: string, fullName: string, token
   const link = `${APP_URL}/reset-password?token=${token}`;
   try {
     const client = getPostmarkClient();
-    const html = renderToStaticMarkup(PasswordResetEmail({ resetLink: link }));
+    const html = await render(PasswordResetEmail({ resetLink: link }));
     await client.sendEmail({
       From: `VerifiedBizLink <${FROM}>`,
       To: to,
@@ -37,7 +37,7 @@ export async function sendVerificationEmail(to: string, fullName: string, token:
   const link = `${APP_URL}/api/auth/verify-email?token=${token}`;
   try {
     const client = getPostmarkClient();
-    const html = renderToStaticMarkup(VerificationEmail({ userFirstName: fullName, verificationLink: link }));
+    const html = await render(VerificationEmail({ userFirstName: fullName, verificationLink: link }));
     await client.sendEmail({
       From: `VerifiedBizLink <${FROM}>`,
       To: to,
@@ -54,7 +54,7 @@ export async function sendUsernameRecoveryEmail(to: string, usernames: string[])
   const link = `${APP_URL}/login`;
   try {
     const client = getPostmarkClient();
-    const html = renderToStaticMarkup(UsernameRecoveryEmail({ usernames, loginLink: link }));
+    const html = await render(UsernameRecoveryEmail({ usernames, loginLink: link }));
     await client.sendEmail({
       From: `VerifiedBizLink <${FROM}>`,
       To: to,
