@@ -33,11 +33,10 @@ export async function GET() {
     const categories = await db`
       SELECT industry AS name, COUNT(*)::int AS count
       FROM businesses
-      WHERE status = 'verified'
-        AND COALESCE(TRIM(industry), '') <> ''
+      WHERE COALESCE(TRIM(industry), '') <> ''
       GROUP BY industry
       ORDER BY COUNT(*) DESC, industry ASC
-      LIMIT 8
+      LIMIT 20
     `;
 
     const businesses = session
