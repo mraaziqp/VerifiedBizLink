@@ -1,31 +1,60 @@
-import * as postmark from 'postmark';
+import nodemailer from 'nodemailer';
 import { render } from '@react-email/render';
 import { VerificationEmail } from '@/emails/VerificationEmail';
 import { PasswordResetEmail } from '@/emails/PasswordResetEmail';
 import { UsernameRecoveryEmail } from '@/emails/UsernameRecoveryEmail';
 
-const FROM = process.env.POSTMARK_FROM_EMAIL ?? process.env.RESEND_FROM_EMAIL ?? 'info@verifiedbizlink.co.za';
+// Sends via the real Titan/GoDaddy mailbox (info@verifiedbizlink.co.za),
+// not a third-party transactional API. The domain's SPF record
+// (`v=spf1 include:secureserver.net -all`) only authorizes GoDaddy/Titan's
+// own mail servers to send as this domain, with a hard fail (-all) for
+// everything else — sending "from" this address through another provider
+// (as the previous Postmark integration did) fails that SPF check.
+const FROM_EMAIL = process.env.TITAN_EMAIL_ADDRESS || 'info@verifiedbizlink.co.za';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.verifiedbizlink.co.za';
 
-function getPostmarkClient() {
-  const serverToken = process.env.POSTMARK_SERVER_TOKEN ?? process.env.RESEND_API_KEY;
-  if (!serverToken) {
-    console.error('POSTMARK_SERVER_TOKEN environment variable is missing.');
-    throw new Error('Postmark Server Token missing');
+let cachedTransporter: nodemailer.Transporter | null = null;
+
+function getTransporter(): nodemailer.Transporter {
+  if (cachedTransporter) return cachedTransporter;
+
+  const user = process.env.TITAN_EMAIL_ADDRESS;
+  const pass = process.env.TITAN_EMAIL_PASSWORD;
+  if (!user || !pass) {
+    throw new Error('TITAN_EMAIL_ADDRESS / TITAN_EMAIL_PASSWORD environment variables are missing.');
   }
-  return new postmark.ServerClient(serverToken);
+
+  cachedTransporter = nodemailer.createTransport({
+    host: 'smtp.titan.email',
+    port: 465,
+    secure: true,
+    auth: { user, pass },
+  });
+  return cachedTransporter;
+}
+
+// For callers that need to send custom HTML (support tickets, message
+// notifications) rather than one of the templated emails above.
+export async function sendRawEmail(to: string, subject: string, html: string) {
+  const transporter = getTransporter();
+  await transporter.sendMail({
+    from: `VerifiedBizLink <${FROM_EMAIL}>`,
+    to,
+    subject,
+    html,
+  });
 }
 
 export async function sendPasswordResetEmail(to: string, fullName: string, token: string) {
   const link = `${APP_URL}/reset-password?token=${token}`;
   try {
-    const client = getPostmarkClient();
+    const transporter = getTransporter();
     const html = await render(PasswordResetEmail({ resetLink: link }));
-    await client.sendEmail({
-      From: `VerifiedBizLink <${FROM}>`,
-      To: to,
-      Subject: 'Reset your VerifiedBizLink password',
-      HtmlBody: html,
+    await transporter.sendMail({
+      from: `VerifiedBizLink <${FROM_EMAIL}>`,
+      to,
+      subject: 'Reset your VerifiedBizLink password',
+      html,
     });
   } catch (error) {
     console.error('Failed to dispatch password reset email to:', to, error);
@@ -36,13 +65,13 @@ export async function sendPasswordResetEmail(to: string, fullName: string, token
 export async function sendVerificationEmail(to: string, fullName: string, token: string) {
   const link = `${APP_URL}/api/auth/verify-email?token=${token}`;
   try {
-    const client = getPostmarkClient();
+    const transporter = getTransporter();
     const html = await render(VerificationEmail({ userFirstName: fullName, verificationLink: link }));
-    await client.sendEmail({
-      From: `VerifiedBizLink <${FROM}>`,
-      To: to,
-      Subject: 'Verify your VerifiedBizLink email address',
-      HtmlBody: html,
+    await transporter.sendMail({
+      from: `VerifiedBizLink <${FROM_EMAIL}>`,
+      to,
+      subject: 'Verify your VerifiedBizLink email address',
+      html,
     });
   } catch (error) {
     console.error('Failed to dispatch verification email to:', to, error);
@@ -53,13 +82,13 @@ export async function sendVerificationEmail(to: string, fullName: string, token:
 export async function sendUsernameRecoveryEmail(to: string, usernames: string[]) {
   const link = `${APP_URL}/login`;
   try {
-    const client = getPostmarkClient();
+    const transporter = getTransporter();
     const html = await render(UsernameRecoveryEmail({ usernames, loginLink: link }));
-    await client.sendEmail({
-      From: `VerifiedBizLink <${FROM}>`,
-      To: to,
-      Subject: 'Your VerifiedBizLink usernames',
-      HtmlBody: html,
+    await transporter.sendMail({
+      from: `VerifiedBizLink <${FROM_EMAIL}>`,
+      to,
+      subject: 'Your VerifiedBizLink usernames',
+      html,
     });
   } catch (error) {
     console.error('Failed to dispatch username recovery email to:', to, error);

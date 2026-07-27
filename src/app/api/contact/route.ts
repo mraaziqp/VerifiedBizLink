@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import * as postmark from 'postmark';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getSession } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { sendRawEmail } from '@/lib/email';
 import db from '@/lib/db';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
-const postmarkToken = process.env.POSTMARK_SERVER_TOKEN || process.env.RESEND_API_KEY;
-const postmarkClient = postmarkToken ? new postmark.ServerClient(postmarkToken) : null;
-const FROM_EMAIL = process.env.POSTMARK_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'info@verifiedbizlink.co.za';
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
@@ -63,13 +60,11 @@ Provide a helpful, professional, and concise response to their query. If it's a 
       aiResponse = 'Our AI assistant is temporarily unavailable. Your query will be reviewed by our team.';
     }
 
-    if (postmarkClient) {
-      try {
-        await postmarkClient.sendEmail({
-          From: FROM_EMAIL,
-          To: process.env.SUPPORT_EMAIL || 'info@verifiedbizlink.co.za',
-          Subject: `[SUPPORT] ${subject} - ${name}`,
-          HtmlBody: `
+    try {
+      await sendRawEmail(
+        process.env.SUPPORT_EMAIL || 'info@verifiedbizlink.co.za',
+        `[SUPPORT] ${subject} - ${name}`,
+        `
             <div style="font-family: Arial, sans-serif; background: #f4f4f5; padding: 20px;">
               <div style="background: white; padding: 20px; border-radius: 8px;">
                 <h2>New Support Query</h2>
@@ -90,17 +85,16 @@ Provide a helpful, professional, and concise response to their query. If it's a 
               </div>
             </div>
           `,
-        });
-      } catch (supportErr) {
-        console.error('Postmark error sending support notification for', email, supportErr);
-      }
+      );
+    } catch (supportErr) {
+      console.error('Error sending support notification for', email, supportErr);
+    }
 
-      try {
-        await postmarkClient.sendEmail({
-          From: FROM_EMAIL,
-          To: email,
-          Subject: `We received your query - ${subject}`,
-          HtmlBody: `
+    try {
+      await sendRawEmail(
+        email,
+        `We received your query - ${subject}`,
+        `
             <div style="font-family: Arial, sans-serif; background: #f4f4f5; padding: 20px;">
               <div style="background: white; padding: 20px; border-radius: 8px;">
                 <h2>Thanks for reaching out, ${name}!</h2>
@@ -117,10 +111,9 @@ Provide a helpful, professional, and concise response to their query. If it's a 
               </div>
             </div>
           `,
-        });
-      } catch (confirmErr) {
-        console.error('Postmark error sending confirmation to', email, confirmErr);
-      }
+      );
+    } catch (confirmErr) {
+      console.error('Error sending confirmation to', email, confirmErr);
     }
 
     console.log(`[SUPPORT] Query from ${name} (${email}) - AI: ${usedAI ? 'Success' : 'Failed'}`);

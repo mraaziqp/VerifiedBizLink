@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
+import { sendRawEmail } from '@/lib/email';
 import db from '@/lib/db';
 
 // POST /api/messages/send  { receiver_id, content }
@@ -29,20 +30,11 @@ export async function POST(request: NextRequest) {
     `;
 
     // Fire-and-forget email notification (never blocks the message send)
-    const postmarkToken = process.env.POSTMARK_SERVER_TOKEN || process.env.RESEND_API_KEY;
-    if (postmarkToken && receiver[0].email) {
-      fetch('https://api.postmarkapp.com/email', {
-        method: 'POST',
-        headers: {
-          'X-Postmark-Server-Token': postmarkToken,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          From: process.env.POSTMARK_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'info@verifiedbizlink.co.za',
-          To: receiver[0].email,
-          Subject: `New message from ${session.fullName || 'a VerifiedBizLink member'}`,
-          HtmlBody: `
+    if (receiver[0].email) {
+      sendRawEmail(
+        receiver[0].email,
+        `New message from ${session.fullName || 'a VerifiedBizLink member'}`,
+        `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
               <div style="background:#0f172a;padding:20px;border-radius:8px 8px 0 0;">
                 <h2 style="color:#fbbf24;margin:0;">New Message</h2>
@@ -57,8 +49,7 @@ export async function POST(request: NextRequest) {
                 </p>
               </div>
             </div>`,
-        }),
-      }).catch((e) => console.error('Message email failed:', e));
+      ).catch((e) => console.error('Message email failed:', e));
     }
 
     return NextResponse.json({ success: true, message: saved }, { status: 201 });
