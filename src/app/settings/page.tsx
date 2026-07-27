@@ -76,17 +76,20 @@ function SettingsForm() {
     if (!window.confirm('Cancel your subscription and move to the Free tier? You can upgrade again anytime.')) return;
     setCancelling(true);
     try {
-      const res = await fetch('/api/businesses/packages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ packageType: 'free', onboardingCompleted: true }),
-      });
+      const res = await fetch('/api/businesses/cancel-subscription', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        const data = await res.json();
-        setBusiness((prev) => (prev ? { ...prev, package_type: data.business?.package_type ?? 'free' } : prev));
-        toast({ title: 'Subscription cancelled', description: "You're now on the Free plan." });
+        setBusiness((prev) => (prev ? { ...prev, package_type: 'free' } : prev));
+        if (data.requiresManualPayfastCancellation) {
+          toast({
+            title: "You're now on the Free plan",
+            description: 'Our team has been notified to stop future PayFast billing on your account within 1 business day. Contact info@verifiedbizlink.co.za if you have any concerns in the meantime.',
+          });
+        } else {
+          toast({ title: 'Subscription cancelled', description: "You're now on the Free plan." });
+        }
       } else {
-        toast({ title: 'Could not cancel subscription', variant: 'destructive' });
+        toast({ title: 'Could not cancel subscription', description: data.error, variant: 'destructive' });
       }
     } catch {
       toast({ title: 'Could not cancel subscription', variant: 'destructive' });
@@ -627,9 +630,9 @@ function SettingsForm() {
                         <p className="text-xs text-slate-500">
                           {user?.role === 'business'
                             ? (tiers.find((t) => t.key === (business?.package_type || 'free'))?.price
-                                ? `R${tiers.find((t) => t.key === business?.package_type)?.price} one-time — paid`
+                                ? `R${tiers.find((t) => t.key === business?.package_type)?.price}/month`
                                 : 'Free tier list visibility')
-                            : 'No paid tier — personal accounts are always free'}
+                            : 'No subscription — personal accounts are always free'}
                         </p>
                       </div>
                       <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-2">

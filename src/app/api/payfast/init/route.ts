@@ -23,6 +23,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Minimum amount is R5' }, { status: 400 });
     }
 
+    // Tier purchases create a new real PayFast recurring subscription each
+    // time. If the business already has one active, starting a second would
+    // mean PayFast charging both every month — there's no safe way to
+    // auto-cancel the old one via PayFast's API yet (see cancel-subscription
+    // route), so upgrades/downgrades must go through Cancel first rather
+    // than risk double-billing a real customer's card.
+    if ((purchaseType || '').startsWith('subscription_')) {
+      const [existing] = await db`
+        SELECT payfast_token FROM businesses
+        WHERE user_id = ${session.id} AND subscription_status = 'active' AND payfast_token IS NOT NULL
+        LIMIT 1
+      `;
+      if (existing) {
+        return NextResponse.json(
+          { error: 'You already have an active subscription. Please cancel it in Settings → Billing before starting a new one, to avoid being billed for both.' },
+          { status: 409 },
+        );
+      }
+    }
+
     const paymentRef = `VBL-${Date.now()}-${session.id.substring(0, 8)}`;
     const amountCents = Math.round(amount * 100);
 
@@ -36,6 +56,12 @@ export async function POST(request: NextRequest) {
     const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY || '';
     const PAYFAST_URL = process.env.PAYFAST_URL || 'https://www.payfast.co.za/eng/process';
     const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.verifiedbizlink.co.za';
+
+    // Tier purchases are real monthly subscriptions — PayFast bills the
+    // customer's card automatically every month until cancelled. Ad boosts
+    // and ad-credit top-ups stay one-time (a boost/top-up isn't a recurring
+    // commitment).
+    const isSubscription = (purchaseType || '').startsWith('subscription_');
 
     // Build Payfast data
     const payfastData = {
@@ -54,6 +80,15 @@ export async function POST(request: NextRequest) {
       custom_str1: adId || '',
       custom_str2: session.id,
       custom_str3: purchaseType || 'ad_credits',
+      ...(isSubscription
+        ? {
+            subscription_type: '1',
+            billing_date: new Date().toISOString().slice(0, 10),
+            recurring_amount: amount.toFixed(2),
+            frequency: '3', // PayFast frequency code: 3 = monthly
+            cycles: '0', // 0 = bill indefinitely until cancelled
+          }
+        : {}),
     };
 
     // Create signature matching Payfast guidelines (RFC 3986 style, spaces to +)

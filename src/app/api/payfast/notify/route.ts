@@ -126,13 +126,35 @@ export async function POST(request: NextRequest) {
     // swallowed by the .catch() below: every payment stayed 'pending'
     // forever even though the grant below succeeded. completed_at is the
     // real column for "when did this finish."
-    await db`
+    const updatedPayment = await db`
       UPDATE payments
       SET status = ${dbStatus},
           payfast_reference = ${payfastData.pf_payment_id || null},
           completed_at = CASE WHEN ${dbStatus} = 'completed' THEN NOW() ELSE completed_at END
       WHERE reference = ${paymentRef}
-    `.catch(err => console.log('Payment update note:', err.message));
+      RETURNING id
+    `.catch(err => { console.log('Payment update note:', err.message); return []; });
+
+    // A recurring monthly charge reuses the same m_payment_id the
+    // subscription was created with, so the UPDATE above just re-confirms
+    // that original row instead of creating a new one — insert a fresh
+    // ledger row instead, keyed on PayFast's own transaction id (always
+    // unique per charge), so every month's payment actually shows up in
+    // Transaction History rather than only the first one ever appearing.
+    if (updatedPayment.length === 0 && dbStatus === 'completed' && payfastData.pf_payment_id) {
+      await db`
+        INSERT INTO payments (user_id, amount, status, reference, description, completed_at)
+        VALUES (
+          ${payfastData.custom_str2 || null},
+          ${Math.round(parseFloat(payfastData.amount_gross || '0') * 100)},
+          'completed',
+          ${payfastData.pf_payment_id},
+          ${payfastData.item_name || 'Recurring billing'},
+          NOW()
+        )
+        ON CONFLICT (reference) DO NOTHING
+      `.catch(err => console.log('Recurring payment ledger note:', err.message));
+    }
 
     // If payment successful, grant whatever was actually purchased
     if (dbStatus === 'completed') {
@@ -169,9 +191,18 @@ export async function POST(request: NextRequest) {
         // or targeting a tier that isn't meant to be purchased at all (e.g. the
         // auto-granted trial) — the webhook must never trust purchaseType alone.
         if (tier && tier.isPurchasable && Number.isFinite(paidAmount) && paidAmount >= tier.price - 0.01) {
+          // token identifies the recurring subscription itself — present on
+          // both the initial charge and every recurring monthly charge.
+          // Recording it (and refreshing last_billed_at every cycle) is what
+          // lets the cancellation flow — and any future reconciliation —
+          // find the right PayFast subscription for this business.
           await db`
             UPDATE businesses
-            SET package_type = ${tierKey}, updated_at = NOW()
+            SET package_type = ${tierKey},
+                payfast_token = COALESCE(${payfastData.token || null}, payfast_token),
+                subscription_status = 'active',
+                last_billed_at = NOW(),
+                updated_at = NOW()
             WHERE user_id = ${userId}
           `.catch(err => console.log('Subscription upgrade note:', err.message));
           grantMessage = `Your business has been upgraded to the ${tier.name} plan.`;

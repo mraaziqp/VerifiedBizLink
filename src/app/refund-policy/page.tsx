@@ -14,11 +14,9 @@ export default function RefundPolicyPage() {
             <section>
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">1. Overview</h2>
               <p>
-                This policy explains how refunds and cancellations are handled for VerifiedBizLink's paid tiers
-                (see our <Link href="/pricing" className="text-cyan-400 hover:underline">Pricing</Link> page for current
-                tiers and prices). Paid tiers are billed as a single, one-time payment, not a recurring subscription —
-                see <Link href="/terms" className="text-cyan-400 hover:underline">Terms &amp; Conditions</Link>, Section 5,
-                for how billing works.
+                This policy explains how refunds, cancellations, and billing disputes are handled for
+                VerifiedBizLink's paid subscription tiers (see our <Link href="/pricing" className="text-cyan-400 hover:underline">Pricing</Link> page
+                for current tiers and prices). It should be read together with our <Link href="/terms" className="text-cyan-400 hover:underline">Terms &amp; Conditions</Link>.
               </p>
               <p className="mt-3">The free tier is not billed and this policy does not apply to it.</p>
             </section>
@@ -44,9 +42,9 @@ export default function RefundPolicyPage() {
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">3. After the Cooling-Off Period</h2>
               <p>Once the 7-day cooling-off period has passed:</p>
               <ul className="list-disc list-inside space-y-2 mt-4">
-                <li>Your payment is <strong>non-refundable</strong>, including if you stop using the Platform or switch back to the free tier shortly afterward.</li>
-                <li>You can revert to the free tier at any time from Settings → Billing, or by emailing us. Because tiers are one-time payments rather than a recurring subscription, there is no future charge to cancel — reverting to free simply switches your tier off immediately.</li>
-                <li>We do not provide partial or pro-rated refunds for the unused portion of a tier you switch away from.</li>
+                <li>Subscription fees already charged for the current billing month are <strong>non-refundable</strong>, including if you stop using the Platform partway through the month.</li>
+                <li>You can cancel auto-renewal at any time from Settings → Billing, or by emailing us. Cancelling downgrades your account to the free tier immediately.</li>
+                <li>We do not provide partial or pro-rated refunds for unused time in a billing period you cancel mid-cycle.</li>
               </ul>
             </section>
 
@@ -64,10 +62,10 @@ export default function RefundPolicyPage() {
             <section>
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">5. Upgrades &amp; Downgrades</h2>
               <p>
-                If you upgrade to a higher tier, you pay the new tier's price as a one-time payment and its features
-                apply immediately — we don't credit any unused value from your previous tier's payment against it.
-                If you downgrade or cancel back to the free tier, that change also takes effect immediately; you do
-                not keep the higher tier's features for a remaining period, since no period is tracked.
+                Because each tier is billed as its own PayFast subscription, changing tiers currently means
+                cancelling your current plan in Settings → Billing (which downgrades you to Free immediately)
+                and then subscribing to the new one — we don't yet support switching directly between two paid
+                tiers in one step. We don't charge a pro-rated top-up or issue a partial refund for the switch.
               </p>
             </section>
 
@@ -86,12 +84,13 @@ export default function RefundPolicyPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-cyan-400 mb-4">7. Chargebacks</h2>
+              <h2 className="text-2xl font-bold text-cyan-400 mb-4">7. Failed Payments &amp; Chargebacks</h2>
               <p>
-                Because paid tiers are one-time payments, there is no recurring charge that can fail. If you initiate
-                a chargeback or payment dispute with your bank instead of contacting us first, we reserve the right to
-                suspend your account while the dispute is investigated, and to recover any resulting processor fees
-                where permitted by law.
+                If a scheduled monthly payment fails, PayFast may retry it and we will notify you by email;
+                continued failure may result in your account reverting to the free tier. If you initiate a
+                chargeback or payment dispute with your bank instead of contacting us first, we reserve the right
+                to suspend your account while the dispute is investigated, and to recover any resulting processor
+                fees where permitted by law.
               </p>
             </section>
 

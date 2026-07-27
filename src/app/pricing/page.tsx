@@ -63,7 +63,7 @@ export default function PricingPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: tier.price,
-          description: `${tier.name} Tier (R${tier.price} one-time)`,
+          description: `${tier.name} Subscription (R${tier.price}/month)`,
           purchaseType: `subscription_${tier.key}`,
         }),
       });
@@ -121,12 +121,12 @@ export default function PricingPage() {
           Grow with the plan that fits you
         </h1>
         <p className="text-lg text-gray-500">
-          Paid plans include CIPC-backed business verification. Upgrade or downgrade anytime — changes
-          take effect immediately, right here.
+          Paid plans include CIPC-backed business verification, billed monthly. Cancel anytime from Settings
+          → Billing — no long-term contract.
         </p>
         <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-gray-900 text-white px-4 py-2 text-sm font-semibold">
           <ReceiptText className="h-4 w-4 text-yellow-400" />
-          One-time payment per plan — no recurring billing, no surprise charges.
+          Billed monthly via PayFast — cancel anytime, no long-term contract.
         </div>
       </div>
 
@@ -181,7 +181,7 @@ export default function PricingPage() {
                     ) : (
                       <>
                         <span className="text-4xl font-extrabold text-gray-900">R{tier.price}</span>
-                        <span className="text-sm text-gray-500 ml-1">one-time</span>
+                        <span className="text-sm text-gray-500 ml-1">/month</span>
                       </>
                     )}
                   </div>
@@ -261,7 +261,7 @@ export default function PricingPage() {
           {[
             {
               q: "Can I change my plan anytime?",
-              a: "Yes! Upgrade or downgrade instantly. Changes take effect immediately.",
+              a: "Yes — cancel your current plan in Settings → Billing (takes effect immediately) and subscribe to the new one. We're working on switching between paid plans in one step.",
             },
             {
               q: "What payment methods do you accept?",

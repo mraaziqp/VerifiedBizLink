@@ -258,9 +258,15 @@ export async function POST(request: NextRequest) {
     `;
     await db`CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id)`;
 
+    // --- v11: real monthly recurring billing via PayFast subscriptions
+    // (previously one-time payments only) ---
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS payfast_token TEXT`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS subscription_status TEXT`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS last_billed_at TIMESTAMPTZ`;
+
     return NextResponse.json({
       success: true,
-      message: 'Migration v10 applied: TOTP 2FA columns, user_sessions table.',
+      message: 'Migration v11 applied: TOTP 2FA columns, user_sessions table, recurring-billing columns.',
     });
   } catch (error) {
     console.error('Migration error:', error);
