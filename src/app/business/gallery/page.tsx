@@ -109,7 +109,7 @@ export default function BusinessGalleryPage() {
               <ImageUploader
                 onImageSelect={handleImageUpload}
                 label="Upload Photo"
-                buttonClassName="w-full h-11 border border-dashed border-white/15 bg-slate-800/60 text-slate-300 hover:text-yellow-500 hover:border-yellow-500/40"
+                buttonClassName="w-full h-11 font-bold bg-yellow-400 text-slate-950 hover:bg-yellow-300 shadow-md shadow-yellow-400/20"
               />
               <p className="text-sm text-slate-400">
                 Upload photos of your business, products, and services — visible on your public profile.

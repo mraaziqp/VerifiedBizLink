@@ -94,7 +94,7 @@ export function BusinessCard({
                 onConnect(business.userId, business.displayName);
               }}
               disabled={connectingId === business.userId}
-              className="text-xs font-semibold px-2.5 py-1 rounded-md border border-primary/30 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
+              className="ml-auto text-xs font-semibold px-2.5 py-1 rounded-md border border-primary/30 text-primary hover:bg-primary/10 transition-colors disabled:opacity-50"
             >
               {connectingId === business.userId ? "Connecting..." : "Connect"}
             </button>
