@@ -22,7 +22,7 @@ interface Report {
 interface Log { id: string; action: string; admin_name: string; target_name?: string; created_at: string; }
 
 export default function EnforcerDashboard() {
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<"reports" | "compliance" | "activity">("reports");
   const [stats, setStats] = useState<any>(null);
@@ -31,7 +31,10 @@ export default function EnforcerDashboard() {
   const [compliance, setCompliance] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { if (!user) router.push("/login"); }, [user, router]);
+  // Don't redirect off a still-null `user` while the auth check itself is
+  // in flight — see src/app/dashboard/page.tsx for the full explanation of
+  // the double-login bug this causes on a hard page load.
+  useEffect(() => { if (!authLoading && !user) router.push("/login"); }, [user, authLoading, router]);
 
   useEffect(() => {
     let active = true;

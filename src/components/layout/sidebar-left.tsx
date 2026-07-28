@@ -58,6 +58,14 @@ export function SidebarLeft() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [businessVerified, setBusinessVerified] = useState(false);
+  // Every navigation to a page that renders this sidebar remounts it from
+  // scratch, resetting businessVerified to its false default until this
+  // fetch resolves — without a loading flag, a genuinely verified
+  // business's Gold badge visibly disappears and reappears on every page
+  // change. Gating the badge on this instead of just businessVerified means
+  // it renders nothing (not a wrong answer) while the real check is in
+  // flight.
+  const [verificationLoading, setVerificationLoading] = useState(true);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -76,12 +84,15 @@ export function SidebarLeft() {
     // 'verified' status earns the badge.
     if (!user || !['business', 'admin', 'banker', 'lawyer'].includes(user.role)) {
       setBusinessVerified(false);
+      setVerificationLoading(false);
       return;
     }
+    setVerificationLoading(true);
     fetch('/api/business/profile')
       .then((r) => r.ok ? r.json() : null)
       .then((d) => setBusinessVerified(d?.business?.status === 'verified'))
-      .catch(() => setBusinessVerified(false));
+      .catch(() => setBusinessVerified(false))
+      .finally(() => setVerificationLoading(false));
   }, [user]);
 
   useEffect(() => {
@@ -132,7 +143,7 @@ export function SidebarLeft() {
               </Avatar>
               <div className="mt-3 flex items-center justify-center gap-1.5">
                 <h3 className="font-semibold text-lg text-gray-900">{user?.fullName || 'Guest'}</h3>
-                {businessVerified && <GoldCheckmark />}
+                {!verificationLoading && businessVerified && <GoldCheckmark />}
               </div>
               <p className="text-sm text-gray-500 font-medium">{user?.headline || 'VerifiedBizLink Member'}</p>
               {user && (

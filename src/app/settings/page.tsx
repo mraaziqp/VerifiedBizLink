@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Shield, Bell, CreditCard, Loader2, Camera, Trash2, Download, AlertTriangle, Lock, CheckCircle2, LogOut, Zap } from "lucide-react";
+import { User, Shield, Bell, CreditCard, Loader2, Camera, Trash2, Download, AlertTriangle, Lock, CheckCircle2, LogOut, Zap, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -69,6 +69,12 @@ function SettingsForm() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loadingPayments, setLoadingPayments] = useState(true);
   const [business, setBusiness] = useState<BusinessProfile | null>(null);
+  // Defaults true so the SARS/CIPC status card (below) doesn't render its
+  // "Not Submitted" / "Submit documents in Vetting Hub" fallback as if it
+  // were the real answer during the moment before the fetch above resolves
+  // — that flash was mistakeable for a genuinely verified account losing
+  // its status.
+  const [businessLoading, setBusinessLoading] = useState(true);
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [cancelling, setCancelling] = useState(false);
 
@@ -118,11 +124,16 @@ function SettingsForm() {
   }, []);
 
   useEffect(() => {
-    if (user?.role !== 'business') return;
+    if (user?.role !== 'business') {
+      setBusinessLoading(false);
+      return;
+    }
+    setBusinessLoading(true);
     fetch('/api/business/profile', { cache: 'no-store' })
       .then(res => res.ok ? res.json() : null)
       .then(data => { if (data?.business) setBusiness(data.business); })
-      .catch(err => console.error('Error fetching business profile:', err));
+      .catch(err => console.error('Error fetching business profile:', err))
+      .finally(() => setBusinessLoading(false));
   }, [user?.role]);
 
   const [profileForm, setProfileForm] = useState({
@@ -347,7 +358,18 @@ function SettingsForm() {
 
           <main className="lg:col-span-9 space-y-6 min-w-0">
             <div className="flex items-center justify-between px-2">
-              <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+              <div className="flex items-center gap-3">
+                <Button
+                  onClick={() => (typeof window !== "undefined" && window.history.length > 1 ? router.back() : router.push("/"))}
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl font-bold border-gray-200 hover:bg-gray-100 text-gray-900 gap-1.5 shrink-0"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="hidden sm:inline">Back</span>
+                </Button>
+                <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+              </div>
               <Button
                 onClick={handleSignOut}
                 variant="outline"
@@ -638,18 +660,21 @@ function SettingsForm() {
                       <div className="p-5 rounded-2xl bg-white/5 border border-white/5 space-y-2">
                         <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">SARS/CIPC Status</p>
                         <p className={`text-2xl font-extrabold ${
-                          business?.status === 'verified' ? 'text-green-400'
+                          businessLoading ? 'text-slate-500'
+                          : business?.status === 'verified' ? 'text-green-400'
                           : business?.status === 'rejected' ? 'text-red-400'
                           : 'text-amber-400'
                         }`}>
-                          {user?.role !== 'business' ? 'N/A'
+                          {businessLoading ? 'Checking…'
+                            : user?.role !== 'business' ? 'N/A'
                             : business?.status === 'verified' ? 'Verified'
                             : business?.status === 'reviewing' ? 'Under Review'
                             : business?.status === 'rejected' ? 'Action Required'
                             : 'Not Submitted'}
                         </p>
                         <p className="text-xs text-slate-500">
-                          {user?.role !== 'business' ? 'Personal accounts are not vetted'
+                          {businessLoading ? 'Loading your verification status…'
+                            : user?.role !== 'business' ? 'Personal accounts are not vetted'
                             : business?.status === 'verified' ? 'CIPC & SARS verification complete'
                             : business?.status === 'reviewing' ? 'Documents submitted for review'
                             : business?.status === 'rejected' ? 'Review Vetting Hub for feedback'

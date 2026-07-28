@@ -36,17 +36,22 @@ interface AdminStats {
 }
 
 export default function OrchestratorDashboard() {
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("overview");
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Same guard as src/app/dashboard/page.tsx — don't redirect off a
+    // still-null `user` while the auth check itself is in flight, or a
+    // hard reload straight into this page bounces to /login and forces a
+    // redundant second sign-in.
+    if (authLoading) return;
     if (!user) {
       router.push("/login");
     }
-  }, [user, router]);
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     let active = true;

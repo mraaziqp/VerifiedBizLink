@@ -31,7 +31,7 @@ interface NotificationItem {
 }
 
 export default function Dashboard() {
-  const { user, logout } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -66,13 +66,20 @@ export default function Dashboard() {
   }, [user?.id]);
 
   useEffect(() => {
+    // Wait for the auth check itself to finish before deciding the user
+    // isn't logged in — otherwise a hard page load (e.g. the redirect right
+    // after signing in) hits this effect while auth-context still has
+    // user===null mid-fetch, bounces straight back to /login, and the
+    // in-flight session check quietly resolves a moment later with nobody
+    // watching for it — forcing a second, redundant login.
+    if (authLoading) return;
     if (!user) {
       router.push("/login");
     } else {
       setLoading(false);
       fetchDashboardData();
     }
-  }, [user, router, fetchDashboardData]);
+  }, [user, authLoading, router, fetchDashboardData]);
 
   const handleLogout = async () => {
     await logout();
