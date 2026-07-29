@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { GoldCheckmark } from '@/components/ui/gold-checkmark';
 import { SubpageNav } from '@/components/layout/subpage-nav';
+import { matchesQuery } from '@/lib/search';
 
 interface Business {
   id: string;
@@ -173,7 +174,7 @@ function ExploreContent() {
   useEffect(() => {
     let filtered = businesses.filter((b) => {
       if (selectedIndustry !== 'all' && b.industry.toLowerCase() !== selectedIndustry.toLowerCase()) return false;
-      if (searchQuery && !b.company_name.toLowerCase().includes(searchQuery.toLowerCase())) {
+      if (searchQuery && !matchesQuery(b.company_name, searchQuery)) {
         return false;
       }
       return true;

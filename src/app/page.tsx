@@ -16,6 +16,7 @@ import { PostCreator } from "@/components/feed/post-creator";
 import { ActivityFeed } from "@/components/feed/activity-feed";
 import { ConnectionDiscovery } from "@/components/widgets/connection-discovery";
 import { ComplianceNews } from "@/components/widgets/compliance-news";
+import { matchesQuery } from "@/lib/search";
 
 const EMPTY_OVERVIEW: HomeOverviewResponse = {
   stats: { verifiedBusinesses: 0, avgTrustScore: 0, activeConnections: 0, openSupportTickets: 0 },
@@ -103,8 +104,8 @@ export default function Home() {
     return homeData.businesses.filter((b) => {
       const matchesCat = selectedCategory === "All" || b.industry.toLowerCase() === selectedCategory.toLowerCase();
       if (!q) return matchesCat;
-      const text = `${b.displayName} ${b.companyName} ${b.headline} ${b.industry}`.toLowerCase();
-      return matchesCat && text.includes(q);
+      const text = `${b.displayName} ${b.companyName} ${b.headline} ${b.industry}`;
+      return matchesCat && matchesQuery(text, q);
     });
   }, [homeData.businesses, query, selectedCategory]);
 
