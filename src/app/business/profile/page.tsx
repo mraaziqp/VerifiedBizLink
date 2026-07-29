@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { GlassBackground, glassInteractive } from '@/components/shared/glass-ui';
 import { ImageUploader } from '@/components/media/image-uploader';
+import { BUSINESS_CATEGORIES } from '@/lib/categories';
 
 const SOCIAL_PLATFORMS: { key: string; label: string; placeholder: string; icon: any }[] = [
   { key: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/yourbusiness', icon: Facebook },
@@ -188,12 +189,22 @@ export default function BusinessProfilePage() {
 
                 <div>
                   <Label className="text-slate-300 mb-2 block">Industry</Label>
-                  <Input
+                  <select
                     value={formData.industry}
                     onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                    placeholder="e.g., Technology, Retail, Services"
-                    className={`bg-slate-800/60 border-white/10 text-slate-100 placeholder-slate-500 ${glassInteractive}`}
-                  />
+                    className={`w-full h-10 rounded-md bg-slate-800/60 border border-white/10 text-slate-100 px-3 ${glassInteractive}`}
+                  >
+                    <option value="">Select an industry</option>
+                    {formData.industry && !BUSINESS_CATEGORIES.includes(formData.industry) && (
+                      <option value={formData.industry}>{formData.industry}</option>
+                    )}
+                    {BUSINESS_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Matching a category exactly makes your business easier to find on the home page and Explore.
+                  </p>
                 </div>
 
                 <div>
