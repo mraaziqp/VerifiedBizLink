@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { User, ChevronLeft, Save, Loader2 } from 'lucide-react';
+import { GlassBackground } from '@/components/shared/glass-ui';
 
 export default function ProfileSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -73,26 +74,28 @@ export default function ProfileSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-gray-900 to-black">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
-      </div>
+      <GlassBackground>
+        <div className="flex h-screen items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+        </div>
+      </GlassBackground>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+    <GlassBackground>
       {/* Header */}
-      <div className="border-b border-gray-700 bg-black/50 backdrop-blur-xl">
+      <div className="border-b border-gray-200 bg-white/50 backdrop-blur-xl">
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-          <Link href="/settings" className="mb-4 flex items-center gap-2 text-gray-400 hover:text-gray-200">
+          <Link href="/settings" className="mb-4 flex items-center gap-2 text-gray-500 hover:text-gray-900">
             <ChevronLeft className="w-5 h-5" />
             Back to Settings
           </Link>
           <div className="flex items-center gap-3">
             <User className="w-8 h-8 text-blue-400" />
             <div>
-              <h1 className="text-3xl font-bold text-white">Profile Settings</h1>
-              <p className="text-gray-400">Update your personal information</p>
+              <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
+              <p className="text-gray-500">Update your personal information</p>
             </div>
           </div>
         </div>
@@ -100,88 +103,88 @@ export default function ProfileSettingsPage() {
 
       {/* Form */}
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="rounded-xl border border-gray-700 bg-gray-900/50 p-8 backdrop-blur-sm">
+        <div className="rounded-xl border border-gray-200 bg-white/80 p-8 backdrop-blur-sm">
           <div className="space-y-6">
             {/* Full Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
                 Full Name
               </label>
               <input
                 type="text"
                 value={profileData.fullName}
                 onChange={(e) => setProfileData({ ...profileData, fullName: e.target.value })}
-                className="w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
                 placeholder="Your full name"
               />
             </div>
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
                 Email Address
               </label>
               <input
                 type="email"
                 value={profileData.email}
                 disabled
-                className="w-full rounded-lg border border-gray-700 bg-gray-800/50 px-4 py-3 text-gray-400 cursor-not-allowed"
+                className="w-full rounded-lg border border-gray-200 bg-gray-100 px-4 py-3 text-gray-500 cursor-not-allowed"
               />
               <p className="mt-2 text-sm text-gray-500">This is your login email and can't be changed here.</p>
             </div>
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
                 Phone Number
               </label>
               <input
                 type="tel"
                 value={profileData.phone}
                 onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                className="w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
                 placeholder="+27 (0) xxx xxx xxx"
               />
             </div>
 
             {/* Location */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
                 Location
               </label>
               <input
                 type="text"
                 value={profileData.location}
                 onChange={(e) => setProfileData({ ...profileData, location: e.target.value })}
-                className="w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
                 placeholder="City, Province"
               />
             </div>
 
             {/* Headline */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
                 Professional Headline
               </label>
               <input
                 type="text"
                 value={profileData.headline}
                 onChange={(e) => setProfileData({ ...profileData, headline: e.target.value })}
-                className="w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
                 placeholder="e.g., Business Director"
               />
             </div>
 
             {/* Bio */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-gray-600 mb-2">
                 Bio
               </label>
               <textarea
                 value={profileData.bio}
                 onChange={(e) => setProfileData({ ...profileData, bio: e.target.value })}
                 rows={4}
-                className="w-full rounded-lg border border-gray-600 bg-gray-800 px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
                 placeholder="Tell us about yourself..."
               />
               <p className="mt-2 text-sm text-gray-500">Max 500 characters</p>
@@ -206,13 +209,13 @@ export default function ProfileSettingsPage() {
                   </>
                 )}
               </button>
-              <Link href="/settings" className="rounded-lg border border-gray-600 px-6 py-3 font-semibold text-gray-300 hover:bg-gray-800">
+              <Link href="/settings" className="rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-600 hover:bg-gray-100">
                 Cancel
               </Link>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </GlassBackground>
   );
 }

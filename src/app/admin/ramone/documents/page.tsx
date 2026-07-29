@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
+import { GlassBackground } from '@/components/shared/glass-ui';
 
 interface Document {
   id: string;
@@ -91,26 +92,26 @@ export default function RamoneDocumentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black p-6">
-      <div className="max-w-7xl mx-auto">
+    <GlassBackground>
+      <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
-        <Link href="/admin/ramone" className="flex items-center gap-2 text-gray-400 hover:text-gray-200 mb-6">
+        <Link href="/admin/ramone" className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6">
           <ArrowLeft className="h-5 w-5" />
           Back to Command Center
         </Link>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
             <FileText className="h-8 w-8 text-blue-400" />
             Document Review Queue
           </h1>
-          <p className="text-gray-400 mt-2">Grade and review business verification documents</p>
+          <p className="text-gray-500 mt-2">Grade and review business verification documents</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Document List */}
           <div className="lg:col-span-2">
-            <Card className="bg-gray-800/40 border-gray-700">
+            <Card className="rounded-2xl bg-white/80 border-gray-200 shadow-md">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>Documents ({filteredDocs.length})</span>
@@ -142,7 +143,7 @@ export default function RamoneDocumentsPage() {
                       className={`p-4 border rounded-lg cursor-pointer transition-all ${
                         selectedDoc?.id === doc.id
                           ? 'border-blue-500 bg-blue-500/10'
-                          : 'border-gray-700 hover:border-gray-600 hover:bg-gray-700/30'
+                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-100'
                       }`}
                       onClick={() => {
                         setSelectedDoc(doc);
@@ -153,12 +154,12 @@ export default function RamoneDocumentsPage() {
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <h3 className="font-semibold text-white">{doc.name}</h3>
-                          <p className="text-sm text-gray-400">{doc.business_name}</p>
+                          <h3 className="font-semibold text-gray-900">{doc.name}</h3>
+                          <p className="text-sm text-gray-500">{doc.business_name}</p>
                         </div>
                         <Badge variant="outline" className={`text-xs ${
-                          doc.status === 'approved' ? 'bg-green-500/20 text-green-300' :
-                          doc.status === 'rejected' ? 'bg-red-500/20 text-red-300' :
+                          doc.status === 'approved' ? 'bg-green-500/20 text-green-700' :
+                          doc.status === 'rejected' ? 'bg-red-500/20 text-red-700' :
                           'bg-yellow-500/20 text-yellow-300'
                         }`}>
                           {doc.status.toUpperCase()}
@@ -176,20 +177,20 @@ export default function RamoneDocumentsPage() {
 
           {/* Review Panel */}
           {selectedDoc && (
-            <Card className="bg-gray-800/40 border-gray-700 h-fit">
+            <Card className="rounded-2xl bg-white/80 border-gray-200 shadow-md h-fit">
               <CardHeader>
                 <CardTitle>Review: {selectedDoc.name}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* File Preview */}
-                <div className="bg-gray-900 rounded p-4 text-center">
+                <div className="bg-gray-100 rounded p-4 text-center">
                   <FileText className="h-12 w-12 text-gray-500 mx-auto mb-2" />
-                  <p className="text-sm text-gray-400 mb-2">{selectedDoc.business_name}</p>
+                  <p className="text-sm text-gray-500 mb-2">{selectedDoc.business_name}</p>
                   <a
                     href={selectedDoc.file_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-400 hover:underline text-sm flex items-center justify-center gap-1"
+                    className="text-blue-600 hover:underline text-sm flex items-center justify-center gap-1"
                   >
                     <Eye className="h-4 w-4" />
                     View File
@@ -198,8 +199,8 @@ export default function RamoneDocumentsPage() {
 
                 {/* Grade Slider */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Grade (0-100): <span className="text-lg font-bold text-blue-400">{grade}</span>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">
+                    Grade (0-100): <span className="text-lg font-bold text-blue-600">{grade}</span>
                   </label>
                   <input
                     type="range"
@@ -218,11 +219,11 @@ export default function RamoneDocumentsPage() {
 
                 {/* Status */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Decision</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">Decision</label>
                   <select
                     value={status}
                     onChange={(e) => setStatus(e.target.value as any)}
-                    className="w-full bg-gray-900 border border-gray-700 rounded px-3 py-2 text-white"
+                    className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-gray-900"
                   >
                     <option value="reviewing">Still Reviewing</option>
                     <option value="approved">✓ Approve</option>
@@ -232,13 +233,13 @@ export default function RamoneDocumentsPage() {
 
                 {/* Notes */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Review Notes</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-2">Review Notes</label>
                   <Textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Add detailed feedback for the business owner..."
                     rows={3}
-                    className="bg-gray-900 border-gray-700 text-white"
+                    className="bg-white border-gray-300 text-gray-900"
                   />
                 </div>
 
@@ -256,6 +257,6 @@ export default function RamoneDocumentsPage() {
           )}
         </div>
       </div>
-    </div>
+    </GlassBackground>
   );
 }

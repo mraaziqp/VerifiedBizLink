@@ -59,13 +59,13 @@ export default function BusinessSettingsPage() {
       <div className="max-w-3xl mx-auto px-4 py-8">
         <Link
           href="/business/dashboard"
-          className={`inline-flex items-center gap-2 text-yellow-500 hover:text-yellow-400 mb-6 rounded-lg ${glassInteractive}`}
+          className={`inline-flex items-center gap-2 text-yellow-500 hover:text-yellow-600 mb-6 rounded-lg ${glassInteractive}`}
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Dashboard
         </Link>
 
-        <h1 className="text-3xl font-bold text-slate-100 mb-8">Business Settings</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-8">Business Settings</h1>
 
         {loading ? (
           <div className="flex justify-center py-16">
@@ -74,18 +74,18 @@ export default function BusinessSettingsPage() {
         ) : (
         <>
         {/* Visibility Settings */}
-        <Card className="mb-6 bg-slate-900/60 backdrop-blur-xl border-white/5 shadow-2xl">
+        <Card className="mb-6 bg-white/80 backdrop-blur-xl border-gray-200 shadow-2xl">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Eye className="h-5 w-5 text-yellow-500" />
-              <CardTitle className="text-slate-100">Visibility</CardTitle>
+              <CardTitle className="text-gray-900">Visibility</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-slate-100">Public Profile</p>
-                <p className="text-sm text-slate-400">Your business appears in search results and explore</p>
+                <p className="font-medium text-gray-900">Public Profile</p>
+                <p className="text-sm text-gray-500">Your business appears in search results and explore</p>
               </div>
               <input
                 type="checkbox"
@@ -98,18 +98,18 @@ export default function BusinessSettingsPage() {
         </Card>
 
         {/* Notification Settings */}
-        <Card className="mb-6 bg-slate-900/60 backdrop-blur-xl border-white/5 shadow-2xl">
+        <Card className="mb-6 bg-white/80 backdrop-blur-xl border-gray-200 shadow-2xl">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Bell className="h-5 w-5 text-yellow-500" />
-              <CardTitle className="text-slate-100">Notifications</CardTitle>
+              <CardTitle className="text-gray-900">Notifications</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium text-slate-100">Contact Requests</p>
-                <p className="text-sm text-slate-400">Get notified when someone contacts you</p>
+                <p className="font-medium text-gray-900">Contact Requests</p>
+                <p className="text-sm text-gray-500">Get notified when someone contacts you</p>
               </div>
               <input
                 type="checkbox"
@@ -122,18 +122,18 @@ export default function BusinessSettingsPage() {
         </Card>
 
         {/* Security Settings */}
-        <Card className="mb-6 bg-slate-900/60 backdrop-blur-xl border-white/5 shadow-2xl">
+        <Card className="mb-6 bg-white/80 backdrop-blur-xl border-gray-200 shadow-2xl">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Shield className="h-5 w-5 text-yellow-500" />
-              <CardTitle className="text-slate-100">Security</CardTitle>
+              <CardTitle className="text-gray-900">Security</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
             <Link href="/forgot-password">
               <Button
                 variant="outline"
-                className={`w-full gap-2 border-white/10 text-slate-300 hover:bg-white/5 ${glassInteractive}`}
+                className={`w-full gap-2 border-gray-200 text-gray-600 hover:bg-gray-100 ${glassInteractive}`}
               >
                 <Lock className="h-4 w-4" />
                 Change Password

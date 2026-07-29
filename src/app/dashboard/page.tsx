@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { formatDistanceToNow } from "date-fns";
+import { GlassBackground } from "@/components/shared/glass-ui";
 
 interface DashboardStats {
   connectionsCount: number;
@@ -90,24 +91,26 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="flex justify-center">
-            <div className="relative w-16 h-16">
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full opacity-25 blur-lg animate-pulse" />
-              <div className="absolute inset-0 border-4 border-transparent border-t-yellow-400 rounded-full animate-spin" />
+      <GlassBackground>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full opacity-25 blur-lg animate-pulse" />
+                <div className="absolute inset-0 border-4 border-transparent border-t-yellow-400 rounded-full animate-spin" />
+              </div>
             </div>
+            <p className="text-gray-500 font-medium">Loading your dashboard...</p>
           </div>
-          <p className="text-gray-400 font-medium">Loading your dashboard...</p>
         </div>
-      </div>
+      </GlassBackground>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black">
+    <GlassBackground>
       {/* Header */}
-      <div className="border-b border-gray-800/50 sticky top-0 z-40 backdrop-blur-xl bg-gradient-to-b from-black/80 to-black/50 shadow-lg">
+      <div className="border-b border-gray-200 sticky top-0 z-40 backdrop-blur-xl bg-white/80 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex-1">
             <Link href="/" className="flex items-center gap-3">
@@ -115,37 +118,37 @@ export default function Dashboard() {
                 <span className="text-black font-bold text-lg">D</span>
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-200 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-600 to-amber-600 bg-clip-text text-transparent">
                   Dashboard
                 </h1>
-                <p className="text-gray-400 text-xs">Welcome back, {user?.fullName?.split(' ')[0]}!</p>
+                <p className="text-gray-500 text-xs">Welcome back, {user?.fullName?.split(' ')[0]}!</p>
               </div>
             </Link>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/settings?tab=notifications" className="relative p-2.5 text-gray-400 hover:text-white bg-gray-800/30 hover:bg-gray-800/50 rounded-lg transition-all duration-300">
+            <Link href="/settings?tab=notifications" className="relative p-2.5 text-gray-500 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 rounded-lg transition-all duration-300">
               <Bell className="h-5 w-5" />
               {unreadCount > 0 && (
                 <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full shadow-lg shadow-red-500/50" />
               )}
             </Link>
 
-            <div className="h-8 w-px bg-gray-700/50" />
+            <div className="h-8 w-px bg-gray-200" />
 
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-white font-semibold text-sm">{user?.email}</p>
+                <p className="text-gray-900 font-semibold text-sm">{user?.email}</p>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center border border-gray-600 shadow-lg">
-                <span className="text-white font-bold">{user?.email?.charAt(0).toUpperCase()}</span>
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center border border-gray-300 shadow-sm">
+                <span className="text-gray-900 font-bold">{user?.email?.charAt(0).toUpperCase()}</span>
               </div>
               <Button
                 onClick={handleLogout}
                 variant="ghost"
                 size="sm"
-                className="text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-300"
+                className="text-gray-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-300"
                 title="Logout"
               >
                 <LogOut className="h-4 w-4" />
@@ -156,7 +159,7 @@ export default function Dashboard() {
           {/* Mobile Menu Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-gray-400 hover:text-white bg-gray-800/30 rounded-lg transition-all"
+            className="md:hidden p-2 text-gray-500 hover:text-gray-900 bg-gray-100 rounded-lg transition-all"
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -164,13 +167,13 @@ export default function Dashboard() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-800/50 bg-black/50 backdrop-blur px-4 py-4 space-y-3">
-            <div className="flex items-center gap-3 pb-3 border-b border-gray-800/50">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-700 to-gray-800 flex items-center justify-center">
-                <span className="text-white font-bold">{user?.email?.charAt(0).toUpperCase()}</span>
+          <div className="md:hidden border-t border-gray-200 bg-white backdrop-blur px-4 py-4 space-y-3">
+            <div className="flex items-center gap-3 pb-3 border-b border-gray-200">
+              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                <span className="text-gray-900 font-bold">{user?.email?.charAt(0).toUpperCase()}</span>
               </div>
               <div>
-                <p className="text-white font-semibold text-sm">{user?.email}</p>
+                <p className="text-gray-900 font-semibold text-sm">{user?.email}</p>
               </div>
             </div>
             <Button onClick={handleLogout} className="w-full" variant="outline">
@@ -228,29 +231,29 @@ export default function Dashboard() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="rounded-2xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 p-6">
-            <p className="text-gray-400 text-sm font-medium uppercase tracking-wide">Connections</p>
-            <p className="text-4xl font-bold text-white mt-2">{stats?.connectionsCount ?? 0}</p>
+          <div className="rounded-2xl bg-white/80 border border-gray-200 p-6 shadow-sm">
+            <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Connections</p>
+            <p className="text-4xl font-bold text-gray-900 mt-2">{stats?.connectionsCount ?? 0}</p>
           </div>
-          <div className="rounded-2xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50 p-6">
-            <p className="text-gray-400 text-sm font-medium uppercase tracking-wide">Your Posts</p>
-            <p className="text-4xl font-bold text-white mt-2">{stats?.postsCount ?? 0}</p>
+          <div className="rounded-2xl bg-white/80 border border-gray-200 p-6 shadow-sm">
+            <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Your Posts</p>
+            <p className="text-4xl font-bold text-gray-900 mt-2">{stats?.postsCount ?? 0}</p>
           </div>
         </div>
 
         {/* Recent Activity */}
-        <div className="rounded-2xl bg-gradient-to-br from-gray-800/30 to-gray-900/30 border border-gray-700/50 p-6 shadow-xl">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+        <div className="rounded-2xl bg-white/80 border border-gray-200 p-6 shadow-md">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Bell className="h-5 w-5 text-yellow-400" />
             Recent Activity
           </h3>
           {notifications.length === 0 ? (
-            <p className="text-gray-400 text-sm">No activity yet — it&apos;ll show up here as you connect, post, and get noticed.</p>
+            <p className="text-gray-500 text-sm">No activity yet — it&apos;ll show up here as you connect, post, and get noticed.</p>
           ) : (
-            <div className="divide-y divide-gray-700/50">
+            <div className="divide-y divide-gray-200">
               {notifications.map((n) => (
                 <div key={n.id} className="py-3 flex items-center justify-between gap-3">
-                  <p className="text-white text-sm">{n.message}</p>
+                  <p className="text-gray-900 text-sm">{n.message}</p>
                   <p className="text-gray-500 text-xs whitespace-nowrap">
                     {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
                   </p>
@@ -260,6 +263,6 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-    </div>
+    </GlassBackground>
   );
 }

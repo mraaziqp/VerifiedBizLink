@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Bell, ChevronLeft, Save, Loader2 } from 'lucide-react';
+import { GlassBackground } from '@/components/shared/glass-ui';
 
 export default function NotificationsSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -87,26 +88,26 @@ export default function NotificationsSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-gray-900 to-black">
+      <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+    <GlassBackground>
       {/* Header */}
-      <div className="border-b border-gray-700 bg-black/50 backdrop-blur-xl">
+      <div className="border-b border-gray-200 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-          <Link href="/settings" className="mb-4 flex items-center gap-2 text-gray-400 hover:text-gray-200">
+          <Link href="/settings" className="mb-4 flex items-center gap-2 text-gray-500 hover:text-gray-900">
             <ChevronLeft className="w-5 h-5" />
             Back to Settings
           </Link>
           <div className="flex items-center gap-3">
             <Bell className="w-8 h-8 text-blue-400" />
             <div>
-              <h1 className="text-3xl font-bold text-white">Notification Preferences</h1>
-              <p className="text-gray-400">Control how we contact you</p>
+              <h1 className="text-3xl font-bold text-gray-900">Notification Preferences</h1>
+              <p className="text-gray-500">Control how we contact you</p>
             </div>
           </div>
         </div>
@@ -116,23 +117,23 @@ export default function NotificationsSettingsPage() {
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-8">
           {NOTIFICATION_GROUPS.map((group) => (
-            <div key={group.title} className="rounded-xl border border-gray-700 bg-gray-900/50 p-8 backdrop-blur-sm">
-              <h2 className="text-xl font-bold text-white mb-6">{group.title}</h2>
+            <div key={group.title} className="rounded-xl border border-gray-200 bg-white/80 p-8 backdrop-blur-sm">
+              <h2 className="text-xl font-bold text-gray-900 mb-6">{group.title}</h2>
               <div className="space-y-4">
                 {group.items.map((item) => {
                   const key = item.key as keyof typeof notificationPreferences;
                   return (
-                  <div key={item.key} className="flex items-center justify-between rounded-lg bg-gray-800/50 p-4">
+                  <div key={item.key} className="flex items-center justify-between rounded-lg bg-gray-100 p-4">
                     <div>
-                      <p className="font-medium text-white">{item.label}</p>
-                      <p className="text-sm text-gray-400">{item.desc}</p>
+                      <p className="font-medium text-gray-900">{item.label}</p>
+                      <p className="text-sm text-gray-500">{item.desc}</p>
                     </div>
                     <button
                       onClick={() => togglePreference(key)}
                       className={`w-12 h-6 rounded-full transition-colors ${
                         notificationPreferences[key]
                           ? 'bg-blue-600'
-                          : 'bg-gray-700'
+                          : 'bg-gray-200'
                       }`}
                     >
                       <div
@@ -169,12 +170,12 @@ export default function NotificationsSettingsPage() {
                 </>
               )}
             </button>
-            <Link href="/settings" className="rounded-lg border border-gray-600 px-6 py-3 font-semibold text-gray-300 hover:bg-gray-800">
+            <Link href="/settings" className="rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-600 hover:bg-gray-100">
               Cancel
             </Link>
           </div>
         </div>
       </div>
-    </div>
+    </GlassBackground>
   );
 }

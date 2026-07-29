@@ -25,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { GoldCheckmark } from '@/components/ui/gold-checkmark';
 import { SubpageNav } from '@/components/layout/subpage-nav';
 import { matchesQuery } from '@/lib/search';
+import { GlassBackground } from '@/components/shared/glass-ui';
 
 interface Business {
   id: string;
@@ -70,12 +71,14 @@ export default function ExplorePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
-          <div className="text-center">
-            <Loader2 className="animate-spin h-10 w-10 text-yellow-400 mx-auto mb-4" />
-            <p className="text-slate-300">Loading explore directory...</p>
+        <GlassBackground>
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <Loader2 className="animate-spin h-10 w-10 text-yellow-600 mx-auto mb-4" />
+              <p className="text-gray-600">Loading explore directory...</p>
+            </div>
           </div>
-        </div>
+        </GlassBackground>
       }
     >
       <ExploreContent />
@@ -226,38 +229,40 @@ function ExploreContent() {
     .filter((i) => i);
 
   const getTrustBadgeColor = (score: number): string => {
-    if (score >= 95) return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
-    if (score >= 85) return 'text-blue-400 bg-blue-400/10 border-blue-400/20';
-    if (score >= 70) return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20';
-    return 'text-slate-400 bg-slate-400/10 border-slate-400/20';
+    if (score >= 95) return 'text-emerald-700 bg-emerald-400/10 border-emerald-400/20';
+    if (score >= 85) return 'text-blue-700 bg-blue-400/10 border-blue-400/20';
+    if (score >= 70) return 'text-yellow-700 bg-yellow-400/10 border-yellow-400/20';
+    return 'text-slate-600 bg-slate-400/10 border-slate-400/20';
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="animate-spin h-10 w-10 text-yellow-400 mx-auto mb-4" />
-          <p className="text-slate-300">Discovering trusted businesses...</p>
+      <GlassBackground>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <Loader2 className="animate-spin h-10 w-10 text-yellow-600 mx-auto mb-4" />
+            <p className="text-gray-600">Discovering trusted businesses...</p>
+          </div>
         </div>
-      </div>
+      </GlassBackground>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <GlassBackground>
       {/* Top Navigation & Back Button */}
       <SubpageNav title="Explore Businesses" />
 
       {/* Hero Section */}
-      <div className="bg-gradient-to-b from-slate-800/50 to-transparent border-b border-slate-700/30 pb-12">
+      <div className="bg-gradient-to-b from-gray-100/50 to-transparent border-b border-gray-200 pb-12">
         <div className="max-w-7xl mx-auto px-4 pt-8 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-3 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-2xl">
               <MapPin className="h-6 w-6 text-slate-950" />
             </div>
             <div>
-              <h1 className="text-4xl font-bold text-white">Explore Verified Businesses</h1>
-              <p className="text-slate-300 mt-1">
+              <h1 className="text-4xl font-bold text-gray-900">Explore Verified Businesses</h1>
+              <p className="text-gray-600 mt-1">
                 Discover trusted companies verified by CIPC and SARS
               </p>
             </div>
@@ -266,25 +271,25 @@ function ExploreContent() {
           {/* Search and Filters */}
           <div className="mt-8 space-y-4">
             <div className="relative">
-              <Search className="absolute left-4 top-3.5 h-5 w-5 text-slate-500" />
+              <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-500" />
               <Input
                 placeholder="Search by business name..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 h-12 bg-slate-800/50 border-slate-600 text-white placeholder-slate-500 focus:border-yellow-400 transition-colors"
+                className="pl-12 h-12 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-yellow-400 transition-colors"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Industry Filter */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-gray-600 mb-2">
                   Industry
                 </label>
                 <select
                   value={selectedIndustry}
                   onChange={(e) => setSelectedIndustry(e.target.value)}
-                  className="w-full h-10 bg-slate-800/50 border border-slate-600 text-white rounded-lg px-3 focus:border-yellow-400 transition-colors"
+                  className="w-full h-10 bg-white border border-gray-300 text-gray-900 rounded-lg px-3 focus:border-yellow-400 transition-colors"
                 >
                   <option value="all">All Industries</option>
                   {industries.map((industry) => (
@@ -297,13 +302,13 @@ function ExploreContent() {
 
               {/* Distance Filter */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-gray-600 mb-2">
                   Search Radius
                 </label>
                 <select
                   value={radius}
                   onChange={(e) => setRadius(Number(e.target.value))}
-                  className="w-full h-10 bg-slate-800/50 border border-slate-600 text-white rounded-lg px-3 focus:border-yellow-400 transition-colors"
+                  className="w-full h-10 bg-white border border-gray-300 text-gray-900 rounded-lg px-3 focus:border-yellow-400 transition-colors"
                 >
                   <option value={1}>1 km away</option>
                   <option value={5}>5 km away</option>
@@ -316,7 +321,7 @@ function ExploreContent() {
 
               {/* View Mode Toggle */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-gray-600 mb-2">
                   View Mode
                 </label>
                 <div className="flex gap-2 h-10">
@@ -325,7 +330,7 @@ function ExploreContent() {
                     className={`flex-1 rounded-lg border transition-all ${
                       viewMode === 'grid'
                         ? 'bg-yellow-500 border-yellow-400 text-slate-950'
-                        : 'bg-slate-800/50 border-slate-600 text-slate-300 hover:border-slate-500'
+                        : 'bg-gray-100 border-gray-300 text-gray-600 hover:border-gray-300 hover:bg-gray-100'
                     }`}
                   >
                     <Grid3X3 className="h-4 w-4 inline mr-1" />
@@ -336,7 +341,7 @@ function ExploreContent() {
                     className={`flex-1 rounded-lg border transition-all ${
                       viewMode === 'list'
                         ? 'bg-yellow-500 border-yellow-400 text-slate-950'
-                        : 'bg-slate-800/50 border-slate-600 text-slate-300 hover:border-slate-500'
+                        : 'bg-gray-100 border-gray-300 text-gray-600 hover:border-gray-300 hover:bg-gray-100'
                     }`}
                   >
                     <Filter className="h-4 w-4 inline mr-1" />
@@ -348,7 +353,7 @@ function ExploreContent() {
           </div>
 
           {/* Results Count */}
-          <div className="mt-6 flex items-center gap-2 text-slate-300">
+          <div className="mt-6 flex items-center gap-2 text-gray-600">
             <Sparkles className="h-4 w-4 text-yellow-400" />
             <span className="font-medium">
               {filteredBusinesses.length} verified business{filteredBusinesses.length !== 1 ? 'es' : ''}
@@ -362,13 +367,13 @@ function ExploreContent() {
       <div className="max-w-7xl mx-auto px-4 py-12 sm:px-6 lg:px-8">
         {filteredBusinesses.length === 0 ? (
           <div className="flex justify-center">
-            <Card className="w-full md:w-1/2 bg-slate-800/50 border-slate-700/50">
+            <Card className="w-full md:w-1/2 bg-white border-gray-200 shadow-sm">
               <CardContent className="p-12 text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-slate-700/30 rounded-full mb-4">
-                  <AlertCircle className="h-8 w-8 text-slate-400" />
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                  <AlertCircle className="h-8 w-8 text-gray-500" />
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">No businesses found</h3>
-                <p className="text-slate-400 mb-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">No businesses found</h3>
+                <p className="text-gray-500 mb-6">
                   Try adjusting your search radius or filters to discover more verified businesses in your area.
                 </p>
                 <Button
@@ -390,7 +395,7 @@ function ExploreContent() {
             {filteredBusinesses.map((business) => (
               <Card
                 key={business.id}
-                className="bg-gradient-to-br from-slate-800 to-slate-800/50 border-slate-700 hover:border-yellow-400/30 transition-all hover:shadow-lg hover:shadow-yellow-400/10 group overflow-hidden"
+                className="bg-white border-gray-200 shadow-sm hover:border-yellow-400/50 transition-all hover:shadow-lg group overflow-hidden"
               >
                 <CardContent className="p-6">
                   {/* Header with Industry */}
@@ -408,23 +413,23 @@ function ExploreContent() {
                   </div>
 
                   {/* Company Info */}
-                  <h3 className="text-lg font-bold text-white mb-1 group-hover:text-yellow-400 transition-colors line-clamp-2 flex items-center gap-1.5">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-yellow-600 transition-colors line-clamp-2 flex items-center gap-1.5">
                     <span className="line-clamp-2">{business.company_name}</span>
                     {business.status === 'verified' && <GoldCheckmark />}
                   </h3>
-                  <p className="text-xs font-medium text-slate-400 mb-3">
+                  <p className="text-xs font-medium text-gray-500 mb-3">
                     {business.industry.charAt(0).toUpperCase() + business.industry.slice(1)}
                   </p>
 
                   {/* Address */}
-                  <div className="flex gap-2 mb-4 text-sm text-slate-300">
+                  <div className="flex gap-2 mb-4 text-sm text-gray-600">
                     <MapPin className="h-4 w-4 text-yellow-400 flex-shrink-0 mt-0.5" />
                     <p className="line-clamp-2">{business.address}</p>
                   </div>
 
                   {/* Distance Badge */}
                   {business.distance !== undefined && (
-                    <div className="mb-4 inline-flex items-center gap-1 text-xs font-semibold text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full border border-blue-400/20">
+                    <div className="mb-4 inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-400/10 px-3 py-1 rounded-full border border-blue-400/20">
                       <Navigation className="h-3 w-3" />
                       {business.distance < 1
                         ? '< 1 km away'
@@ -437,7 +442,7 @@ function ExploreContent() {
                     {business.phone && (
                       <a
                         href={`tel:${business.phone}`}
-                        className="flex items-center gap-2 text-slate-300 hover:text-yellow-400 transition-colors"
+                        className="flex items-center gap-2 text-gray-600 hover:text-yellow-600 transition-colors"
                       >
                         <Phone className="h-4 w-4" />
                         <span className="line-clamp-1">{business.phone}</span>
@@ -448,7 +453,7 @@ function ExploreContent() {
                         href={business.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-slate-300 hover:text-yellow-400 transition-colors"
+                        className="flex items-center gap-2 text-gray-600 hover:text-yellow-600 transition-colors"
                       >
                         <Globe className="h-4 w-4" />
                         <span className="line-clamp-1 text-xs">Visit website</span>
@@ -458,12 +463,12 @@ function ExploreContent() {
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex gap-2 pt-4 border-t border-slate-700">
+                  <div className="flex gap-2 pt-4 border-t border-gray-200">
                     <Button
                       onClick={() => handleNavigate(business)}
                       variant="outline"
                       size="sm"
-                      className="flex-1 border-slate-600 text-slate-300 hover:text-yellow-400 hover:border-yellow-400"
+                      className="flex-1 border-gray-300 text-gray-600 hover:text-yellow-600 hover:border-yellow-400"
                     >
                       <Navigation className="h-4 w-4 mr-1" />
                       Navigate
@@ -490,7 +495,7 @@ function ExploreContent() {
             {filteredBusinesses.map((business) => (
               <Card
                 key={business.id}
-                className="bg-gradient-to-r from-slate-800 to-slate-800/30 border-slate-700 hover:border-yellow-400/30 transition-all hover:shadow-lg hover:shadow-yellow-400/10 group"
+                className="bg-white border-gray-200 shadow-sm hover:border-yellow-400/50 transition-all hover:shadow-lg group"
               >
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between gap-6">
@@ -504,16 +509,16 @@ function ExploreContent() {
                         {INDUSTRY_ICONS[business.industry] || '💼'}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-bold text-white mb-1 group-hover:text-yellow-400 transition-colors line-clamp-1 flex items-center gap-1.5">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-yellow-600 transition-colors line-clamp-1 flex items-center gap-1.5">
                           <span className="line-clamp-1">{business.company_name}</span>
                           {business.status === 'verified' && <GoldCheckmark />}
                         </h3>
-                        <p className="text-sm text-slate-400 mb-2 line-clamp-1">{business.address}</p>
+                        <p className="text-sm text-gray-500 mb-2 line-clamp-1">{business.address}</p>
                         <div className="flex flex-wrap gap-3">
                           {business.phone && (
                             <a
                               href={`tel:${business.phone}`}
-                              className="text-xs text-slate-300 hover:text-yellow-400 transition-colors"
+                              className="text-xs text-gray-600 hover:text-yellow-600 transition-colors"
                             >
                               <Phone className="h-3 w-3 inline mr-1" />
                               {business.phone}
@@ -524,7 +529,7 @@ function ExploreContent() {
                               href={business.website}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-slate-300 hover:text-yellow-400 transition-colors"
+                              className="text-xs text-gray-600 hover:text-yellow-600 transition-colors"
                             >
                               <Globe className="h-3 w-3 inline mr-1" />
                               Visit
@@ -545,7 +550,7 @@ function ExploreContent() {
                         {business.trust_score}%
                       </div>
                       {business.distance !== undefined && (
-                        <div className="text-xs font-semibold text-blue-400 bg-blue-400/10 px-3 py-1 rounded-full border border-blue-400/20">
+                        <div className="text-xs font-semibold text-blue-700 bg-blue-400/10 px-3 py-1 rounded-full border border-blue-400/20">
                           {business.distance < 1
                             ? '< 1 km'
                             : `${business.distance.toFixed(1)} km`}
@@ -567,6 +572,6 @@ function ExploreContent() {
           </div>
         )}
       </div>
-    </div>
+    </GlassBackground>
   );
 }

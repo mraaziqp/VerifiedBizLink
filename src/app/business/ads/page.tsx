@@ -265,8 +265,8 @@ export default function BusinessAdsPage() {
   return (
     <GlassBackground>
       {/* Navigation */}
-      <div className="bg-slate-950/70 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40 p-4">
-        <Link href="/business/dashboard" className="flex items-center gap-2 text-yellow-400 hover:text-yellow-300">
+      <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-40 p-4">
+        <Link href="/business/dashboard" className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700">
           <ArrowLeft className="h-4 w-4" />
           Back to Business Dashboard
         </Link>
@@ -276,8 +276,8 @@ export default function BusinessAdsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">Sponsored Listings</h1>
-            <p className="text-slate-400 mt-1.5 text-sm sm:text-base">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sponsored Listings</h1>
+            <p className="text-gray-500 mt-1.5 text-sm sm:text-base">
               {loading
                 ? 'Loading your plan…'
                 : `${active} of ${limit} active — ${packageType === 'free' ? 'Free plan' : `${packageType} plan`}`}
@@ -294,25 +294,25 @@ export default function BusinessAdsPage() {
         </div>
 
         {/* Ad Credits Balance */}
-        <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
+        <Card className="bg-white/80 backdrop-blur-xl border-gray-200">
           <CardContent className="p-5 sm:p-6 space-y-5">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-yellow-400/10 flex items-center justify-center shrink-0">
                 <Coins className="h-5 w-5 text-yellow-400" />
               </div>
               <div>
-                <p className="text-slate-400 text-xs uppercase tracking-wider font-bold">Ad Credits</p>
-                <p className="text-2xl font-bold text-white">{loading ? '…' : adCredits} <span className="text-sm font-normal text-slate-400">ad-days</span></p>
+                <p className="text-gray-500 text-xs uppercase tracking-wider font-bold">Ad Credits</p>
+                <p className="text-2xl font-bold text-gray-900">{loading ? '…' : adCredits} <span className="text-sm font-normal text-gray-500">ad-days</span></p>
               </div>
             </div>
-            <p className="text-xs text-slate-500">1 credit = 1 day an ad can run. Your plan tops these up monthly.</p>
+            <p className="text-xs text-gray-400">1 credit = 1 day an ad can run. Your plan tops these up monthly.</p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {CREDIT_PACKS.map((pack) => (
                 <Button
                   key={pack.days}
                   onClick={() => handleBuyCredits(pack.days, pack.price)}
                   disabled={buyingCredits !== null}
-                  className="gap-1.5 bg-slate-800 hover:bg-slate-700 border border-yellow-400/30 text-yellow-400 h-11 font-semibold"
+                  className="gap-1.5 bg-gray-100 hover:bg-gray-200 border border-yellow-400/30 text-yellow-600 h-11 font-semibold"
                 >
                   {buyingCredits === pack.days ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                   +{pack.days} days — R{pack.price}
@@ -327,7 +327,7 @@ export default function BusinessAdsPage() {
             <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
                 <Sparkles className="h-6 w-6 text-yellow-400 shrink-0" />
-                <p className="text-slate-200 text-sm">
+                <p className="text-gray-700 text-sm">
                   Sponsored listings appear across VerifiedBizLink to boost your visibility. Upgrade your plan to create one.
                 </p>
               </div>
@@ -340,51 +340,51 @@ export default function BusinessAdsPage() {
 
         {/* Create Ad Form */}
         {showCreateForm && (
-          <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
-            <CardHeader className="border-b border-slate-700">
-              <CardTitle className="text-white">Create New Sponsored Listing</CardTitle>
+          <Card className="bg-white/80 backdrop-blur-xl border-gray-200">
+            <CardHeader className="border-b border-gray-200">
+              <CardTitle className="text-gray-900">Create New Sponsored Listing</CardTitle>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
               <div>
-                <label className="text-slate-400 text-sm mb-2 block">Title</label>
+                <label className="text-gray-500 text-sm mb-2 block">Title</label>
                 <Input
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="e.g., Summer Sale 2026"
-                  className="bg-slate-700 text-white border-slate-600"
+                  className="bg-white border-gray-300 text-gray-900"
                 />
               </div>
               <div>
-                <label className="text-slate-400 text-sm mb-2 block">Description</label>
+                <label className="text-gray-500 text-sm mb-2 block">Description</label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Describe what you're promoting"
-                  className="bg-slate-700 text-white border-slate-600"
+                  className="bg-white border-gray-300 text-gray-900"
                 />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-slate-400 text-sm mb-2 block">Button Text</label>
+                  <label className="text-gray-500 text-sm mb-2 block">Button Text</label>
                   <Input
                     value={formData.ctaText}
                     onChange={(e) => setFormData({ ...formData, ctaText: e.target.value })}
                     placeholder="Learn More"
-                    className="bg-slate-700 text-white border-slate-600"
+                    className="bg-white border-gray-300 text-gray-900"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-400 text-sm mb-2 block">Link (optional)</label>
+                  <label className="text-gray-500 text-sm mb-2 block">Link (optional)</label>
                   <Input
                     value={formData.ctaUrl}
                     onChange={(e) => setFormData({ ...formData, ctaUrl: e.target.value })}
                     placeholder="https://yourbusiness.co.za"
-                    className="bg-slate-700 text-white border-slate-600"
+                    className="bg-white border-gray-300 text-gray-900"
                   />
                 </div>
               </div>
               <div>
-                <label className="text-slate-400 text-sm mb-2 block">How long should it run?</label>
+                <label className="text-gray-500 text-sm mb-2 block">How long should it run?</label>
                 <div className="flex flex-wrap gap-2">
                   {DURATION_PRESETS.map((days) => (
                     <button
@@ -394,17 +394,17 @@ export default function BusinessAdsPage() {
                       className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${
                         formData.durationDays === days
                           ? 'bg-yellow-400 text-slate-900 border-yellow-400'
-                          : 'bg-slate-700 text-slate-300 border-slate-600 hover:border-yellow-400/50'
+                          : 'bg-gray-100 text-gray-600 border-gray-300 hover:border-yellow-400/50'
                       }`}
                     >
                       {days} days
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="text-xs text-gray-400 mt-2">
                   Costs {formData.durationDays} ad-credit{formData.durationDays === 1 ? '' : 's'} — you have {adCredits}.
                   {formData.durationDays > adCredits && (
-                    <span className="text-red-400 font-semibold"> Not enough credits — buy more above.</span>
+                    <span className="text-red-700 font-semibold"> Not enough credits — buy more above.</span>
                   )}
                 </p>
               </div>
@@ -412,7 +412,7 @@ export default function BusinessAdsPage() {
                 <Button
                   onClick={() => setShowCreateForm(false)}
                   variant="outline"
-                  className="border-slate-600 text-slate-300"
+                  className="border-gray-300 text-gray-600"
                 >
                   Cancel
                 </Button>
@@ -430,60 +430,60 @@ export default function BusinessAdsPage() {
 
         {/* Ads List */}
         <div className="space-y-4 sm:space-y-5">
-          <h2 className="text-xl sm:text-2xl font-bold text-white">Your Ads ({ads.length})</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Your Ads ({ads.length})</h2>
 
           {loading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="h-8 w-8 text-yellow-400 animate-spin" />
             </div>
           ) : ads.length === 0 ? (
-            <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
+            <Card className="bg-white/80 backdrop-blur-xl border-gray-200">
               <CardContent className="p-8 text-center">
-                <p className="text-slate-400">No sponsored listings yet.</p>
+                <p className="text-gray-500">No sponsored listings yet.</p>
               </CardContent>
             </Card>
           ) : (
             ads.map((ad) => (
-              <Card key={ad.id} className="bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400/30 transition-colors">
+              <Card key={ad.id} className="bg-white/80 backdrop-blur-xl border-gray-200 hover:border-yellow-400/30 transition-colors">
                 <CardContent className="p-5 sm:p-6 space-y-4">
                   {editingId === ad.id ? (
                     <div className="space-y-3">
                       <div>
-                        <label className="text-slate-400 text-sm mb-2 block">Title</label>
+                        <label className="text-gray-500 text-sm mb-2 block">Title</label>
                         <Input
                           value={editFormData.title}
                           onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
-                          className="bg-slate-700 text-white border-slate-600"
+                          className="bg-white border-gray-300 text-gray-900"
                         />
                       </div>
                       <div>
-                        <label className="text-slate-400 text-sm mb-2 block">Description</label>
+                        <label className="text-gray-500 text-sm mb-2 block">Description</label>
                         <Textarea
                           value={editFormData.description}
                           onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                          className="bg-slate-700 text-white border-slate-600"
+                          className="bg-white border-gray-300 text-gray-900"
                         />
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="text-slate-400 text-sm mb-2 block">Button Text</label>
+                          <label className="text-gray-500 text-sm mb-2 block">Button Text</label>
                           <Input
                             value={editFormData.ctaText}
                             onChange={(e) => setEditFormData({ ...editFormData, ctaText: e.target.value })}
-                            className="bg-slate-700 text-white border-slate-600"
+                            className="bg-white border-gray-300 text-gray-900"
                           />
                         </div>
                         <div>
-                          <label className="text-slate-400 text-sm mb-2 block">Link (optional)</label>
+                          <label className="text-gray-500 text-sm mb-2 block">Link (optional)</label>
                           <Input
                             value={editFormData.ctaUrl}
                             onChange={(e) => setEditFormData({ ...editFormData, ctaUrl: e.target.value })}
-                            className="bg-slate-700 text-white border-slate-600"
+                            className="bg-white border-gray-300 text-gray-900"
                           />
                         </div>
                       </div>
                       <div className="flex gap-2 justify-end pt-2">
-                        <Button onClick={() => setEditingId(null)} variant="outline" size="sm" className="border-slate-600 text-slate-300">
+                        <Button onClick={() => setEditingId(null)} variant="outline" size="sm" className="border-gray-300 text-gray-600">
                           Cancel
                         </Button>
                         <Button
@@ -500,16 +500,16 @@ export default function BusinessAdsPage() {
                     <div className="flex justify-between items-start gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-xl font-bold text-white">{ad.title}</h3>
+                          <h3 className="text-xl font-bold text-gray-900">{ad.title}</h3>
                           {ad.is_boosted && ad.boost_expires_at && new Date(ad.boost_expires_at) > new Date() && (
                             <Badge className="bg-yellow-400/20 text-yellow-400 gap-1">
                               <Zap className="h-3 w-3" /> Boosted until {new Date(ad.boost_expires_at).toLocaleDateString()}
                             </Badge>
                           )}
                         </div>
-                        <p className="text-slate-400 text-sm mt-1">{ad.description}</p>
+                        <p className="text-gray-500 text-sm mt-1">{ad.description}</p>
                         {ad.expires_at && (
-                          <p className="text-xs text-slate-500 mt-1">
+                          <p className="text-xs text-gray-400 mt-1">
                             {(() => {
                               const daysLeft = Math.ceil((new Date(ad.expires_at as string).getTime() - Date.now()) / 86400000);
                               return daysLeft > 0
@@ -519,7 +519,7 @@ export default function BusinessAdsPage() {
                           </p>
                         )}
                       </div>
-                      <Badge className={ad.is_active ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'}>
+                      <Badge className={ad.is_active ? 'bg-green-500/20 text-green-700' : 'bg-slate-500/20 text-slate-700'}>
                         {ad.is_active ? 'Active' : 'Paused'}
                       </Badge>
                     </div>
@@ -527,18 +527,18 @@ export default function BusinessAdsPage() {
 
                   {editingId !== ad.id && (
                   <div className="flex items-center gap-5 text-sm">
-                    <div className="flex items-center gap-1.5 text-slate-300">
-                      <Eye className="h-4 w-4 text-slate-500" />
+                    <div className="flex items-center gap-1.5 text-gray-600">
+                      <Eye className="h-4 w-4 text-gray-400" />
                       <span className="font-semibold">{(ad.impressions ?? 0).toLocaleString()}</span>
-                      <span className="text-slate-500">impressions</span>
+                      <span className="text-gray-400">impressions</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-300">
-                      <MousePointerClick className="h-4 w-4 text-slate-500" />
+                    <div className="flex items-center gap-1.5 text-gray-600">
+                      <MousePointerClick className="h-4 w-4 text-gray-400" />
                       <span className="font-semibold">{(ad.clicks ?? 0).toLocaleString()}</span>
-                      <span className="text-slate-500">clicks</span>
+                      <span className="text-gray-400">clicks</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-300">
-                      <span className="text-slate-500">CTR</span>
+                    <div className="flex items-center gap-1.5 text-gray-600">
+                      <span className="text-gray-400">CTR</span>
                       <span className="font-semibold">
                         {ad.impressions > 0 ? `${((ad.clicks / ad.impressions) * 100).toFixed(1)}%` : '—'}
                       </span>
@@ -547,7 +547,7 @@ export default function BusinessAdsPage() {
                   )}
 
                   {editingId !== ad.id && (
-                  <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-700">
+                  <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-200">
                     <Button
                       onClick={() => handleToggleStatus(ad)}
                       disabled={togglingId === ad.id}
@@ -563,7 +563,7 @@ export default function BusinessAdsPage() {
                     </Button>
                     <Button
                       onClick={() => startEdit(ad)}
-                      className="gap-2 h-10 bg-slate-700 hover:bg-slate-600 text-white"
+                      className="gap-2 h-10 bg-gray-200 hover:bg-gray-300 text-gray-900"
                     >
                       <Pencil className="h-4 w-4" /> Edit
                     </Button>
@@ -580,7 +580,7 @@ export default function BusinessAdsPage() {
                     <Button
                       onClick={() => handleDeleteAd(ad.id)}
                       disabled={deletingId === ad.id}
-                      className="gap-2 h-10 bg-red-600/20 text-red-400 hover:bg-red-600/30 sm:ml-auto"
+                      className="gap-2 h-10 bg-red-600/20 text-red-700 hover:bg-red-600/30 sm:ml-auto"
                     >
                       {deletingId === ad.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                       Delete

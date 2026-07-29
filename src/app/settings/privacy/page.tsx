@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Eye, ChevronLeft, Save, Loader2, AlertCircle } from 'lucide-react';
+import { GlassBackground } from '@/components/shared/glass-ui';
 
 export default function PrivacySettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
@@ -46,26 +47,26 @@ export default function PrivacySettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-gray-900 to-black">
+      <div className="flex h-screen items-center justify-center bg-gray-50">
         <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+    <GlassBackground>
       {/* Header */}
-      <div className="border-b border-gray-700 bg-black/50 backdrop-blur-xl">
+      <div className="border-b border-gray-200 bg-white/80 backdrop-blur-xl">
         <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
-          <Link href="/settings" className="mb-4 flex items-center gap-2 text-gray-400 hover:text-gray-200">
+          <Link href="/settings" className="mb-4 flex items-center gap-2 text-gray-500 hover:text-gray-900">
             <ChevronLeft className="w-5 h-5" />
             Back to Settings
           </Link>
           <div className="flex items-center gap-3">
             <Eye className="w-8 h-8 text-blue-400" />
             <div>
-              <h1 className="text-3xl font-bold text-white">Privacy & Data</h1>
-              <p className="text-gray-400">Control your data and visibility</p>
+              <h1 className="text-3xl font-bold text-gray-900">Privacy & Data</h1>
+              <p className="text-gray-500">Control your data and visibility</p>
             </div>
           </div>
         </div>
@@ -75,8 +76,8 @@ export default function PrivacySettingsPage() {
       <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="space-y-8">
           {/* Profile Visibility */}
-          <div className="rounded-xl border border-gray-700 bg-gray-900/50 p-8 backdrop-blur-sm">
-            <h2 className="text-xl font-bold text-white mb-6">Profile Visibility</h2>
+          <div className="rounded-xl border border-gray-200 bg-white/80 p-8 backdrop-blur-sm">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Profile Visibility</h2>
             <div className="space-y-3">
               {[
                 { value: 'public', label: 'Everyone', desc: 'Your profile is public' },
@@ -84,7 +85,7 @@ export default function PrivacySettingsPage() {
                 { value: 'connections', label: 'Connections Only', desc: 'Only your connections can see your profile' },
                 { value: 'private', label: 'Private', desc: 'No one can see your profile except admins' },
               ].map((option) => (
-                <label key={option.value} className="flex items-center gap-3 p-4 rounded-lg border border-gray-600 cursor-pointer hover:bg-gray-800/50">
+                <label key={option.value} className="flex items-center gap-3 p-4 rounded-lg border border-gray-300 cursor-pointer hover:bg-gray-100">
                   <input
                     type="radio"
                     name="visibility"
@@ -94,8 +95,8 @@ export default function PrivacySettingsPage() {
                     className="w-4 h-4"
                   />
                   <div>
-                    <p className="font-medium text-white">{option.label}</p>
-                    <p className="text-sm text-gray-400">{option.desc}</p>
+                    <p className="font-medium text-gray-900">{option.label}</p>
+                    <p className="text-sm text-gray-500">{option.desc}</p>
                   </div>
                 </label>
               ))}
@@ -103,30 +104,30 @@ export default function PrivacySettingsPage() {
           </div>
 
           {/* Search & Discovery */}
-          <div className="rounded-xl border border-gray-700 bg-gray-900/50 p-8 backdrop-blur-sm">
-            <h2 className="text-xl font-bold text-white mb-6">Search & Discovery</h2>
+          <div className="rounded-xl border border-gray-200 bg-white/80 p-8 backdrop-blur-sm">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Search & Discovery</h2>
             <div className="space-y-4">
-              <label className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50">
+              <label className="flex items-center justify-between p-4 rounded-lg bg-gray-100">
                 <div>
-                  <p className="font-medium text-white">Appear in search results</p>
-                  <p className="text-sm text-gray-400">Your profile can be found via search</p>
+                  <p className="font-medium text-gray-900">Appear in search results</p>
+                  <p className="text-sm text-gray-500">Your profile can be found via search</p>
                 </div>
                 <button
                   onClick={() => setPrivacySettings({ ...privacySettings, showInSearch: !privacySettings.showInSearch })}
-                  className={`w-12 h-6 rounded-full transition-colors ${privacySettings.showInSearch ? 'bg-blue-600' : 'bg-gray-700'}`}
+                  className={`w-12 h-6 rounded-full transition-colors ${privacySettings.showInSearch ? 'bg-blue-600' : 'bg-gray-200'}`}
                 >
                   <div className={`w-5 h-5 rounded-full bg-white transition-transform ${privacySettings.showInSearch ? 'translate-x-6' : 'translate-x-0'}`} />
                 </button>
               </label>
 
-              <label className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50">
+              <label className="flex items-center justify-between p-4 rounded-lg bg-gray-100">
                 <div>
-                  <p className="font-medium text-white">Allow direct messages</p>
-                  <p className="text-sm text-gray-400">Users can message you directly</p>
+                  <p className="font-medium text-gray-900">Allow direct messages</p>
+                  <p className="text-sm text-gray-500">Users can message you directly</p>
                 </div>
                 <button
                   onClick={() => setPrivacySettings({ ...privacySettings, allowMessages: !privacySettings.allowMessages })}
-                  className={`w-12 h-6 rounded-full transition-colors ${privacySettings.allowMessages ? 'bg-blue-600' : 'bg-gray-700'}`}
+                  className={`w-12 h-6 rounded-full transition-colors ${privacySettings.allowMessages ? 'bg-blue-600' : 'bg-gray-200'}`}
                 >
                   <div className={`w-5 h-5 rounded-full bg-white transition-transform ${privacySettings.allowMessages ? 'translate-x-6' : 'translate-x-0'}`} />
                 </button>
@@ -135,30 +136,30 @@ export default function PrivacySettingsPage() {
           </div>
 
           {/* Data & Analytics */}
-          <div className="rounded-xl border border-gray-700 bg-gray-900/50 p-8 backdrop-blur-sm">
-            <h2 className="text-xl font-bold text-white mb-6">Data & Analytics</h2>
+          <div className="rounded-xl border border-gray-200 bg-white/80 p-8 backdrop-blur-sm">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Data & Analytics</h2>
             <div className="space-y-4">
-              <label className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50">
+              <label className="flex items-center justify-between p-4 rounded-lg bg-gray-100">
                 <div>
-                  <p className="font-medium text-white">Share usage analytics</p>
-                  <p className="text-sm text-gray-400">Help us improve by sharing anonymized usage data</p>
+                  <p className="font-medium text-gray-900">Share usage analytics</p>
+                  <p className="text-sm text-gray-500">Help us improve by sharing anonymized usage data</p>
                 </div>
                 <button
                   onClick={() => setPrivacySettings({ ...privacySettings, shareAnalytics: !privacySettings.shareAnalytics })}
-                  className={`w-12 h-6 rounded-full transition-colors ${privacySettings.shareAnalytics ? 'bg-blue-600' : 'bg-gray-700'}`}
+                  className={`w-12 h-6 rounded-full transition-colors ${privacySettings.shareAnalytics ? 'bg-blue-600' : 'bg-gray-200'}`}
                 >
                   <div className={`w-5 h-5 rounded-full bg-white transition-transform ${privacySettings.shareAnalytics ? 'translate-x-6' : 'translate-x-0'}`} />
                 </button>
               </label>
 
-              <label className="flex items-center justify-between p-4 rounded-lg bg-gray-800/50">
+              <label className="flex items-center justify-between p-4 rounded-lg bg-gray-100">
                 <div>
-                  <p className="font-medium text-white">Marketing communications</p>
-                  <p className="text-sm text-gray-400">Receive emails about new features and offers</p>
+                  <p className="font-medium text-gray-900">Marketing communications</p>
+                  <p className="text-sm text-gray-500">Receive emails about new features and offers</p>
                 </div>
                 <button
                   onClick={() => setPrivacySettings({ ...privacySettings, marketingConsent: !privacySettings.marketingConsent })}
-                  className={`w-12 h-6 rounded-full transition-colors ${privacySettings.marketingConsent ? 'bg-blue-600' : 'bg-gray-700'}`}
+                  className={`w-12 h-6 rounded-full transition-colors ${privacySettings.marketingConsent ? 'bg-blue-600' : 'bg-gray-200'}`}
                 >
                   <div className={`w-5 h-5 rounded-full bg-white transition-transform ${privacySettings.marketingConsent ? 'translate-x-6' : 'translate-x-0'}`} />
                 </button>
@@ -171,8 +172,8 @@ export default function PrivacySettingsPage() {
             <div className="flex gap-3">
               <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-amber-200 mb-1">POPIA Compliance</p>
-                <p className="text-sm text-amber-100">
+                <p className="font-semibold text-amber-800 mb-1">POPIA Compliance</p>
+                <p className="text-sm text-amber-700">
                   Your data is protected under South Africa's Protection of Personal Information Act (POPIA). We never sell your data to third parties.
                   <Link href="/privacy" className="ml-1 underline hover:no-underline">
                     Read our privacy policy
@@ -201,12 +202,12 @@ export default function PrivacySettingsPage() {
                 </>
               )}
             </button>
-            <Link href="/settings" className="rounded-lg border border-gray-600 px-6 py-3 font-semibold text-gray-300 hover:bg-gray-800">
+            <Link href="/settings" className="rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-600 hover:bg-gray-100">
               Cancel
             </Link>
           </div>
         </div>
       </div>
-    </div>
+    </GlassBackground>
   );
 }

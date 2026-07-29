@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { PostImage } from '@/components/feed/post-image';
+import { GlassBackground } from '@/components/shared/glass-ui';
 
 interface Post {
   id: string;
@@ -93,112 +94,114 @@ export default function PostsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 pb-20">
-      {/* Navigation */}
-      <div className="bg-slate-800 border-b border-slate-700 sticky top-0 z-40 p-4">
-        <Link href="/dashboard" className="flex items-center gap-2 text-yellow-400 hover:text-yellow-300">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </Link>
-      </div>
+    <GlassBackground>
+      <div className="pb-20">
+        {/* Navigation */}
+        <div className="bg-white/80 border-b border-gray-200 sticky top-0 z-40 p-4 backdrop-blur-xl">
+          <Link href="/dashboard" className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Link>
+        </div>
 
-      <div className="max-w-2xl mx-auto p-4 space-y-6">
-        {/* Create Post */}
-        <Card className="bg-slate-800 border-slate-600">
-          <CardContent className="p-6">
-            {!showComposer ? (
-              <Button onClick={() => setShowComposer(true)} className="w-full gap-2 bg-yellow-400 text-slate-900 hover:bg-yellow-300">
-                <Plus className="h-4 w-4" />
-                Create New Post
-              </Button>
-            ) : (
-              <div className="space-y-4">
-                <Textarea
-                  value={newPost}
-                  onChange={(e) => setNewPost(e.target.value)}
-                  placeholder="What's on your mind?"
-                  className="bg-slate-700 text-white border-slate-600 min-h-24"
-                />
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    onClick={() => setShowComposer(false)}
-                    variant="outline"
-                    className="border-slate-600 text-slate-300"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handlePostCreate}
-                    disabled={posting || !newPost.trim()}
-                    className="bg-yellow-400 text-slate-900 hover:bg-yellow-300 gap-2"
-                  >
-                    {posting && <Loader2 className="h-4 w-4 animate-spin" />}
-                    {posting ? 'Posting…' : 'Post'}
-                  </Button>
-                </div>
-                <p className="text-xs text-slate-500">
-                  Tip: to attach an image, post from the <Link href="/" className="text-yellow-400 hover:underline">Home feed</Link> composer.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Posts Feed */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold text-white">Your Posts ({posts.length})</h2>
-
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="h-8 w-8 text-yellow-400 animate-spin" />
-            </div>
-          ) : posts.length === 0 ? (
-            <Card className="bg-slate-800 border-slate-600">
-              <CardContent className="p-8 text-center">
-                <p className="text-slate-400">No posts yet. Create your first post!</p>
-              </CardContent>
-            </Card>
-          ) : (
-            posts.map((post) => (
-              <Card key={post.id} className="bg-slate-800 border-slate-600 hover:border-yellow-400/30 transition-colors">
-                <CardContent className="p-6 space-y-4">
-                  {/* Post Content */}
-                  <p className="text-white text-base leading-relaxed">{post.content}</p>
-
-                  {post.image_url && (
-                    <PostImage url={post.image_url} className="border-slate-700 bg-slate-900" />
-                  )}
-
-                  {/* Post Meta */}
-                  <p className="text-slate-400 text-sm">
-                    {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-                  </p>
-
-                  {/* Engagement Stats */}
-                  <div className="flex gap-4 py-3 border-y border-slate-700 text-slate-400 text-sm">
-                    <span>{post.likes_count} likes</span>
-                    <span>{post.comments_count} comments</span>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex justify-end pt-2">
+        <div className="max-w-2xl mx-auto p-4 space-y-6">
+          {/* Create Post */}
+          <Card className="bg-white border-gray-200">
+            <CardContent className="p-6">
+              {!showComposer ? (
+                <Button onClick={() => setShowComposer(true)} className="w-full gap-2 bg-yellow-400 text-gray-900 hover:bg-yellow-300">
+                  <Plus className="h-4 w-4" />
+                  Create New Post
+                </Button>
+              ) : (
+                <div className="space-y-4">
+                  <Textarea
+                    value={newPost}
+                    onChange={(e) => setNewPost(e.target.value)}
+                    placeholder="What's on your mind?"
+                    className="bg-gray-100 text-gray-900 border-gray-300 min-h-24"
+                  />
+                  <div className="flex gap-2 justify-end">
                     <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(post.id)}
-                      disabled={deletingId === post.id}
-                      className="gap-2 text-red-400 hover:text-red-300"
+                      onClick={() => setShowComposer(false)}
+                      variant="outline"
+                      className="border-gray-300 text-gray-600"
                     >
-                      {deletingId === post.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                      {deletingId === post.id ? 'Deleting…' : 'Delete'}
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handlePostCreate}
+                      disabled={posting || !newPost.trim()}
+                      className="bg-yellow-400 text-gray-900 hover:bg-yellow-300 gap-2"
+                    >
+                      {posting && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {posting ? 'Posting…' : 'Post'}
                     </Button>
                   </div>
+                  <p className="text-xs text-gray-500">
+                    Tip: to attach an image, post from the <Link href="/" className="text-yellow-600 hover:underline">Home feed</Link> composer.
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Posts Feed */}
+          <div className="space-y-4">
+            <h2 className="text-2xl font-bold text-gray-900">Your Posts ({posts.length})</h2>
+
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <Loader2 className="h-8 w-8 text-yellow-400 animate-spin" />
+              </div>
+            ) : posts.length === 0 ? (
+              <Card className="bg-white border-gray-200">
+                <CardContent className="p-8 text-center">
+                  <p className="text-gray-500">No posts yet. Create your first post!</p>
                 </CardContent>
               </Card>
-            ))
-          )}
+            ) : (
+              posts.map((post) => (
+                <Card key={post.id} className="bg-white border-gray-200 hover:border-yellow-400/50 transition-colors">
+                  <CardContent className="p-6 space-y-4">
+                    {/* Post Content */}
+                    <p className="text-gray-900 text-base leading-relaxed">{post.content}</p>
+
+                    {post.image_url && (
+                      <PostImage url={post.image_url} className="border-gray-200 bg-gray-100" />
+                    )}
+
+                    {/* Post Meta */}
+                    <p className="text-gray-500 text-sm">
+                      {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                    </p>
+
+                    {/* Engagement Stats */}
+                    <div className="flex gap-4 py-3 border-y border-gray-200 text-gray-500 text-sm">
+                      <span>{post.likes_count} likes</span>
+                      <span>{post.comments_count} comments</span>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(post.id)}
+                        disabled={deletingId === post.id}
+                        className="gap-2 text-red-400 hover:text-red-700"
+                      >
+                        {deletingId === post.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        {deletingId === post.id ? 'Deleting…' : 'Delete'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </GlassBackground>
   );
 }

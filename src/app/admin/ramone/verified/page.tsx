@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { GlassBackground } from '@/components/shared/glass-ui';
 
 interface VerifiedBusiness {
   id: string;
@@ -86,43 +87,43 @@ export default function RamoneVerifiedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black p-6">
-      <div className="max-w-7xl mx-auto">
+    <GlassBackground>
+      <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
-        <Link href="/admin/ramone" className="flex items-center gap-2 text-gray-400 hover:text-gray-200 mb-6">
+        <Link href="/admin/ramone" className="flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6">
           <ArrowLeft className="h-5 w-5" />
           Back to Command Center
         </Link>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
             <Shield className="h-8 w-8 text-green-400" />
             Verified Businesses
           </h1>
-          <p className="text-gray-400 mt-2">Successfully verified businesses with trust scores</p>
+          <p className="text-gray-500 mt-2">Successfully verified businesses with trust scores</p>
         </div>
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="bg-gray-800/40 border-gray-700">
+          <Card className="rounded-2xl bg-white/80 border-gray-200 shadow-md">
             <CardContent className="p-6">
-              <p className="text-gray-400 text-sm">Total Verified</p>
-              <p className="text-3xl font-bold text-green-400 mt-2">{filteredBusinesses.length}</p>
+              <p className="text-gray-500 text-sm">Total Verified</p>
+              <p className="text-3xl font-bold text-green-600 mt-2">{filteredBusinesses.length}</p>
             </CardContent>
           </Card>
-          <Card className="bg-gray-800/40 border-gray-700">
+          <Card className="rounded-2xl bg-white/80 border-gray-200 shadow-md">
             <CardContent className="p-6">
-              <p className="text-gray-400 text-sm">Average Trust Score</p>
-              <p className="text-3xl font-bold text-blue-400 mt-2">
+              <p className="text-gray-500 text-sm">Average Trust Score</p>
+              <p className="text-3xl font-bold text-blue-600 mt-2">
                 {filteredBusinesses.length > 0
                   ? Math.round(filteredBusinesses.reduce((sum, b) => sum + b.trust_score, 0) / filteredBusinesses.length)
                   : 0}%
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-gray-800/40 border-gray-700">
+          <Card className="rounded-2xl bg-white/80 border-gray-200 shadow-md">
             <CardContent className="p-6">
-              <p className="text-gray-400 text-sm">Export Data</p>
+              <p className="text-gray-500 text-sm">Export Data</p>
               <Button onClick={handleDownloadReport} disabled={filteredBusinesses.length === 0} className="mt-2 w-full bg-purple-600 hover:bg-purple-700" size="sm">
                 <Download className="h-4 w-4 mr-2" />
                 Download Report
@@ -138,12 +139,12 @@ export default function RamoneVerifiedPage() {
             placeholder="Search businesses..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+            className="flex-1 bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
           />
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as any)}
-            className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-blue-500 focus:outline-none"
+            className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none"
           >
             <option value="newest">Newest First</option>
             <option value="oldest">Oldest First</option>
@@ -154,31 +155,31 @@ export default function RamoneVerifiedPage() {
 
         {/* Businesses List */}
         {filteredBusinesses.length === 0 ? (
-          <Card className="bg-gray-800/40 border-gray-700">
+          <Card className="rounded-2xl bg-white/80 border-gray-200 shadow-md">
             <CardContent className="p-12 text-center">
               <Shield className="h-12 w-12 text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-400 text-lg">No verified businesses found.</p>
+              <p className="text-gray-500 text-lg">No verified businesses found.</p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredBusinesses.map(business => (
-              <Card key={business.id} className="bg-gray-800/40 border-gray-700 hover:border-gray-600 transition-all">
+              <Card key={business.id} className="rounded-2xl bg-white/80 border-gray-200 hover:border-gray-300 shadow-md transition-all">
                 <CardHeader>
                   <div className="flex items-start justify-between mb-2">
-                    <CardTitle className="text-white text-xl">{business.company_name}</CardTitle>
-                    <Badge className="bg-green-500/20 text-green-300">✓ Verified</Badge>
+                    <CardTitle className="text-gray-900 text-xl">{business.company_name}</CardTitle>
+                    <Badge className="bg-green-500/20 text-green-700">✓ Verified</Badge>
                   </div>
-                  <p className="text-sm text-gray-400">Owner: {business.owner_name}</p>
+                  <p className="text-sm text-gray-500">Owner: {business.owner_name}</p>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Trust Score */}
-                  <div className="bg-gray-900 rounded p-4">
+                  <div className="bg-gray-100 rounded p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-gray-400">Trust Score</span>
-                      <span className="text-2xl font-bold text-green-400">{business.trust_score}%</span>
+                      <span className="text-sm text-gray-500">Trust Score</span>
+                      <span className="text-2xl font-bold text-green-600">{business.trust_score}%</span>
                     </div>
-                    <div className="w-full bg-gray-700 rounded-full h-2">
+                    <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
                         className="bg-green-500 h-2 rounded-full"
                         style={{ width: `${business.trust_score}%` }}
@@ -190,28 +191,28 @@ export default function RamoneVerifiedPage() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Industry</p>
-                      <p className="text-white font-medium">{business.industry}</p>
+                      <p className="text-gray-900 font-medium">{business.industry}</p>
                     </div>
                     <div>
                       <p className="text-xs text-gray-500 mb-1">Verified</p>
-                      <p className="text-white font-medium">
+                      <p className="text-gray-900 font-medium">
                         {new Date(business.verified_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
 
                   {/* Contact */}
-                  <div className="space-y-2 pt-4 border-t border-gray-700">
+                  <div className="space-y-2 pt-4 border-t border-gray-200">
                     {business.address && (
                       <div className="flex items-start gap-2 text-sm">
                         <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
-                        <span className="text-gray-300">{business.address}</span>
+                        <span className="text-gray-600">{business.address}</span>
                       </div>
                     )}
                     {business.phone && (
                       <div className="flex items-center gap-2 text-sm">
                         <Phone className="h-4 w-4 text-gray-500" />
-                        <a href={`tel:${business.phone}`} className="text-blue-400 hover:underline">
+                        <a href={`tel:${business.phone}`} className="text-blue-600 hover:underline">
                           {business.phone}
                         </a>
                       </div>
@@ -219,7 +220,7 @@ export default function RamoneVerifiedPage() {
                     {business.website && (
                       <div className="flex items-center gap-2 text-sm">
                         <Globe className="h-4 w-4 text-gray-500" />
-                        <a href={business.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">
+                        <a href={business.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                           Visit Website
                         </a>
                       </div>
@@ -228,7 +229,7 @@ export default function RamoneVerifiedPage() {
 
                   {/* View Certificate */}
                   <Link href={`/business/${business.id}`} className="block">
-                    <Button variant="outline" className="w-full border-green-500/50 text-green-400 hover:bg-green-500/10">
+                    <Button variant="outline" className="w-full border-green-500/50 text-green-600 hover:bg-green-500/10">
                       View Certificate & Profile
                     </Button>
                   </Link>
@@ -238,6 +239,6 @@ export default function RamoneVerifiedPage() {
           </div>
         )}
       </div>
-    </div>
+    </GlassBackground>
   );
 }

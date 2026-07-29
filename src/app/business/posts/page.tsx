@@ -130,21 +130,21 @@ export default function BusinessPostsPage() {
   return (
     <GlassBackground>
       {/* Header */}
-      <div className="bg-slate-950/70 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40">
+      <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link href="/business/dashboard">
-                <button className="p-2 hover:bg-slate-700 rounded-lg transition">
-                  <ArrowLeft className="h-5 w-5 text-white" />
+                <button className="p-2 hover:bg-gray-100 rounded-lg transition">
+                  <ArrowLeft className="h-5 w-5 text-gray-900" />
                 </button>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <Sparkles className="h-6 w-6 text-yellow-400" />
                   Posts Management
                 </h1>
-                <p className="text-sm text-slate-400 mt-1">Create and manage your business posts</p>
+                <p className="text-sm text-gray-500 mt-1">Create and manage your business posts</p>
               </div>
             </div>
             <Button
@@ -162,42 +162,42 @@ export default function BusinessPostsPage() {
       <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Performance Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
+          <Card className="bg-white/80 backdrop-blur-xl border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-400 text-sm mb-2">Total Posts</p>
-                  <p className="text-3xl font-bold text-white">{posts.length}</p>
+                  <p className="text-gray-500 text-sm mb-2">Total Posts</p>
+                  <p className="text-3xl font-bold text-gray-900">{posts.length}</p>
                 </div>
-                <div className="p-3 bg-slate-700 rounded-lg">
+                <div className="p-3 bg-gray-200 rounded-lg">
                   <Sparkles className="h-6 w-6 text-yellow-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
+          <Card className="bg-white/80 backdrop-blur-xl border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-400 text-sm mb-2">Total Likes</p>
-                  <p className="text-3xl font-bold text-white">{totalLikes.toLocaleString()}</p>
+                  <p className="text-gray-500 text-sm mb-2">Total Likes</p>
+                  <p className="text-3xl font-bold text-gray-900">{totalLikes.toLocaleString()}</p>
                 </div>
-                <div className="p-3 bg-slate-700 rounded-lg">
+                <div className="p-3 bg-gray-200 rounded-lg">
                   <Heart className="h-6 w-6 text-yellow-400" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5">
+          <Card className="bg-white/80 backdrop-blur-xl border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-slate-400 text-sm mb-2">Total Comments</p>
-                  <p className="text-3xl font-bold text-white">{totalComments.toLocaleString()}</p>
+                  <p className="text-gray-500 text-sm mb-2">Total Comments</p>
+                  <p className="text-3xl font-bold text-gray-900">{totalComments.toLocaleString()}</p>
                 </div>
-                <div className="p-3 bg-slate-700 rounded-lg">
+                <div className="p-3 bg-gray-200 rounded-lg">
                   <TrendingUp className="h-6 w-6 text-yellow-400" />
                 </div>
               </div>
@@ -207,20 +207,20 @@ export default function BusinessPostsPage() {
 
         {/* Post Composer */}
         {showComposer && (
-          <Card className="bg-slate-800 border-yellow-400 mb-8 shadow-lg shadow-yellow-400/20">
-            <CardHeader className="border-b border-slate-700">
-              <CardTitle className="text-white">Create New Post</CardTitle>
+          <Card className="bg-gray-100 border-yellow-400 mb-8 shadow-lg shadow-yellow-400/20">
+            <CardHeader className="border-b border-gray-200">
+              <CardTitle className="text-gray-900">Create New Post</CardTitle>
             </CardHeader>
             <CardContent className="p-6">
               <textarea
                 value={newPost}
                 onChange={(e) => setNewPost(e.target.value)}
                 placeholder="What's new with your business? Share updates, announcements, or engage with customers..."
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg p-4 text-white placeholder-slate-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 resize-none"
+                className="w-full bg-white border border-gray-300 rounded-lg p-4 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 resize-none"
                 rows={5}
               />
-              <p className="text-xs text-slate-500 mt-2">
-                Tip: to attach an image, post from the <Link href="/" className="text-yellow-400 hover:underline">Home feed</Link> composer.
+              <p className="text-xs text-gray-400 mt-2">
+                Tip: to attach an image, post from the <Link href="/" className="text-yellow-600 hover:underline">Home feed</Link> composer.
               </p>
               <div className="flex justify-end gap-3 mt-4">
                 <Button
@@ -229,7 +229,7 @@ export default function BusinessPostsPage() {
                     setShowComposer(false);
                     setNewPost('');
                   }}
-                  className="border-slate-600 text-white hover:bg-slate-700"
+                  className="border-gray-300 text-gray-900 hover:bg-gray-100"
                 >
                   Cancel
                 </Button>
@@ -251,11 +251,11 @@ export default function BusinessPostsPage() {
             <Loader2 className="h-8 w-8 text-yellow-400 animate-spin" />
           </div>
         ) : posts.length === 0 ? (
-          <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5 text-center py-16">
+          <Card className="bg-white/80 backdrop-blur-xl border-gray-200 text-center py-16">
             <CardContent>
               <Sparkles className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">No Posts Yet</h3>
-              <p className="text-slate-400 mb-6">Start sharing updates with your customers. Your first post could be the beginning of great engagement!</p>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No Posts Yet</h3>
+              <p className="text-gray-500 mb-6">Start sharing updates with your customers. Your first post could be the beginning of great engagement!</p>
               <Button
                 onClick={() => setShowComposer(true)}
                 className="bg-yellow-400 text-slate-900 hover:bg-yellow-500"
@@ -267,7 +267,7 @@ export default function BusinessPostsPage() {
         ) : (
           <div className="space-y-4">
             {posts.map((post) => (
-              <Card key={post.id} className="bg-slate-900/60 backdrop-blur-xl border-white/5 hover:border-yellow-400 transition">
+              <Card key={post.id} className="bg-white/80 backdrop-blur-xl border-gray-200 hover:border-yellow-400 transition">
                 <CardContent className="p-6">
                   {/* Post Header */}
                   <div className="flex items-start justify-between mb-4">
@@ -276,8 +276,8 @@ export default function BusinessPostsPage() {
                         <Sparkles className="h-5 w-5 text-yellow-400" />
                       </div>
                       <div>
-                        <p className="font-medium text-white">Business Update</p>
-                        <p className="text-sm text-slate-400 flex items-center gap-1">
+                        <p className="font-medium text-gray-900">Business Update</p>
+                        <p className="text-sm text-gray-500 flex items-center gap-1">
                           <Clock className="h-3 w-3" />
                           {formatDate(post.created_at)}
                         </p>
@@ -286,30 +286,30 @@ export default function BusinessPostsPage() {
                     <button
                       onClick={() => handleDeletePost(post.id)}
                       disabled={deletingId === post.id}
-                      className="p-2 hover:bg-slate-700 rounded-lg transition text-slate-400 hover:text-red-400"
+                      className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-500 hover:text-red-400"
                     >
                       {deletingId === post.id ? <Loader2 className="h-5 w-5 animate-spin" /> : <Trash2 className="h-5 w-5" />}
                     </button>
                   </div>
 
                   {/* Post Content */}
-                  <p className="text-white mb-6 leading-relaxed">{post.content}</p>
+                  <p className="text-gray-900 mb-6 leading-relaxed">{post.content}</p>
 
                   {post.image_url && (
-                    <PostImage url={post.image_url} className="mb-6 border-slate-700 bg-slate-900" />
+                    <PostImage url={post.image_url} className="mb-6 border-gray-200 bg-white" />
                   )}
 
                   {/* Post Stats */}
-                  <div className="grid grid-cols-2 gap-4 py-4 border-t border-b border-slate-700">
-                    <div className="flex items-center gap-2 text-slate-300">
-                      <Heart className="h-5 w-5 text-slate-400" />
-                      <span className="text-lg font-semibold text-white">{post.likes_count}</span>
-                      <span className="text-sm text-slate-400">Likes</span>
+                  <div className="grid grid-cols-2 gap-4 py-4 border-t border-b border-gray-200">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Heart className="h-5 w-5 text-gray-500" />
+                      <span className="text-lg font-semibold text-gray-900">{post.likes_count}</span>
+                      <span className="text-sm text-gray-500">Likes</span>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-300">
-                      <MessageCircle className="h-5 w-5 text-slate-400" />
-                      <span className="text-lg font-semibold text-white">{post.comments_count}</span>
-                      <span className="text-sm text-slate-400">Comments</span>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <MessageCircle className="h-5 w-5 text-gray-500" />
+                      <span className="text-lg font-semibold text-gray-900">{post.comments_count}</span>
+                      <span className="text-sm text-gray-500">Comments</span>
                     </div>
                   </div>
                 </CardContent>

@@ -110,15 +110,15 @@ export default function BusinessProfilePage() {
       <div className="max-w-3xl mx-auto px-4 py-8">
         <Link
           href="/business/dashboard"
-          className={`inline-flex items-center gap-2 text-yellow-500 hover:text-yellow-400 mb-6 rounded-lg ${glassInteractive}`}
+          className={`inline-flex items-center gap-2 text-yellow-500 hover:text-yellow-600 mb-6 rounded-lg ${glassInteractive}`}
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Dashboard
         </Link>
 
-        <Card className="bg-slate-900/60 backdrop-blur-xl border-white/5 shadow-2xl">
+        <Card className="bg-white/80 backdrop-blur-xl border-gray-200 shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-slate-100">Edit Business Profile</CardTitle>
+            <CardTitle className="text-gray-900">Edit Business Profile</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {loading ? (
@@ -128,10 +128,10 @@ export default function BusinessProfilePage() {
             ) : (
               <>
                 <div>
-                  <Label className="text-slate-300 mb-2 block">Cover Photo</Label>
+                  <Label className="text-gray-600 mb-2 block">Cover Photo</Label>
                   <p className="text-sm text-slate-500 mb-3">Shown as a banner at the top of your public profile.</p>
                   {coverImageUrl && (
-                    <div className="mb-3 rounded-xl overflow-hidden border border-white/10 aspect-[3/1] bg-slate-800">
+                    <div className="mb-3 rounded-xl overflow-hidden border border-gray-200 aspect-[3/1] bg-gray-100">
                       <img src={coverImageUrl} alt="Cover" className="w-full h-full object-cover" />
                     </div>
                   )}
@@ -139,7 +139,7 @@ export default function BusinessProfilePage() {
                     <ImageUploader
                       onImageSelect={(url) => setCoverImageUrl(url)}
                       onUploadStateChange={setCoverUploading}
-                      buttonClassName="border border-white/10 bg-slate-800/60 text-slate-300 hover:text-yellow-500"
+                      buttonClassName="border border-gray-200 bg-gray-100 text-gray-600 hover:text-yellow-500"
                     />
                     {coverUploading && (
                       <span className="text-xs text-slate-500">Uploading — don't save yet…</span>
@@ -147,7 +147,7 @@ export default function BusinessProfilePage() {
                     {coverImageUrl && (
                       <button
                         onClick={() => setCoverImageUrl('')}
-                        className={`text-sm text-red-400 hover:text-red-300 ${glassInteractive}`}
+                        className={`text-sm text-red-400 hover:text-red-700 ${glassInteractive}`}
                       >
                         Remove cover photo
                       </button>
@@ -156,43 +156,43 @@ export default function BusinessProfilePage() {
                 </div>
 
                 <div>
-                  <Label className="text-slate-300 mb-2 block">Tagline</Label>
+                  <Label className="text-gray-600 mb-2 block">Tagline</Label>
                   <Input
                     value={tagline}
                     onChange={(e) => setTagline(e.target.value)}
                     placeholder="A short line under your name — e.g. Trusted electrical contractors since 2010"
                     maxLength={100}
-                    className={`bg-slate-800/60 border-white/10 text-slate-100 placeholder-slate-500 ${glassInteractive}`}
+                    className={`bg-white border-gray-300 text-gray-900 placeholder-gray-400 ${glassInteractive}`}
                   />
                 </div>
 
                 <div>
-                  <Label className="text-slate-300 mb-2 block">Company Name</Label>
+                  <Label className="text-gray-600 mb-2 block">Company Name</Label>
                   <Input
                     value={formData.company_name}
                     onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
                     placeholder="Your company name"
-                    className={`bg-slate-800/60 border-white/10 text-slate-100 placeholder-slate-500 ${glassInteractive}`}
+                    className={`bg-white border-gray-300 text-gray-900 placeholder-gray-400 ${glassInteractive}`}
                   />
                 </div>
 
                 <div>
-                  <Label className="text-slate-300 mb-2 block">Description</Label>
+                  <Label className="text-gray-600 mb-2 block">Description</Label>
                   <Textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Tell customers about your business"
                     rows={4}
-                    className={`bg-slate-800/60 border-white/10 text-slate-100 placeholder-slate-500 ${glassInteractive}`}
+                    className={`bg-white border-gray-300 text-gray-900 placeholder-gray-400 ${glassInteractive}`}
                   />
                 </div>
 
                 <div>
-                  <Label className="text-slate-300 mb-2 block">Industry</Label>
+                  <Label className="text-gray-600 mb-2 block">Industry</Label>
                   <select
                     value={formData.industry}
                     onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
-                    className={`w-full h-10 rounded-md bg-slate-800/60 border border-white/10 text-slate-100 px-3 ${glassInteractive}`}
+                    className={`w-full h-10 rounded-md bg-white border border-gray-300 text-gray-900 px-3 ${glassInteractive}`}
                   >
                     <option value="">Select an industry</option>
                     {formData.industry && !BUSINESS_CATEGORIES.includes(formData.industry) && (
@@ -208,45 +208,45 @@ export default function BusinessProfilePage() {
                 </div>
 
                 <div>
-                  <Label className="text-slate-300 mb-2 block">Website</Label>
+                  <Label className="text-gray-600 mb-2 block">Website</Label>
                   <Input
                     value={formData.website}
                     onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                     placeholder="https://yourwebsite.com"
                     type="url"
-                    className={`bg-slate-800/60 border-white/10 text-slate-100 placeholder-slate-500 ${glassInteractive}`}
+                    className={`bg-white border-gray-300 text-gray-900 placeholder-gray-400 ${glassInteractive}`}
                   />
                 </div>
 
                 <div>
-                  <Label className="text-slate-300 mb-2 block">Phone</Label>
+                  <Label className="text-gray-600 mb-2 block">Phone</Label>
                   <Input
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="+27 (0) XXX XXX XXXX"
                     type="tel"
-                    className={`bg-slate-800/60 border-white/10 text-slate-100 placeholder-slate-500 ${glassInteractive}`}
+                    className={`bg-white border-gray-300 text-gray-900 placeholder-gray-400 ${glassInteractive}`}
                   />
                 </div>
 
                 <div>
-                  <Label className="text-slate-300 mb-2 block">Address</Label>
+                  <Label className="text-gray-600 mb-2 block">Address</Label>
                   <Textarea
                     value={formData.address}
                     onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     placeholder="Your business address"
                     rows={3}
-                    className={`bg-slate-800/60 border-white/10 text-slate-100 placeholder-slate-500 ${glassInteractive}`}
+                    className={`bg-white border-gray-300 text-gray-900 placeholder-gray-400 ${glassInteractive}`}
                   />
                 </div>
 
-                <div className="pt-2 border-t border-white/5">
-                  <h3 className="text-slate-100 font-semibold mb-1 mt-6">Highlights</h3>
+                <div className="pt-2 border-t border-gray-200">
+                  <h3 className="text-gray-900 font-semibold mb-1 mt-6">Highlights</h3>
                   <p className="text-sm text-slate-500 mb-4">Up to 6 short bullet points — what makes your business worth choosing. Shown on your public profile.</p>
                   <div className="space-y-2 mb-3">
                     {highlights.map((h, i) => (
-                      <div key={i} className="flex items-center gap-2 bg-slate-800/60 border border-white/10 rounded-lg px-3 py-2">
-                        <span className="flex-1 text-sm text-slate-200">{h}</span>
+                      <div key={i} className="flex items-center gap-2 bg-gray-100 border border-gray-200 rounded-lg px-3 py-2">
+                        <span className="flex-1 text-sm text-gray-700">{h}</span>
                         <button onClick={() => removeHighlight(i)} className={`text-slate-500 hover:text-red-400 ${glassInteractive}`}>
                           <X className="h-4 w-4" />
                         </button>
@@ -261,22 +261,22 @@ export default function BusinessProfilePage() {
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addHighlight(); } }}
                         placeholder="e.g. Same-day quotes, 15 years experience"
                         maxLength={80}
-                        className={`bg-slate-800/60 border-white/10 text-slate-100 placeholder-slate-500 ${glassInteractive}`}
+                        className={`bg-white border-gray-300 text-gray-900 placeholder-gray-400 ${glassInteractive}`}
                       />
-                      <Button type="button" onClick={addHighlight} variant="outline" className={`border-white/10 text-slate-300 hover:bg-white/5 shrink-0 ${glassInteractive}`}>
+                      <Button type="button" onClick={addHighlight} variant="outline" className={`border-gray-200 text-gray-600 hover:bg-gray-100 shrink-0 ${glassInteractive}`}>
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
                   )}
                 </div>
 
-                <div className="pt-2 border-t border-white/5">
-                  <h3 className="text-slate-100 font-semibold mb-1 mt-6">Social Media</h3>
+                <div className="pt-2 border-t border-gray-200">
+                  <h3 className="text-gray-900 font-semibold mb-1 mt-6">Social Media</h3>
                   <p className="text-sm text-slate-500 mb-4">Add your social pages — they'll show as icons on your public business profile.</p>
                   <div className="space-y-4">
                     {SOCIAL_PLATFORMS.map(({ key, label, placeholder, icon: Icon }) => (
                       <div key={key}>
-                        <Label className="text-slate-300 mb-2 flex items-center gap-2">
+                        <Label className="text-gray-600 mb-2 flex items-center gap-2">
                           <Icon className="h-4 w-4 text-yellow-500" />
                           {label}
                         </Label>
@@ -284,7 +284,7 @@ export default function BusinessProfilePage() {
                           value={socialLinks[key] || ''}
                           onChange={(e) => setSocialLinks({ ...socialLinks, [key]: e.target.value })}
                           placeholder={placeholder}
-                          className={`bg-slate-800/60 border-white/10 text-slate-100 placeholder-slate-500 ${glassInteractive}`}
+                          className={`bg-white border-gray-300 text-gray-900 placeholder-gray-400 ${glassInteractive}`}
                         />
                       </div>
                     ))}
@@ -302,7 +302,7 @@ export default function BusinessProfilePage() {
                     {coverUploading ? 'Uploading photo…' : 'Save Changes'}
                   </Button>
                   <Link href="/business/dashboard">
-                    <Button variant="outline" className={`border-white/10 text-slate-300 hover:bg-white/5 ${glassInteractive}`}>
+                    <Button variant="outline" className={`border-gray-200 text-gray-600 hover:bg-gray-100 ${glassInteractive}`}>
                       Cancel
                     </Button>
                   </Link>

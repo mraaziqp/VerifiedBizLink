@@ -10,6 +10,7 @@ import { MarketStats } from '@/components/market/market-stats';
 import { PriceComparator } from '@/components/market/price-comparator';
 import { Loader2, Search, ArrowLeft, AlertCircle, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
+import { GlassBackground } from '@/components/shared/glass-ui';
 
 interface Price {
   name: string;
@@ -146,30 +147,31 @@ export default function MarketplacePage() {
   const watchedPrices = prices.filter(p => watchlist.includes(p.symbol));
 
   return (
-    <div className="min-h-screen bg-black pt-20">
+    <GlassBackground>
+      <div className="pt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
           <Link href="/">
-            <Button variant="outline" size="sm" className="mb-4 gap-2 border-zinc-800 hover:border-zinc-700">
+            <Button variant="outline" size="sm" className="mb-4 gap-2 border-gray-200 hover:border-gray-300">
               <ArrowLeft className="h-4 w-4" />
               Back to App
             </Button>
           </Link>
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-4xl font-bold text-white mb-2">Marketplace</h1>
-              <p className="text-zinc-400">Real-time commodity prices, market news, and analysis</p>
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">Marketplace</h1>
+              <p className="text-gray-600">Real-time commodity prices, market news, and analysis</p>
             </div>
-            <div className="text-right text-xs text-zinc-500">
+            <div className="text-right text-xs text-gray-500">
               <p>Updated {lastUpdated.toLocaleTimeString()}</p>
-              <p className="text-zinc-600">Auto-refresh every 30s</p>
+              <p className="text-gray-500">Auto-refresh every 30s</p>
             </div>
           </div>
         </div>
 
         <Tabs defaultValue="prices" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8 bg-zinc-900 border border-zinc-800">
+          <TabsList className="grid w-full grid-cols-3 mb-8 bg-gray-100 border border-gray-200">
             <TabsTrigger value="prices">Prices</TabsTrigger>
             <TabsTrigger value="news">Market News</TabsTrigger>
             <TabsTrigger value="watchlist">Watchlist ({watchlist.length})</TabsTrigger>
@@ -187,19 +189,19 @@ export default function MarketplacePage() {
             <div className="space-y-4">
               <div className="flex gap-4 flex-col sm:flex-row">
                 <div className="flex-1 relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-zinc-500" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
                   <Input
                     type="text"
                     placeholder="Search commodities..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 bg-zinc-900 border-zinc-800 text-white placeholder-zinc-500"
+                    className="pl-10 bg-white border-gray-300 text-gray-900 placeholder-gray-400"
                   />
                 </div>
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-white hover:border-zinc-700 transition-colors"
+                  className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 hover:border-gray-400 transition-colors"
                 >
                   <option value="">All Categories</option>
                   {CATEGORIES.map(cat => (
@@ -210,7 +212,7 @@ export default function MarketplacePage() {
 
               {/* Sort Options */}
               <div className="flex gap-2 flex-wrap items-center">
-                <span className="text-xs text-zinc-400">Sort:</span>
+                <span className="text-xs text-gray-500">Sort:</span>
                 {(['name', 'price', 'change', 'changePercent'] as SortOption[]).map(option => (
                   <button
                     key={option}
@@ -224,8 +226,8 @@ export default function MarketplacePage() {
                     }}
                     className={`px-3 py-1 rounded text-xs font-medium transition-all ${
                       sortBy === option
-                        ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
-                        : 'bg-zinc-800/50 text-zinc-400 hover:bg-zinc-800 border border-zinc-700'
+                        ? 'bg-blue-500/20 text-blue-700 border border-blue-500/30'
+                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200 border border-gray-200'
                     }`}
                   >
                     {option === 'name' ? 'Name' : option === 'price' ? 'Price' : option === 'change' ? 'Change $' : 'Change %'}
@@ -237,48 +239,48 @@ export default function MarketplacePage() {
 
             {/* Selected Commodity Chart */}
             {selectedCommodity && (
-              <div className="border border-zinc-800 rounded-lg p-6 bg-zinc-900/50">
+              <div className="border border-gray-200 rounded-lg p-6 bg-white/80">
                 <div className="flex justify-between items-center mb-6">
                   <div>
-                    <h3 className="text-xl font-bold text-white">{selectedCommodity.name}</h3>
-                    <p className="text-zinc-400">${selectedCommodity.price.toFixed(2)} {selectedCommodity.unit}</p>
+                    <h3 className="text-xl font-bold text-gray-900">{selectedCommodity.name}</h3>
+                    <p className="text-gray-600">${selectedCommodity.price.toFixed(2)} {selectedCommodity.unit}</p>
                   </div>
                   <Button
                     onClick={() => setSelectedCommodity(null)}
                     variant="outline"
-                    className="border-zinc-800 hover:border-zinc-700"
+                    className="border-gray-200 hover:border-gray-300"
                   >
                     Close
                   </Button>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wide">24h Change</p>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">24h Change</p>
                     <p className={`text-lg font-bold mt-1 ${selectedCommodity.change >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {selectedCommodity.change >= 0 ? '+' : ''}{selectedCommodity.change.toFixed(2)} ({selectedCommodity.changePercent.toFixed(2)}%)
                     </p>
                   </div>
-                  <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wide">24h High</p>
-                    <p className="text-lg font-bold mt-1 text-white">{selectedCommodity.high24h.toFixed(2)}</p>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">24h High</p>
+                    <p className="text-lg font-bold mt-1 text-gray-900">{selectedCommodity.high24h.toFixed(2)}</p>
                   </div>
-                  <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wide">24h Low</p>
-                    <p className="text-lg font-bold mt-1 text-white">{selectedCommodity.low24h.toFixed(2)}</p>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">24h Low</p>
+                    <p className="text-lg font-bold mt-1 text-gray-900">{selectedCommodity.low24h.toFixed(2)}</p>
                   </div>
-                  <div className="rounded-lg border border-zinc-800 bg-zinc-950/50 p-4">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wide">Last Updated</p>
-                    <p className="text-lg font-bold mt-1 text-white">{new Date(selectedCommodity.lastUpdated).toLocaleTimeString()}</p>
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide">Last Updated</p>
+                    <p className="text-lg font-bold mt-1 text-gray-900">{new Date(selectedCommodity.lastUpdated).toLocaleTimeString()}</p>
                   </div>
                 </div>
-                <p className="text-xs text-zinc-500 mt-4">Intraday history charting isn&apos;t available yet — showing the latest real snapshot from the data provider.</p>
+                <p className="text-xs text-gray-500 mt-4">Intraday history charting isn&apos;t available yet — showing the latest real snapshot from the data provider.</p>
               </div>
             )}
 
             {/* Price Cards Grid */}
             {loadingPrices ? (
               <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 text-zinc-400 animate-spin" />
+                <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -311,7 +313,7 @@ export default function MarketplacePage() {
           <TabsContent value="news" className="space-y-4">
             {loadingNews ? (
               <div className="flex justify-center items-center py-12">
-                <Loader2 className="h-8 w-8 text-zinc-400 animate-spin" />
+                <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
               </div>
             ) : (
               <div className="space-y-3">
@@ -325,15 +327,15 @@ export default function MarketplacePage() {
           {/* Watchlist Tab */}
           <TabsContent value="watchlist" className="space-y-4">
             {watchlist.length === 0 ? (
-              <div className="border border-zinc-800 rounded-lg p-12 text-center bg-zinc-900/50">
-                <AlertCircle className="h-8 w-8 text-zinc-500 mx-auto mb-4" />
-                <p className="text-zinc-400">No items in watchlist yet</p>
-                <p className="text-sm text-zinc-500">Click the heart icon on commodity cards to add to your watchlist</p>
+              <div className="border border-gray-200 rounded-lg p-12 text-center bg-white/80">
+                <AlertCircle className="h-8 w-8 text-gray-500 mx-auto mb-4" />
+                <p className="text-gray-600">No items in watchlist yet</p>
+                <p className="text-sm text-gray-500">Click the heart icon on commodity cards to add to your watchlist</p>
               </div>
             ) : (
               <div>
-                <div className="mb-4 p-4 bg-zinc-900/50 rounded-lg border border-zinc-800">
-                  <p className="text-sm text-zinc-400">
+                <div className="mb-4 p-4 bg-white/80 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-600">
                     <strong>Your Watchlist:</strong> {watchedPrices.length} commodities tracked
                   </p>
                 </div>
@@ -365,6 +367,7 @@ export default function MarketplacePage() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+      </div>
+    </GlassBackground>
   );
 }

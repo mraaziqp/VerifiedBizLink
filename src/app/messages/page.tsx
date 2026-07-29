@@ -202,21 +202,21 @@ function MessagesPageInner() {
   return (
     <GlassBackground>
       {/* Header */}
-      <div className="bg-slate-950/70 backdrop-blur-xl border-b border-white/5 sticky top-0 z-40">
+      <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <Link href="/">
-                <button className={`p-2 hover:bg-white/5 rounded-lg ${glassInteractive}`}>
-                  <ArrowLeft className="h-5 w-5 text-slate-100" />
+                <button className={`p-2 hover:bg-gray-100 rounded-lg ${glassInteractive}`}>
+                  <ArrowLeft className="h-5 w-5 text-gray-900" />
                 </button>
               </Link>
               <div>
-                <h1 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <MessageCircle className="h-6 w-6 text-yellow-500" />
                   Messages
                 </h1>
-                <p className="text-sm text-slate-400 mt-1">
+                <p className="text-sm text-gray-500 mt-1">
                   {unreadTotal > 0 ? `${unreadTotal} unread message${unreadTotal !== 1 ? 's' : ''}` : 'All caught up!'}
                 </p>
               </div>
@@ -235,8 +235,8 @@ function MessagesPageInner() {
       <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8 sm:px-6 lg:px-8 h-[calc(100dvh-88px)] sm:h-[calc(100dvh-120px)]">
         <div className="flex gap-6 h-full">
           {/* Conversations List */}
-          <div className={`w-full md:w-80 bg-slate-900/60 backdrop-blur-xl border border-white/5 shadow-2xl rounded-lg flex-col shrink-0 ${selectedId ? 'hidden md:flex' : 'flex'}`}>
-            <div className="p-4 border-b border-white/5">
+          <div className={`w-full md:w-80 bg-white/80 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-lg flex-col shrink-0 ${selectedId ? 'hidden md:flex' : 'flex'}`}>
+            <div className="p-4 border-b border-gray-200">
               <div className="relative">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
                 <input
@@ -244,7 +244,7 @@ function MessagesPageInner() {
                   placeholder="Search conversations..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className={`w-full bg-slate-800/60 border border-white/10 rounded px-3 py-2 pl-10 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-yellow-500 ${glassInteractive}`}
+                  className={`w-full bg-gray-100 border border-gray-200 rounded px-3 py-2 pl-10 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-yellow-500 ${glassInteractive}`}
                 />
               </div>
             </div>
@@ -256,15 +256,15 @@ function MessagesPageInner() {
                 </div>
               ) : filteredConversations.length === 0 ? (
                 <div className="p-4 text-center">
-                  <p className="text-slate-400 text-sm">No conversations yet</p>
+                  <p className="text-gray-500 text-sm">No conversations yet</p>
                 </div>
               ) : (
                 filteredConversations.map((conv) => (
                   <button
                     key={conv.participant_id}
                     onClick={() => openThread(conv.participant_id)}
-                    className={`w-full p-4 border-b border-white/5 hover:bg-white/5 text-left ${glassInteractive} ${
-                      selectedId === conv.participant_id ? 'bg-white/10' : ''
+                    className={`w-full p-4 border-b border-gray-200 hover:bg-gray-100 text-left ${glassInteractive} ${
+                      selectedId === conv.participant_id ? 'bg-gray-200' : ''
                     }`}
                   >
                     <div className="flex items-start gap-3">
@@ -276,14 +276,14 @@ function MessagesPageInner() {
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <h4 className="text-slate-100 font-medium text-sm truncate">{conv.participant_name}</h4>
+                          <h4 className="text-gray-900 font-medium text-sm truncate">{conv.participant_name}</h4>
                           {conv.unread_count > 0 && (
                             <span className="bg-yellow-500 text-slate-950 text-xs font-bold px-2 py-1 rounded-full shrink-0">
                               {conv.unread_count}
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-400 truncate">{conv.last_message || 'Start the conversation'}</p>
+                        <p className="text-xs text-gray-500 truncate">{conv.last_message || 'Start the conversation'}</p>
                         {conv.last_message && (
                           <p className="text-xs text-slate-500 mt-1">
                             {formatDistanceToNow(new Date(conv.last_message_time), { addSuffix: true })}
@@ -299,11 +299,11 @@ function MessagesPageInner() {
 
           {/* Chat Area */}
           {selected ? (
-            <div className="flex-1 bg-slate-900/60 backdrop-blur-xl border border-white/5 shadow-2xl rounded-lg flex flex-col min-w-0">
-              <div className="p-4 border-b border-white/5 flex items-center gap-3">
+            <div className="flex-1 bg-white/80 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-lg flex flex-col min-w-0">
+              <div className="p-4 border-b border-gray-200 flex items-center gap-3">
                 <button
                   onClick={() => setSelectedId(null)}
-                  className={`md:hidden p-1 -ml-1 text-slate-400 hover:text-slate-100 rounded ${glassInteractive}`}
+                  className={`md:hidden p-1 -ml-1 text-gray-500 hover:text-gray-900 rounded ${glassInteractive}`}
                 >
                   <ArrowLeft className="h-5 w-5" />
                 </button>
@@ -314,11 +314,11 @@ function MessagesPageInner() {
                   </AvatarFallback>
                 </Avatar>
                 {selected.business_id ? (
-                  <Link href={`/business/${selected.business_id}`} className="text-slate-100 font-semibold hover:text-yellow-400 hover:underline">
+                  <Link href={`/business/${selected.business_id}`} className="text-gray-900 font-semibold hover:text-yellow-600 hover:underline">
                     {selected.participant_name}
                   </Link>
                 ) : (
-                  <h3 className="text-slate-100 font-semibold">{selected.participant_name}</h3>
+                  <h3 className="text-gray-900 font-semibold">{selected.participant_name}</h3>
                 )}
               </div>
 
@@ -337,7 +337,7 @@ function MessagesPageInner() {
                       <div className={`max-w-xs px-4 py-2 rounded-lg shadow-lg ${
                         msg.sender_id === user?.id
                           ? 'bg-gradient-to-r from-yellow-600 to-yellow-400 text-slate-950'
-                          : 'bg-slate-800/80 backdrop-blur-sm text-slate-100'
+                          : 'bg-gray-100 border border-gray-200 backdrop-blur-sm text-gray-900'
                       } ${msg.image_url ? '!p-1.5' : ''}`}>
                         {msg.image_url && (
                           <img src={msg.image_url} alt="Shared photo" className="rounded-md max-w-full max-h-60 object-cover" />
@@ -345,7 +345,7 @@ function MessagesPageInner() {
                         {msg.content && (
                           <p className={`text-sm whitespace-pre-wrap break-words ${msg.image_url ? 'px-1.5 pt-1.5' : ''}`}>{msg.content}</p>
                         )}
-                        <p className={`text-xs mt-1 ${msg.image_url ? 'px-1.5' : ''} ${msg.sender_id === user?.id ? 'text-slate-800' : 'text-slate-400'}`}>
+                        <p className={`text-xs mt-1 ${msg.image_url ? 'px-1.5' : ''} ${msg.sender_id === user?.id ? 'text-slate-800' : 'text-gray-500'}`}>
                           {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -354,7 +354,7 @@ function MessagesPageInner() {
                 )}
               </div>
 
-              <div className="p-4 border-t border-white/5 flex gap-2">
+              <div className="p-4 border-t border-gray-200 flex gap-2">
                 <input
                   ref={imageInputRef}
                   type="file"
@@ -369,7 +369,7 @@ function MessagesPageInner() {
                   onClick={() => imageInputRef.current?.click()}
                   disabled={uploadingImage}
                   variant="outline"
-                  className={`border-white/10 text-slate-300 hover:bg-white/5 ${glassInteractive}`}
+                  className={`border-gray-200 text-gray-600 hover:bg-gray-100 ${glassInteractive}`}
                   title="Send an image"
                 >
                   {uploadingImage ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageIcon className="h-4 w-4" />}
@@ -385,7 +385,7 @@ function MessagesPageInner() {
                     }
                   }}
                   placeholder="Type a message..."
-                  className={`flex-1 bg-slate-800/60 border border-white/10 rounded px-4 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-yellow-500 ${glassInteractive}`}
+                  className={`flex-1 bg-gray-100 border border-gray-200 rounded px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-yellow-500 ${glassInteractive}`}
                 />
                 <Button
                   onClick={handleSendMessage}
@@ -397,10 +397,10 @@ function MessagesPageInner() {
               </div>
             </div>
           ) : (
-            <div className="hidden md:flex flex-1 bg-slate-900/60 backdrop-blur-xl border border-white/5 shadow-2xl rounded-lg items-center justify-center">
+            <div className="hidden md:flex flex-1 bg-white/80 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-lg items-center justify-center">
               <div className="text-center">
-                <MessageCircle className="h-12 w-12 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-400 mb-4">Select a conversation to start messaging</p>
+                <MessageCircle className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500 mb-4">Select a conversation to start messaging</p>
                 <Link href="/explore">
                   <Button className={`bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-bold ${glassInteractive}`}>
                     <Plus className="h-4 w-4 mr-2" />
@@ -419,7 +419,7 @@ function MessagesPageInner() {
 export default function MessagesPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Loader2 className="h-8 w-8 animate-spin text-yellow-500" />
       </div>
     }>

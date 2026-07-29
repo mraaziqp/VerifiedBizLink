@@ -58,7 +58,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black text-gray-300">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 text-gray-500">
         Loading…
       </div>
     );
@@ -105,12 +105,12 @@ export default function AdminDashboard() {
     <AdminBackground>
       <AdminPageHeader title={dashboardTitle} subtitle={dashboardDescription}>
         <Link href="/admin/orchestrator">
-          <Button variant="outline" size="sm" className="border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10">
+          <Button variant="outline" size="sm" className="border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10">
             Orchestrator
           </Button>
         </Link>
         <Link href="/">
-          <Button variant="outline" size="sm" className="border-gray-500/30 text-gray-300 hover:bg-white/5">
+          <Button variant="outline" size="sm" className="border-gray-500/30 text-gray-600 hover:bg-gray-100">
             Back to App
           </Button>
         </Link>
@@ -120,23 +120,23 @@ export default function AdminDashboard() {
         <AdminCard className="mb-8">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm text-gray-400">Logged in as</p>
-              <p className="text-lg font-semibold text-white">{user.fullName || user.email}</p>
-              <p className="mt-1 text-sm text-gray-400">
+              <p className="text-sm text-gray-500">Logged in as</p>
+              <p className="text-lg font-semibold text-gray-900">{user.fullName || user.email}</p>
+              <p className="mt-1 text-sm text-gray-500">
                 Role:{' '}
-                <span className={`font-semibold ${isSuperAdmin ? 'text-yellow-400' : 'text-blue-400'}`}>
+                <span className={`font-semibold ${isSuperAdmin ? 'text-yellow-600' : 'text-blue-600'}`}>
                   {isSuperAdmin ? 'Admin' : user.role === 'lawyer' ? 'Legal' : 'Compliance Officer'}
                 </span>
               </p>
             </div>
             <div className="sm:text-right">
-              <p className="text-sm text-gray-400">Email</p>
-              <p className="font-mono text-sm text-white">{user.email}</p>
+              <p className="text-sm text-gray-500">Email</p>
+              <p className="font-mono text-sm text-gray-900">{user.email}</p>
             </div>
           </div>
         </AdminCard>
 
-        <h2 className="mb-6 text-xl font-bold text-white sm:text-2xl">
+        <h2 className="mb-6 text-xl font-bold text-gray-900 sm:text-2xl">
           {isAdmin ? 'Admin Tools' : 'Compliance Tools'}
         </h2>
         <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -150,13 +150,13 @@ export default function AdminDashboard() {
                       <Icon className="h-6 w-6 text-white" />
                     </div>
                     {tool.badge && (
-                      <span className="rounded-full bg-blue-500/15 px-2 py-1 text-xs font-semibold text-blue-300">
+                      <span className="rounded-full bg-blue-500/15 px-2 py-1 text-xs font-semibold text-blue-700">
                         {tool.badge}
                       </span>
                     )}
                   </div>
-                  <h3 className="text-lg font-bold text-white">{tool.name}</h3>
-                  <p className="mt-2 text-sm text-gray-400">{tool.description}</p>
+                  <h3 className="text-lg font-bold text-gray-900">{tool.name}</h3>
+                  <p className="mt-2 text-sm text-gray-500">{tool.description}</p>
                   <div className="flex items-center pt-4 text-sm font-semibold text-amber-400">
                     Open Tool <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>

@@ -112,7 +112,7 @@ export default function OrchestratorDashboard() {
           className="gap-2 border-cyan-500/30 text-cyan-400 hover:border-cyan-500/50 hover:bg-cyan-500/10">
           <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back to App</span>
         </Button>
-        <span className="hidden text-sm text-gray-400 lg:inline">{user?.email}</span>
+        <span className="hidden text-sm text-gray-500 lg:inline">{user?.email}</span>
         <Link href="/admin/dashboard">
           <Button variant="outline" size="sm"
             className="gap-2 border-blue-500/30 text-blue-400 hover:border-blue-500/50 hover:bg-blue-500/10">
@@ -127,7 +127,7 @@ export default function OrchestratorDashboard() {
         </Link>
         <Link href="/admin/settings">
           <Button variant="outline" size="sm"
-            className="gap-2 border-yellow-500/30 text-yellow-400 hover:border-yellow-500/50 hover:bg-yellow-500/10">
+            className="gap-2 border-yellow-500/30 text-yellow-600 hover:border-yellow-500/50 hover:bg-yellow-500/10">
             <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Settings</span>
           </Button>
         </Link>
@@ -141,7 +141,7 @@ export default function OrchestratorDashboard() {
         <AdminProfilePanel />
       </div>
 
-      <div className="z-40 border-b border-white/10 bg-black/40 backdrop-blur-xl sm:sticky sm:top-[65px]">
+      <div className="z-40 border-b border-gray-200 bg-white/80 backdrop-blur-xl sm:sticky sm:top-[65px]">
         <div className="mx-auto max-w-7xl px-4">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid h-auto w-full grid-cols-2 border-0 bg-transparent p-0 sm:grid-cols-5">
@@ -153,7 +153,7 @@ export default function OrchestratorDashboard() {
                 { v: "appearance", label: "Appearance", Icon: ImageIcon },
               ].map(({ v, label, Icon }) => (
                 <TabsTrigger key={v} value={v}
-                  className="rounded-none border-b-2 border-transparent px-3 py-3 text-gray-400 data-[state=active]:border-amber-400 data-[state=active]:bg-transparent data-[state=active]:text-amber-400">
+                  className="rounded-none border-b-2 border-transparent px-3 py-3 text-gray-500 data-[state=active]:border-amber-400 data-[state=active]:bg-transparent data-[state=active]:text-amber-400">
                   <Icon className="mr-2 h-4 w-4" /> {label}
                 </TabsTrigger>
               ))}
@@ -175,14 +175,14 @@ export default function OrchestratorDashboard() {
               <AdminCard className="lg:col-span-2">
                 <SectionTitle icon={Activity}>Platform Engagement</SectionTitle>
                 {loading ? (
-                  <div className="h-[280px] animate-pulse rounded-xl bg-white/5" />
+                  <div className="h-[280px] animate-pulse rounded-xl bg-gray-100" />
                 ) : (
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart data={engagementData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                      <XAxis dataKey="name" stroke="#9ca3af" fontSize={12} />
-                      <YAxis stroke="#9ca3af" fontSize={12} allowDecimals={false} />
-                      <Tooltip contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: 8 }} labelStyle={{ color: "#fff" }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                      <XAxis dataKey="name" stroke="#6b7280" fontSize={12} />
+                      <YAxis stroke="#6b7280" fontSize={12} allowDecimals={false} />
+                      <Tooltip contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 8 }} labelStyle={{ color: "#111827" }} />
                       <Bar dataKey="value" fill="#fbbf24" radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -192,7 +192,7 @@ export default function OrchestratorDashboard() {
               <AdminCard>
                 <SectionTitle icon={Building2}>Verification Status</SectionTitle>
                 {loading ? (
-                  <div className="h-[280px] animate-pulse rounded-xl bg-white/5" />
+                  <div className="h-[280px] animate-pulse rounded-xl bg-gray-100" />
                 ) : statusData.length === 0 ? (
                   <div className="flex h-[280px] items-center justify-center text-sm text-gray-500">
                     No business data yet
@@ -204,7 +204,7 @@ export default function OrchestratorDashboard() {
                         label={({ name, value }) => `${name}: ${value}`} outerRadius={80} dataKey="value">
                         {statusData.map((e, i) => <Cell key={i} fill={e.fill} />)}
                       </Pie>
-                      <Tooltip contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: 8 }} />
+                      <Tooltip contentStyle={{ backgroundColor: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 8 }} />
                       <Legend wrapperStyle={{ fontSize: 12 }} />
                     </PieChart>
                   </ResponsiveContainer>
@@ -221,10 +221,10 @@ export default function OrchestratorDashboard() {
                   { label: "Total Posts", count: stats?.totalPosts, color: "text-cyan-400", Icon: FileText },
                   { label: "Connections", count: stats?.totalConnections, color: "text-purple-400", Icon: Link2 },
                 ].map((t) => (
-                  <div key={t.label} className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                  <div key={t.label} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                     <div className="mb-2 flex items-center gap-2">
                       <t.Icon className={`h-4 w-4 ${t.color}`} />
-                      <p className="text-xs text-gray-400">{t.label}</p>
+                      <p className="text-xs text-gray-500">{t.label}</p>
                     </div>
                     <p className={`text-2xl font-bold ${t.color}`}>{loading ? "…" : fmt(t.count)}</p>
                   </div>

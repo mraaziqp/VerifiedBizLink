@@ -71,11 +71,11 @@ export default function EnforcerDashboard() {
     <AdminBackground>
       <AdminPageHeader title="Enforcer Portal" subtitle="Reports, compliance & platform integrity">
         <Link href="/">
-          <Button variant="outline" size="sm" className="gap-2 border-gray-500/30 text-gray-300 hover:bg-white/5">
+          <Button variant="outline" size="sm" className="gap-2 border-gray-500/30 text-gray-600 hover:bg-gray-100">
             <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back to App</span>
           </Button>
         </Link>
-        <span className="hidden text-sm text-gray-400 lg:inline">{user?.email}</span>
+        <span className="hidden text-sm text-gray-500 lg:inline">{user?.email}</span>
         <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 border-red-500/30 text-red-400 hover:bg-red-500/10">
           <LogOut className="h-4 w-4" /> Logout
         </Button>
@@ -88,10 +88,10 @@ export default function EnforcerDashboard() {
           {cards.map((c) => <StatCard key={c.label} {...c} loading={loading} />)}
         </div>
 
-        <div className="flex gap-1 border-b border-white/10">
+        <div className="flex gap-1 border-b border-gray-200">
           {([["reports", "Reports"], ["compliance", "Compliance"], ["activity", "Activity"]] as const).map(([v, label]) => (
             <button key={v} onClick={() => setTab(v)}
-              className={`px-4 py-2.5 text-sm font-semibold transition-all ${tab === v ? "border-b-2 border-amber-400 text-amber-400" : "text-gray-400 hover:text-gray-200"}`}>
+              className={`px-4 py-2.5 text-sm font-semibold transition-all ${tab === v ? "border-b-2 border-amber-400 text-amber-400" : "text-gray-500 hover:text-gray-700"}`}>
               {label}
             </button>
           ))}
@@ -104,20 +104,20 @@ export default function EnforcerDashboard() {
               : reports.length === 0 ? (
                 <div className="py-10 text-center">
                   <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-green-400" />
-                  <p className="text-sm text-gray-400">No open reports — the platform is clean.</p>
+                  <p className="text-sm text-gray-500">No open reports — the platform is clean.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {reports.map((r) => (
-                    <div key={r.id} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
+                    <div key={r.id} className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4">
                       <div className="min-w-0">
-                        <p className="font-semibold text-white capitalize">{r.report_type?.replace(/_/g, " ") || "Report"}</p>
-                        <p className="truncate text-sm text-gray-400">{r.description}</p>
+                        <p className="font-semibold text-gray-900 capitalize">{r.report_type?.replace(/_/g, " ") || "Report"}</p>
+                        <p className="truncate text-sm text-gray-500">{r.description}</p>
                         <p className="mt-1 text-xs text-gray-500">
                           {r.reporter_name ? `by ${r.reporter_name} · ` : ""}{new Date(r.created_at).toLocaleDateString("en-ZA")}
                         </p>
                       </div>
-                      <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${r.risk_level === "high" ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400"}`}>
+                      <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${r.risk_level === "high" ? "bg-red-500/20 text-red-700" : "bg-amber-500/20 text-amber-700"}`}>
                         {(r.risk_level || "medium").toUpperCase()}
                       </span>
                     </div>
@@ -136,16 +136,16 @@ export default function EnforcerDashboard() {
                 { k: "GDPR", ok: compliance?.policies?.gdpr ?? true },
                 { k: "CCPA", ok: compliance?.policies?.ccpa ?? true },
               ].map((p) => (
-                <div key={p.k} className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                  <span className="font-semibold text-white">{p.k}</span>
-                  <span className={`flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold ${p.ok ? "bg-green-500/20 text-green-400" : "bg-amber-500/20 text-amber-400"}`}>
+                <div key={p.k} className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4">
+                  <span className="font-semibold text-gray-900">{p.k}</span>
+                  <span className={`flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold ${p.ok ? "bg-green-500/20 text-green-700" : "bg-amber-500/20 text-amber-700"}`}>
                     {p.ok ? <CheckCircle2 className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
                     {p.ok ? "COMPLIANT" : "REVIEW"}
                   </span>
                 </div>
               ))}
-              <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                <span className="font-semibold text-white">Verified Businesses</span>
+              <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <span className="font-semibold text-gray-900">Verified Businesses</span>
                 <span className="font-semibold text-amber-400">{loading ? "…" : `${stats?.verifiedBusinesses ?? 0} / ${stats?.totalBusinesses ?? 0}`}</span>
               </div>
             </div>
@@ -156,11 +156,11 @@ export default function EnforcerDashboard() {
           <AdminCard>
             <SectionTitle icon={ScrollText}>Recent Admin Activity</SectionTitle>
             {loading ? <p className="py-6 text-center text-gray-500">Loading…</p>
-              : logs.length === 0 ? <p className="py-8 text-center text-sm text-gray-400">No recorded admin activity yet.</p>
+              : logs.length === 0 ? <p className="py-8 text-center text-sm text-gray-500">No recorded admin activity yet.</p>
               : (
                 <div className="space-y-2 font-mono text-sm">
                   {logs.map((l) => (
-                    <div key={l.id} className="flex gap-2 text-gray-400">
+                    <div key={l.id} className="flex gap-2 text-gray-500">
                       <span className="text-gray-600">[{new Date(l.created_at).toLocaleString("en-ZA", { dateStyle: "short", timeStyle: "short" })}]</span>
                       <span className="text-amber-400">{l.admin_name}</span>
                       <span>{l.action}{l.target_name ? ` → ${l.target_name}` : ""}</span>

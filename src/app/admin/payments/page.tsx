@@ -33,9 +33,9 @@ interface PaymentStats {
 }
 
 const STATUS_BADGE: Record<string, string> = {
-  completed: 'bg-green-500/10 text-green-400',
+  completed: 'bg-green-500/10 text-green-700',
   pending: 'bg-yellow-500/10 text-yellow-400',
-  failed: 'bg-red-500/10 text-red-400',
+  failed: 'bg-red-500/10 text-red-700',
 };
 
 const formatRand = (cents: number) =>
@@ -78,7 +78,7 @@ export default function AdminPaymentsPage() {
     <AdminBackground>
       <AdminPageHeader title="Payment Gateway" subtitle="PayFast transactions, revenue, and status">
         <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10">
+          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
           </Button>
         </Link>
@@ -98,7 +98,7 @@ export default function AdminPaymentsPage() {
                   key={s}
                   onClick={() => setFilter(s)}
                   className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition-colors ${
-                    filter === s ? 'bg-yellow-500 text-slate-950' : 'bg-white/5 text-slate-400 hover:bg-white/10'
+                    filter === s ? 'bg-yellow-500 text-slate-950' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
                   }`}
                 >
                   {s}
@@ -114,13 +114,13 @@ export default function AdminPaymentsPage() {
           ) : payments.length === 0 ? (
             <div className="py-16 text-center">
               <CreditCard className="h-10 w-10 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-400">No transactions yet.</p>
+              <p className="text-gray-500">No transactions yet.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-t border-white/5 text-left text-slate-400">
+                  <tr className="border-t border-gray-200 text-left text-gray-500">
                     <th className="px-5 py-3 font-medium">Customer</th>
                     <th className="px-5 py-3 font-medium">Description</th>
                     <th className="px-5 py-3 font-medium">Amount</th>
@@ -131,15 +131,15 @@ export default function AdminPaymentsPage() {
                 </thead>
                 <tbody>
                   {payments.map((p) => (
-                    <tr key={p.id} className="border-t border-white/5 hover:bg-white/5">
-                      <td className="px-5 py-3 text-slate-100">
+                    <tr key={p.id} className="border-t border-gray-200 hover:bg-gray-100">
+                      <td className="px-5 py-3 text-gray-900">
                         <div className="font-medium">{p.user_name || 'Unknown'}</div>
                         <div className="text-xs text-slate-500">{p.user_email}</div>
                       </td>
-                      <td className="px-5 py-3 text-slate-400">{p.description || p.plan_type || '—'}</td>
-                      <td className="px-5 py-3 text-slate-100 font-medium">{formatRand(p.amount)}</td>
+                      <td className="px-5 py-3 text-gray-500">{p.description || p.plan_type || '—'}</td>
+                      <td className="px-5 py-3 text-gray-900 font-medium">{formatRand(p.amount)}</td>
                       <td className="px-5 py-3">
-                        <Badge className={STATUS_BADGE[p.status] || 'bg-slate-500/10 text-slate-400'}>
+                        <Badge className={STATUS_BADGE[p.status] || 'bg-slate-500/10 text-slate-700'}>
                           {p.status === 'failed' && <XCircle className="h-3 w-3 mr-1" />}
                           {p.status === 'completed' && <CheckCircle2 className="h-3 w-3 mr-1" />}
                           {p.status === 'pending' && <Clock className="h-3 w-3 mr-1" />}
@@ -147,7 +147,7 @@ export default function AdminPaymentsPage() {
                         </Badge>
                       </td>
                       <td className="px-5 py-3 text-slate-500 font-mono text-xs">{p.payfast_reference || p.reference || '—'}</td>
-                      <td className="px-5 py-3 text-slate-400 text-xs">
+                      <td className="px-5 py-3 text-gray-500 text-xs">
                         {new Date(p.created_at).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </td>
                     </tr>
