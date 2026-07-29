@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { email, password, fullName, dateOfBirth, role, companyName, regNumber, website, socialLinks } = await request.json();
+    const { email, password, fullName, dateOfBirth, role, companyName, regNumber, website, socialLinks, industry } = await request.json();
 
     if (!email || !password || !fullName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -78,6 +78,10 @@ export async function POST(request: NextRequest) {
 
     if (role !== 'customer' && role !== 'business') {
       return NextResponse.json({ error: 'Invalid account type' }, { status: 400 });
+    }
+
+    if (role === 'business' && !industry) {
+      return NextResponse.json({ error: 'Select your business category' }, { status: 400 });
     }
 
     const existing = await db`SELECT id FROM users WHERE email = ${normalizedEmail} LIMIT 1`;
@@ -114,7 +118,7 @@ export async function POST(request: NextRequest) {
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + 14);
       await db`
-        INSERT INTO businesses (user_id, name, company_name, reg_number, website, social_links, status, package_type, trial_package, trial_ends_at)
+        INSERT INTO businesses (user_id, name, company_name, reg_number, website, social_links, industry, status, package_type, trial_package, trial_ends_at)
         VALUES (
           ${user.id},
           ${companyName},
@@ -122,6 +126,7 @@ export async function POST(request: NextRequest) {
           ${regNumber || ''},
           ${website || ''},
           ${JSON.stringify(socialLinks || {})},
+          ${industry || ''},
           'unregistered',
           'free',
           'premium_half',

@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import { VBLLogo } from "@/components/ui/vbl-logo";
+import { BUSINESS_CATEGORIES } from "@/lib/categories";
 
 type AccountRole = "customer" | "business";
 
@@ -47,6 +48,7 @@ export default function SignupPage() {
     confirmPassword: "",
     companyName: "",
     regNumber: "",
+    industry: "",
     website: "",
     linkedin: "",
     instagram: "",
@@ -71,6 +73,10 @@ export default function SignupPage() {
       toast({ title: "Passwords do not match", variant: "destructive" });
       return;
     }
+    if (role === "business" && !formData.industry) {
+      toast({ title: "Select your business category", variant: "destructive" });
+      return;
+    }
     setIsLoading(true);
     try {
       const res = await fetch("/api/auth/signup", {
@@ -83,6 +89,7 @@ export default function SignupPage() {
           role,
           companyName: formData.companyName,
           regNumber: formData.regNumber,
+          industry: formData.industry,
           website: formData.website,
           socialLinks: {
             linkedin: formData.linkedin,
@@ -250,6 +257,22 @@ export default function SignupPage() {
                     value={formData.regNumber}
                     onChange={(e) => update("regNumber", e.target.value)}
                   />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="industry" className="text-sm font-semibold text-gray-700">Category</Label>
+                  <select
+                    id="industry"
+                    required
+                    className="w-full h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm"
+                    value={formData.industry}
+                    onChange={(e) => update("industry", e.target.value)}
+                  >
+                    <option value="">Select a category</option>
+                    {BUSINESS_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-400">Helps customers find you when browsing by category.</p>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="website" className="text-sm font-semibold text-gray-700">Website <span className="font-normal text-gray-400">(optional)</span></Label>
@@ -420,7 +443,7 @@ export default function SignupPage() {
 
               <Button
                 type="submit"
-                disabled={isLoading || !acceptedTerms || !passwordsMatch}
+                disabled={isLoading || !acceptedTerms || !passwordsMatch || (role === "business" && !formData.industry)}
                 className="w-full h-12 bg-yellow-400 text-gray-900 hover:bg-yellow-300 font-bold rounded-xl text-base shadow-lg shadow-yellow-400/30 disabled:opacity-50 transition-all active:scale-[0.98]"
               >
                 {isLoading ? (
