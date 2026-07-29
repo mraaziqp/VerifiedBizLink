@@ -76,7 +76,7 @@ export function MobileMenuDrawer() {
               slidIn ? "translate-x-0" : "-translate-x-full"
             }`}
           >
-            <div className="flex items-center justify-between border-b border-white/10 p-4">
+            <div className="safe-area-pt flex items-center justify-between border-b border-white/10 p-4">
               <VBLLogo variant="icon" size="md" theme="dark" />
               <button
                 type="button"
