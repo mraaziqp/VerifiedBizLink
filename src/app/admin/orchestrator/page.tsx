@@ -141,7 +141,7 @@ export default function OrchestratorDashboard() {
         <AdminProfilePanel />
       </div>
 
-      <div className="sticky top-[57px] z-40 border-b border-white/10 bg-black/40 backdrop-blur-xl sm:top-[65px]">
+      <div className="z-40 border-b border-white/10 bg-black/40 backdrop-blur-xl sm:sticky sm:top-[65px]">
         <div className="mx-auto max-w-7xl px-4">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid h-auto w-full grid-cols-2 border-0 bg-transparent p-0 sm:grid-cols-5">
