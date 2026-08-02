@@ -11,6 +11,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/feature-flags";
 
 const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
 
@@ -24,7 +25,7 @@ export function EmailVerificationBanner() {
 
   const isStaff = !!user && STAFF_ROLES.includes((user as { role?: string }).role ?? '');
 
-  if (!user || isStaff || (user as { emailVerified?: boolean }).emailVerified || dismissed) return null;
+  if (!REQUIRE_EMAIL_VERIFICATION || !user || isStaff || (user as { emailVerified?: boolean }).emailVerified || dismissed) return null;
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);

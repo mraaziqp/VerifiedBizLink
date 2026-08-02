@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose/jwt/verify';
+import { REQUIRE_EMAIL_VERIFICATION } from '@/lib/feature-flags';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
@@ -157,6 +158,7 @@ export async function middleware(request: NextRequest) {
   // business profile before proving they own the email on file. Page
   // navigation only; the public paths/API prefixes above are unaffected.
   if (
+    REQUIRE_EMAIL_VERIFICATION &&
     !isStaffUser &&
     !claims.emailVerified &&
     !pathname.startsWith('/api') &&
@@ -169,6 +171,7 @@ export async function middleware(request: NextRequest) {
   // are provisioned directly (not through the public signup flow) and are
   // exempt. Reads are never gated — only mutating requests.
   if (
+    REQUIRE_EMAIL_VERIFICATION &&
     MUTATING_METHODS.includes(request.method) &&
     VERIFIED_ONLY_PREFIXES.some((prefix) => pathname.startsWith(prefix)) &&
     !VERIFICATION_EXEMPT.test(pathname) &&
