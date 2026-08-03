@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Mail, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,6 +28,15 @@ export default function ForgotPasswordPage() {
       });
       const data = await res.json();
       if (res.ok) {
+        // Email delivery is temporarily down — the API hands back the
+        // reset link directly instead of emailing it. Go straight there
+        // rather than showing a "check your email" message that would
+        // never be followed by an actual email.
+        if (data.resetLink) {
+          const url = new URL(data.resetLink);
+          router.push(`${url.pathname}${url.search}`);
+          return;
+        }
         setSent(true);
       } else {
         toast({

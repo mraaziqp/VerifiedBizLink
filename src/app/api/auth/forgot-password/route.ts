@@ -4,6 +4,9 @@ import db from '@/lib/db';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { hashOneTimeToken } from '@/lib/auth';
+import { EMAIL_DELIVERY_AVAILABLE } from '@/lib/feature-flags';
+
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.verifiedbizlink.co.za';
 
 const GENERIC_RESPONSE = {
   success: true,
@@ -46,6 +49,19 @@ export async function POST(request: NextRequest) {
     }
 
     const user = users[0];
+
+    // Outbound email is down (see feature-flags.ts) — hand the reset link
+    // straight back instead of trying and failing to send it, so a
+    // locked-out user isn't stuck. Deliberate temporary trade-off: this
+    // confirms the account exists to whoever submits its email. Revert to
+    // the email-only flow the moment EMAIL_DELIVERY_AVAILABLE is true again.
+    if (!EMAIL_DELIVERY_AVAILABLE) {
+      return NextResponse.json({
+        success: true,
+        emailSent: false,
+        resetLink: `${APP_URL}/reset-password?token=${token}`,
+      });
+    }
 
     try {
       await sendPasswordResetEmail(user.email, user.full_name || 'there', token);
