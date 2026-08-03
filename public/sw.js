@@ -1,4 +1,4 @@
-const CACHE_NAME = 'verifiedbizlink-v2';
+const CACHE_NAME = 'verifiedbizlink-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -59,6 +59,17 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip Next.js's content-hashed build assets (_next/static/**). These are
+  // immutable per-deploy — a page cached from before a new deploy will
+  // reference chunk hashes that no longer exist on the server, and letting
+  // this handler "help" by synthesizing a fake 503 on that failed fetch
+  // reads as a server outage in devtools when it's actually just a stale
+  // client-side cache. The browser's own HTTP cache already handles these
+  // assets correctly without the service worker's involvement.
+  if (event.request.url.includes('/_next/static/')) {
+    return;
+  }
+
   // For HTML and other assets: try network first, fallback to cache
   event.respondWith(
     fetch(event.request)
@@ -75,14 +86,16 @@ self.addEventListener('fetch', (event) => {
 
         return response;
       })
-      .catch(() => {
-        // Network failed, try cache
-        return caches.match(event.request).then((cachedResponse) => {
-          return cachedResponse || new Response(
-            'Offline - Page not cached',
-            { status: 503, statusText: 'Service Unavailable' }
-          );
-        });
+      .catch(async (networkError) => {
+        // Network failed — serve the cached copy if we have one (genuinely
+        // useful offline). If we don't, re-throw the real network error
+        // instead of fabricating a 503: a manufactured "Service Unavailable"
+        // reads as a server outage in devtools when the actual cause could
+        // be anything (offline, a 404, a blocked request) — the real error
+        // is more useful for diagnosing what actually happened.
+        const cachedResponse = await caches.match(event.request);
+        if (cachedResponse) return cachedResponse;
+        throw networkError;
       })
   );
 });

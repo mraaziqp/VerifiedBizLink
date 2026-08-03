@@ -17,10 +17,6 @@ export const metadata: Metadata = {
   description: 'Find and connect with verified local businesses. CIPC and SARS verified. Your trusted business marketplace.',
   applicationName: 'VerifiedBizLink',
   manifest: '/manifest.json',
-  icons: {
-    icon: '/vbl-logo.png',
-    apple: '/vbl-logo.png',
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -49,8 +45,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/vbl-logo.png" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
