@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
 import { createTrackedSession, createMfaChallenge, sessionCookieOptions } from '@/lib/auth';
 import { compare } from 'bcryptjs';
 import db from '@/lib/db';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,117 +12,61 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    let userData: any = null;
-    let userId: string | null = null;
 
-    // Try Supabase Auth first
-    let supabaseError = false;
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password,
-      });
+    // Neon's users.password_hash is the ONLY source of truth for
+    // credentials — signup, forgot/reset-password, and Settings' change-
+    // password form all read/write only this column. A prior version of
+    // this route also tried Supabase Auth first, which (for any account
+    // that happened to have a matching Supabase Auth record) could let
+    // someone log in with a password that Settings would then reject as
+    // "incorrect", since Settings only ever checks this column. Removed
+    // to keep exactly one password per account.
+    const users = await db`
+      SELECT id, email, password_hash, full_name, role, avatar_url, headline, email_verified, two_factor_enabled, is_suspended, suspended_reason
+      FROM users
+      WHERE LOWER(email) = ${normalizedEmail}
+      LIMIT 1
+    `;
 
-      if (!error && data?.user) {
-        userId = data.user.id;
-        userData = data.user;
-      } else {
-        supabaseError = true;
-      }
-    } catch (e) {
-      supabaseError = true;
-      console.log('Supabase Auth unavailable, falling back to direct authentication');
-    }
-
-    // Fallback to direct Neon database authentication
-    if (supabaseError || !userData) {
-      const users = await db`
-        SELECT id, email, password_hash, full_name, role, avatar_url, headline, email_verified
-        FROM users
-        WHERE LOWER(email) = ${normalizedEmail}
-        LIMIT 1
-      `;
-
-      if (users.length === 0) {
-        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
-      }
-
-      const dbUser = users[0];
-      if (!dbUser.password_hash) {
-        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
-      }
-
-      const passwordValid = await compare(password, dbUser.password_hash);
-      if (!passwordValid) {
-        return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
-      }
-
-      userId = dbUser.id;
-      userData = {
-        id: dbUser.id,
-        email: dbUser.email,
-        user_metadata: {
-          full_name: dbUser.full_name,
-        },
-      };
-    }
-
-    if (!userId || !userData) {
+    if (users.length === 0) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
-    // Get user profile from Neon database
-    let fullName = userData.user_metadata?.full_name || '';
-    let role = 'customer';
-    let avatarUrl = '';
-    let headline = '';
-    let emailVerified = false;
-    let twoFactorEnabled = false;
-
-    try {
-      const users = await db`
-        SELECT id, full_name, role, avatar_url, headline, email_verified, two_factor_enabled, is_suspended, suspended_reason
-        FROM users
-        WHERE id = ${userId}
-        LIMIT 1
-      `;
-
-      if (users.length > 0) {
-        const profileData = users[0];
-
-        // Suspended accounts are blocked at login, not deleted — moderation
-        // needs a reversible action distinct from permanently erasing the
-        // account (only DELETE /api/admin/users/[id] does that).
-        if (profileData.is_suspended) {
-          return NextResponse.json(
-            {
-              error: profileData.suspended_reason
-                ? `Your account has been suspended: ${profileData.suspended_reason}. Contact info@verifiedbizlink.co.za to appeal.`
-                : 'Your account has been suspended. Contact info@verifiedbizlink.co.za to appeal.',
-            },
-            { status: 403 },
-          );
-        }
-
-        fullName = profileData.full_name || fullName;
-        role = profileData.role || role;
-        avatarUrl = profileData.avatar_url || avatarUrl;
-        headline = profileData.headline || headline;
-        emailVerified = profileData.email_verified === true;
-        twoFactorEnabled = profileData.two_factor_enabled === true;
-      }
-    } catch (dbError) {
-      console.log('Profile fetch from database completed');
+    const dbUser = users[0];
+    if (!dbUser.password_hash) {
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
+
+    const passwordValid = await compare(password, dbUser.password_hash);
+    if (!passwordValid) {
+      return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
+    }
+
+    // Suspended accounts are blocked at login, not deleted — moderation
+    // needs a reversible action distinct from permanently erasing the
+    // account (only DELETE /api/admin/users/[id] does that).
+    if (dbUser.is_suspended) {
+      return NextResponse.json(
+        {
+          error: dbUser.suspended_reason
+            ? `Your account has been suspended: ${dbUser.suspended_reason}. Contact info@verifiedbizlink.co.za to appeal.`
+            : 'Your account has been suspended. Contact info@verifiedbizlink.co.za to appeal.',
+        },
+        { status: 403 },
+      );
+    }
+
+    const userId = dbUser.id;
+    const twoFactorEnabled = dbUser.two_factor_enabled === true;
 
     const sessionUser = {
       id: userId,
-      email: userData.email || normalizedEmail,
-      fullName,
-      role,
-      avatarUrl,
-      headline,
-      emailVerified,
+      email: dbUser.email,
+      fullName: dbUser.full_name || '',
+      role: dbUser.role || 'customer',
+      avatarUrl: dbUser.avatar_url || '',
+      headline: dbUser.headline || '',
+      emailVerified: dbUser.email_verified === true,
     };
 
     // Password verified, but 2FA is enabled — hold off on creating a real
