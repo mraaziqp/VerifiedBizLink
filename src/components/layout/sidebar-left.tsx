@@ -119,7 +119,14 @@ export function SidebarLeft() {
   const canManageBusiness = user && (user.role === 'business' || isAdmin);
 
   return (
-    <div className="flex flex-col gap-6">
+    // The wrapping <aside> on every page that renders this is `sticky
+    // top-6` with no height cap of its own, so on a full nav list (Home
+    // through Admin Hub) plus the profile card, this stack can run taller
+    // than the viewport — sticky doesn't create a scroll context, so the
+    // only way to reach Notifications/Sign Out was scrolling the whole
+    // page. Capping height and scrolling internally keeps the logo/profile
+    // pinned in view while the nav list scrolls on its own.
+    <div className="flex max-h-[calc(100vh-3rem)] flex-col gap-6 overflow-y-auto">
       {/* App Logo */}
       <div className="flex items-center px-2 py-1">
         <VBLLogo variant="full" size="lg" iconSize={88} theme="dark" />

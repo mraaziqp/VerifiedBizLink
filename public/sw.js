@@ -1,4 +1,4 @@
-const CACHE_NAME = 'verifiedbizlink-v3';
+const CACHE_NAME = 'verifiedbizlink-v4';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -59,18 +59,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip Next.js's content-hashed build assets (_next/static/**). These are
-  // immutable per-deploy — a page cached from before a new deploy will
-  // reference chunk hashes that no longer exist on the server, and letting
-  // this handler "help" by synthesizing a fake 503 on that failed fetch
-  // reads as a server outage in devtools when it's actually just a stale
-  // client-side cache. The browser's own HTTP cache already handles these
-  // assets correctly without the service worker's involvement.
-  if (event.request.url.includes('/_next/static/')) {
+  // Only intercept actual static assets (images, fonts, the manifest) —
+  // NOT page-shaped URLs. Next.js's router prefetches routes (e.g. /settings)
+  // with a plain same-origin GET that isn't a navigation and isn't under
+  // /_next/static/, so an "intercept everything else" fallback here was
+  // catching those too; letting one fail (a transient blip, a stale build
+  // after a deploy) surfaced as an uncaught rejection on a URL that looked
+  // like a whole page was broken. Everything not matching this allowlist —
+  // including _next/static/** and page/RSC prefetch requests — is left
+  // alone and goes straight to the network like navigations already do.
+  const isStaticAsset = /\.(png|jpe?g|gif|svg|webp|ico|woff2?|ttf|css)$/i.test(event.request.url)
+    || event.request.url.endsWith('/manifest.json');
+  if (!isStaticAsset) {
     return;
   }
 
-  // For HTML and other assets: try network first, fallback to cache
+  // For static assets: try network first, fallback to cache
   event.respondWith(
     fetch(event.request)
       .then((response) => {
