@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Search, Loader2, Mail, ShieldCheck, Ban, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Search, Loader2, Mail, ShieldCheck, Ban, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -44,6 +44,7 @@ export default function AdminUsersPage() {
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [suspendingId, setSuspendingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -132,6 +133,29 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleDelete = async (user: User) => {
+    const confirmed = window.confirm(
+      `Permanently delete ${user.full_name || user.email} (${user.email})?\n\nThis removes their account, posts, connections, messages, and business listing (if any). This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    setDeletingId(user.id);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setUsers((prev) => prev.filter((u) => u.id !== user.id));
+        toast({ title: 'User deleted' });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast({ title: 'Could not delete user', description: data.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not delete user', variant: 'destructive' });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const filteredUsers = users.filter(
     (u) =>
       u.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -182,6 +206,7 @@ export default function AdminUsersPage() {
                     <th className="px-5 py-3">Verified</th>
                     <th className="px-5 py-3">Account</th>
                     <th className="px-5 py-3">Joined</th>
+                    <th className="px-5 py-3">Remove</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -252,6 +277,20 @@ export default function AdminUsersPage() {
                       </td>
                       <td className="px-5 py-3 text-xs text-gray-500">
                         {new Date(user.created_at).toLocaleDateString('en-ZA')}
+                      </td>
+                      <td className="px-5 py-3">
+                        {isStaffUser ? (
+                          <span className="text-xs text-gray-500">—</span>
+                        ) : (
+                          <button
+                            onClick={() => handleDelete(user)}
+                            disabled={deletingId === user.id}
+                            title="Permanently delete this account"
+                            className="text-gray-500 hover:text-red-600 disabled:opacity-50 transition-colors"
+                          >
+                            {deletingId === user.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          </button>
+                        )}
                       </td>
                     </tr>
                     );
