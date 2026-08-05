@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { email, password, fullName, dateOfBirth, role, companyName, regNumber, website, socialLinks, industry } = await request.json();
+    const { email, password, fullName, dateOfBirth, role, companyName, regNumber, website, socialLinks, industry, assistedSignup, assistedBy } = await request.json();
 
     if (!email || !password || !fullName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + 14);
       await db`
-        INSERT INTO businesses (user_id, name, company_name, reg_number, website, social_links, industry, status, package_type, trial_package, trial_ends_at)
+        INSERT INTO businesses (user_id, name, company_name, reg_number, website, social_links, industry, status, package_type, trial_package, trial_ends_at, assisted_signup, assisted_by)
         VALUES (
           ${user.id},
           ${companyName},
@@ -130,7 +130,9 @@ export async function POST(request: NextRequest) {
           'unregistered',
           'free',
           'premium_half',
-          ${trialEndsAt.toISOString()}
+          ${trialEndsAt.toISOString()},
+          ${assistedSignup === true},
+          ${assistedSignup === true ? (assistedBy || '').trim() : null}
         )
         ON CONFLICT DO NOTHING
       `;

@@ -110,6 +110,10 @@ export async function POST(request: NextRequest) {
     await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS reviewed_by UUID`;
     await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS review_notes TEXT DEFAULT ''`;
     await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS connections_count INTEGER DEFAULT 0`;
+    // Whether a sales agent assisted this signup, and who — tracked at
+    // signup time for the Agent Sign Up / Agent Sales admin dashboards.
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS assisted_signup BOOLEAN DEFAULT FALSE`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS assisted_by TEXT`;
 
     // --- v3: Business reviews ---
     await db`

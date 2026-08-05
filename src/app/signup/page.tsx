@@ -49,6 +49,8 @@ export default function SignupPage() {
     companyName: "",
     regNumber: "",
     industry: "",
+    assistedSignup: false,
+    assistedBy: "",
     website: "",
     linkedin: "",
     instagram: "",
@@ -77,6 +79,10 @@ export default function SignupPage() {
       toast({ title: "Select your business category", variant: "destructive" });
       return;
     }
+    if (role === "business" && formData.assistedSignup && !formData.assistedBy.trim()) {
+      toast({ title: "Enter who assisted this sign up", variant: "destructive" });
+      return;
+    }
     setIsLoading(true);
     try {
       const res = await fetch("/api/auth/signup", {
@@ -90,6 +96,8 @@ export default function SignupPage() {
           companyName: formData.companyName,
           regNumber: formData.regNumber,
           industry: formData.industry,
+          assistedSignup: formData.assistedSignup,
+          assistedBy: formData.assistedSignup ? formData.assistedBy.trim() : "",
           website: formData.website,
           socialLinks: {
             linkedin: formData.linkedin,
@@ -113,7 +121,7 @@ export default function SignupPage() {
     }
   };
 
-  const update = (field: string, value: string) =>
+  const update = (field: string, value: string | boolean) =>
     setFormData((prev) => ({ ...prev, [field]: value }));
 
   return (
@@ -273,6 +281,48 @@ export default function SignupPage() {
                     ))}
                   </select>
                   <p className="text-xs text-gray-400">Helps customers find you when browsing by category.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold text-gray-700">Assisted Sign Up?</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => update("assistedSignup", false)}
+                      className={cn(
+                        "h-11 rounded-xl border-2 text-sm font-bold transition-all",
+                        !formData.assistedSignup
+                          ? "border-yellow-400 bg-yellow-50 text-gray-900"
+                          : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300"
+                      )}
+                    >
+                      No
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => update("assistedSignup", true)}
+                      className={cn(
+                        "h-11 rounded-xl border-2 text-sm font-bold transition-all",
+                        formData.assistedSignup
+                          ? "border-yellow-400 bg-yellow-50 text-gray-900"
+                          : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300"
+                      )}
+                    >
+                      Yes
+                    </button>
+                  </div>
+                  {formData.assistedSignup && (
+                    <div className="pt-1.5">
+                      <Label htmlFor="assisted-by" className="text-sm font-semibold text-gray-700">Assisted By</Label>
+                      <Input
+                        id="assisted-by"
+                        required
+                        placeholder="Agent name or number"
+                        className="h-11 rounded-xl border-gray-200 bg-white mt-1.5"
+                        value={formData.assistedBy}
+                        onChange={(e) => update("assistedBy", e.target.value)}
+                      />
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="website" className="text-sm font-semibold text-gray-700">Website <span className="font-normal text-gray-400">(optional)</span></Label>
