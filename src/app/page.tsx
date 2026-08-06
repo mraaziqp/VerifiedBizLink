@@ -96,7 +96,6 @@ export default function Home() {
     refreshLocation();
     const interval = setInterval(refreshLocation, 60000);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filteredBusinesses = useMemo(() => {
@@ -256,7 +255,7 @@ export default function Home() {
                           </p>
                           {b.headline && (
                             <p className="text-xs text-slate-600 mt-1 line-clamp-2 italic">
-                              "{b.headline}"
+                              &quot;{b.headline}&quot;
                             </p>
                           )}
                         </div>
@@ -289,7 +288,7 @@ export default function Home() {
                 ) : (
                   <div className="p-6 text-center space-y-3 bg-amber-50/40 rounded-xl border border-amber-100">
                     <p className="text-sm font-semibold text-slate-700">
-                      No featured businesses currently listed under "{selectedCategory}".
+                      No featured businesses currently listed under &quot;{selectedCategory}&quot;.
                     </p>
                     <p className="text-xs text-slate-500 max-w-sm mx-auto">
                       Search the full directory or be the first verified business in this category!

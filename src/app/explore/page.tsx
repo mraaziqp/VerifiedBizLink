@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import {
   MapPin,
   Search,
@@ -13,7 +12,6 @@ import {
   Phone,
   Globe,
   Star,
-  ArrowLeft,
   Sparkles,
   ChevronRight,
   ExternalLink,

@@ -3,9 +3,8 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
-  ShieldCheck, Building2, User, Loader2,
+  ShieldCheck, Building2, Loader2,
   Lock, Eye, EyeOff, CheckCircle2, Circle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -61,7 +60,6 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
-  const router = useRouter();
   const { toast } = useToast();
   const { refresh } = useAuth();
 

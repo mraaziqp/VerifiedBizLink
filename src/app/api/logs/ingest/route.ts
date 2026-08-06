@@ -171,7 +171,7 @@ async function checkAndTriggerAlerts(
   environment: string,
   logLevel: string,
   errorCode: string | null,
-  logId: string
+  _logId: string
 ) {
   try {
     // Get relevant alert rules

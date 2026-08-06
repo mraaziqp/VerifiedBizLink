@@ -2,20 +2,17 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  FileText, CheckCircle2, XCircle, Clock, Loader2, Eye, Search,
-  Filter, Download, Upload, Star, TrendingUp, AlertCircle, RefreshCw,
-  ChevronDown, MoreVertical, MessageSquare, Camera
+  FileText, Loader2, Eye, Download, RefreshCw
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { ImageUploader } from '@/components/media/image-uploader';
 
 interface Document {
   id: string;
@@ -87,7 +84,7 @@ export function VettingDeskPro() {
         const data = await res.json();
         setBusinesses(data.businesses || []);
       }
-    } catch (error) {
+    } catch {
       toast({ title: 'Failed to load businesses', variant: 'destructive' });
     } finally {
       setLoading(false);
@@ -99,7 +96,7 @@ export function VettingDeskPro() {
   }, [fetchBusinesses]);
 
   const filteredBusinesses = useMemo(() => {
-    let list = businesses.filter(b => {
+    const list = businesses.filter(b => {
       if (statusFilter !== 'all' && b.status !== statusFilter) return false;
       if (searchQuery && !b.company_name.toLowerCase().includes(searchQuery.toLowerCase()) &&
           !b.owner_name.toLowerCase().includes(searchQuery.toLowerCase()) &&
@@ -147,7 +144,7 @@ export function VettingDeskPro() {
         setDocGrade(0);
         setDocNotes('');
       }
-    } catch (error) {
+    } catch {
       toast({ title: 'Failed to grade document', variant: 'destructive' });
     } finally {
       setUpdatingDocId(null);
@@ -172,7 +169,7 @@ export function VettingDeskPro() {
         fetchBusinesses();
         setDialogOpen(false);
       }
-    } catch (error) {
+    } catch {
       toast({ title: 'Failed to update status', variant: 'destructive' });
     } finally {
       setUpdatingBusinessId(null);

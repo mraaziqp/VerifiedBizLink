@@ -41,7 +41,7 @@ export default function NotificationsSettingsPage() {
       } else {
         alert('Failed to save preferences');
       }
-    } catch (error) {
+    } catch {
       alert('Failed to save preferences');
     } finally {
       setIsSaving(false);

@@ -16,13 +16,13 @@ export async function GET() {
       LIMIT 1
     `;
     return NextResponse.json({ pending: rows.length > 0, request: rows[0] ?? null });
-  } catch (err) {
+  } catch {
     return NextResponse.json({ pending: false, request: null });
   }
 }
 
 // POST /api/users/delete-request — schedule account deletion in 30-90 days
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 }
 
 // DELETE /api/users/delete-request — cancel a pending deletion request
-export async function DELETE(req: NextRequest) {
+export async function DELETE(_req: NextRequest) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

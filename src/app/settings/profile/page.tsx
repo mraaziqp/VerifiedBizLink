@@ -130,7 +130,7 @@ export default function ProfileSettingsPage() {
                 disabled
                 className="w-full rounded-lg border border-gray-200 bg-gray-100 px-4 py-3 text-gray-500 cursor-not-allowed"
               />
-              <p className="mt-2 text-sm text-gray-500">This is your login email and can't be changed here.</p>
+              <p className="mt-2 text-sm text-gray-500">This is your login email and can&apos;t be changed here.</p>
             </div>
 
             {/* Phone */}

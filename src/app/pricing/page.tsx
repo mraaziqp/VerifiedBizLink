@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, ShieldCheck, BadgeCheck, Zap, Crown, Building2, ArrowLeft, ReceiptText, type LucideIcon } from "lucide-react";
+import { CheckCircle2, Loader2, ShieldCheck, BadgeCheck, Zap, Crown, Building2, ReceiptText, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

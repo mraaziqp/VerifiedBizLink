@@ -23,7 +23,7 @@ export async function uploadImage(
     const filename = `${userId}/${timestamp}.${ext}`;
 
     // Upload to Supabase
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from(bucket)
       .upload(filename, file, { upsert: true });
 
@@ -37,7 +37,7 @@ export async function uploadImage(
       .getPublicUrl(filename);
 
     return { url: publicData.publicUrl };
-  } catch (err) {
+  } catch {
     return { url: '', error: 'Upload failed' };
   }
 }
@@ -56,7 +56,7 @@ export async function deleteImage(
     }
 
     return { success: true };
-  } catch (err) {
+  } catch {
     return { success: false, error: 'Delete failed' };
   }
 }

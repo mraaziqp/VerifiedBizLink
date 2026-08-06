@@ -10,7 +10,7 @@ export default function PrivacyPage() {
           <div className="space-y-6 text-gray-300">
             <section>
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">1. Introduction</h2>
-              <p>VerifiedBizLink ("we" or "us" or "our") operates the website. This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our service and the choices you have associated with that data.</p>
+              <p>VerifiedBizLink (&quot;we&quot; or &quot;us&quot; or &quot;our&quot;) operates the website. This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our service and the choices you have associated with that data.</p>
             </section>
 
             <section>
@@ -48,13 +48,13 @@ export default function PrivacyPage() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-bold text-cyan-400 mb-4">6. Children's Privacy</h2>
-              <p>Our service does not address anyone under the age of 18 ("Children"). We do not knowingly collect personally identifiable information from children under 18. If you are a parent or guardian and you are aware that your child has provided us with Personal Data, please contact us.</p>
+              <h2 className="text-2xl font-bold text-cyan-400 mb-4">6. Children&apos;s Privacy</h2>
+              <p>Our service does not address anyone under the age of 18 (&quot;Children&quot;). We do not knowingly collect personally identifiable information from children under 18. If you are a parent or guardian and you are aware that your child has provided us with Personal Data, please contact us.</p>
             </section>
 
             <section>
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">7. Changes to This Privacy Policy</h2>
-              <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "effective date" at the bottom of this Privacy Policy.</p>
+              <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the &quot;effective date&quot; at the bottom of this Privacy Policy.</p>
             </section>
 
             <section>

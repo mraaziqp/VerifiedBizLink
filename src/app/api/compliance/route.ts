@@ -11,7 +11,7 @@ export async function GET() {
       },
       timestamp: new Date().toISOString(),
     });
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Compliance check failed' },
       { status: 500 }

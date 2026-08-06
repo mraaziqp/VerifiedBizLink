@@ -38,7 +38,7 @@ export default function PrivacySettingsPage() {
       } else {
         alert('Failed to save settings');
       }
-    } catch (error) {
+    } catch {
       alert('Failed to save settings');
     } finally {
       setIsSaving(false);
@@ -174,7 +174,7 @@ export default function PrivacySettingsPage() {
               <div>
                 <p className="font-semibold text-amber-800 mb-1">POPIA Compliance</p>
                 <p className="text-sm text-amber-700">
-                  Your data is protected under South Africa's Protection of Personal Information Act (POPIA). We never sell your data to third parties.
+                  Your data is protected under South Africa&apos;s Protection of Personal Information Act (POPIA). We never sell your data to third parties.
                   <Link href="/privacy" className="ml-1 underline hover:no-underline">
                     Read our privacy policy
                   </Link>

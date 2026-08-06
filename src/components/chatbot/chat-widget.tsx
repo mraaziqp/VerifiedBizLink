@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { MessageSquare, X, Send, Bot, User, ChevronDown, Trash2, Sparkles } from "lucide-react";
+import { MessageSquare, X, Send, User, ChevronDown, Trash2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -108,7 +108,7 @@ export function ChatWidget() {
       const botMsg: Message = { id: Date.now() + 1, role: "bot", text: botResponse, timestamp: new Date() };
       setMessages((m) => [...m, botMsg]);
       if (!open) setUnread((u) => u + 1);
-    } catch (error) {
+    } catch {
       const errorMsg = 'Sorry, I\'m having trouble connecting. Please check your internet or try again later.';
       const botMsg: Message = { id: Date.now() + 1, role: "bot", text: errorMsg, timestamp: new Date() };
       setMessages((m) => [...m, botMsg]);

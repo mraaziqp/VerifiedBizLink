@@ -14,11 +14,11 @@ export default function TermsPage() {
             <section>
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">1. Who We Are & Acceptance of Terms</h2>
               <p>
-                VerifiedBizLink ("VerifiedBizLink," "we," "us," or "our") operates verifiedbizlink.co.za and the
-                associated mobile/web application (the "Platform"), a business verification and professional
+                VerifiedBizLink (&quot;VerifiedBizLink,&quot; &quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) operates verifiedbizlink.co.za and the
+                associated mobile/web application (the &quot;Platform&quot;), a business verification and professional
                 networking service operating in South Africa. By creating an account, browsing business profiles,
-                or otherwise using the Platform, you ("you" or "User") agree to be bound by these Terms &amp;
-                Conditions ("Terms"). If you do not agree, please do not use the Platform.
+                or otherwise using the Platform, you (&quot;you&quot; or &quot;User&quot;) agree to be bound by these Terms &amp;
+                Conditions (&quot;Terms&quot;). If you do not agree, please do not use the Platform.
               </p>
               <p className="mt-3">
                 If you are creating a business account, you confirm that you are authorised to act on behalf of that
@@ -40,7 +40,7 @@ export default function TermsPage() {
                 <strong>Verification is not a guarantee.</strong> Our vetting team checks submitted documents against
                 available public records (such as CIPC and SARS status indicators) at the time of review. A Verified
                 badge or Trust Score reflects the outcome of that review — it is not a warranty, certification, or
-                endorsement by VerifiedBizLink of a business's quality, solvency, legality, or ongoing compliance, and
+                endorsement by VerifiedBizLink of a business&apos;s quality, solvency, legality, or ongoing compliance, and
                 we do not continuously re-verify businesses after approval unless a re-review is triggered.
               </p>
             </section>
@@ -60,8 +60,8 @@ export default function TermsPage() {
               <ul className="list-disc list-inside space-y-2">
                 <li>Documents you upload for vetting (e.g. registration certificates, tax clearance, ID, proof of address) are stored securely and are only accessible to you and authorised VerifiedBizLink staff performing the review.</li>
                 <li>By submitting a document, you confirm it is genuine, unaltered, and belongs to the business or person you represent.</li>
-                <li>Vetting outcomes (approved, rejected, or a requested re-submission) and any Trust Score are determined at VerifiedBizLink's reasonable discretion based on our internal review process. We are not a credit bureau, legal advisor, or regulator, and a Trust Score is not financial, credit, or legal advice.</li>
-                <li>We may revoke a Verified badge or adjust a Trust Score at any time if we discover submitted information was false, a document expired, or a business's status changes.</li>
+                <li>Vetting outcomes (approved, rejected, or a requested re-submission) and any Trust Score are determined at VerifiedBizLink&apos;s reasonable discretion based on our internal review process. We are not a credit bureau, legal advisor, or regulator, and a Trust Score is not financial, credit, or legal advice.</li>
+                <li>We may revoke a Verified badge or adjust a Trust Score at any time if we discover submitted information was false, a document expired, or a business&apos;s status changes.</li>
               </ul>
             </section>
 
@@ -95,7 +95,7 @@ export default function TermsPage() {
               <ul className="list-disc list-inside space-y-2">
                 <li>Reviews must reflect a genuine experience with the business being reviewed. Fake, incentivised (without disclosure), or retaliatory reviews are prohibited and may be removed.</li>
                 <li>You retain ownership of content you post (posts, reviews, profile information, uploaded images), but grant VerifiedBizLink a non-exclusive, royalty-free, worldwide licence to host, display, reproduce, and distribute that content as necessary to operate and promote the Platform.</li>
-                <li>You must have the rights to any content you upload (images, logos, documents) and it must not infringe a third party's intellectual property or contain unlawful material.</li>
+                <li>You must have the rights to any content you upload (images, logos, documents) and it must not infringe a third party&apos;s intellectual property or contain unlawful material.</li>
                 <li>We may remove content, reviews, or listings that violate these Terms, applicable law, or that we reasonably believe are harmful, fraudulent, or defamatory.</li>
               </ul>
             </section>
@@ -116,7 +116,7 @@ export default function TermsPage() {
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">9. Disclaimers</h2>
               <p>
                 The Platform, including all business profiles, Trust Scores, verification badges, and vetting
-                outcomes, is provided "as is" and "as available." To the maximum extent permitted by law, we disclaim
+                outcomes, is provided &quot;as is&quot; and &quot;as available.&quot; To the maximum extent permitted by law, we disclaim
                 all warranties, express or implied, including merchantability, fitness for a particular purpose, and
                 non-infringement. We do not guarantee that the Platform will be uninterrupted, error-free, or that
                 any business listed is trustworthy, solvent, or will perform any transaction satisfactorily —

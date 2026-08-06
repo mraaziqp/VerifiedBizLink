@@ -67,7 +67,7 @@ export default function BusinessSettingsPage() {
       } else {
         alert('Failed to save business information');
       }
-    } catch (error) {
+    } catch {
       alert('Failed to save business information');
     } finally {
       setIsSaving(false);

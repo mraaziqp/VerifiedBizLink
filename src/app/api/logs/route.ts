@@ -7,21 +7,6 @@ import db from '@/lib/db';
  * Tracks all user actions for compliance and debugging
  */
 
-interface AuditLog {
-  id?: string;
-  user_id: string;
-  action: string;
-  resource_type: string;
-  resource_id?: string;
-  old_value?: any;
-  new_value?: any;
-  ip_address?: string;
-  user_agent?: string;
-  status: 'success' | 'failed';
-  details?: string;
-  created_at?: Date;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

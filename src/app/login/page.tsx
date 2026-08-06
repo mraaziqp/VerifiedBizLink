@@ -3,7 +3,7 @@
 
 import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   ShieldCheck, Loader2, Eye, EyeOff, BadgeCheck,
   Users, Building2, Lock,
@@ -24,7 +24,6 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState("");
-  const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
   const { refresh } = useAuth();

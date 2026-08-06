@@ -42,7 +42,7 @@ export default async function AboutPage() {
         <div className="mb-12">
           <h1 className="text-4xl font-bold text-white mb-4">About VerifiedBizLink</h1>
           <p className="text-lg text-gray-300 leading-relaxed">
-            VerifiedBizLink is South Africa's verification-first business network — a platform built to help
+            VerifiedBizLink is South Africa&apos;s verification-first business network — a platform built to help
             genuine, compliant businesses find each other, connect, and grow with confidence.
           </p>
         </div>

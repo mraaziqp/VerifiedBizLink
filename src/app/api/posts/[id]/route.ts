@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
-import { logAction, logError, LOG_ACTIONS, LOG_RESOURCES } from '@/lib/audit-logger';
+import { logAction, LOG_ACTIONS, LOG_RESOURCES } from '@/lib/audit-logger';
 
 export async function DELETE(
   request: NextRequest,

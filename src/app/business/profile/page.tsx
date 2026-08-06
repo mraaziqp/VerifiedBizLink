@@ -142,7 +142,7 @@ export default function BusinessProfilePage() {
                       buttonClassName="border border-gray-200 bg-gray-100 text-gray-600 hover:text-yellow-500"
                     />
                     {coverUploading && (
-                      <span className="text-xs text-slate-500">Uploading — don't save yet…</span>
+                      <span className="text-xs text-slate-500">Uploading — don&apos;t save yet…</span>
                     )}
                     {coverImageUrl && (
                       <button
@@ -272,7 +272,7 @@ export default function BusinessProfilePage() {
 
                 <div className="pt-2 border-t border-gray-200">
                   <h3 className="text-gray-900 font-semibold mb-1 mt-6">Social Media</h3>
-                  <p className="text-sm text-slate-500 mb-4">Add your social pages — they'll show as icons on your public business profile.</p>
+                  <p className="text-sm text-slate-500 mb-4">Add your social pages — they&apos;ll show as icons on your public business profile.</p>
                   <div className="space-y-4">
                     {SOCIAL_PLATFORMS.map(({ key, label, placeholder, icon: Icon }) => (
                       <div key={key}>

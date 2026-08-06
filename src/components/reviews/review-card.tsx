@@ -4,7 +4,6 @@ import { useState } from "react";
 import { ThumbsUp, Calendar } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { StarRating } from "@/components/ui/star-rating";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";

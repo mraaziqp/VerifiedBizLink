@@ -65,7 +65,7 @@ export default function ForgotUsernamePage() {
           <>
             <div className="mb-8">
               <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Recover your username</h2>
-              <p className="mt-2 text-gray-500">Enter your email and we'll send you the username linked to your account.</p>
+              <p className="mt-2 text-gray-500">Enter your email and we&apos;ll send you the username linked to your account.</p>
             </div>
 
             <form className="space-y-5" onSubmit={handleSubmit}>

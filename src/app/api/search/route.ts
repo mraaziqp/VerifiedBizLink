@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     const searchTerm = `%${query}%`;
 
-    let results: any = { businesses: [], users: [] };
+    const results: any = { businesses: [], users: [] };
 
     // Search businesses
     if (type === 'all' || type === 'business') {

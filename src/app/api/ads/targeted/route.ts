@@ -67,7 +67,7 @@ export async function GET() {
 
   scored.sort((a, b) => b._score - a._score);
 
-  const result = (scored as any[]).slice(0, 5).map(({ _score, target_industries, target_provinces, ...ad }) => ad);
+  const result = (scored as any[]).slice(0, 5).map(({ _score, target_industries: _ti, target_provinces: _tp, ...ad }) => ad);
 
   return NextResponse.json({ ads: result });
 }

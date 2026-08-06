@@ -15,7 +15,7 @@ export default function RefundPolicyPage() {
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">1. Overview</h2>
               <p>
                 This policy explains how refunds, cancellations, and billing disputes are handled for
-                VerifiedBizLink's paid subscription tiers (see our <Link href="/pricing" className="text-cyan-400 hover:underline">Pricing</Link> page
+                VerifiedBizLink&apos;s paid subscription tiers (see our <Link href="/pricing" className="text-cyan-400 hover:underline">Pricing</Link> page
                 for current tiers and prices). It should be read together with our <Link href="/terms" className="text-cyan-400 hover:underline">Terms &amp; Conditions</Link>.
               </p>
               <p className="mt-3">The free tier is not billed and this policy does not apply to it.</p>
@@ -24,7 +24,7 @@ export default function RefundPolicyPage() {
             <section>
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">2. 7-Day Cooling-Off Period</h2>
               <p>
-                In line with the cooling-off right for electronic transactions under South Africa's Electronic
+                In line with the cooling-off right for electronic transactions under South Africa&apos;s Electronic
                 Communications and Transactions Act, if this is your <strong>first time subscribing</strong> to a
                 paid tier, you may cancel within <strong>7 calendar days</strong> of your initial payment for a full
                 refund, no questions asked — email <a href="mailto:info@verifiedbizlink.co.za" className="text-cyan-400 hover:underline">info@verifiedbizlink.co.za</a> from
@@ -64,16 +64,16 @@ export default function RefundPolicyPage() {
               <p>
                 Because each tier is billed as its own PayFast subscription, changing tiers currently means
                 cancelling your current plan in Settings → Billing (which downgrades you to Free immediately)
-                and then subscribing to the new one — we don't yet support switching directly between two paid
-                tiers in one step. We don't charge a pro-rated top-up or issue a partial refund for the switch.
+                and then subscribing to the new one — we don&apos;t yet support switching directly between two paid
+                tiers in one step. We don&apos;t charge a pro-rated top-up or issue a partial refund for the switch.
               </p>
             </section>
 
             <section>
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">6. How to Cancel or Request a Refund</h2>
               <ol className="list-decimal list-inside space-y-2">
-                <li>Go to <strong>Settings → Billing</strong> and select "Cancel Subscription," or</li>
-                <li>Email <a href="mailto:info@verifiedbizlink.co.za" className="text-cyan-400 hover:underline">info@verifiedbizlink.co.za</a> from your account's registered email address with your business name and the reason for the request.</li>
+                <li>Go to <strong>Settings → Billing</strong> and select &quot;Cancel Subscription,&quot; or</li>
+                <li>Email <a href="mailto:info@verifiedbizlink.co.za" className="text-cyan-400 hover:underline">info@verifiedbizlink.co.za</a> from your account&apos;s registered email address with your business name and the reason for the request.</li>
               </ol>
               <p className="mt-3">
                 We aim to acknowledge refund requests within 2 business days and, where a refund is due, to process
@@ -98,7 +98,7 @@ export default function RefundPolicyPage() {
               <h2 className="text-2xl font-bold text-cyan-400 mb-4">8. Changes to This Policy</h2>
               <p>
                 We may update this Refund Policy from time to time; changes apply to payments made after the update
-                takes effect. The "Effective date" above reflects the latest revision.
+                takes effect. The &quot;Effective date&quot; above reflects the latest revision.
               </p>
             </section>
 

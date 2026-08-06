@@ -1,7 +1,6 @@
 'use client';
 
 import { Trophy, Star, Award, TrendingUp, Shield, Users, Zap } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
 export type BadgeType =
   | 'verified'

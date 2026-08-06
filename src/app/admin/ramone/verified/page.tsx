@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Shield, Loader2, ArrowLeft, MapPin, Phone, Globe, Star, Download } from 'lucide-react';
+import { Shield, Loader2, ArrowLeft, MapPin, Phone, Globe, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -46,7 +46,7 @@ export default function RamoneVerifiedPage() {
     }
   };
 
-  let filteredBusinesses = businesses.filter(b =>
+  const filteredBusinesses = businesses.filter(b =>
     b.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     b.owner_name.toLowerCase().includes(searchQuery.toLowerCase())
   );

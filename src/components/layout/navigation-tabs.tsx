@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Compass, Users, MessageSquare, Bell, User } from 'lucide-react';
+import { Home, Compass, Users, User } from 'lucide-react';
 
 const TABS = [
   { href: '/', label: 'Home', icon: Home },

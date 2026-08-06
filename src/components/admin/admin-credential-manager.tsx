@@ -93,7 +93,7 @@ export function AdminCredentialManager() {
         newPassword: "",
         confirmPassword: "",
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Could not update settings. Please try again.",
@@ -185,7 +185,7 @@ export function AdminCredentialManager() {
               placeholder="Leave blank if not changing"
               className="mt-2 border-gray-300"
             />
-            <p className="text-xs text-gray-500 mt-1">You'll need to log in again with your new email</p>
+            <p className="text-xs text-gray-500 mt-1">You&apos;ll need to log in again with your new email</p>
           </div>
         </div>
 

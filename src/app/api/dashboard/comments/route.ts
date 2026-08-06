@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     const { postId, content, imageUrl } = body;
 
     // Get user ID from session
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },

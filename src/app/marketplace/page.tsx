@@ -8,7 +8,7 @@ import { PriceCard } from '@/components/market/price-card';
 import { MarketNewsCard } from '@/components/market/market-news-card';
 import { MarketStats } from '@/components/market/market-stats';
 import { PriceComparator } from '@/components/market/price-comparator';
-import { Loader2, Search, ArrowLeft, AlertCircle, RotateCcw } from 'lucide-react';
+import { Loader2, Search, ArrowLeft, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { GlassBackground } from '@/components/shared/glass-ui';
 

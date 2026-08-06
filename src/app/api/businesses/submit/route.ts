@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 
 // Submit business for vetting
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

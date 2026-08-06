@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Sparkles, Image as ImageIcon, Link as LinkIcon, Paperclip, Send, Loader2, X } from "lucide-react";
+import { Sparkles, Link as LinkIcon, Paperclip, Send, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -87,7 +87,7 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
         length: "medium"
       });
       setContent(result.draftedPost);
-    } catch (error) {
+    } catch {
       toast({
         title: "AI Drafting Failed",
         description: "Could not generate draft at this time.",

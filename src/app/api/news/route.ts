@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const results = await Promise.allSettled(FEEDS.map(fetchFeed));
-    let live: NewsItem[] = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
+    const live: NewsItem[] = results.flatMap((r) => (r.status === 'fulfilled' ? r.value : []));
 
     // Always include curated regulatory items (high signal for this audience)
     let news = [...CURATED, ...live];

@@ -11,7 +11,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { VBLLogo } from "@/components/ui/vbl-logo";
 import { RatingSummary } from "@/components/ui/star-rating";
 import { ReviewsList } from "@/components/reviews/reviews-list";

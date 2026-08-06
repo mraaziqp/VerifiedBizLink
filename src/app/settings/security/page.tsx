@@ -82,7 +82,7 @@ export default function SecuritySettingsPage() {
         const error = await response.json();
         setMessage(`❌ ${error.error || 'Failed to change password'}`);
       }
-    } catch (error) {
+    } catch {
       setMessage('❌ Error changing password');
     } finally {
       setIsSaving(false);

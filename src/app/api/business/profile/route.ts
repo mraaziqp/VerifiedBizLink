@@ -5,7 +5,7 @@ import { getAdLimit, getEffectivePackage } from '@/lib/tiers';
 
 const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getSession();
     const isStaff = !!session && STAFF_ROLES.includes(session.role);

@@ -72,7 +72,7 @@ export function PopularCategories({
   const [expanded, setExpanded] = useState(false);
 
   // Combine categories from DB props + defaults so every single category is populated
-  const { categoryTiles, totalCount } = useMemo(() => {
+  const { categoryTiles } = useMemo(() => {
     const map = new Map<string, number>();
     
     // Add DB category counts
