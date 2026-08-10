@@ -114,6 +114,25 @@ export async function POST(request: NextRequest) {
     // signup time for the Agent Sign Up / Agent Sales admin dashboards.
     await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS assisted_signup BOOLEAN DEFAULT FALSE`;
     await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS assisted_by TEXT`;
+    // Which staff account actually did the assisting — free-text assisted_by
+    // is what the signer-upper typed, this is the accountable employee.
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS assisted_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL`;
+
+    // --- Moderation: warnings, strikes, bans, unverify — one append-only
+    // trail so a user's disciplinary history survives status changes. ---
+    await db`
+      CREATE TABLE IF NOT EXISTS moderation_actions (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+        action VARCHAR(30) NOT NULL,
+        reason TEXT DEFAULT '',
+        issued_by UUID REFERENCES users(id) ON DELETE SET NULL,
+        issued_by_name VARCHAR(255) DEFAULT '',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `;
+    await db`CREATE INDEX IF NOT EXISTS idx_moderation_actions_user ON moderation_actions(user_id)`;
+    await db`CREATE INDEX IF NOT EXISTS idx_moderation_actions_created ON moderation_actions(created_at DESC)`;
 
     // --- v3: Business reviews ---
     await db`

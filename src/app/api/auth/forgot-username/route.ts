@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { sendUsernameRecoveryEmail } from '@/lib/email';
+import { sendUsernameRecoveryEmail, appUrlFromRequest } from '@/lib/email';
 import { checkRateLimit } from '@/lib/rate-limit';
 
 const GENERIC_RESPONSE = {
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await sendUsernameRecoveryEmail(normalizedEmail, usernames);
+      await sendUsernameRecoveryEmail(normalizedEmail, usernames, appUrlFromRequest(request));
     } catch (emailError) {
       console.error('Failed to send username recovery email:', emailError);
     }

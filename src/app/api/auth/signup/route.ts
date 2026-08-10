@@ -3,7 +3,7 @@ import { hash } from 'bcryptjs';
 import { resolveMx } from 'dns/promises';
 import { createTrackedSession, sessionCookieOptions, hashOneTimeToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { sendVerificationEmail } from '@/lib/email';
+import { sendVerificationEmail, appUrlFromRequest } from '@/lib/email';
 import db from '@/lib/db';
 
 const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     // Send verification email (non-blocking — don't fail signup if email fails,
     // but do log it so a broken Postmark key/domain doesn't fail silently)
-    sendVerificationEmail(user.email, user.full_name, verificationToken).catch((err) => {
+    sendVerificationEmail(user.email, user.full_name, verificationToken, appUrlFromRequest(request)).catch((err) => {
       console.error('Signup verification email failed for', user.email, err);
     });
 

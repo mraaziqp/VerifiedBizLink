@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import db from '@/lib/db';
-import { sendPasswordResetEmail } from '@/lib/email';
+import { sendPasswordResetEmail, appUrlFromRequest } from '@/lib/email';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { hashOneTimeToken } from '@/lib/auth';
 import { EMAIL_DELIVERY_AVAILABLE } from '@/lib/feature-flags';
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await sendPasswordResetEmail(user.email, user.full_name || 'there', token);
+      await sendPasswordResetEmail(user.email, user.full_name || 'there', token, appUrlFromRequest(request));
     } catch (emailError) {
       console.error('Failed to send password reset email:', emailError);
       return NextResponse.json({ error: 'Could not send reset email. Please try again shortly.' }, { status: 502 });

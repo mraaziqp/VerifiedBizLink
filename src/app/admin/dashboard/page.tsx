@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard, History, UserCheck, Trophy } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard, History, UserCheck, Trophy, ShieldAlert, Receipt } from 'lucide-react';
 import Link from 'next/link';
 import { AdminBackground, AdminCard, AdminPageHeader, StatCard } from '@/components/admin/ui';
 
@@ -83,6 +83,8 @@ export default function AdminDashboard() {
     { id: 'admin-settings', name: 'Settings', description: 'Configure platform settings and admin preferences', icon: Settings, href: '/admin/settings', color: 'from-gray-600 to-gray-700' },
     { id: 'agent-signups', name: 'Agent Sign Up Dashboard', description: 'Every business signup marked as assisted by a sales agent', icon: UserCheck, href: '/admin/agent-signups', color: 'from-teal-500 to-cyan-500' },
     { id: 'agent-sales', name: 'Agent Sales Dashboard', description: 'Assisted signups grouped by agent, with the tier each business took', icon: Trophy, href: '/admin/agent-sales', color: 'from-amber-500 to-orange-500' },
+    { id: 'activity', name: 'Activity & Receipts', description: 'Every sign-up and payment as it happens, with receipt references', icon: Receipt, href: '/admin/activity', color: 'from-teal-500 to-emerald-500' },
+    { id: 'security', name: 'Security & Moderation', description: 'Warnings, strikes, bans, verification control and account removal', icon: ShieldAlert, href: '/admin/security', color: 'from-rose-500 to-red-500' },
   ];
 
   const bankingTools: AdminTool[] = [

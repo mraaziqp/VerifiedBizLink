@@ -22,6 +22,28 @@ const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
 const FROM_EMAIL = process.env.TITAN_EMAIL_ADDRESS || 'info@verifiedbizlink.co.za';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.verifiedbizlink.co.za';
 
+/**
+ * Base URL for links inside emails.
+ *
+ * Prefers the origin of the request that triggered the send, because
+ * NEXT_PUBLIC_APP_URL is a config footgun: .env.local sets it to
+ * http://localhost:9002 for dev, and if that value ever gets copied into
+ * the hosting platform's env vars, every production reset/verification
+ * email silently ships a localhost link that no recipient can open.
+ * Deriving it from the request means the link always points back at
+ * whatever domain the user was actually on.
+ */
+export function appUrlFromRequest(request?: { headers: Headers }): string {
+  if (request) {
+    const host = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    if (host) {
+      const proto = request.headers.get('x-forwarded-proto') || (host.startsWith('localhost') ? 'http' : 'https');
+      return `${proto}://${host}`;
+    }
+  }
+  return APP_URL;
+}
+
 let cachedTransporter: nodemailer.Transporter | null = null;
 
 function getTransporter(): nodemailer.Transporter {
@@ -54,8 +76,8 @@ export async function sendRawEmail(to: string, subject: string, html: string) {
   });
 }
 
-export async function sendPasswordResetEmail(to: string, fullName: string, token: string) {
-  const link = `${APP_URL}/reset-password?token=${token}`;
+export async function sendPasswordResetEmail(to: string, fullName: string, token: string, baseUrl?: string) {
+  const link = `${baseUrl ?? APP_URL}/reset-password?token=${token}`;
   try {
     const transporter = getTransporter();
     const html = await render(PasswordResetEmail({ resetLink: link }));
@@ -71,8 +93,8 @@ export async function sendPasswordResetEmail(to: string, fullName: string, token
   }
 }
 
-export async function sendVerificationEmail(to: string, fullName: string, token: string) {
-  const link = `${APP_URL}/api/auth/verify-email?token=${token}`;
+export async function sendVerificationEmail(to: string, fullName: string, token: string, baseUrl?: string) {
+  const link = `${baseUrl ?? APP_URL}/api/auth/verify-email?token=${token}`;
   try {
     const transporter = getTransporter();
     const html = await render(VerificationEmail({ userFirstName: fullName, verificationLink: link }));
@@ -88,8 +110,8 @@ export async function sendVerificationEmail(to: string, fullName: string, token:
   }
 }
 
-export async function sendUsernameRecoveryEmail(to: string, usernames: string[]) {
-  const link = `${APP_URL}/login`;
+export async function sendUsernameRecoveryEmail(to: string, usernames: string[], baseUrl?: string) {
+  const link = `${baseUrl ?? APP_URL}/login`;
   try {
     const transporter = getTransporter();
     const html = await render(UsernameRecoveryEmail({ usernames, loginLink: link }));

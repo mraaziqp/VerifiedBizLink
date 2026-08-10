@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSession, isStaff, hashOneTimeToken } from '@/lib/auth';
-import { sendVerificationEmail } from '@/lib/email';
+import { sendVerificationEmail, appUrlFromRequest } from '@/lib/email';
 import db from '@/lib/db';
 
 // POST /api/admin/users/[id]/resend-verification — lets staff trigger a
@@ -10,7 +10,7 @@ import db from '@/lib/db';
 // they're on a different device — this is the support-desk equivalent for
 // when a client calls in saying "I never got the email."
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
@@ -37,7 +37,7 @@ export async function POST(
   `;
 
   try {
-    await sendVerificationEmail(rows[0].email, rows[0].full_name, token);
+    await sendVerificationEmail(rows[0].email, rows[0].full_name, token, appUrlFromRequest(request));
   } catch (err) {
     console.error('Admin-triggered resend failed for', rows[0].email, err);
     return NextResponse.json(
