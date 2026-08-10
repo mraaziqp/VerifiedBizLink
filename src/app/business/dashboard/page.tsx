@@ -150,6 +150,16 @@ export default function BusinessDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'overview' | 'insights' | 'tasks'>('overview');
+  const [isNewSignup, setIsNewSignup] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('welcome') === 'true') {
+        setIsNewSignup(true);
+      }
+    }
+  }, []);
 
   const canManage = !!user && (user.role === 'business' || ['admin', 'banker', 'lawyer'].includes(user.role));
 
@@ -412,6 +422,78 @@ export default function BusinessDashboard() {
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <>
+            {/* Welcome & Setup Guide Banner for new signups or incomplete setup */}
+            {(isNewSignup || profileCompletion < 100) && (
+              <div className="mb-8 rounded-2xl bg-gradient-to-br from-yellow-400 via-amber-400 to-yellow-500 p-6 text-slate-900 shadow-xl border border-yellow-300 relative overflow-hidden">
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between gap-4 flex-wrap mb-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-6 w-6 text-slate-900" />
+                      <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+                        {isNewSignup ? "Welcome to your Business Hub! 🎉" : "Complete your Business Setup"}
+                      </h2>
+                    </div>
+                    <Badge className="bg-slate-900 text-yellow-400 font-bold px-3 py-1 text-xs shrink-0">
+                      Step-by-Step Guide
+                    </Badge>
+                  </div>
+                  <p className="text-slate-900 font-medium text-xs sm:text-sm leading-relaxed mb-5 max-w-3xl">
+                    Follow these essential steps to set up your company profile, upload verification documents, showcase your products/services, and reach verified clients across South Africa.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <Link href="/business/profile" className="p-3.5 bg-white/95 backdrop-blur rounded-xl border border-white/60 shadow-sm hover:bg-white transition flex flex-col justify-between group">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Step 1</span>
+                          {business.description ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />}
+                        </div>
+                        <p className="font-bold text-gray-900 text-sm group-hover:text-amber-600 transition">Company Profile</p>
+                        <p className="text-xs text-gray-500 mt-1">Add logo, description & contact details</p>
+                      </div>
+                      <span className="text-xs font-bold text-amber-600 mt-3 inline-flex items-center gap-1">Edit Details →</span>
+                    </Link>
+
+                    <Link href="/business/documents" className="p-3.5 bg-white/95 backdrop-blur rounded-xl border border-white/60 shadow-sm hover:bg-white transition flex flex-col justify-between group">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Step 2</span>
+                          {business.doc_count > 0 ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />}
+                        </div>
+                        <p className="font-bold text-gray-900 text-sm group-hover:text-amber-600 transition">Vetting Documents</p>
+                        <p className="text-xs text-gray-500 mt-1">Upload CIPC, ID & SARS documents</p>
+                      </div>
+                      <span className="text-xs font-bold text-amber-600 mt-3 inline-flex items-center gap-1">Upload Docs →</span>
+                    </Link>
+
+                    <Link href="/business/gallery" className="p-3.5 bg-white/95 backdrop-blur rounded-xl border border-white/60 shadow-sm hover:bg-white transition flex flex-col justify-between group">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Step 3</span>
+                          {(stats?.gallery_count ?? 0) >= 1 ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />}
+                        </div>
+                        <p className="font-bold text-gray-900 text-sm group-hover:text-amber-600 transition">Photo Gallery</p>
+                        <p className="text-xs text-gray-500 mt-1">Add workspace & product photos</p>
+                      </div>
+                      <span className="text-xs font-bold text-amber-600 mt-3 inline-flex items-center gap-1">Add Photos →</span>
+                    </Link>
+
+                    <Link href="/business/posts" className="p-3.5 bg-white/95 backdrop-blur rounded-xl border border-white/60 shadow-sm hover:bg-white transition flex flex-col justify-between group">
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Step 4</span>
+                          <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
+                        </div>
+                        <p className="font-bold text-gray-900 text-sm group-hover:text-amber-600 transition">Publish Post</p>
+                        <p className="text-xs text-gray-500 mt-1">Share business announcements</p>
+                      </div>
+                      <span className="text-xs font-bold text-amber-600 mt-3 inline-flex items-center gap-1">Create Post →</span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Status Alert */}
             {business.status !== 'verified' && (
               <div className={`mb-6 p-4 rounded-lg border-l-4 flex items-start gap-4 backdrop-blur-xl ${

@@ -107,8 +107,8 @@ export default function SignupPage() {
       const data = await res.json();
       if (res.ok) {
         await refresh();
-        toast({ title: "Account Created!", description: "Welcome to VerifiedBizLink." });
-        window.location.href = "/onboarding";
+        toast({ title: "Account Created!", description: "Welcome to VerifiedBizLink. Let's set up your business hub." });
+        window.location.href = role === "business" ? "/business/dashboard?welcome=true" : "/onboarding";
       } else {
         toast({ title: "Signup Failed", description: data.error, variant: "destructive" });
       }
