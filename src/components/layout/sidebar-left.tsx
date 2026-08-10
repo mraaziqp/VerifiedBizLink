@@ -69,11 +69,19 @@ export function SidebarLeft() {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  const fetchNotifications = useCallback(() => {
+  // Takes an optional signal so the polling effect below can abort an
+  // in-flight request on unmount. This sidebar is rendered per-page (not in
+  // the root layout), so it unmounts on every navigation — without this, a
+  // request in flight when you navigate away resolves into a dead component
+  // and its response is downloaded for nothing.
+  const fetchNotifications = useCallback((signal?: AbortSignal) => {
     if (!user) return;
-    fetch('/api/notifications')
+    fetch('/api/notifications', { signal })
       .then((r) => r.ok ? r.json() : null)
-      .then((d) => { if (d?.notifications) setNotifications(d.notifications); })
+      .then((d) => {
+        if (signal?.aborted) return;
+        if (d?.notifications) setNotifications(d.notifications);
+      })
       .catch(() => {});
   }, [user]);
 
@@ -88,18 +96,31 @@ export function SidebarLeft() {
       return;
     }
     setVerificationLoading(true);
-    fetch('/api/business/profile')
+    const controller = new AbortController();
+    fetch('/api/business/profile', { signal: controller.signal })
       .then((r) => r.ok ? r.json() : null)
-      .then((d) => setBusinessVerified(d?.business?.status === 'verified'))
-      .catch(() => setBusinessVerified(false))
-      .finally(() => setVerificationLoading(false));
+      .then((d) => {
+        if (controller.signal.aborted) return;
+        setBusinessVerified(d?.business?.status === 'verified');
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setBusinessVerified(false);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setVerificationLoading(false);
+      });
+    return () => controller.abort();
   }, [user]);
 
   useEffect(() => {
-    fetchNotifications();
+    const controller = new AbortController();
+    fetchNotifications(controller.signal);
     // Poll every 60 seconds
-    const interval = setInterval(fetchNotifications, 60_000);
-    return () => clearInterval(interval);
+    const interval = setInterval(() => fetchNotifications(controller.signal), 60_000);
+    return () => {
+      clearInterval(interval);
+      controller.abort();
+    };
   }, [fetchNotifications]);
 
   const markAllRead = async () => {

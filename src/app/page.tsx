@@ -93,9 +93,13 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    // Resolve location once per mount, not on a timer. This used to re-run
+    // every 60s, which meant a high-accuracy GPS fix, a call to
+    // Nominatim (a free service whose usage policy forbids that volume),
+    // and a preferences DB write — per user, per minute. Someone's city
+    // doesn't change that often, and the header already exposes a manual
+    // refresh button for the case where it does.
     refreshLocation();
-    const interval = setInterval(refreshLocation, 60000);
-    return () => clearInterval(interval);
   }, []);
 
   const filteredBusinesses = useMemo(() => {
