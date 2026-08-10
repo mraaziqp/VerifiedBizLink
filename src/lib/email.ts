@@ -4,12 +4,21 @@ import { VerificationEmail } from '@/emails/VerificationEmail';
 import { PasswordResetEmail } from '@/emails/PasswordResetEmail';
 import { UsernameRecoveryEmail } from '@/emails/UsernameRecoveryEmail';
 
-// Sends via the real Titan/GoDaddy mailbox (info@verifiedbizlink.co.za),
-// not a third-party transactional API. The domain's SPF record
-// (`v=spf1 include:secureserver.net -all`) only authorizes GoDaddy/Titan's
-// own mail servers to send as this domain, with a hard fail (-all) for
+// Sends via the real GoDaddy mailbox (info@verifiedbizlink.co.za), not a
+// third-party transactional API. The domain's SPF record
+// (`v=spf1 include:secureserver.net -all`) only authorizes GoDaddy's own
+// mail servers to send as this domain, with a hard fail (-all) for
 // everything else — sending "from" this address through another provider
 // (as the previous Postmark integration did) fails that SPF check.
+//
+// Host matters: this mailbox lives on GoDaddy's own mail platform, not on
+// Titan. The domain's MX records point at secureserver.net, and
+// smtp.titan.email rejects these credentials with `535 authentication
+// failed` even though the password is correct — the mailbox simply doesn't
+// exist on Titan's infrastructure. smtpout.secureserver.net is the right
+// host and authenticates fine on both 465 and 587.
+const SMTP_HOST = process.env.SMTP_HOST || 'smtpout.secureserver.net';
+const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
 const FROM_EMAIL = process.env.TITAN_EMAIL_ADDRESS || 'info@verifiedbizlink.co.za';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.verifiedbizlink.co.za';
 
@@ -25,9 +34,9 @@ function getTransporter(): nodemailer.Transporter {
   }
 
   cachedTransporter = nodemailer.createTransport({
-    host: 'smtp.titan.email',
-    port: 465,
-    secure: true,
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465,
     auth: { user, pass },
   });
   return cachedTransporter;
