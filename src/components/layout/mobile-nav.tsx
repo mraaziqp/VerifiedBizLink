@@ -34,7 +34,15 @@ export function MobileNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-gray-200 lg:hidden [transform:translateZ(0)]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+    <nav
+      className="safe-area-px fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-gray-200 lg:hidden [transform:translateZ(0)]"
+      style={{
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        // Explicit -webkit- prefix: iOS Safari still needs it for backdrop
+        // blur, and without it the bar renders opaque white over content.
+        WebkitBackdropFilter: 'blur(24px)',
+      }}
+    >
       <div className="flex items-center h-16 px-1">
         {navItems.map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
