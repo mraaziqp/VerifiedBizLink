@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createTrackedSession, sessionCookieOptions, hashOneTimeToken } from '@/lib/auth';
 import db from '@/lib/db';
+import { sendWelcomeEmail, appUrlFromRequest } from '@/lib/email';
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get('token');
@@ -39,6 +40,16 @@ export async function GET(request: NextRequest) {
     }
 
     const verifiedUser = rows[0];
+
+    // Best-effort: sendWelcomeEmail swallows its own errors so a transient
+    // SMTP failure can't turn a successful verification into an error page.
+    await sendWelcomeEmail(
+      verifiedUser.email,
+      (verifiedUser.full_name || '').split(' ')[0],
+      verifiedUser.role,
+      appUrlFromRequest(request)
+    );
+
     const sessionUser = {
       id: verifiedUser.id,
       email: verifiedUser.email,

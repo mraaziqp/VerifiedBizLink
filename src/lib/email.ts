@@ -3,6 +3,8 @@ import { render } from '@react-email/render';
 import { VerificationEmail } from '@/emails/VerificationEmail';
 import { PasswordResetEmail } from '@/emails/PasswordResetEmail';
 import { UsernameRecoveryEmail } from '@/emails/UsernameRecoveryEmail';
+import { WelcomeEmail } from '@/emails/WelcomeEmail';
+import { AbandonedSignupEmail } from '@/emails/AbandonedSignupEmail';
 
 // Sends via the real GoDaddy mailbox (info@verifiedbizlink.co.za), not a
 // third-party transactional API. The domain's SPF record
@@ -108,6 +110,68 @@ export async function sendVerificationEmail(to: string, fullName: string, token:
     console.error('Failed to dispatch verification email to:', to, error);
     throw error;
   }
+}
+
+/**
+ * Sent once, immediately after a user verifies their email.
+ *
+ * Deliberately non-throwing: the caller is the verification redirect, and a
+ * transient SMTP hiccup must never turn a successful verification into an
+ * error page. A failure here costs the user a welcome email, nothing more.
+ */
+export async function sendWelcomeEmail(to: string, fullName: string, role: string, baseUrl?: string) {
+  try {
+    const transporter = getTransporter();
+    const html = await render(
+      WelcomeEmail({ userFirstName: fullName, role, appUrl: baseUrl ?? APP_URL })
+    );
+    await transporter.sendMail({
+      from: `VerifiedBizLink <${FROM_EMAIL}>`,
+      to,
+      subject:
+        role === 'business'
+          ? 'Welcome to VerifiedBizLink — let’s get you found'
+          : 'Welcome to VerifiedBizLink',
+      html,
+    });
+  } catch (error) {
+    console.error('Failed to dispatch welcome email to:', to, error);
+  }
+}
+
+/**
+ * The 48-hour "you never finished signing up" nudge. Throws so the cron can
+ * count failures and leave the user un-marked, making them eligible for a
+ * retry on the next run rather than silently dropping them.
+ */
+export async function sendAbandonedSignupEmail(
+  to: string,
+  fullName: string,
+  reason: 'unverified' | 'incomplete_profile',
+  verificationToken?: string,
+  baseUrl?: string
+) {
+  const root = baseUrl ?? APP_URL;
+  const transporter = getTransporter();
+  const html = await render(
+    AbandonedSignupEmail({
+      userFirstName: fullName,
+      reason,
+      verificationLink: verificationToken
+        ? `${root}/api/auth/verify-email?token=${verificationToken}`
+        : undefined,
+      appUrl: root,
+    })
+  );
+  await transporter.sendMail({
+    from: `VerifiedBizLink <${FROM_EMAIL}>`,
+    to,
+    subject:
+      reason === 'unverified'
+        ? 'Your VerifiedBizLink account is one click away'
+        : 'Finish your VerifiedBizLink profile',
+    html,
+  });
 }
 
 export async function sendUsernameRecoveryEmail(to: string, usernames: string[], baseUrl?: string) {
