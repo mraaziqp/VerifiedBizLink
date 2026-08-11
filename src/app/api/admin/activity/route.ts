@@ -31,10 +31,11 @@ export async function GET() {
       LIMIT 100
     `) as unknown as Row[];
 
-    // Columns are `reference` and `description` — an earlier version of this
-    // query selected plan_type/transaction_id/currency, which do not exist on
-    // this table, so it threw and the .catch() silently served an empty
-    // payments tab. Amounts are stored in cents (see /api/payfast/init).
+    // plan_type and transaction_id exist on this table but are never
+    // populated — every row has them NULL, because the PayFast init/notify
+    // writers only ever set reference and description. Selecting those is
+    // what actually gives the admin something to read. Amounts are stored in
+    // cents (see /api/payfast/init: Math.round(amount * 100)).
     const payments = (await db`
       SELECT
         p.id, p.amount, p.status, p.reference, p.description,
