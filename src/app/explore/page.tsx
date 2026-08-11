@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import {
   MapPin,
   Search,
@@ -14,7 +15,6 @@ import {
   Star,
   Sparkles,
   ChevronRight,
-  ExternalLink,
   Grid3X3,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -447,16 +447,13 @@ function ExploreContent() {
                       </a>
                     )}
                     {business.website && (
-                      <a
-                        href={business.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-gray-600 hover:text-yellow-600 transition-colors"
-                      >
+                      /* Deliberately not a link: external sites are only
+                         reachable from inside the Verified Profile, so a
+                         visitor always sees the verification context first. */
+                      <div className="flex items-center gap-2 text-gray-500">
                         <Globe className="h-4 w-4" />
-                        <span className="line-clamp-1 text-xs">Visit website</span>
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
+                        <span className="line-clamp-1 text-xs">Website on profile</span>
+                      </div>
                     )}
                   </div>
 
@@ -471,17 +468,15 @@ function ExploreContent() {
                       <Navigation className="h-4 w-4 mr-1" />
                       Navigate
                     </Button>
-                    {business.website && (
-                      <Button
-                        asChild
-                        size="sm"
-                        className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-semibold"
-                      >
-                        <a href={business.website} target="_blank" rel="noopener noreferrer">
-                          Visit <ChevronRight className="h-4 w-4" />
-                        </a>
-                      </Button>
-                    )}
+                    <Button
+                      asChild
+                      size="sm"
+                      className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-slate-950 font-semibold"
+                    >
+                      <Link href={`/business/${business.id}`}>
+                        View Profile <ChevronRight className="h-4 w-4" />
+                      </Link>
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -522,17 +517,13 @@ function ExploreContent() {
                               {business.phone}
                             </a>
                           )}
-                          {business.website && (
-                            <a
-                              href={business.website}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-gray-600 hover:text-yellow-600 transition-colors"
-                            >
-                              <Globe className="h-3 w-3 inline mr-1" />
-                              Visit
-                            </a>
-                          )}
+                          <Link
+                            href={`/business/${business.id}`}
+                            className="text-xs text-gray-600 hover:text-yellow-600 transition-colors"
+                          >
+                            <Globe className="h-3 w-3 inline mr-1" />
+                            View Profile
+                          </Link>
                         </div>
                       </div>
                     </div>

@@ -6,7 +6,7 @@ import Link from "next/link";
 import {
   ShieldCheck, User, Building2, FileText, Lock, Globe, ArrowRight,
   CheckCircle2, ChevronRight, Users, Star, MapPin, Briefcase,
-  Zap, Award, TrendingUp, Package, Sparkles, Clock,
+  Zap, Award, TrendingUp, Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -64,11 +64,10 @@ const CUSTOMER_STEPS = [
 
 const BUSINESS_STEPS = [
   { id: 1, title: "Welcome", subtitle: "Your business journey starts here" },
-  { id: 2, title: "Free Trial", subtitle: "2 weeks of Premium — on us" },
-  { id: 3, title: "Choose a Package", subtitle: "Pick the right plan for you" },
-  { id: 4, title: "Documents Required", subtitle: "What you'll need to get verified" },
-  { id: 5, title: "Privacy & Compliance", subtitle: "POPI Act compliant" },
-  { id: 6, title: "All Set!", subtitle: "Start your verification" },
+  { id: 2, title: "Choose a Package", subtitle: "Pick the right plan for you" },
+  { id: 3, title: "Documents Required", subtitle: "What you'll need to get verified" },
+  { id: 4, title: "Privacy & Compliance", subtitle: "POPI Act compliant" },
+  { id: 5, title: "All Set!", subtitle: "Start your verification" },
 ];
 
 export default function OnboardingPage() {
@@ -373,7 +372,7 @@ export default function OnboardingPage() {
                     {[
                       { icon: Award, label: "Get Gold Verified", color: "text-yellow-600 bg-yellow-50" },
                       { icon: TrendingUp, label: "Grow Your Network", color: "text-blue-600 bg-blue-50" },
-                      { icon: Zap, label: "2-Week Free Trial", color: "text-green-600 bg-green-50" },
+                      { icon: Zap, label: "Get Discovered", color: "text-green-600 bg-green-50" },
                       { icon: Package, label: "Choose a Package", color: "text-purple-600 bg-purple-50" },
                     ].map((item, i) => (
                       <div key={i} className="p-4 bg-gray-50 rounded-2xl border flex items-center gap-3">
@@ -386,46 +385,10 @@ export default function OnboardingPage() {
               )}
               {step === 2 && (
                 <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                  <div className="p-5 rounded-2xl bg-gradient-to-br from-yellow-400 to-yellow-500 text-gray-900 shadow-lg shadow-yellow-400/30">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Sparkles className="h-5 w-5" />
-                      <span className="font-extrabold text-lg">Your Free Trial Has Started!</span>
-                    </div>
-                    <p className="text-sm font-medium opacity-90">
-                      As a new business, you automatically receive <strong>half of our Premium package — free for 2 weeks</strong>.
-                    </p>
-                    <div className="mt-4 flex items-center gap-2 bg-white/20 rounded-xl p-3">
-                      <Clock className="h-4 w-4 shrink-0" />
-                      <span className="text-sm font-bold">14 days remaining on your trial</span>
-                    </div>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-extrabold text-gray-900 mb-3">Trial includes:</h2>
-                    <div className="space-y-2">
-                      {[
-                        { icon: Award, label: "Gold Verified badge eligibility", color: "text-yellow-600" },
-                        { icon: Zap, label: "Up to 3 active ads", color: "text-blue-600" },
-                        { icon: TrendingUp, label: "Enhanced analytics dashboard", color: "text-green-600" },
-                        { icon: Sparkles, label: "AI content assistant", color: "text-purple-600" },
-                        { icon: Star, label: "Priority vetting review", color: "text-orange-600" },
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border">
-                          <item.icon className={cn("h-4 w-4 shrink-0", item.color)} />
-                          <span className="text-sm font-semibold text-gray-800">{item.label}</span>
-                          <CheckCircle2 className="h-4 w-4 text-green-500 ml-auto shrink-0" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-400 text-center">After 14 days, your account reverts to Free unless you choose a paid plan.</p>
-                </div>
-              )}
-              {step === 3 && (
-                <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <div>
                     <Badge className="bg-purple-100 text-purple-700 border-purple-200 font-bold mb-2">Packages</Badge>
                     <h2 className="text-2xl font-extrabold text-gray-900">Choose your plan</h2>
-                    <p className="text-gray-500 mt-1 text-sm">You can upgrade anytime. Your trial gives you Premium features right now.</p>
+                    <p className="text-gray-500 mt-1 text-sm">Start on Free and upgrade whenever you&apos;re ready — you can change plan at any time.</p>
                   </div>
                   <div className="space-y-3">
                     {packages.map((pkg) => {
@@ -463,7 +426,7 @@ export default function OnboardingPage() {
                   <p className="text-xs text-gray-400 text-center">No credit card required for Free plan. Paid plans billed monthly — cancel anytime.</p>
                 </div>
               )}
-              {step === 4 && (
+              {step === 3 && (
                 <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <div>
                     <Badge className="bg-orange-100 text-orange-700 border-orange-200 font-bold mb-2">Documents</Badge>
@@ -502,7 +465,7 @@ export default function OnboardingPage() {
                   </div>
                 </div>
               )}
-              {step === 5 && (
+              {step === 4 && (
                 <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <div>
                     <Badge className="bg-slate-100 text-slate-700 border-slate-200 font-bold mb-2">POPI Act</Badge>
@@ -529,7 +492,7 @@ export default function OnboardingPage() {
                   </div>
                 </div>
               )}
-              {step === 6 && (
+              {step === 5 && (
                 <div className="space-y-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <div className="flex justify-center">
                     <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center">
@@ -546,7 +509,7 @@ export default function OnboardingPage() {
                     {[
                       { icon: FileText, label: "Upload documents in Vetting Hub", href: "/vetting" },
                       { icon: Users, label: "Start building your network", href: "/network" },
-                      { icon: TrendingUp, label: "View your trial analytics", href: "/analytics" },
+                      { icon: TrendingUp, label: "View your analytics", href: "/analytics" },
                     ].map((item, i) => (
                       <Link key={i} href={item.href} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border hover:bg-gray-100 transition-colors group">
                         <div className="flex items-center gap-3">

@@ -152,7 +152,7 @@ export function GlassPageHeader({
   children?: ReactNode;
 }) {
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
+    <header className="safe-area-pt sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:py-4">
         <div className="min-w-0">
           <h1 className="truncate text-xl font-bold text-gray-900 sm:text-2xl">{title}</h1>

@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { email, password, fullName, dateOfBirth, role, companyName, regNumber, website, socialLinks, industry, assistedSignup, assistedBy } = await request.json();
+    const { email, password, fullName, dateOfBirth, role, companyName, regNumber, website, socialLinks, industry, assistedSignup, assistedBy, assistedByUserId } = await request.json();
 
     if (!email || !password || !fullName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -115,10 +115,11 @@ export async function POST(request: NextRequest) {
     const user = newUsers[0];
 
     if (role === 'business' && companyName) {
-      const trialEndsAt = new Date();
-      trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+      // No trial package is granted — new businesses start on Free and upgrade
+      // deliberately. The old 2-week 'premium_half' trial silently downgraded
+      // people mid-use, which read as features breaking rather than expiring.
       await db`
-        INSERT INTO businesses (user_id, name, company_name, reg_number, website, social_links, industry, status, package_type, trial_package, trial_ends_at, assisted_signup, assisted_by)
+        INSERT INTO businesses (user_id, name, company_name, reg_number, website, social_links, industry, status, package_type, assisted_signup, assisted_by, assisted_by_user_id)
         VALUES (
           ${user.id},
           ${companyName},
@@ -129,10 +130,9 @@ export async function POST(request: NextRequest) {
           ${industry || ''},
           'unregistered',
           'free',
-          'premium_half',
-          ${trialEndsAt.toISOString()},
           ${assistedSignup === true},
-          ${assistedSignup === true ? (assistedBy || '').trim() : null}
+          ${assistedSignup === true ? (assistedBy || '').trim() : null},
+          ${assistedSignup === true ? (assistedByUserId || null) : null}
         )
         ON CONFLICT DO NOTHING
       `;

@@ -34,7 +34,7 @@ export function MobileNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-xl border-t border-white/5 lg:hidden [transform:translateZ(0)]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-xl border-t border-gray-200 lg:hidden [transform:translateZ(0)]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       <div className="flex items-center h-16 px-1">
         {navItems.map((item) => {
           const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -44,11 +44,11 @@ export function MobileNav() {
               href={item.href}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 py-2 rounded-lg transition-colors flex-1",
-                isActive ? "text-primary" : "text-slate-400 hover:text-slate-100"
+                isActive ? "text-primary" : "text-gray-500 hover:text-gray-900"
               )}
             >
               <item.icon className={cn("h-6 w-6 shrink-0", isActive && "text-primary")} />
-              <span className={cn("text-[10px] font-semibold leading-tight", isActive ? "text-primary" : "text-slate-400")}>
+              <span className={cn("text-[10px] font-semibold leading-tight", isActive ? "text-primary" : "text-gray-500")}>
                 {item.name}
               </span>
             </Link>
@@ -57,10 +57,10 @@ export function MobileNav() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="flex flex-col items-center justify-center gap-1 py-2 rounded-lg transition-colors flex-1 text-slate-400 hover:text-slate-100"
+          className="flex flex-col items-center justify-center gap-1 py-2 rounded-lg transition-colors flex-1 text-gray-500 hover:text-gray-900"
         >
           <MoreHorizontal className="h-6 w-6 shrink-0" />
-          <span className="text-[10px] font-semibold leading-tight text-slate-400">More</span>
+          <span className="text-[10px] font-semibold leading-tight text-gray-500">More</span>
         </button>
       </div>
     </nav>

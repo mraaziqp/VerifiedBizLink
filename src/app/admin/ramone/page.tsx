@@ -110,7 +110,7 @@ export default function RamoneAdminPanel() {
   return (
     <GlassBackground>
       {/* Header */}
-      <div className="border-b border-gray-200 bg-white/80 backdrop-blur-xl sticky top-0 z-50">
+      <div className="safe-area-pt border-b border-gray-200 bg-white/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex justify-between items-start">
             <div>

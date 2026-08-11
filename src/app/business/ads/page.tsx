@@ -265,7 +265,7 @@ export default function BusinessAdsPage() {
   return (
     <GlassBackground>
       {/* Navigation */}
-      <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-40 p-4">
+      <div className="safe-area-pt bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-40 p-4">
         <Link href="/business/dashboard" className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700">
           <ArrowLeft className="h-4 w-4" />
           Back to Business Dashboard

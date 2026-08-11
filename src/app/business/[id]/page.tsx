@@ -161,16 +161,16 @@ export default function BusinessProfilePage() {
       />
 
       {/* Top nav bar */}
-      <header className="sticky top-0 z-30 bg-slate-950 border-b border-slate-800">
+      <header className="safe-area-pt sticky top-0 z-30 bg-white/90 backdrop-blur-xl border-b border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={() => router.back()}
-            className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <VBLLogo variant="full" size="xs" theme="light" />
+          <VBLLogo variant="full" size="xs" theme="dark" />
           <div className="w-9" /> {/* spacer */}
         </div>
       </header>

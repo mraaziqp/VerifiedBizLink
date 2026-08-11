@@ -110,7 +110,7 @@ export default function Dashboard() {
   return (
     <GlassBackground>
       {/* Header */}
-      <div className="border-b border-gray-200 sticky top-0 z-40 backdrop-blur-xl bg-white/80 shadow-sm">
+      <div className="safe-area-pt border-b border-gray-200 sticky top-0 z-40 backdrop-blur-xl bg-white/80 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex-1">
             <Link href="/" className="flex items-center gap-3">
