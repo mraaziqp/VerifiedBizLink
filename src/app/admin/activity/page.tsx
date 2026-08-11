@@ -26,7 +26,7 @@ interface Payment {
   id: string;
   reference: string;
   planType: string;
-  amount: number;
+  amountCents: number;
   currency: string;
   status: string;
   createdAt: string;
@@ -46,8 +46,13 @@ const STATUS_STYLES: Record<string, string> = {
   unregistered: 'bg-gray-200 text-gray-600',
 };
 
+// payments.amount is stored in cents (see /api/payfast/init), so divide
+// before formatting — this previously rendered R199 as "R19,900".
 const money = (cents: number, currency: string) =>
-  `${currency === 'ZAR' ? 'R' : currency + ' '}${(Number(cents) || 0).toLocaleString('en-ZA')}`;
+  `${currency === 'ZAR' ? 'R' : currency + ' '}${((Number(cents) || 0) / 100).toLocaleString(
+    'en-ZA',
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 },
+  )}`;
 
 const when = (d: string | null) =>
   d ? new Date(d).toLocaleString('en-ZA', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
@@ -58,6 +63,7 @@ export default function AdminActivityPage() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'signups' | 'payments'>('signups');
   const [search, setSearch] = useState('');
+  const [last24h, setLast24h] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -69,6 +75,14 @@ export default function AdminActivityPage() {
           if (!active) return;
           setSignups(data.signups || []);
           setPayments(data.payments || []);
+          // Stamped once, at load, rather than read during render — calling
+          // Date.now() in the render body makes the "New (24h)" count depend
+          // on when React happens to re-render.
+          setLast24h(
+            (data.signups || []).filter(
+              (s: Signup) => Date.now() - new Date(s.createdAt).getTime() < 24 * 60 * 60 * 1000,
+            ).length,
+          );
         }
       } catch (e) {
         console.error('Failed to load activity:', e);
@@ -95,10 +109,7 @@ export default function AdminActivityPage() {
 
   const revenue = payments
     .filter((p) => p.status === 'completed')
-    .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-  const last24h = signups.filter(
-    (s) => Date.now() - new Date(s.createdAt).getTime() < 24 * 60 * 60 * 1000
-  ).length;
+    .reduce((sum, p) => sum + (Number(p.amountCents) || 0), 0);
 
   return (
     <AdminBackground>
@@ -230,7 +241,7 @@ export default function AdminActivityPage() {
                         <div className="text-xs text-gray-500">{p.companyName || p.email}</div>
                       </td>
                       <td className="px-5 py-3 text-gray-900">{p.planType}</td>
-                      <td className="px-5 py-3 font-semibold text-gray-900">{money(p.amount, p.currency)}</td>
+                      <td className="px-5 py-3 font-semibold text-gray-900">{money(p.amountCents, p.currency)}</td>
                       <td className="px-5 py-3">
                         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[p.status] || STATUS_STYLES.unregistered}`}>
                           {p.status}

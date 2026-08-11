@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import type { NextRequest } from 'next/server';
 import { createHash } from 'crypto';
 import db from '@/lib/db';
+import { isStaffRole } from '@/lib/roles';
 
 if (!process.env.JWT_SECRET) {
   throw new Error('JWT_SECRET environment variable is not set. Set it in .env.local or your deployment environment.');
@@ -127,9 +128,11 @@ export async function clearSession() {
   cookieStore.delete(COOKIE_NAME);
 }
 
-// True for admin, banker, and lawyer roles — use in all admin API routes
+// True for every role allowed into the admin area — use in all admin API
+// routes. The list lives in lib/roles so this and middleware.ts can never
+// disagree about who counts as staff. Note `sales_agent` is NOT staff.
 export function isStaff(session: SessionUser | null): boolean {
-  return !!session && ['admin', 'banker', 'lawyer'].includes(session.role);
+  return !!session && isStaffRole(session.role);
 }
 
 // Short-lived token for the gap between "password verified" and "TOTP code

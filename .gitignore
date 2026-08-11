@@ -50,3 +50,5 @@ next-env.d.ts
 # scratch scripts
 scratch/
 .system_generated/
+.vercel
+.env*.local

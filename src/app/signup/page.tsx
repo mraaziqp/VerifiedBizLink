@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   ShieldCheck, Building2, Loader2,
@@ -50,6 +50,7 @@ export default function SignupPage() {
     industry: "",
     assistedSignup: false,
     assistedBy: "",
+    assistedByUserId: "",
     website: "",
     linkedin: "",
     instagram: "",
@@ -59,6 +60,18 @@ export default function SignupPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [agents, setAgents] = useState<{ id: string; name: string }[]>([]);
+
+  // Loaded so an assisted sign-up can be attributed to a real agent record
+  // rather than a typed string. Falls back to free text if none exist yet.
+  useEffect(() => {
+    let active = true;
+    fetch("/api/agents")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => { if (active && data?.agents) setAgents(data.agents); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   const { toast } = useToast();
   const { refresh } = useAuth();
@@ -96,6 +109,7 @@ export default function SignupPage() {
           industry: formData.industry,
           assistedSignup: formData.assistedSignup,
           assistedBy: formData.assistedSignup ? formData.assistedBy.trim() : "",
+          assistedByUserId: formData.assistedSignup ? formData.assistedByUserId || null : null,
           website: formData.website,
           socialLinks: {
             linkedin: formData.linkedin,
@@ -311,14 +325,38 @@ export default function SignupPage() {
                   {formData.assistedSignup && (
                     <div className="pt-1.5">
                       <Label htmlFor="assisted-by" className="text-sm font-semibold text-gray-700">Assisted By</Label>
-                      <Input
-                        id="assisted-by"
-                        required
-                        placeholder="Agent name or number"
-                        className="h-11 rounded-xl border-gray-200 bg-white mt-1.5"
-                        value={formData.assistedBy}
-                        onChange={(e) => update("assistedBy", e.target.value)}
-                      />
+                      {agents.length > 0 ? (
+                        <>
+                          {/* Picking a real agent records assisted_by_user_id,
+                              which is what commission is calculated from. A
+                              typed name alone can never be paid out on. */}
+                          <select
+                            id="assisted-by"
+                            required
+                            className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 mt-1.5 text-sm text-gray-900"
+                            value={formData.assistedByUserId}
+                            onChange={(e) => {
+                              const picked = agents.find((a) => a.id === e.target.value);
+                              update("assistedByUserId", e.target.value);
+                              update("assistedBy", picked?.name ?? "");
+                            }}
+                          >
+                            <option value="">Select the agent who assisted…</option>
+                            {agents.map((a) => (
+                              <option key={a.id} value={a.id}>{a.name}</option>
+                            ))}
+                          </select>
+                        </>
+                      ) : (
+                        <Input
+                          id="assisted-by"
+                          required
+                          placeholder="Agent name or number"
+                          className="h-11 rounded-xl border-gray-200 bg-white mt-1.5"
+                          value={formData.assistedBy}
+                          onChange={(e) => update("assistedBy", e.target.value)}
+                        />
+                      )}
                     </div>
                   )}
                 </div>

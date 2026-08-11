@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose/jwt/verify';
 import { REQUIRE_EMAIL_VERIFICATION } from '@/lib/feature-flags';
+import { STAFF_ROLES, AGENT_PORTAL_ROLES, ROLES } from '@/lib/roles';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
-const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
 
 // Routes that do NOT require authentication. The home feed ('/') is
 // deliberately NOT here — it requires login, unlike /explore, /pricing, and
@@ -150,6 +150,26 @@ export async function middleware(request: NextRequest) {
   // (API routes also check server-side).
   if (pathname.startsWith('/admin') && !isStaffUser) {
     return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // The sales agent portal is isolated in both directions.
+  //
+  // Outward: `sales_agent` is not in STAFF_ROLES, so the /admin check above
+  // already denies it — agents have zero access to admin features, and any
+  // attempt lands them back in their own portal rather than the public feed.
+  //
+  // Inward: only agents (and admins, for oversight) can open /agent at all.
+  const role = claims.role ?? '';
+  const isSalesAgent = role === ROLES.SALES_AGENT;
+
+  if (pathname.startsWith('/agent') && !AGENT_PORTAL_ROLES.includes(role)) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  // An agent landing anywhere in the admin area goes to their portal, not the
+  // consumer home page — /agent is their home.
+  if (isSalesAgent && pathname.startsWith('/admin')) {
+    return NextResponse.redirect(new URL('/agent', request.url));
   }
 
   // An unverified account can browse Settings, Onboarding, and the Vetting

@@ -31,10 +31,14 @@ export async function GET() {
       LIMIT 100
     `) as unknown as Row[];
 
+    // Columns are `reference` and `description` — an earlier version of this
+    // query selected plan_type/transaction_id/currency, which do not exist on
+    // this table, so it threw and the .catch() silently served an empty
+    // payments tab. Amounts are stored in cents (see /api/payfast/init).
     const payments = (await db`
       SELECT
-        p.id, p.plan_type, p.amount, p.currency, p.status,
-        p.transaction_id, p.created_at, p.completed_at,
+        p.id, p.amount, p.status, p.reference, p.description,
+        p.created_at, p.completed_at,
         u.full_name, u.email, b.company_name
       FROM payments p
       JOIN users u ON u.id = p.user_id
@@ -62,10 +66,11 @@ export async function GET() {
       payments: payments.map((p) => ({
         id: p.id,
         // Receipt fields — reference is what a customer would quote at you.
-        reference: p.transaction_id || String(p.id).slice(0, 8).toUpperCase(),
-        planType: p.plan_type,
-        amount: p.amount,
-        currency: p.currency || 'ZAR',
+        reference: p.reference || String(p.id).slice(0, 8).toUpperCase(),
+        planType: p.description || '—',
+        // Cents, as stored. The client divides by 100 for display.
+        amountCents: Number(p.amount) || 0,
+        currency: 'ZAR',
         status: p.status,
         createdAt: p.created_at,
         completedAt: p.completed_at,

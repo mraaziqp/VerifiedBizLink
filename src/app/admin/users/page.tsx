@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { AdminBackground, AdminCard, AdminPageHeader } from '@/components/admin/ui';
+import { ROLES, STAFF_ROLES, ROLE_LABELS as SHARED_ROLE_LABELS } from '@/lib/roles';
 
 interface User {
   id: string;
@@ -21,21 +22,31 @@ interface User {
 
 const ROLE_STYLES: Record<string, string> = {
   admin: 'bg-red-500/15 text-red-700',
+  finance_admin: 'bg-emerald-500/15 text-emerald-700',
+  compliance_admin: 'bg-indigo-500/15 text-indigo-700',
   banker: 'bg-blue-500/15 text-blue-700',
   lawyer: 'bg-purple-500/15 text-purple-700',
+  sales_agent: 'bg-amber-500/15 text-amber-700',
   business: 'bg-green-500/15 text-green-700',
   customer: 'bg-gray-500/15 text-gray-700',
 };
 
-// 'banker' is the internal RBAC role name — show it as the friendly title
-// staff actually use instead of the raw role value.
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Admin',
-  banker: 'Compliance Officer',
-  lawyer: 'Lawyer',
-  business: 'Business',
-  customer: 'Customer',
-};
+// Labels come from lib/roles so the admin UI, middleware and API can never
+// disagree about what a role is called ('banker' is the internal RBAC name
+// for what staff call a Compliance Officer).
+const ROLE_LABELS = SHARED_ROLE_LABELS;
+
+// The roles an admin may assign from this screen.
+const ASSIGNABLE_ROLES = [
+  ROLES.CUSTOMER,
+  ROLES.BUSINESS,
+  ROLES.SALES_AGENT,
+  ROLES.FINANCE_ADMIN,
+  ROLES.COMPLIANCE_ADMIN,
+  ROLES.BANKER,
+  ROLES.LAWYER,
+  ROLES.ADMIN,
+];
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -44,6 +55,7 @@ export default function AdminUsersPage() {
   const [resendingId, setResendingId] = useState<string | null>(null);
   const [verifyingId, setVerifyingId] = useState<string | null>(null);
   const [suspendingId, setSuspendingId] = useState<string | null>(null);
+  const [savingRoleId, setSavingRoleId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -97,6 +109,40 @@ export default function AdminUsersPage() {
       toast({ title: 'Could not verify user', variant: 'destructive' });
     } finally {
       setVerifyingId(null);
+    }
+  };
+
+  /**
+   * Changing a role changes what someone can reach, so it confirms first.
+   * Granting Super Admin is called out explicitly — it is the one change
+   * that cannot be undone by the person who just lost their own access.
+   */
+  const handleRoleChange = async (user: User, nextRole: string) => {
+    if (nextRole === user.role) return;
+    const label = SHARED_ROLE_LABELS[nextRole] || nextRole;
+    const warning = nextRole === ROLES.ADMIN
+      ? `\n\nThis grants FULL platform control, including user management.`
+      : '';
+    if (!window.confirm(`Change ${user.full_name}'s role to ${label}?${warning}`)) return;
+
+    setSavingRoleId(user.id);
+    try {
+      const res = await fetch(`/api/admin/users/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: nextRole }),
+      });
+      if (res.ok) {
+        setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role: nextRole } : u)));
+        toast({ title: `${user.full_name} is now ${label}` });
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast({ title: 'Could not change role', description: data.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not change role', variant: 'destructive' });
+    } finally {
+      setSavingRoleId(null);
     }
   };
 
@@ -211,15 +257,30 @@ export default function AdminUsersPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filteredUsers.map((user) => {
-                    const isStaffUser = ['admin', 'banker', 'lawyer'].includes(user.role);
+                    const isStaffUser = STAFF_ROLES.includes(user.role);
                     return (
                     <tr key={user.id} className="text-gray-600 transition-colors hover:bg-gray-100">
                       <td className="px-5 py-3 font-medium text-gray-900">{user.full_name}</td>
                       <td className="px-5 py-3 font-mono text-xs text-gray-500">{user.email}</td>
                       <td className="px-5 py-3">
-                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${ROLE_STYLES[user.role] || ROLE_STYLES.customer}`}>
-                          {ROLE_LABELS[user.role] || user.role}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${ROLE_STYLES[user.role] || ROLE_STYLES.customer}`}>
+                            {ROLE_LABELS[user.role] || user.role}
+                          </span>
+                          <select
+                            aria-label={`Change role for ${user.full_name}`}
+                            title="Change this user's role"
+                            value={user.role}
+                            disabled={savingRoleId === user.id}
+                            onChange={(e) => handleRoleChange(user, e.target.value)}
+                            className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 disabled:opacity-50"
+                          >
+                            {ASSIGNABLE_ROLES.map((r) => (
+                              <option key={r} value={r}>{ROLE_LABELS[r] || r}</option>
+                            ))}
+                          </select>
+                          {savingRoleId === user.id && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
+                        </div>
                       </td>
                       <td className="px-5 py-3">
                         {isStaffUser ? (

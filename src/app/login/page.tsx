@@ -15,7 +15,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { VBLLogo } from "@/components/ui/vbl-logo";
 
-const STAFF_ROLES = ["admin", "banker", "lawyer", "shareholder"];
+import { STAFF_ROLES, ROLES } from "@/lib/roles";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -36,9 +36,13 @@ function LoginForm() {
     }
     toast({ title: "Welcome back!", description: `Signed in as ${user.email}` });
     const from = searchParams.get("from");
-    const target = STAFF_ROLES.includes(user.role)
-      ? "/admin"
-      : (from && from !== "/login" ? from : "/");
+    // A sales agent's home is their own portal — they have no admin access
+    // and the consumer feed isn't where their work lives.
+    const target = user.role === ROLES.SALES_AGENT
+      ? "/agent"
+      : STAFF_ROLES.includes(user.role)
+        ? "/admin"
+        : (from && from !== "/login" ? from : "/");
     window.location.href = target;
   };
 
