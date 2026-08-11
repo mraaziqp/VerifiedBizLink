@@ -52,3 +52,6 @@ scratch/
 .system_generated/
 .vercel
 .env*.local
+
+# QA mass-load run records (contain generated account emails)
+runs/
