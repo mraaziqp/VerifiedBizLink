@@ -51,9 +51,18 @@ function SettingsForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  // 'billing' stays a valid deep-link target for existing links and emails,
+  // but now forwards to /settings/billing — the real subscription screen with
+  // the instant auto-renew toggle and invoice history. Keeping two billing
+  // UIs would let them drift apart.
   const validTabs = ["profile", "security", "notifications", "billing", "privacy"];
   const requestedTab = searchParams.get("tab");
   const initialTab = requestedTab && validTabs.includes(requestedTab) ? requestedTab : "profile";
+
+  useEffect(() => {
+    if (requestedTab === "billing") router.replace("/settings/billing");
+  }, [requestedTab, router]);
+
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);

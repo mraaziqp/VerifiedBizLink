@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import crypto from 'crypto';
 import { getTier, AD_CREDIT_PRICE_PER_DAY, AD_BOOST_PRICE, AD_BOOST_DURATION_DAYS } from '@/lib/tiers';
+import { nextBillingDate } from '@/lib/billing';
+import { issueInvoice } from '@/lib/invoices';
+import { appUrlFromRequest } from '@/lib/email';
 
 // PayFast's official anti-spoofing check (required by their integration
 // guide, not optional): post the exact ITN body back to PayFast and only
@@ -196,16 +199,46 @@ export async function POST(request: NextRequest) {
           // Recording it (and refreshing last_billed_at every cycle) is what
           // lets the cancellation flow — and any future reconciliation —
           // find the right PayFast subscription for this business.
-          await db`
+          // A successful charge always clears any in-flight grace window —
+          // otherwise the billing cron would downgrade a customer who just paid.
+          const intervalMonths = Number(payfastData.custom_int2) > 0
+            ? Number(payfastData.custom_int2)
+            : 1;
+          const nextBilling = nextBillingDate(new Date(), intervalMonths);
+
+          const upgraded = (await db`
             UPDATE businesses
             SET package_type = ${tierKey},
                 payfast_token = COALESCE(${payfastData.token || null}, payfast_token),
                 subscription_status = 'active',
                 last_billed_at = NOW(),
+                billing_interval_months = ${intervalMonths},
+                next_billing_at = ${nextBilling.toISOString()},
+                auto_renew = TRUE,
+                payment_failed_at = NULL,
+                grace_warned_at = NULL,
+                downgraded_from = NULL,
+                downgraded_at = NULL,
                 updated_at = NOW()
             WHERE user_id = ${userId}
-          `.catch(err => console.log('Subscription upgrade note:', err.message));
+            RETURNING id
+          `.catch(err => { console.log('Subscription upgrade note:', err.message); return []; })) as unknown as { id: string }[];
+
           grantMessage = `Your business has been upgraded to the ${tier.name} plan.`;
+
+          // Receipt: one of the three email types the platform sends.
+          await issueInvoice({
+            userId,
+            businessId: upgraded[0]?.id ?? null,
+            tierKey,
+            tierName: tier.name,
+            description: `${tier.name} subscription`,
+            amountCents: Math.round(paidAmount * 100),
+            renewalPriceCents: Math.round(tier.price * 100),
+            intervalMonths,
+            paymentReference: paymentRef,
+            baseUrl: appUrlFromRequest(request),
+          });
         } else {
           console.error(`Blocked subscription upgrade: paid R${paidAmount} for ${tierKey} (requires R${tier?.price}, purchasable=${tier?.isPurchasable})`, { userId, paymentRef });
           grantMessage = 'Your payment was received, but the amount did not match the selected plan. Please contact support.';

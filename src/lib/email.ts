@@ -5,6 +5,8 @@ import { PasswordResetEmail } from '@/emails/PasswordResetEmail';
 import { UsernameRecoveryEmail } from '@/emails/UsernameRecoveryEmail';
 import { WelcomeEmail } from '@/emails/WelcomeEmail';
 import { AbandonedSignupEmail } from '@/emails/AbandonedSignupEmail';
+import { InvoiceEmail, type InvoiceEmailProps } from '@/emails/InvoiceEmail';
+import { PaymentFailedEmail } from '@/emails/PaymentFailedEmail';
 
 // Sends via the real GoDaddy mailbox (info@verifiedbizlink.co.za), not a
 // third-party transactional API. The domain's SPF record
@@ -172,6 +174,54 @@ export async function sendAbandonedSignupEmail(
         : 'Finish your VerifiedBizLink profile',
     html,
   });
+}
+
+/**
+ * Invoice / subscription receipt. Throws so the caller can leave
+ * invoices.emailed_at unset and retry, rather than recording a send that
+ * never happened.
+ */
+export async function sendInvoiceEmail(
+  to: string,
+  props: Omit<InvoiceEmailProps, 'appUrl'> & { appUrl?: string },
+) {
+  const transporter = getTransporter();
+  const html = await render(InvoiceEmail({ ...props, appUrl: props.appUrl ?? APP_URL }));
+  await transporter.sendMail({
+    from: `VerifiedBizLink <${FROM_EMAIL}>`,
+    to,
+    subject: `Invoice ${props.invoiceNumber} — ${props.tierName}`,
+    html,
+  });
+}
+
+/** Failed-payment warning. Non-throwing: the grace clock runs regardless. */
+export async function sendPaymentFailedEmail(
+  to: string,
+  fullName: string,
+  tierName: string,
+  amount: string,
+  hoursRemaining: number,
+  deadline: string,
+  baseUrl?: string,
+) {
+  try {
+    const transporter = getTransporter();
+    const html = await render(
+      PaymentFailedEmail({
+        userFirstName: fullName, tierName, amount, hoursRemaining, deadline,
+        appUrl: baseUrl ?? APP_URL,
+      }),
+    );
+    await transporter.sendMail({
+      from: `VerifiedBizLink <${FROM_EMAIL}>`,
+      to,
+      subject: `Action needed: we couldn't process your ${tierName} payment`,
+      html,
+    });
+  } catch (error) {
+    console.error('Failed to dispatch payment-failed email to:', to, error);
+  }
 }
 
 export async function sendUsernameRecoveryEmail(to: string, usernames: string[], baseUrl?: string) {
