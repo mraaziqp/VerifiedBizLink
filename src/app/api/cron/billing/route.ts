@@ -15,7 +15,14 @@ function authorized(request: NextRequest): boolean {
 }
 
 /**
- * GET /api/cron/billing — the subscription lifecycle sweep. Runs hourly.
+ * GET /api/cron/billing — the subscription lifecycle sweep.
+ *
+ * Scheduled daily (02:00) because Vercel's Hobby plan caps cron jobs at one
+ * run per day. The logic is time-based rather than run-based, so a daily
+ * cadence is safe: it downgrades anyone whose 72-hour window has *already*
+ * closed, so the only effect is that a downgrade can land up to 24 hours
+ * late — erring in the customer's favour. Move to hourly (`0 * * * *`) if
+ * the account is upgraded to Pro, and nothing else needs to change.
  *
  * Two jobs:
  *
