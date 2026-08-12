@@ -25,6 +25,10 @@ console.log('target host:', url.replace(/^.*@/, '').split('/')[0]);
 const db = neon(url);
 
 const steps = [
+  // Belongs to the abandoned-signups cron rather than billing, but it is the
+  // other column production is missing — folded in so one run covers both.
+  ['users.abandoned_email_sent_at', db`
+    ALTER TABLE users ADD COLUMN IF NOT EXISTS abandoned_email_sent_at TIMESTAMPTZ`],
   ['businesses.auto_renew', db`
     ALTER TABLE businesses ADD COLUMN IF NOT EXISTS auto_renew BOOLEAN NOT NULL DEFAULT TRUE`],
   ['businesses.billing_interval_months', db`
