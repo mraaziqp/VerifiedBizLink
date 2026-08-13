@@ -1,0 +1,144 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  Scheduled jobs for VerifiedBizLink on AWS, replacing the "crons" block in
+  vercel.json which only works on Vercel.
+
+  Amplify Hosting has no scheduler. EventBridge Rules can call an HTTPS
+  endpoint through an API Destination, and the attached Connection injects a
+  fixed header — which is exactly what the cron routes authenticate with
+  (`Authorization: Bearer <CRON_SECRET>`; see src/app/api/cron/*/route.ts,
+  which returns 401 when the header does not match and refuses to run at all
+  when CRON_SECRET is unset).
+
+  Deploy:
+    aws cloudformation deploy \
+      --template-file infra/aws/cron-stack.yaml \
+      --stack-name verifiedbizlink-crons \
+      --capabilities CAPABILITY_IAM \
+      --parameter-overrides AppBaseUrl=https://www.verifiedbizlink.co.za \
+                            CronSecret=<the CRON_SECRET value>
+
+Parameters:
+  AppBaseUrl:
+    Type: String
+    Description: Origin of the deployed app, no trailing slash.
+    AllowedPattern: '^https://.+[^/]$'
+    ConstraintDescription: Must start with https:// and must not end in a slash.
+
+  CronSecret:
+    Type: String
+    NoEcho: true
+    Description: Must match the CRON_SECRET environment variable in Amplify exactly.
+    MinLength: 16
+
+  BillingSchedule:
+    Type: String
+    # Hourly is the intended cadence. Vercel's Hobby plan capped crons at one
+    # run per day and forced 0 2 * * *; EventBridge has no such limit, so the
+    # 72-hour grace window is enforced within the hour again.
+    Default: 'cron(0 * * * ? *)'
+    Description: EventBridge schedule expression for the billing sweep.
+
+  AbandonedSignupsSchedule:
+    Type: String
+    Default: 'cron(0 9 * * ? *)'
+    Description: EventBridge schedule expression for the 48-hour signup nudge.
+
+Resources:
+  # Holds the auth header. EventBridge stores the value in Secrets Manager
+  # behind the scenes, so the secret is not visible on the rule itself.
+  CronConnection:
+    Type: AWS::Events::Connection
+    Properties:
+      Name: verifiedbizlink-cron-auth
+      Description: Bearer token for the VerifiedBizLink cron endpoints.
+      AuthorizationType: API_KEY
+      AuthParameters:
+        ApiKeyAuthParameters:
+          ApiKeyName: Authorization
+          ApiKeyValue: !Sub 'Bearer ${CronSecret}'
+
+  BillingApiDestination:
+    Type: AWS::Events::ApiDestination
+    Properties:
+      Name: verifiedbizlink-cron-billing
+      ConnectionArn: !GetAtt CronConnection.Arn
+      HttpMethod: GET
+      InvocationEndpoint: !Sub '${AppBaseUrl}/api/cron/billing'
+      # One call per invocation; the route batches internally.
+      InvocationRateLimitPerSecond: 1
+
+  AbandonedSignupsApiDestination:
+    Type: AWS::Events::ApiDestination
+    Properties:
+      Name: verifiedbizlink-cron-abandoned-signups
+      ConnectionArn: !GetAtt CronConnection.Arn
+      HttpMethod: GET
+      InvocationEndpoint: !Sub '${AppBaseUrl}/api/cron/abandoned-signups'
+      InvocationRateLimitPerSecond: 1
+
+  # EventBridge needs permission to invoke the destinations on its own behalf.
+  CronInvokeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: verifiedbizlink-cron-invoke
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: InvokeCronApiDestinations
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: events:InvokeApiDestination
+                Resource:
+                  - !GetAtt BillingApiDestination.Arn
+                  - !GetAtt AbandonedSignupsApiDestination.Arn
+
+  BillingRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: verifiedbizlink-billing-sweep
+      Description: Warns inside the 72h grace window, then downgrades on expiry.
+      ScheduleExpression: !Ref BillingSchedule
+      State: ENABLED
+      Targets:
+        - Id: billing-endpoint
+          Arn: !GetAtt BillingApiDestination.Arn
+          RoleArn: !GetAtt CronInvokeRole.Arn
+          RetryPolicy:
+            MaximumRetryAttempts: 2
+            MaximumEventAgeInSeconds: 3600
+
+  AbandonedSignupsRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Name: verifiedbizlink-abandoned-signups
+      Description: Single nudge to accounts that never finished signing up.
+      ScheduleExpression: !Ref AbandonedSignupsSchedule
+      State: ENABLED
+      Targets:
+        - Id: abandoned-signups-endpoint
+          Arn: !GetAtt AbandonedSignupsApiDestination.Arn
+          RoleArn: !GetAtt CronInvokeRole.Arn
+          RetryPolicy:
+            MaximumRetryAttempts: 2
+            MaximumEventAgeInSeconds: 3600
+
+Outputs:
+  BillingRuleName:
+    Value: !Ref BillingRule
+  AbandonedSignupsRuleName:
+    Value: !Ref AbandonedSignupsRule
+  ConnectionArn:
+    Value: !GetAtt CronConnection.Arn
+  Note:
+    Value: >-
+      Both endpoints return 401 unless CRON_SECRET in Amplify matches the
+      CronSecret parameter used here. Verify manually with:
+      curl -H "Authorization: Bearer <secret>" <AppBaseUrl>/api/cron/billing
