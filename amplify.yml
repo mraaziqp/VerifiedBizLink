@@ -28,6 +28,25 @@ frontend:
         - npm ci --legacy-peer-deps --cache .npm --prefer-offline || npm install --legacy-peer-deps
     build:
       commands:
+        # Amplify does NOT pass console environment variables into the Next.js
+        # SSR runtime. They exist during the build shell, but the compute
+        # functions that serve API routes never see them — which is why every
+        # server route reported "DATABASE_URL not set" while the variables were
+        # plainly configured in the console, and why redeploying did not help.
+        #
+        # AWS's documented fix is to write them into a file Next.js loads:
+        # https://docs.aws.amazon.com/amplify/latest/userguide/ssr-environment-variables.html
+        #
+        # Listed explicitly rather than dumping all of `env`, so AWS-internal
+        # build variables and credentials don't leak into the artifact.
+        - env | grep -e '^DATABASE_URL=' -e '^JWT_SECRET=' -e '^SETUP_SECRET=' -e '^CRON_SECRET=' -e '^TWO_FACTOR_ENCRYPTION_KEY=' >> .env.production || true
+        - env | grep -e '^TITAN_EMAIL_ADDRESS=' -e '^TITAN_EMAIL_PASSWORD=' -e '^SMTP_HOST=' -e '^SMTP_PORT=' -e '^SUPPORT_EMAIL=' >> .env.production || true
+        - env | grep -e '^GOOGLE_API_KEY=' -e '^GEMINI_API_KEY=' -e '^SUPABASE_SERVICE_ROLE_KEY=' >> .env.production || true
+        - env | grep -e '^PAYFAST_' >> .env.production || true
+        - env | grep -e '^NEXT_PUBLIC_' >> .env.production || true
+        # Names only — never the values — so a failure is diagnosable from the
+        # build log without printing secrets into it.
+        - echo "wrote .env.production with:" && cut -d= -f1 .env.production | sort
         - npm run build
   artifacts:
     baseDirectory: .next

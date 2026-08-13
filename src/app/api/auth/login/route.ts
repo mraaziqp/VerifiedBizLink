@@ -83,7 +83,18 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
+    // Always logged in full for the operator; only echoed to the caller
+    // outside production. Returning it live told anyone who POSTed to this
+    // endpoint exactly which environment variable was missing ("DATABASE_URL
+    // not set") — a free map of the deployment's weak points, on an
+    // unauthenticated route.
     console.error('Login error:', errorMsg);
-    return NextResponse.json({ error: 'Internal server error', detail: errorMsg }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Internal server error',
+        ...(process.env.NODE_ENV === 'production' ? {} : { detail: errorMsg }),
+      },
+      { status: 500 },
+    );
   }
 }
