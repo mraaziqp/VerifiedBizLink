@@ -54,5 +54,15 @@ frontend:
       - '**/*'
   cache:
     paths:
-      - .next/cache/**/*
+      # .next/cache is deliberately NOT cached.
+      #
+      # Newly added API routes (/api/agents, /api/cron/*, /api/billing/*) were
+      # falling through to the SPA shell while older routes like /api/tiers
+      # served correctly — the symptom of a route manifest that does not match
+      # the code in the build. Amplify restores .next/cache between builds, so
+      # a stale manifest can survive a redeploy and make the problem look
+      # permanent. Rebuilding Next from scratch costs about a minute and
+      # removes that whole class of confusion.
+      #
+      # npm's cache is still kept, which is where most of the build time goes.
       - .npm/**/*
