@@ -1,16 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
-
-if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.warn(
-    '[media/upload] Supabase storage not configured (NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing) — uploads will fall back to inline base64.'
-  );
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+import { getSupabaseAdmin } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,6 +29,9 @@ export async function POST(request: NextRequest) {
 
     // Try to upload to Supabase first for efficiency
     try {
+      // Built here, inside the existing fallback, so missing Supabase config
+      // degrades to base64 rather than failing the build at import time.
+      const supabase = getSupabaseAdmin();
       const fileBuffer = await file.arrayBuffer();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name}`;
 
@@ -91,10 +83,10 @@ export async function POST(request: NextRequest) {
       size: file.size,
       method: 'dataurl',
     }, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json(
-      { error: error.message || 'Upload failed', success: false },
+      { error: error instanceof Error ? error.message : 'Upload failed', success: false },
       { status: 500 }
     );
   }

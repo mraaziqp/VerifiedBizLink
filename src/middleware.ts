@@ -3,7 +3,19 @@ import { jwtVerify } from 'jose/jwt/verify';
 import { REQUIRE_EMAIL_VERIFICATION } from '@/lib/feature-flags';
 import { STAFF_ROLES, AGENT_PORTAL_ROLES, ROLES } from '@/lib/roles';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
+// Lazy, like lib/auth's copy. Encoding at module scope with the variable
+// unset silently produced a key from the literal string "undefined", which
+// would verify nothing correctly while looking fine.
+let cachedJwtSecret: Uint8Array | null = null;
+
+function jwtSecret(): Uint8Array {
+  if (!cachedJwtSecret) {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) throw new Error('JWT_SECRET environment variable is not set.');
+    cachedJwtSecret = new TextEncoder().encode(secret);
+  }
+  return cachedJwtSecret;
+}
 
 // Routes that do NOT require authentication. The home feed ('/') is
 // deliberately NOT here — it requires login, unlike /explore, /pricing, and
@@ -137,7 +149,7 @@ export async function middleware(request: NextRequest) {
   // thing everywhere: back to login.
   let claims: { role?: string; emailVerified?: boolean };
   try {
-    const { payload } = await jwtVerify(session.value, JWT_SECRET);
+    const { payload } = await jwtVerify(session.value, jwtSecret());
     claims = payload as { role?: string; emailVerified?: boolean };
   } catch {
     const loginUrl = new URL('/login', request.url);

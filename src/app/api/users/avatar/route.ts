@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { getSupabaseAdmin } from '@/lib/supabase';
 import { getSession, createSession, sessionCookieOptions } from '@/lib/auth';
 import db from '@/lib/db';
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB (client compresses well below this)
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,6 +31,9 @@ export async function POST(request: NextRequest) {
     // Prefer Supabase Storage (lightweight URL); fall back to base64 in the DB.
     let storedUrl = '';
     try {
+      // Built here, inside the existing fallback, so a missing Supabase key
+      // degrades to the base64 path instead of failing the build at import.
+      const supabase = getSupabaseAdmin();
       const ext = (file.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
       const path = `${session.id}/${Date.now()}.${ext}`;
       const { error } = await supabase.storage

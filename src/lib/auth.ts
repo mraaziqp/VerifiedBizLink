@@ -6,10 +6,31 @@ import { createHash } from 'crypto';
 import db from '@/lib/db';
 import { isStaffRole } from '@/lib/roles';
 
-if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET environment variable is not set. Set it in .env.local or your deployment environment.');
+/**
+ * Signing key for session tokens, resolved on first use.
+ *
+ * This used to throw at import time. Next.js imports every route module while
+ * collecting page data during `next build`, so that turned a missing runtime
+ * secret into a hard build failure ("Failed to collect page data for
+ * /api/admin/ads-toggle") on any platform where the build environment lacks
+ * secrets. Deferring the check keeps the guarantee that matters — no token is
+ * ever signed or verified with a missing key — while letting the app build
+ * from a clean checkout.
+ */
+let cachedJwtSecret: Uint8Array | null = null;
+
+function jwtSecret(): Uint8Array {
+  if (!cachedJwtSecret) {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error(
+        'JWT_SECRET environment variable is not set. Set it in .env.local or your deployment environment.',
+      );
+    }
+    cachedJwtSecret = new TextEncoder().encode(secret);
+  }
+  return cachedJwtSecret;
 }
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET);
 
 // One-time tokens (password reset, email verification) are high-entropy
 // random values, like API keys — a fast one-way hash is the standard,
@@ -61,7 +82,7 @@ export async function createSession(user: SessionUser, sid?: string): Promise<st
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(JWT_SECRET);
+    .sign(jwtSecret());
   return token;
 }
 
@@ -86,7 +107,7 @@ export async function createTrackedSession(user: SessionUser, request: Request |
 
 export async function verifyToken(token: string): Promise<SessionUser | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, jwtSecret());
     return payload as unknown as SessionUser;
   } catch {
     return null;
@@ -144,12 +165,12 @@ export async function createMfaChallenge(userId: string): Promise<string> {
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('5m')
-    .sign(JWT_SECRET);
+    .sign(jwtSecret());
 }
 
 export async function verifyMfaChallenge(token: string): Promise<string | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, jwtSecret());
     if (payload.purpose !== 'mfa-challenge' || typeof payload.userId !== 'string') return null;
     return payload.userId;
   } catch {

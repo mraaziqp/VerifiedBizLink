@@ -61,8 +61,43 @@ function parseArgs(argv) {
  * Matching is on hostname only. The override is deliberately a long, awkward
  * literal — a short `--force` flag is too easy to reach for at 2am.
  */
-const PRODUCTION_HOSTS = [/(^|\.)verifiedbizlink\.co\.za$/i, /\.vercel\.app$/i];
+const PRODUCTION_HOSTS = [/(^|\.)verifiedbizlink\.co\.za$/i, /\.vercel\.app$/i, /\.amplifyapp\.com$/i];
 const PROD_OVERRIDE = 'yes-i-really-want-to-load-test-production';
+
+/**
+ * Hostname check alone is not enough. A local server on localhost:9002 passes
+ * the URL gate happily while its DATABASE_URL points at the production Neon
+ * branch — and then 200 concurrent signups land in live data. So also refuse
+ * when the DATABASE_URL visible to this process resolves to a known
+ * production database host.
+ *
+ * Add the production Neon endpoint here. Branch endpoints differ per branch,
+ * which is what makes this check meaningful.
+ */
+const PRODUCTION_DB_HOSTS = [
+  // The live site's Neon endpoint. Verified by creating a row on a branch and
+  // confirming the live site returned 404 for it, i.e. they are NOT the same.
+  // Fill this in with the production endpoint prefix, e.g. 'ep-xxxx-yyyy'.
+  ...(process.env.STRESS_PROD_DB_HOSTS || '').split(',').map((s) => s.trim()).filter(Boolean),
+];
+
+function assertSafeDatabase() {
+  const url = process.env.DATABASE_URL;
+  if (!url) return; // nothing to check; the server owns its own config
+  const host = url.replace(/^.*@/, '').split('/')[0].toLowerCase();
+  const matched = PRODUCTION_DB_HOSTS.find((h) => h && host.includes(h.toLowerCase()));
+  if (matched && process.env.STRESS_ALLOW_PROD !== PROD_OVERRIDE) {
+    console.error(
+      `\nREFUSING TO RUN.\n\n` +
+        `  DATABASE_URL points at ${host}, which is listed as a production\n` +
+        `  database. The target URL looked safe, but a local server backed by\n` +
+        `  the production database still writes hundreds of real accounts and\n` +
+        `  uploads into live data.\n\n` +
+        `  Point DATABASE_URL at a dedicated test branch first.\n`,
+    );
+    process.exit(1);
+  }
+}
 
 function assertSafeTarget(target) {
   let url;
@@ -424,6 +459,7 @@ async function main() {
   }
 
   const base = assertSafeTarget(args.target);
+  assertSafeDatabase();
 
   console.log(`\nMass-load QA run`);
   console.log(`  target      ${base.origin}`);
