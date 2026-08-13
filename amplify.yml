@@ -1,0 +1,39 @@
+# AWS Amplify Hosting build spec.
+#
+# Without this file Amplify uses its console default, which runs a bare
+# `npm ci` and fails on this project:
+#
+#   npm error `npm ci` can only install packages when your package.json and
+#   package-lock.json are in sync. Missing: firebase-admin@14.2.0 from lock file
+#
+# Cause: @genkit-ai/core lists @genkit-ai/firebase as an OPTIONAL dependency,
+# and that package declares `firebase-admin >=12.2` as a PEER dependency.
+# npm 11 (used locally) resolves the tree without pulling that peer into the
+# lockfile; the older npm in Amplify's build image expects it to be there and
+# treats its absence as the lockfile being out of sync.
+#
+# Nothing in this app uses Firebase — there is not a single firebase import in
+# src/ — so installing firebase-admin and its ~60 transitive packages just to
+# satisfy an unused optional peer would be pure build weight. --legacy-peer-deps
+# skips peer resolution instead, which is exactly the disagreement, and leaves
+# the locked versions of everything we actually use untouched.
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - node -v && npm -v
+        # Prefer the reproducible install; fall back only if the resolver still
+        # disagrees, so a genuinely broken lockfile still surfaces loudly.
+        - npm ci --legacy-peer-deps --cache .npm --prefer-offline || npm install --legacy-peer-deps
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .next/cache/**/*
+      - .npm/**/*
