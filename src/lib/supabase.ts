@@ -13,12 +13,21 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
  * variable should announce itself clearly on the first request that needs it.
  */
 
-function required(name: string): string {
-  const value = process.env[name];
+/**
+ * Read as literal `process.env.X` expressions rather than `process.env[name]`.
+ *
+ * Next.js replaces NEXT_PUBLIC_* at build time by statically matching the
+ * literal expression; a dynamic key is invisible to that substitution, so the
+ * values would never be inlined into the client bundle. Today this module is
+ * only imported by server routes, where the dynamic form would have worked —
+ * but it would fail silently the first time anyone imported it into a client
+ * component, which is exactly the kind of bug that is miserable to find.
+ */
+function required(name: string, value: string | undefined): string {
   if (!value) {
     throw new Error(
       `${name} is not set. Add it to .env.local for local development, or to ` +
-        `the environment variables of your deployment (Vercel / Amplify).`,
+        `the environment variables of your deployment (Amplify / Vercel).`,
     );
   }
   return value;
@@ -30,8 +39,8 @@ let anonClient: SupabaseClient | null = null;
 export function getSupabase(): SupabaseClient {
   if (!anonClient) {
     anonClient = createClient(
-      required('NEXT_PUBLIC_SUPABASE_URL'),
-      required('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
+      required('NEXT_PUBLIC_SUPABASE_URL', process.env.NEXT_PUBLIC_SUPABASE_URL),
+      required('NEXT_PUBLIC_SUPABASE_ANON_KEY', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
     );
   }
   return anonClient;
@@ -46,8 +55,8 @@ let adminClient: SupabaseClient | null = null;
 export function getSupabaseAdmin(): SupabaseClient {
   if (!adminClient) {
     adminClient = createClient(
-      required('NEXT_PUBLIC_SUPABASE_URL'),
-      required('SUPABASE_SERVICE_ROLE_KEY'),
+      required('NEXT_PUBLIC_SUPABASE_URL', process.env.NEXT_PUBLIC_SUPABASE_URL),
+      required('SUPABASE_SERVICE_ROLE_KEY', process.env.SUPABASE_SERVICE_ROLE_KEY),
     );
   }
   return adminClient;
