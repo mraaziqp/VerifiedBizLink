@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { AGENT_PORTAL_ROLES, ROLES, hasRole } from '@/lib/roles';
 import { commissionCents } from '@/lib/commission';
+import { referralLink, referralQrUrl } from '@/lib/agents';
+import { appUrlFromRequest } from '@/lib/email';
 import db from '@/lib/db';
 
 type Row = Record<string, unknown>;
@@ -78,8 +80,30 @@ export async function GET(request: NextRequest) {
 
     const converted = signups.filter((s) => s.converted);
 
+    // The agent's own sharing kit and payout position.
+    const me = (await db`
+      SELECT referral_code FROM users WHERE id = ${agentId} LIMIT 1
+    `.catch(() => [])) as unknown as Row[];
+    const code = (me[0]?.referral_code as string) || null;
+    const base = appUrlFromRequest(request);
+    const link = code ? referralLink(base, code) : null;
+
+    const paidRows = (await db`
+      SELECT COALESCE(SUM(amount_cents), 0)::int AS paid
+      FROM commission_payouts WHERE agent_id = ${agentId}
+    `.catch(() => [{ paid: 0 }])) as unknown as Row[];
+    const paidCents = Number(paidRows[0]?.paid) || 0;
+
     return NextResponse.json({
       agentId,
+      referral: {
+        code,
+        link,
+        qrUrl: link ? referralQrUrl(link) : null,
+      },
+      payouts: {
+        paidCents,
+      },
       totals: {
         signups: signups.length,
         sales: converted.length,

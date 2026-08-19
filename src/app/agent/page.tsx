@@ -4,8 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Loader2, Users, TrendingUp, Wallet, Clock, Trophy, Target, CheckCircle2, LogOut,
+  Link2, Copy, Check,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { GlassBackground, GlassCard, GlassPageHeader, SectionTitle, StatCard } from '@/components/shared/glass-ui';
 import { AGENT_PORTAL_ROLES, hasRole } from '@/lib/roles';
@@ -27,6 +29,12 @@ interface Signup {
   commissionCents: number;
   reference: string | null;
   paidAt: string | null;
+}
+
+interface Referral {
+  code: string | null;
+  link: string | null;
+  qrUrl: string | null;
 }
 
 interface Totals {
@@ -51,9 +59,13 @@ const when = (d: string | null) =>
 
 export default function AgentPortalPage() {
   const { user, loading: authLoading, logout } = useAuth();
+  const { toast } = useToast();
   const router = useRouter();
   const [totals, setTotals] = useState<Totals | null>(null);
   const [signups, setSignups] = useState<Signup[]>([]);
+  const [referral, setReferral] = useState<Referral | null>(null);
+  const [paidCents, setPaidCents] = useState(0);
+  const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Check `loading` before `user` — reading user too early flash-redirects a
@@ -73,6 +85,8 @@ export default function AgentPortalPage() {
           if (!active) return;
           setTotals(data.totals);
           setSignups(data.signups || []);
+          setReferral(data.referral ?? null);
+          setPaidCents(Number(data.payouts?.paidCents) || 0);
         }
       } catch (e) {
         console.error('Failed to load agent dashboard:', e);
@@ -114,6 +128,72 @@ export default function AgentPortalPage() {
           <StatCard label="Awaiting payment" value={totals?.pending ?? 0} icon={Clock} gradient="from-amber-500 to-orange-500" loading={loading} />
           <StatCard label="Commission earned" value={formatRand(totals?.commissionCents ?? 0)} icon={Wallet} gradient="from-purple-500 to-pink-500" loading={loading} />
         </div>
+
+        {/* Sharing kit — the link and QR the agent hands to a business */}
+        {referral?.code && (
+          <GlassCard>
+            <SectionTitle icon={Link2}>Your referral link</SectionTitle>
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-gray-600">
+                  Anyone who signs up through this link is credited to you automatically —
+                  nothing to type, nothing to remember.
+                </p>
+                <div className="mt-3 flex items-center gap-2">
+                  <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-800">
+                    {referral.link}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0 border-gray-300"
+                    onClick={async () => {
+                      if (!referral.link) return;
+                      try {
+                        await navigator.clipboard.writeText(referral.link);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 1800);
+                      } catch {
+                        toast({ title: 'Could not copy', description: referral.link, variant: 'destructive' });
+                      }
+                    }}
+                  >
+                    {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="mt-3 text-sm text-gray-500">
+                  Or give them your code:{' '}
+                  <span className="rounded bg-gray-100 px-2 py-0.5 font-mono font-bold text-gray-900">
+                    {referral.code}
+                  </span>
+                </p>
+                <p className="mt-3 text-sm text-gray-500">
+                  Paid out to you so far:{' '}
+                  <span className="font-semibold text-gray-900">{formatRand(paidCents)}</span>
+                  {totals && totals.commissionCents > paidCents && (
+                    <>
+                      {' · '}awaiting payout:{' '}
+                      <span className="font-semibold text-amber-700">
+                        {formatRand(totals.commissionCents - paidCents)}
+                      </span>
+                    </>
+                  )}
+                </p>
+              </div>
+              {referral.qrUrl && (
+                <div className="shrink-0 text-center">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={referral.qrUrl}
+                    alt="QR code for your referral link"
+                    className="h-36 w-36 rounded-xl border border-gray-200 bg-white p-2"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Let them scan it</p>
+                </div>
+              )}
+            </div>
+          </GlassCard>
+        )}
 
         {/* Gamified target ladder */}
         <GlassCard>

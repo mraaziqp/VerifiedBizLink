@@ -61,6 +61,28 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [agents, setAgents] = useState<{ id: string; name: string }[]>([]);
+  const [referral, setReferral] = useState<{ code: string; agentName: string } | null>(null);
+
+  /**
+   * Picks up ?ref=CODE from an agent's referral link or QR code.
+   *
+   * Read straight from the URL rather than through useSearchParams so the
+   * page needs no Suspense boundary. The code is only used for display here —
+   * the server resolves it again on submit and ignores anything the client
+   * claims about who gets the commission.
+   */
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("ref");
+    if (!code) return;
+    let active = true;
+    fetch(`/api/referral?code=${encodeURIComponent(code)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (active && data?.valid) setReferral({ code: data.code, agentName: data.agentName });
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
 
   // Loaded so an assisted sign-up can be attributed to a real agent record
   // rather than a typed string. Falls back to free text if none exist yet.
@@ -110,6 +132,9 @@ export default function SignupPage() {
           assistedSignup: formData.assistedSignup,
           assistedBy: formData.assistedSignup ? formData.assistedBy.trim() : "",
           assistedByUserId: formData.assistedSignup ? formData.assistedByUserId || null : null,
+          // Server re-resolves this; sending it is what links the signup to
+          // the agent whose link or QR code brought them here.
+          referralCode: referral?.code ?? null,
           website: formData.website,
           socialLinks: {
             linkedin: formData.linkedin,
@@ -322,7 +347,19 @@ export default function SignupPage() {
                       Yes
                     </button>
                   </div>
-                  {formData.assistedSignup && (
+                  {/* Arrived via an agent's link or QR — attribution is already
+                      settled, so the manual picker would only invite mistakes. */}
+                  {referral && (
+                    <div className="mt-2 rounded-xl border border-green-200 bg-green-50 p-3">
+                      <p className="text-sm font-semibold text-green-800">
+                        Referred by {referral.agentName}
+                      </p>
+                      <p className="mt-0.5 text-xs text-green-700">
+                        Your sign up will be credited to them automatically. Code {referral.code}.
+                      </p>
+                    </div>
+                  )}
+                  {formData.assistedSignup && !referral && (
                     <div className="pt-1.5">
                       <Label htmlFor="assisted-by" className="text-sm font-semibold text-gray-700">Assisted By</Label>
                       {agents.length > 0 ? (

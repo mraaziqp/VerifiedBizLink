@@ -53,6 +53,12 @@ const PUBLIC_PREFIXES = [
   // The routes authenticate themselves against CRON_SECRET and refuse to run
   // at all when it is unset, so they are not open by being listed here.
   '/api/cron/',
+  // A hired marketer opens their invite link before they have an account, so
+  // both the page and the endpoint behind it must be reachable logged out.
+  // The token is the credential, and only its hash is stored.
+  '/agent-invite/',
+  '/api/auth/agent-invite',
+  '/api/referral', // signup page resolves ?ref= codes before anyone signs in
   '/_next/',
   '/favicon',
 ];

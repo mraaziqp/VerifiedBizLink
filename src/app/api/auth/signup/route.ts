@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { email, password, fullName, dateOfBirth, role, companyName, regNumber, website, socialLinks, industry, assistedSignup, assistedBy, assistedByUserId } = await request.json();
+    const { email, password, fullName, dateOfBirth, role, companyName, regNumber, website, socialLinks, industry, assistedSignup, assistedBy, assistedByUserId, referralCode } = await request.json();
 
     if (!email || !password || !fullName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -115,11 +115,46 @@ export async function POST(request: NextRequest) {
     const user = newUsers[0];
 
     if (role === 'business' && companyName) {
+      /**
+       * Attribution is resolved SERVER-SIDE from the referral code.
+       *
+       * The client also sends assistedByUserId (from the manual dropdown),
+       * but a referral code always wins and is looked up here rather than
+       * trusted from the body — otherwise anyone could post an arbitrary
+       * agent id and redirect someone else's commission to themselves.
+       *
+       * A suspended agent resolves to nothing, so a departed marketer stops
+       * earning the moment their account is suspended.
+       */
+      let agentId: string | null =
+        assistedSignup === true ? (assistedByUserId || null) : null;
+      let agentName: string | null =
+        assistedSignup === true ? (assistedBy || '').trim() || null : null;
+      let resolvedCode: string | null = null;
+      let source: string | null = agentId ? 'manual' : null;
+
+      const code = String(referralCode || '').trim().toUpperCase();
+      if (code) {
+        const agent = await db`
+          SELECT id, full_name FROM users
+          WHERE referral_code = ${code}
+            AND role = 'sales_agent'
+            AND is_suspended IS NOT TRUE
+          LIMIT 1
+        `.catch(() => []);
+        if (agent.length > 0) {
+          agentId = String(agent[0].id);
+          agentName = String(agent[0].full_name || '');
+          resolvedCode = code;
+          source = 'referral_link';
+        }
+      }
+
       // No trial package is granted — new businesses start on Free and upgrade
       // deliberately. The old 2-week 'premium_half' trial silently downgraded
       // people mid-use, which read as features breaking rather than expiring.
       await db`
-        INSERT INTO businesses (user_id, name, company_name, reg_number, website, social_links, industry, status, package_type, assisted_signup, assisted_by, assisted_by_user_id)
+        INSERT INTO businesses (user_id, name, company_name, reg_number, website, social_links, industry, status, package_type, assisted_signup, assisted_by, assisted_by_user_id, referral_code, attribution_source)
         VALUES (
           ${user.id},
           ${companyName},
@@ -130,9 +165,11 @@ export async function POST(request: NextRequest) {
           ${industry || ''},
           'unregistered',
           'free',
-          ${assistedSignup === true},
-          ${assistedSignup === true ? (assistedBy || '').trim() : null},
-          ${assistedSignup === true ? (assistedByUserId || null) : null}
+          ${agentId !== null},
+          ${agentName},
+          ${agentId},
+          ${resolvedCode},
+          ${source}
         )
         ON CONFLICT DO NOTHING
       `;
