@@ -24,9 +24,9 @@ interface AdminMember {
 }
 
 const ROLE_COLORS: Record<string, { bg: string; text: string; icon: string }> = {
-  admin: { bg: 'bg-blue-500/10', text: 'text-blue-400', icon: '👑' },
-  banker: { bg: 'bg-green-500/10', text: 'text-green-400', icon: '🏦' },
-  lawyer: { bg: 'bg-purple-500/10', text: 'text-purple-400', icon: '⚖️' },
+  admin: { bg: 'bg-blue-500/10', text: 'text-blue-700', icon: '👑' },
+  banker: { bg: 'bg-green-500/10', text: 'text-green-700', icon: '🏦' },
+  lawyer: { bg: 'bg-purple-500/10', text: 'text-purple-700', icon: '⚖️' },
 };
 
 // Friendly label for the role badge — 'banker' is the internal RBAC role
@@ -102,7 +102,7 @@ export function AdminTeamPortal() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20 text-gray-400">
+      <div className="flex items-center justify-center py-20 text-gray-500">
         <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading team…
       </div>
     );
@@ -110,7 +110,7 @@ export function AdminTeamPortal() {
 
   if (!selectedMember) {
     return (
-      <div className="rounded-xl border border-gray-700 bg-gray-900/50 p-10 text-center text-gray-400">
+      <div className="rounded-xl border border-gray-200 bg-white/80 p-10 text-center text-gray-500">
         No admin team members found.
       </div>
     );
@@ -122,9 +122,9 @@ export function AdminTeamPortal() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Team List */}
       <div className="lg:col-span-1">
-        <div className="rounded-xl border border-gray-700 bg-gray-900/50 p-6 backdrop-blur-sm">
-          <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-            <Users className="w-5 h-5 text-blue-400" />
+        <div className="rounded-xl border border-gray-200 bg-white/80 p-6 backdrop-blur-sm">
+          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Users className="w-5 h-5 text-blue-700" />
             Admin Team
           </h3>
 
@@ -136,7 +136,7 @@ export function AdminTeamPortal() {
               placeholder="Search team..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-600 bg-gray-800 text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+              className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
             />
           </div>
 
@@ -153,18 +153,18 @@ export function AdminTeamPortal() {
                   className={`w-full text-left p-4 rounded-lg border transition-all ${
                     isSelected
                       ? 'border-blue-500 bg-blue-500/10'
-                      : 'border-gray-700 bg-gray-800/50 hover:bg-gray-800'
+                      : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
                   }`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-lg">{memberColor.icon}</span>
-                        <p className="font-semibold text-white truncate">
+                        <p className="font-semibold text-gray-900 truncate">
                           {member.name}
                         </p>
                       </div>
-                      <p className="text-xs text-gray-400 truncate mb-2">
+                      <p className="text-xs text-gray-500 truncate mb-2">
                         {member.email}
                       </p>
                       <div className="flex items-center gap-2">
@@ -174,7 +174,7 @@ export function AdminTeamPortal() {
                           {ROLE_LABELS[member.role] || member.role}
                         </span>
                         {member.status === 'active' ? (
-                          <div className="flex items-center gap-1 text-xs text-green-400">
+                          <div className="flex items-center gap-1 text-xs text-green-700">
                             <div className="w-2 h-2 rounded-full bg-green-400" />
                             Active
                           </div>
@@ -187,7 +187,7 @@ export function AdminTeamPortal() {
                       </div>
                     </div>
                     {isSelected && (
-                      <ChevronRight className="w-4 h-4 text-blue-400 flex-shrink-0 mt-1" />
+                      <ChevronRight className="w-4 h-4 text-blue-700 flex-shrink-0 mt-1" />
                     )}
                   </div>
                 </button>
@@ -199,18 +199,18 @@ export function AdminTeamPortal() {
 
       {/* Team Member Details */}
       <div className="lg:col-span-2">
-        <div className="rounded-xl border border-gray-700 bg-gray-900/50 p-8 backdrop-blur-sm">
+        <div className="rounded-xl border border-gray-200 bg-white/80 p-8 backdrop-blur-sm">
           {/* Header */}
-          <div className="mb-8 pb-6 border-b border-gray-700">
+          <div className="mb-8 pb-6 border-b border-gray-200">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-3 mb-2">
                   <span className="text-4xl">{roleColor.icon}</span>
-                  <h2 className="text-3xl font-bold text-white">
+                  <h2 className="text-3xl font-bold text-gray-900">
                     {selectedMember.name}
                   </h2>
                 </div>
-                <p className="text-gray-400 mb-3">{selectedMember.email}</p>
+                <p className="text-gray-500 mb-3">{selectedMember.email}</p>
               </div>
               <div className="text-right">
                 <div
@@ -224,12 +224,12 @@ export function AdminTeamPortal() {
             {/* Status Info */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-400 mb-1">Status</p>
+                <p className="text-sm text-gray-500 mb-1">Status</p>
                 <div className="flex items-center gap-2">
                   {selectedMember.status === 'active' ? (
                     <>
-                      <CheckCircle className="w-5 h-5 text-green-400" />
-                      <span className="font-semibold text-green-400">Active</span>
+                      <CheckCircle className="w-5 h-5 text-green-700" />
+                      <span className="font-semibold text-green-700">Active</span>
                     </>
                   ) : (
                     <>
@@ -240,14 +240,14 @@ export function AdminTeamPortal() {
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-400 mb-1">Last Active</p>
-                <p className="font-semibold text-white">
+                <p className="text-sm text-gray-500 mb-1">Last Active</p>
+                <p className="font-semibold text-gray-900">
                   {selectedMember.lastActive}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-400 mb-1">Joined</p>
-                <p className="font-semibold text-white">
+                <p className="text-sm text-gray-500 mb-1">Joined</p>
+                <p className="font-semibold text-gray-900">
                   {new Date(selectedMember.joinedDate).toLocaleDateString()}
                 </p>
               </div>
@@ -256,8 +256,8 @@ export function AdminTeamPortal() {
 
           {/* Main Tools */}
           <div className="mb-6">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-blue-400" />
+            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-blue-700" />
               Main Tools & Access
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -266,7 +266,7 @@ export function AdminTeamPortal() {
                   key={idx}
                   type="button"
                   onClick={() => router.push(TOOL_LINKS[tool] || '/admin/dashboard')}
-                  className={`w-full text-left p-4 rounded-lg border ${roleColor.bg} border-gray-700 hover:border-gray-600 transition-colors cursor-pointer group`}
+                  className={`w-full text-left p-4 rounded-lg border ${roleColor.bg} border-gray-200 hover:border-gray-300 transition-colors cursor-pointer group`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -290,7 +290,7 @@ export function AdminTeamPortal() {
                           'Regulatory compliance status'}
                       </p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-gray-600 group-hover:text-gray-400 transition-colors" />
+                    <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-700 transition-colors" />
                   </div>
                 </button>
               ))}
@@ -298,9 +298,9 @@ export function AdminTeamPortal() {
           </div>
 
           {/* Role Description */}
-          <div className={`rounded-lg p-6 ${roleColor.bg} border border-gray-700`}>
+          <div className={`rounded-lg p-6 ${roleColor.bg} border border-gray-200`}>
             <h4 className={`font-bold ${roleColor.text} mb-2`}>Role Overview</h4>
-            <p className="text-gray-300 text-sm">
+            <p className="text-gray-700 text-sm">
               {selectedMember.role === 'admin' &&
                 'Lead administrator responsible for system overview, tier management, and platform analytics. Full access to all administrative tools and user management systems.'}
               {selectedMember.role === 'banker' &&

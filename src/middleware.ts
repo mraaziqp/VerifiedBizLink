@@ -46,6 +46,13 @@ const PUBLIC_PREFIXES = [
   '/api/explore/',
   '/api/ads', // AdBanner renders on every page, including public ones for anonymous visitors
   '/api/payfast/notify', // PayFast's server calls this webhook directly — it has no user session cookie
+  // Scheduled jobs are called by EventBridge (or Vercel Cron), which carry a
+  // Bearer token and no session cookie. Without this the middleware answered
+  // them with a 307 to /login, so the scheduler saw a "successful" redirect
+  // and the billing sweep and abandoned-signup nudge never actually ran.
+  // The routes authenticate themselves against CRON_SECRET and refuse to run
+  // at all when it is unset, so they are not open by being listed here.
+  '/api/cron/',
   '/_next/',
   '/favicon',
 ];
