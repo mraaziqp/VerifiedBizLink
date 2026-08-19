@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -47,17 +47,33 @@ function LoginForm() {
   };
 
   /**
-   * Posts the credentials, retrying once on a gateway-level failure.
+   * Wakes the API as soon as the sign-in page is shown.
    *
-   * The serverless container that runs the API sleeps when idle, and a cold
-   * start occasionally takes long enough for the gateway to give up and
-   * return 502/503/504 — measured at ~7s against a ~0.2s median. The request
-   * never reached the login logic, so replaying it is safe: a failed attempt
-   * creates no session and has no side effect. The second attempt lands on
-   * the container the first one just woke.
+   * The serverless container sleeps when idle. Measured on the deployment:
+   * a cold request takes ~5.2s versus ~0.26s warm, and a slow enough cold
+   * start makes the gateway give up with a 502 before the handler ever runs.
    *
-   * Deliberately NOT retried on 4xx — those are real answers (wrong password,
-   * validation) and repeating them would only slow the user down.
+   * The user spends several seconds typing their credentials, so spending
+   * that time booting the container instead of making them wait for it turns
+   * the common case warm. /api/auth/me is the right thing to call: it is
+   * cheap, and with no session cookie it returns 401 without touching the
+   * database at all.
+   */
+  useEffect(() => {
+    fetch("/api/auth/me", { cache: "no-store" }).catch(() => {});
+  }, []);
+
+  /**
+   * Posts the credentials, retrying on gateway-level failures.
+   *
+   * Backoff matters more than the retry count here. An earlier version waited
+   * 1.2s, which landed while the container was still starting, so the retry
+   * failed for the same reason as the first attempt. The waits below clear a
+   * ~5s cold start.
+   *
+   * Replaying is safe precisely because these failures mean the request never
+   * arrived: no session is created and nothing is written. 4xx responses are
+   * real answers and are never retried, so a wrong password still fails at once.
    */
   const postLoginWithRetry = async (credentials: { email: string; password: string }) => {
     const send = () =>
@@ -67,19 +83,24 @@ function LoginForm() {
         body: JSON.stringify(credentials),
       });
 
-    let res: Response;
-    try {
-      res = await send();
-    } catch {
-      // Connection dropped outright — the same cold-start symptom.
-      await new Promise((r) => setTimeout(r, 1200));
-      return send();
+    const isColdStartFailure = (status: number) =>
+      status === 502 || status === 503 || status === 504;
+
+    let lastError: unknown = null;
+    for (const waitMs of [0, 3500, 6000]) {
+      if (waitMs) await new Promise((r) => setTimeout(r, waitMs));
+      try {
+        const res = await send();
+        if (!isColdStartFailure(res.status)) return res;
+        lastError = null;
+      } catch (e) {
+        lastError = e;
+      }
     }
-    if (res.status === 502 || res.status === 503 || res.status === 504) {
-      await new Promise((r) => setTimeout(r, 1200));
-      return send();
-    }
-    return res;
+    if (lastError) throw lastError;
+    // Every attempt hit a gateway error — return one last real response so the
+    // caller can surface a genuine status rather than a fabricated one.
+    return send();
   };
 
   const handleLogin = async (e: React.FormEvent) => {
