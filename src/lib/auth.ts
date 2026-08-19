@@ -77,8 +77,29 @@ export interface SessionUser {
   sid?: string;
 }
 
+/**
+ * Largest avatar value allowed into a session token.
+ *
+ * The token is returned as a Set-Cookie header, and gateways reject oversized
+ * response headers — CloudFront in front of the deployment answers 502. One
+ * account had a 22KB base64 data URL in avatar_url (the fallback used when a
+ * Supabase upload fails), which made every login for that user fail while
+ * everyone else, holding a ~128-byte https URL, signed in fine.
+ *
+ * A hosted URL is well under this; a data: URL never is. Dropping it costs
+ * only the avatar in the session payload — the real value stays in the
+ * database and any page that needs it can read it from there.
+ */
+const MAX_SESSION_AVATAR_CHARS = 512;
+
+function sessionSafeAvatar(avatarUrl: string | undefined): string {
+  if (!avatarUrl) return '';
+  if (avatarUrl.startsWith('data:')) return '';
+  return avatarUrl.length > MAX_SESSION_AVATAR_CHARS ? '' : avatarUrl;
+}
+
 export async function createSession(user: SessionUser, sid?: string): Promise<string> {
-  const token = await new SignJWT({ ...user, sid })
+  const token = await new SignJWT({ ...user, avatarUrl: sessionSafeAvatar(user.avatarUrl), sid })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
