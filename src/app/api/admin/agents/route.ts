@@ -5,7 +5,8 @@ import {
   getAgentSummaries, allocateReferralCode, generateInviteToken, hashInviteToken,
   referralLink, referralQrUrl, INVITE_TTL_DAYS,
 } from '@/lib/agents';
-import { appUrlFromRequest } from '@/lib/email';
+import { appUrlFromRequest, sendAgentInviteEmail } from '@/lib/email';
+import { getCommissionSettings } from '@/lib/settings';
 import db from '@/lib/db';
 
 type Row = Record<string, unknown>;
@@ -116,11 +117,30 @@ export async function POST(request: NextRequest) {
     `;
 
     const baseUrl = appUrlFromRequest(request);
+    const inviteUrl = `${baseUrl}/agent-invite/${rawToken}`;
+
+    // Emailed for them, but the link is still returned so an admin can hand
+    // it over by hand if the email bounces or the marketer mistypes.
+    const settings = await getCommissionSettings();
+    const emailed = await sendAgentInviteEmail(mail, {
+      fullName: name,
+      inviteUrl,
+      referralCode: code,
+      invitedByName: session!.fullName || 'The VerifiedBizLink team',
+      commissionPercent: Math.round(settings.defaultRate * 100),
+      expiresInDays: INVITE_TTL_DAYS,
+      appUrl: baseUrl,
+    });
+
     return NextResponse.json({
       ok: true,
+      emailed,
+      message: emailed
+        ? `Invite emailed to ${mail}.`
+        : `Invite created, but the email could not be sent. Copy the link below and send it yourself.`,
       // Shown once. There is deliberately no way to retrieve it later —
       // revoke and re-invite instead.
-      inviteUrl: `${baseUrl}/agent-invite/${rawToken}`,
+      inviteUrl,
       referralCode: code,
       referralLink: referralLink(baseUrl, code),
       expiresAt: expires.toISOString(),

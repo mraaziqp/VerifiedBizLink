@@ -7,6 +7,7 @@ import { WelcomeEmail } from '@/emails/WelcomeEmail';
 import { AbandonedSignupEmail } from '@/emails/AbandonedSignupEmail';
 import { InvoiceEmail, type InvoiceEmailProps } from '@/emails/InvoiceEmail';
 import { PaymentFailedEmail } from '@/emails/PaymentFailedEmail';
+import { AgentInviteEmail } from '@/emails/AgentInviteEmail';
 
 // Sends via the real GoDaddy mailbox (info@verifiedbizlink.co.za), not a
 // third-party transactional API. The domain's SPF record
@@ -221,6 +222,44 @@ export async function sendPaymentFailedEmail(
     });
   } catch (error) {
     console.error('Failed to dispatch payment-failed email to:', to, error);
+  }
+}
+
+/**
+ * Sends a hired marketer their activation link.
+ *
+ * Returns whether it was delivered rather than throwing: the invite itself is
+ * already saved by the time this runs, so a mail failure must not lose it.
+ * The caller shows the link on screen either way, so an admin can always
+ * hand it over another way.
+ */
+export async function sendAgentInviteEmail(
+  to: string,
+  props: {
+    fullName: string;
+    inviteUrl: string;
+    referralCode: string;
+    invitedByName: string;
+    commissionPercent: number;
+    expiresInDays: number;
+    appUrl?: string;
+  },
+): Promise<boolean> {
+  try {
+    const transporter = getTransporter();
+    const html = await render(
+      AgentInviteEmail({ ...props, appUrl: props.appUrl ?? APP_URL }),
+    );
+    await transporter.sendMail({
+      from: `VerifiedBizLink <${FROM_EMAIL}>`,
+      to,
+      subject: 'Activate your VerifiedBizLink sales account',
+      html,
+    });
+    return true;
+  } catch (error) {
+    console.error('Failed to dispatch agent invite email to:', to, error);
+    return false;
   }
 }
 

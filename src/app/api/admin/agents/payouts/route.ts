@@ -17,6 +17,9 @@ export async function GET(request: NextRequest) {
     const rows = (await db`
       SELECT p.id, p.agent_id, p.amount_cents, p.period_start, p.period_end,
              p.reference, p.note, p.paid_at, p.recorded_by_name,
+             p.status, p.bank_reference, p.statement_amount_cents,
+             p.statement_date, p.reconciled_at, p.reconciled_by_name,
+             p.reconciliation_note,
              u.full_name AS agent_name
       FROM commission_payouts p
       JOIN users u ON u.id = p.agent_id
@@ -25,19 +28,47 @@ export async function GET(request: NextRequest) {
       LIMIT 200
     `.catch(() => [])) as unknown as Row[];
 
-    return NextResponse.json({
-      payouts: rows.map((r) => ({
+    const payouts = rows.map((r) => {
+      const amountCents = Number(r.amount_cents) || 0;
+      const statementCents =
+        r.statement_amount_cents === null || r.statement_amount_cents === undefined
+          ? null
+          : Number(r.statement_amount_cents);
+      return {
         id: r.id,
         agentId: r.agent_id,
         agentName: r.agent_name,
-        amountCents: Number(r.amount_cents) || 0,
+        amountCents,
         periodStart: r.period_start,
         periodEnd: r.period_end,
         reference: r.reference || '',
         note: r.note || '',
         paidAt: r.paid_at,
         recordedBy: r.recorded_by_name || 'Unknown',
-      })),
+        status: (r.status as string) || 'recorded',
+        bankReference: r.bank_reference || '',
+        statementAmountCents: statementCents,
+        statementDate: r.statement_date,
+        reconciledAt: r.reconciled_at,
+        reconciledBy: r.reconciled_by_name || null,
+        reconciliationNote: r.reconciliation_note || '',
+        // Surfaced rather than hidden: a matched line whose amount differs is
+        // exactly the case worth someone's attention.
+        varianceCents: statementCents === null ? null : statementCents - amountCents,
+      };
+    });
+
+    return NextResponse.json({
+      payouts,
+      summary: {
+        total: payouts.length,
+        recorded: payouts.filter((p) => p.status === 'recorded').length,
+        reconciled: payouts.filter((p) => p.status === 'reconciled').length,
+        disputed: payouts.filter((p) => p.status === 'disputed').length,
+        unreconciledCents: payouts
+          .filter((p) => p.status !== 'reconciled')
+          .reduce((s, p) => s + p.amountCents, 0),
+      },
     });
   } catch (error) {
     console.error('Payout list error:', error);
@@ -53,6 +84,83 @@ export async function GET(request: NextRequest) {
  * payout only ever reduces the outstanding figure and can never inflate what
  * an agent appears to have earned.
  */
+/**
+ * PATCH /api/admin/agents/payouts — reconcile a payout against the bank.
+ *
+ * The statement amount is stored ALONGSIDE the recorded amount rather than
+ * replacing it. If they disagree, both numbers survive and the difference is
+ * reported — overwriting one with the other would erase the very discrepancy
+ * reconciliation exists to catch.
+ *
+ * A mismatch is marked 'disputed' automatically. Someone can still force it
+ * to 'reconciled' with a note explaining why (a bank fee, a part payment),
+ * which is a decision worth recording rather than a checkbox.
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!hasRole(session?.role, FINANCE_ROLES)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { payoutId, bankReference, statementAmountRand, statementDate, note, force } =
+      await request.json();
+
+    if (!payoutId) {
+      return NextResponse.json({ error: 'payoutId is required' }, { status: 400 });
+    }
+
+    const existing = (await db`
+      SELECT id, amount_cents FROM commission_payouts WHERE id = ${payoutId} LIMIT 1
+    `) as unknown as Row[];
+    if (existing.length === 0) {
+      return NextResponse.json({ error: 'Payout not found' }, { status: 404 });
+    }
+
+    const recordedCents = Number(existing[0].amount_cents) || 0;
+    const hasStatementAmount =
+      statementAmountRand !== undefined && statementAmountRand !== null && statementAmountRand !== '';
+    const statementCents = hasStatementAmount
+      ? Math.round(Number(statementAmountRand) * 100)
+      : null;
+
+    if (hasStatementAmount && !Number.isFinite(statementCents as number)) {
+      return NextResponse.json({ error: 'Statement amount must be a number' }, { status: 400 });
+    }
+
+    const matches = statementCents === null || statementCents === recordedCents;
+    const status = matches || force === true ? 'reconciled' : 'disputed';
+
+    await db`
+      UPDATE commission_payouts
+      SET status = ${status},
+          bank_reference = ${String(bankReference || '').slice(0, 120)},
+          statement_amount_cents = ${statementCents},
+          statement_date = ${statementDate || null},
+          reconciliation_note = ${String(note || '').slice(0, 500)},
+          reconciled_at = NOW(),
+          reconciled_by_name = ${session!.fullName || session!.email}
+      WHERE id = ${payoutId}
+    `;
+
+    const variance = statementCents === null ? 0 : statementCents - recordedCents;
+    return NextResponse.json({
+      ok: true,
+      status,
+      varianceCents: variance,
+      message:
+        status === 'reconciled'
+          ? variance === 0
+            ? 'Matched against the bank.'
+            : `Marked reconciled with a R${(Math.abs(variance) / 100).toFixed(2)} difference noted.`
+          : `Amounts differ by R${(Math.abs(variance) / 100).toFixed(2)} — flagged as disputed for review.`,
+    });
+  } catch (error) {
+    console.error('Payout reconciliation error:', error);
+    return NextResponse.json({ error: 'Failed to reconcile payout' }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();

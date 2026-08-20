@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, Loader2, UserPlus, Link2, Copy, Check, Wallet, TrendingUp,
-  Users, QrCode, Banknote, SlidersHorizontal, Download, Ban, RotateCcw, RefreshCw, X,
+  Users, QrCode, Banknote, SlidersHorizontal, Download, Ban, RotateCcw, RefreshCw, X, CheckCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +53,29 @@ interface CommissionSettings {
   milestones: Milestone[];
 }
 
+interface Payout {
+  id: string;
+  agentName: string;
+  amountCents: number;
+  reference: string;
+  paidAt: string;
+  recordedBy: string;
+  status: 'recorded' | 'reconciled' | 'disputed';
+  bankReference: string;
+  statementAmountCents: number | null;
+  varianceCents: number | null;
+  reconciledBy: string | null;
+  reconciliationNote: string;
+}
+
+interface PayoutSummary {
+  total: number;
+  recorded: number;
+  reconciled: number;
+  disputed: number;
+  unreconciledCents: number;
+}
+
 interface SettingsChange {
   id: string;
   changedBy: string;
@@ -73,6 +96,8 @@ export default function AdminAgentsPage() {
   const [settings, setSettings] = useState<CommissionSettings | null>(null);
   const [ratePercent, setRatePercent] = useState('50');
   const [history, setHistory] = useState<SettingsChange[]>([]);
+  const [payouts, setPayouts] = useState<Payout[]>([]);
+  const [payoutSummary, setPayoutSummary] = useState<PayoutSummary | null>(null);
   const { toast } = useToast();
 
   const fetchAgents = useCallback(async () => {
@@ -92,6 +117,66 @@ export default function AdminAgentsPage() {
     return res.json();
   }, []);
 
+  const fetchPayouts = useCallback(async () => {
+    const res = await fetch('/api/admin/agents/payouts', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`payouts ${res.status}`);
+    const data = await res.json();
+    setPayouts(data.payouts || []);
+    setPayoutSummary(data.summary ?? null);
+  }, []);
+
+  /**
+   * Matches a recorded payout to a line on the bank statement. The statement
+   * amount is stored next to the recorded one, so a difference is flagged
+   * rather than silently absorbed.
+   */
+  const reconcile = async (p: Payout) => {
+    const bankReference = window.prompt(
+      `Reconcile the ${formatRand(p.amountCents)} payout to ${p.agentName}.\n\nBank reference from the statement:`,
+      p.bankReference || p.reference || '',
+    );
+    if (bankReference === null) return;
+    const amount = window.prompt(
+      `Amount shown on the statement, in Rand.\n\nWe recorded ${formatRand(p.amountCents)}. Leave as-is if they match.`,
+      (p.amountCents / 100).toFixed(2),
+    );
+    if (amount === null) return;
+
+    const differs = Math.round(Number(amount) * 100) !== p.amountCents;
+    let force = false;
+    let note = '';
+    if (differs) {
+      note =
+        window.prompt(
+          `That differs from what we recorded.\n\nExplain the difference (bank fee, part payment, error). Leave blank to flag it as disputed for review.`,
+          '',
+        ) ?? '';
+      force = note.trim().length > 0;
+    }
+
+    setBusy(true);
+    try {
+      const res = await fetch('/api/admin/agents/payouts', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          payoutId: p.id, bankReference, statementAmountRand: amount, note, force,
+        }),
+      });
+      const data = await res.json();
+      toast({
+        title: res.ok ? (data.status === 'disputed' ? 'Flagged as disputed' : 'Reconciled') : 'Could not reconcile',
+        description: data.message || data.error,
+        variant: res.ok ? undefined : 'destructive',
+      });
+      if (res.ok) await fetchPayouts();
+    } catch {
+      toast({ title: 'Could not reconcile', variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     (async () => {
@@ -99,6 +184,7 @@ export default function AdminAgentsPage() {
         const [agentData, settingsData] = await Promise.all([
           fetchAgents(),
           fetchSettings().catch(() => null),
+          fetchPayouts().catch(() => null),
         ]);
         if (!active) return;
         apply(agentData);
@@ -114,7 +200,7 @@ export default function AdminAgentsPage() {
       }
     })();
     return () => { active = false; };
-  }, [fetchAgents, fetchSettings, apply]);
+  }, [fetchAgents, fetchSettings, fetchPayouts, apply]);
 
   /** Saves the platform-wide scheme. Milestones are edited in place. */
   const saveSettings = async (milestones?: Milestone[]) => {
@@ -270,6 +356,7 @@ export default function AdminAgentsPage() {
       if (res.ok) {
         toast({ title: 'Payout recorded', description: data.message });
         apply(await fetchAgents());
+        await fetchPayouts().catch(() => {});
       } else {
         toast({ title: 'Could not record payout', description: data.error, variant: 'destructive' });
       }
@@ -685,8 +772,121 @@ export default function AdminAgentsPage() {
           )}
         </AdminCard>
 
+        {/* Bank reconciliation */}
+        <AdminCard className="overflow-hidden p-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-0 sm:p-6 sm:pb-0">
+            <div>
+              <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
+                <Banknote className="h-5 w-5 text-amber-600" /> Payouts &amp; bank reconciliation
+              </h2>
+              <p className="mt-1 text-sm text-gray-500">
+                Match each recorded payout to a line on your bank statement.
+              </p>
+            </div>
+            {payoutSummary && payoutSummary.total > 0 && (
+              <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-gray-700">
+                  {payoutSummary.recorded} awaiting
+                </span>
+                <span className="rounded-full bg-green-500/15 px-2.5 py-1 text-green-700">
+                  {payoutSummary.reconciled} matched
+                </span>
+                {payoutSummary.disputed > 0 && (
+                  <span className="rounded-full bg-red-500/15 px-2.5 py-1 text-red-700">
+                    {payoutSummary.disputed} disputed
+                  </span>
+                )}
+                <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-700">
+                  {formatRand(payoutSummary.unreconciledCents)} unmatched
+                </span>
+              </div>
+            )}
+          </div>
+
+          {payouts.length === 0 ? (
+            <div className="p-8 text-center text-sm text-gray-500">
+              No payouts recorded yet. Use &ldquo;Pay&rdquo; on an agent above once you have
+              paid them, then match it here against your statement.
+            </div>
+          ) : (
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-y border-gray-200 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                    <th className="px-5 py-3">Agent</th>
+                    <th className="px-5 py-3">Recorded</th>
+                    <th className="px-5 py-3">Statement</th>
+                    <th className="px-5 py-3">Reference</th>
+                    <th className="px-5 py-3">Status</th>
+                    <th className="px-5 py-3">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {payouts.map((p) => (
+                    <tr key={p.id} className="text-gray-600 transition-colors hover:bg-gray-50">
+                      <td className="px-5 py-3">
+                        <div className="font-medium text-gray-900">{p.agentName}</div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(p.paidAt).toLocaleDateString('en-ZA')} · {p.recordedBy}
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 font-semibold text-gray-900">{formatRand(p.amountCents)}</td>
+                      <td className="px-5 py-3">
+                        {p.statementAmountCents === null ? (
+                          <span className="text-gray-400">—</span>
+                        ) : (
+                          <>
+                            <div className="text-gray-900">{formatRand(p.statementAmountCents)}</div>
+                            {p.varianceCents !== null && p.varianceCents !== 0 && (
+                              <div className="text-xs font-semibold text-red-700">
+                                {p.varianceCents > 0 ? '+' : '−'}
+                                {formatRand(Math.abs(p.varianceCents))}
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </td>
+                      <td className="px-5 py-3 font-mono text-xs text-gray-700">
+                        {p.bankReference || p.reference || '—'}
+                      </td>
+                      <td className="px-5 py-3">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                            p.status === 'reconciled'
+                              ? 'bg-green-500/15 text-green-700'
+                              : p.status === 'disputed'
+                                ? 'bg-red-500/15 text-red-700'
+                                : 'bg-gray-200 text-gray-600'
+                          }`}
+                        >
+                          {p.status}
+                        </span>
+                        {p.reconciliationNote && (
+                          <div className="mt-1 max-w-[220px] text-xs text-gray-500">{p.reconciliationNote}</div>
+                        )}
+                      </td>
+                      <td className="px-5 py-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={busy}
+                          onClick={() => reconcile(p)}
+                          className="gap-1.5 border-gray-300 text-gray-700"
+                        >
+                          <CheckCheck className="h-4 w-4" />
+                          {p.status === 'recorded' ? 'Match' : 'Re-check'}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </AdminCard>
+
         <p className="px-1 text-xs text-gray-500">
-          Commission is 50% of each referred business&apos;s first payment, calculated
+          Commission is a share of each referred business&apos;s first payment, calculated
           from actual payments rather than stored — so it can never drift from the
           money that really moved. &ldquo;Record&rdquo; logs a payment you have already
           made; it does not transfer any funds.
