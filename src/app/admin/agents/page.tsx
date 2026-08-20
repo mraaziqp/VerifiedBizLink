@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, Loader2, UserPlus, Link2, Copy, Check, Wallet, TrendingUp,
-  Users, QrCode, Banknote,
+  Users, QrCode, Banknote, SlidersHorizontal, Download, Ban, RotateCcw, RefreshCw, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,9 @@ interface Agent {
   email: string;
   referralCode: string | null;
   isSuspended: boolean;
+  effectiveRate: number;
+  rateOverride: number | null;
+  notes: string;
   signups: number;
   sales: number;
   linkSignups: number;
@@ -38,6 +41,26 @@ interface PendingInvite {
   expiresAt: string;
 }
 
+interface Milestone {
+  sales: number;
+  name: string;
+  reward: string;
+}
+
+interface CommissionSettings {
+  defaultRate: number;
+  basis: 'first_payment' | 'every_payment';
+  milestones: Milestone[];
+}
+
+interface SettingsChange {
+  id: string;
+  changedBy: string;
+  createdAt: string;
+  oldValue: { defaultRate?: number } | null;
+  newValue: { defaultRate?: number };
+}
+
 export default function AdminAgentsPage() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [invites, setInvites] = useState<PendingInvite[]>([]);
@@ -47,6 +70,9 @@ export default function AdminAgentsPage() {
   const [showQr, setShowQr] = useState<string | null>(null);
   const [newInvite, setNewInvite] = useState({ fullName: '', email: '' });
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [settings, setSettings] = useState<CommissionSettings | null>(null);
+  const [ratePercent, setRatePercent] = useState('50');
+  const [history, setHistory] = useState<SettingsChange[]>([]);
   const { toast } = useToast();
 
   const fetchAgents = useCallback(async () => {
@@ -60,12 +86,27 @@ export default function AdminAgentsPage() {
     setInvites(data.pendingInvites || []);
   }, []);
 
+  const fetchSettings = useCallback(async () => {
+    const res = await fetch('/api/admin/commission-settings', { cache: 'no-store' });
+    if (!res.ok) throw new Error(`settings ${res.status}`);
+    return res.json();
+  }, []);
+
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const data = await fetchAgents();
-        if (active) apply(data);
+        const [agentData, settingsData] = await Promise.all([
+          fetchAgents(),
+          fetchSettings().catch(() => null),
+        ]);
+        if (!active) return;
+        apply(agentData);
+        if (settingsData?.settings) {
+          setSettings(settingsData.settings);
+          setRatePercent(String(Math.round(settingsData.settings.defaultRate * 100)));
+          setHistory(settingsData.history || []);
+        }
       } catch (e) {
         console.error('Failed to load agents:', e);
       } finally {
@@ -73,7 +114,101 @@ export default function AdminAgentsPage() {
       }
     })();
     return () => { active = false; };
-  }, [fetchAgents, apply]);
+  }, [fetchAgents, fetchSettings, apply]);
+
+  /** Saves the platform-wide scheme. Milestones are edited in place. */
+  const saveSettings = async (milestones?: Milestone[]) => {
+    setBusy(true);
+    try {
+      const res = await fetch('/api/admin/commission-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          defaultRatePercent: Number(ratePercent),
+          basis: settings?.basis ?? 'first_payment',
+          milestones: milestones ?? settings?.milestones ?? [],
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSettings(data.settings);
+        setRatePercent(String(Math.round(data.settings.defaultRate * 100)));
+        toast({ title: 'Scheme updated', description: data.message });
+        const [agentData, settingsData] = await Promise.all([fetchAgents(), fetchSettings()]);
+        apply(agentData);
+        setHistory(settingsData.history || []);
+      } else {
+        toast({ title: 'Could not save', description: data.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not save settings', variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Per-agent actions: rate override, notes, suspend, new code. */
+  const agentAction = async (agent: Agent, action: string, value?: string | null) => {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/agents/${agent.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, value }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({ title: 'Updated', description: data.message });
+        apply(await fetchAgents());
+      } else {
+        toast({ title: 'Could not update', description: data.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not update agent', variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const revokeInvite = async (invite: PendingInvite) => {
+    if (!window.confirm(`Withdraw the invite for ${invite.fullName}? Their link will stop working.`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/agents/${invite.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      toast({
+        title: res.ok ? 'Invite withdrawn' : 'Could not withdraw',
+        description: data.message || data.error,
+        variant: res.ok ? undefined : 'destructive',
+      });
+      if (res.ok) apply(await fetchAgents());
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** Payroll export — what Finance actually needs to pay people. */
+  const exportCsv = () => {
+    const header = ['Agent', 'Email', 'Code', 'Rate %', 'Sign-ups', 'Paid sales', 'Earned (R)', 'Paid (R)', 'Owed (R)'];
+    const rows = agents.map((a) => [
+      a.fullName, a.email, a.referralCode ?? '', Math.round(a.effectiveRate * 100),
+      a.signups, a.sales,
+      (a.commissionEarnedCents / 100).toFixed(2),
+      (a.commissionPaidCents / 100).toFixed(2),
+      (a.commissionOwedCents / 100).toFixed(2),
+    ]);
+    // Quote every field so names containing commas cannot shift columns.
+    const csv = [header, ...rows]
+      .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
+      .join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `commission-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const copy = async (value: string, id: string) => {
     try {
@@ -176,6 +311,132 @@ export default function AdminAgentsPage() {
           <StatCard label="Commission owed" value={formatRand(totals.owed)} icon={Wallet} gradient="from-amber-500 to-orange-500" loading={loading} />
         </div>
 
+        {/* Commission scheme — changeable on the fly, no deploy needed */}
+        <AdminCard>
+          <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-gray-900">
+            <SlidersHorizontal className="h-5 w-5 text-amber-600" /> Commission scheme
+          </h2>
+          <p className="mb-4 text-sm text-gray-500">
+            Applies to every agent who does not have their own negotiated rate.
+            Changes take effect immediately and are recorded below.
+          </p>
+
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <label htmlFor="rate" className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Commission rate
+              </label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="rate"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={ratePercent}
+                  onChange={(e) => setRatePercent(e.target.value)}
+                  className="w-28 border-gray-200 bg-white text-lg font-bold text-gray-900"
+                />
+                <span className="text-lg font-bold text-gray-500">%</span>
+              </div>
+            </div>
+            <div className="min-w-[220px] flex-1">
+              <p className="text-sm text-gray-600">
+                An agent earns{' '}
+                <span className="font-bold text-gray-900">{ratePercent || 0}%</span> of each
+                referred business&apos;s first payment. On a R99 tier that is{' '}
+                <span className="font-bold text-gray-900">
+                  {formatRand(Math.floor(9900 * ((Number(ratePercent) || 0) / 100)))}
+                </span>
+                .
+              </p>
+            </div>
+            <Button
+              onClick={() => saveSettings()}
+              disabled={busy || ratePercent === String(Math.round((settings?.defaultRate ?? 0.5) * 100))}
+              className="bg-yellow-500 text-slate-950 hover:bg-yellow-600"
+            >
+              {busy && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save rate
+            </Button>
+          </div>
+
+          {/* Targets */}
+          {settings && (
+            <div className="mt-6 border-t border-gray-200 pt-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Sales targets &amp; rewards
+              </p>
+              <div className="grid gap-3 sm:grid-cols-3">
+                {settings.milestones.map((m, i) => (
+                  <div key={i} className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={1}
+                        value={m.sales}
+                        onChange={(e) => {
+                          const next = [...settings.milestones];
+                          next[i] = { ...m, sales: Number(e.target.value) };
+                          setSettings({ ...settings, milestones: next });
+                        }}
+                        className="w-20 border-gray-200 bg-white text-gray-900"
+                      />
+                      <span className="text-sm text-gray-500">sales</span>
+                    </div>
+                    <Input
+                      value={m.name}
+                      placeholder="Tier name"
+                      onChange={(e) => {
+                        const next = [...settings.milestones];
+                        next[i] = { ...m, name: e.target.value };
+                        setSettings({ ...settings, milestones: next });
+                      }}
+                      className="mt-2 border-gray-200 bg-white text-gray-900"
+                    />
+                    <Input
+                      value={m.reward}
+                      placeholder="Reward"
+                      onChange={(e) => {
+                        const next = [...settings.milestones];
+                        next[i] = { ...m, reward: e.target.value };
+                        setSettings({ ...settings, milestones: next });
+                      }}
+                      className="mt-2 border-gray-200 bg-white text-gray-900"
+                    />
+                  </div>
+                ))}
+              </div>
+              <Button
+                variant="outline"
+                className="mt-3 border-gray-300"
+                disabled={busy}
+                onClick={() => saveSettings(settings.milestones)}
+              >
+                Save targets
+              </Button>
+            </div>
+          )}
+
+          {history.length > 0 && (
+            <div className="mt-5 border-t border-gray-200 pt-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                Recent changes
+              </p>
+              <ul className="space-y-1 text-sm text-gray-600">
+                {history.slice(0, 5).map((h) => (
+                  <li key={h.id}>
+                    <span className="text-gray-900">
+                      {Math.round((h.oldValue?.defaultRate ?? 0) * 100)}% →{' '}
+                      {Math.round((h.newValue?.defaultRate ?? 0) * 100)}%
+                    </span>{' '}
+                    by {h.changedBy} on {new Date(h.createdAt).toLocaleDateString('en-ZA')}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </AdminCard>
+
         {/* Hire a marketer */}
         <AdminCard>
           <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-gray-900">
@@ -234,6 +495,15 @@ export default function AdminAgentsPage() {
                     <span className="text-xs text-gray-400">
                       expires {new Date(i.expiresAt).toLocaleDateString('en-ZA')}
                     </span>
+                    <button
+                      type="button"
+                      title="Withdraw this invite"
+                      disabled={busy}
+                      onClick={() => revokeInvite(i)}
+                      className="text-gray-400 transition-colors hover:text-red-600 disabled:opacity-50"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -243,10 +513,19 @@ export default function AdminAgentsPage() {
 
         {/* The agents themselves */}
         <AdminCard className="overflow-hidden p-0">
-          <div className="p-5 pb-0 sm:p-6 sm:pb-0">
+          <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-0 sm:p-6 sm:pb-0">
             <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
               <Link2 className="h-5 w-5 text-amber-600" /> Agents &amp; referral links
             </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={exportCsv}
+              disabled={agents.length === 0}
+              className="gap-2 border-gray-300 text-gray-700"
+            >
+              <Download className="h-4 w-4" /> Export for payroll
+            </Button>
           </div>
 
           {loading ? (
@@ -267,9 +546,10 @@ export default function AdminAgentsPage() {
                     <th className="px-5 py-3">Referral link</th>
                     <th className="px-5 py-3">Sign-ups</th>
                     <th className="px-5 py-3">Paid sales</th>
+                    <th className="px-5 py-3">Rate</th>
                     <th className="px-5 py-3">Earned</th>
                     <th className="px-5 py-3">Owed</th>
-                    <th className="px-5 py-3">Payout</th>
+                    <th className="px-5 py-3">Manage</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
@@ -321,6 +601,30 @@ export default function AdminAgentsPage() {
                       </td>
                       <td className="px-5 py-3 font-semibold text-gray-900">{a.sales}</td>
                       <td className="px-5 py-3">
+                        <button
+                          type="button"
+                          title="Set a negotiated rate for this agent"
+                          disabled={busy}
+                          onClick={() => {
+                            const input = window.prompt(
+                              `Commission rate for ${a.fullName}, as a percentage.\n\n` +
+                                `Leave blank to use the platform default (${Math.round((settings?.defaultRate ?? 0.5) * 100)}%).`,
+                              a.rateOverride !== null ? String(Math.round(a.rateOverride * 100)) : '',
+                            );
+                            if (input === null) return;
+                            agentAction(a, 'set_rate', input.trim() === '' ? null : input.trim());
+                          }}
+                          className="rounded px-2 py-1 font-semibold text-gray-900 transition-colors hover:bg-gray-100"
+                        >
+                          {Math.round(a.effectiveRate * 100)}%
+                          {a.rateOverride !== null && (
+                            <span className="ml-1 rounded bg-indigo-500/15 px-1.5 py-0.5 text-[10px] font-semibold text-indigo-700">
+                              custom
+                            </span>
+                          )}
+                        </button>
+                      </td>
+                      <td className="px-5 py-3">
                         <div className="font-semibold text-gray-900">{formatRand(a.commissionEarnedCents)}</div>
                         <div className="text-xs text-gray-500">paid {formatRand(a.commissionPaidCents)}</div>
                       </td>
@@ -330,15 +634,48 @@ export default function AdminAgentsPage() {
                         </span>
                       </td>
                       <td className="px-5 py-3">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={busy || a.commissionOwedCents === 0}
-                          onClick={() => recordPayout(a)}
-                          className="gap-1.5 border-gray-300 text-gray-700"
-                        >
-                          <Banknote className="h-4 w-4" /> Record
-                        </Button>
+                        <div className="flex flex-wrap gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy || a.commissionOwedCents === 0}
+                            onClick={() => recordPayout(a)}
+                            className="gap-1.5 border-gray-300 text-gray-700"
+                          >
+                            <Banknote className="h-4 w-4" /> Pay
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy}
+                            title={a.isSuspended ? 'Reinstate this agent' : 'Suspend — their code stops crediting new signups'}
+                            onClick={() => {
+                              if (a.isSuspended) return agentAction(a, 'reinstate');
+                              const reason = window.prompt(
+                                `Suspend ${a.fullName}?\n\nTheir referral code stops crediting new signups and their sessions end. Existing records, commission and payouts are kept.\n\nReason (optional):`,
+                                '',
+                              );
+                              if (reason === null) return;
+                              agentAction(a, 'suspend', reason);
+                            }}
+                            className={`gap-1.5 border-gray-300 ${a.isSuspended ? 'text-green-700' : 'text-gray-700'}`}
+                          >
+                            {a.isSuspended ? <RotateCcw className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy}
+                            title="Issue a new referral code — the old link stops working"
+                            onClick={() => {
+                              if (!window.confirm(`Issue a new code for ${a.fullName}? Any link or QR already handed out will stop working.`)) return;
+                              agentAction(a, 'regenerate_code');
+                            }}
+                            className="gap-1.5 border-gray-300 text-gray-700"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

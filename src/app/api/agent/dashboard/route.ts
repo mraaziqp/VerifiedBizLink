@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import { AGENT_PORTAL_ROLES, ROLES, hasRole } from '@/lib/roles';
 import { commissionCents } from '@/lib/commission';
 import { referralLink, referralQrUrl } from '@/lib/agents';
+import { getCommissionSettings } from '@/lib/settings';
 import { appUrlFromRequest } from '@/lib/email';
 import db from '@/lib/db';
 
@@ -58,6 +59,16 @@ export async function GET(request: NextRequest) {
       ORDER BY b.created_at DESC
     `) as unknown as Row[];
 
+    // Resolved before the rows are mapped, because each signup's commission
+    // is calculated with it. A negotiated per-agent rate beats the default.
+    const settings = await getCommissionSettings();
+    const me = (await db`
+      SELECT referral_code, commission_rate_override FROM users WHERE id = ${agentId} LIMIT 1
+    `.catch(() => [])) as unknown as Row[];
+    const override = me[0]?.commission_rate_override;
+    const effectiveRate =
+      override !== null && override !== undefined ? Number(override) : settings.defaultRate;
+
     const signups = rows.map((r) => {
       const cents = Number(r.first_payment_cents) || 0;
       return {
@@ -72,7 +83,7 @@ export async function GET(request: NextRequest) {
         // A sign-up only becomes a "sale" once it has actually paid.
         converted: cents > 0,
         firstPaymentCents: cents,
-        commissionCents: commissionCents(cents),
+        commissionCents: commissionCents(cents, effectiveRate),
         reference: r.reference || null,
         paidAt: r.paid_at || null,
       };
@@ -81,9 +92,6 @@ export async function GET(request: NextRequest) {
     const converted = signups.filter((s) => s.converted);
 
     // The agent's own sharing kit and payout position.
-    const me = (await db`
-      SELECT referral_code FROM users WHERE id = ${agentId} LIMIT 1
-    `.catch(() => [])) as unknown as Row[];
     const code = (me[0]?.referral_code as string) || null;
     const base = appUrlFromRequest(request);
     const link = code ? referralLink(base, code) : null;
@@ -96,6 +104,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       agentId,
+      scheme: {
+        ratePercent: Math.round(effectiveRate * 100),
+        milestones: settings.milestones,
+      },
       referral: {
         code,
         link,

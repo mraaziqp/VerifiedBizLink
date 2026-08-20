@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import db from '@/lib/db';
 import { commissionCents } from '@/lib/commission';
+import { getCommissionSettings } from '@/lib/settings';
 
 /**
  * Sales agent programme: referral codes, invite tokens, and the commission
@@ -78,6 +79,11 @@ export interface AgentSummary {
   commissionEarnedCents: number;
   commissionPaidCents: number;
   commissionOwedCents: number;
+  /** The rate actually applied to this agent, 0–1. */
+  effectiveRate: number;
+  /** Non-null when this agent has a negotiated rate of their own. */
+  rateOverride: number | null;
+  notes: string;
 }
 
 type Row = Record<string, unknown>;
@@ -86,10 +92,16 @@ type Row = Record<string, unknown>;
  * Every agent with their production figures.
  *
  * `sales` counts only businesses whose owner has actually paid — commission
- * is 50% of that first payment, so an unpaid signup earns nothing yet and is
- * reported separately rather than being quietly counted.
+ * is earned on that first payment, so an unpaid signup earns nothing yet and
+ * is reported separately rather than being quietly counted.
+ *
+ * The rate comes from platform settings, with a per-agent override taking
+ * precedence, so a negotiated rate is honoured everywhere at once.
  */
 export async function getAgentSummaries(): Promise<AgentSummary[]> {
+  // The platform rate, and any per-agent rate negotiated on top of it.
+  const settings = await getCommissionSettings();
+
   const rows = (await db`
     WITH first_payment AS (
       SELECT DISTINCT ON (p.user_id)
@@ -113,6 +125,7 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
     )
     SELECT
       u.id, u.full_name, u.email, u.referral_code, u.is_suspended, u.created_at,
+      u.commission_rate_override, u.agent_notes,
       COUNT(a.agent_id)::int                                              AS signups,
       COUNT(*) FILTER (WHERE a.first_payment_cents > 0)::int              AS sales,
       COUNT(*) FILTER (WHERE a.referral_code IS NOT NULL)::int            AS link_signups,
@@ -122,7 +135,8 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
     LEFT JOIN attributed a ON a.agent_id = u.id
     LEFT JOIN paid p ON p.agent_id = u.id
     WHERE u.role = 'sales_agent'
-    GROUP BY u.id, u.full_name, u.email, u.referral_code, u.is_suspended, u.created_at, p.paid_cents
+    GROUP BY u.id, u.full_name, u.email, u.referral_code, u.is_suspended, u.created_at,
+             u.commission_rate_override, u.agent_notes, p.paid_cents
     ORDER BY u.full_name ASC
   `) as unknown as Row[];
 
@@ -134,16 +148,21 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
       FROM payments p WHERE p.status = 'completed'
       ORDER BY p.user_id, COALESCE(p.completed_at, p.created_at) ASC
     )
-    SELECT b.assisted_by_user_id AS agent_id, fp.amount AS cents
+    SELECT b.assisted_by_user_id AS agent_id, fp.amount AS cents,
+           ag.commission_rate_override AS rate_override
     FROM businesses b
     JOIN first_payment fp ON fp.user_id = b.user_id
+    JOIN users ag ON ag.id = b.assisted_by_user_id
     WHERE b.assisted_by_user_id IS NOT NULL
   `) as unknown as Row[];
 
   const earned = new Map<string, number>();
   for (const r of perAgentEarned) {
     const id = String(r.agent_id);
-    earned.set(id, (earned.get(id) || 0) + commissionCents(Number(r.cents) || 0));
+    const rate = r.rate_override !== null && r.rate_override !== undefined
+      ? Number(r.rate_override)
+      : settings.defaultRate;
+    earned.set(id, (earned.get(id) || 0) + commissionCents(Number(r.cents) || 0, rate));
   }
 
   return rows.map((r) => {
@@ -164,6 +183,15 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
       commissionEarnedCents: earnedCents,
       commissionPaidCents: paidCents,
       commissionOwedCents: Math.max(0, earnedCents - paidCents),
+      effectiveRate:
+        r.commission_rate_override !== null && r.commission_rate_override !== undefined
+          ? Number(r.commission_rate_override)
+          : settings.defaultRate,
+      rateOverride:
+        r.commission_rate_override !== null && r.commission_rate_override !== undefined
+          ? Number(r.commission_rate_override)
+          : null,
+      notes: String(r.agent_notes || ''),
     };
   });
 }

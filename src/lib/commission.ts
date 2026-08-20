@@ -7,18 +7,32 @@
  * `Math.round(amount * 100)`); converting to rand happens only at display.
  */
 
-/** An agent earns half of the first payment the business they signed up makes. */
-export const COMMISSION_RATE = 0.5;
+/**
+ * Fallback rate, used only when settings cannot be read.
+ *
+ * The live rate is editable in Admin > Sales Agents and stored in
+ * platform_settings; an individual agent can also carry a negotiated
+ * override. Nothing should read this constant to decide a payout — take the
+ * rate from settings and pass it in, so a rate change reaches every screen at
+ * once instead of some of them.
+ */
+export const DEFAULT_COMMISSION_RATE = 0.5;
 
 /**
- * Commission on a single first payment, in cents.
+ * Commission on a qualifying payment, in cents.
  *
- * Rounded down so the platform never over-pays by a fraction of a cent, and
- * so the total of many commissions can never exceed half of total revenue.
+ * The rate is an explicit argument rather than a module constant so a caller
+ * cannot silently assume 50% after the business has agreed something else.
+ * Rounded down, so many small commissions can never sum to more than the
+ * agreed share of revenue.
  */
-export function commissionCents(firstPaymentCents: number): number {
-  if (!Number.isFinite(firstPaymentCents) || firstPaymentCents <= 0) return 0;
-  return Math.floor(firstPaymentCents * COMMISSION_RATE);
+export function commissionCents(
+  paymentCents: number,
+  rate: number = DEFAULT_COMMISSION_RATE,
+): number {
+  if (!Number.isFinite(paymentCents) || paymentCents <= 0) return 0;
+  const safeRate = Number.isFinite(rate) && rate >= 0 && rate <= 1 ? rate : DEFAULT_COMMISSION_RATE;
+  return Math.floor(paymentCents * safeRate);
 }
 
 export interface Milestone {
@@ -30,34 +44,36 @@ export interface Milestone {
 }
 
 /**
- * The target ladder shown in the portal. These reward strings are the only
- * place the scheme is defined — change them here and the UI follows.
+ * Fallback ladder, used only if settings cannot be read. The live ladder is
+ * editable in Admin > Sales Agents; these functions all take the ladder as an
+ * argument so a screen can never render targets that differ from the ones
+ * being paid against.
  */
-export const MILESTONES: Milestone[] = [
+export const DEFAULT_MILESTONES: Milestone[] = [
   { sales: 5, name: 'Bronze', reward: 'Free lunch' },
   { sales: 20, name: 'Silver', reward: 'Half-day off' },
   { sales: 25, name: 'Gold', reward: 'Bonus payout' },
 ];
 
 /** Highest milestone the agent has already reached, or null. */
-export function currentMilestone(sales: number): Milestone | null {
+export function currentMilestone(sales: number, ladder: Milestone[] = DEFAULT_MILESTONES): Milestone | null {
   let reached: Milestone | null = null;
-  for (const m of MILESTONES) {
+  for (const m of ladder) {
     if (sales >= m.sales) reached = m;
   }
   return reached;
 }
 
 /** The next milestone still to hit, or null once every target is cleared. */
-export function nextMilestone(sales: number): Milestone | null {
-  return MILESTONES.find((m) => sales < m.sales) ?? null;
+export function nextMilestone(sales: number, ladder: Milestone[] = DEFAULT_MILESTONES): Milestone | null {
+  return ladder.find((m) => sales < m.sales) ?? null;
 }
 
 /** Progress toward the next milestone as a 0-100 percentage. */
-export function progressToNext(sales: number): number {
-  const next = nextMilestone(sales);
+export function progressToNext(sales: number, ladder: Milestone[] = DEFAULT_MILESTONES): number {
+  const next = nextMilestone(sales, ladder);
   if (!next) return 100;
-  const previous = currentMilestone(sales)?.sales ?? 0;
+  const previous = currentMilestone(sales, ladder)?.sales ?? 0;
   const span = next.sales - previous;
   if (span <= 0) return 100;
   return Math.min(100, Math.max(0, Math.round(((sales - previous) / span) * 100)));

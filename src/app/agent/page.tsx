@@ -12,7 +12,8 @@ import { useAuth } from '@/contexts/auth-context';
 import { GlassBackground, GlassCard, GlassPageHeader, SectionTitle, StatCard } from '@/components/shared/glass-ui';
 import { AGENT_PORTAL_ROLES, hasRole } from '@/lib/roles';
 import {
-  MILESTONES, COMMISSION_RATE, currentMilestone, nextMilestone, progressToNext, formatRand,
+  DEFAULT_MILESTONES, DEFAULT_COMMISSION_RATE, currentMilestone, nextMilestone,
+  progressToNext, formatRand, type Milestone,
 } from '@/lib/commission';
 
 interface Signup {
@@ -64,6 +65,12 @@ export default function AgentPortalPage() {
   const [totals, setTotals] = useState<Totals | null>(null);
   const [signups, setSignups] = useState<Signup[]>([]);
   const [referral, setReferral] = useState<Referral | null>(null);
+  // The live scheme, so a rate or target change in admin reaches this page
+  // without a deploy. Falls back to the documented defaults if it is absent.
+  const [scheme, setScheme] = useState<{ ratePercent: number; milestones: Milestone[] }>({
+    ratePercent: Math.round(DEFAULT_COMMISSION_RATE * 100),
+    milestones: DEFAULT_MILESTONES,
+  });
   const [paidCents, setPaidCents] = useState(0);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -86,6 +93,7 @@ export default function AgentPortalPage() {
           setTotals(data.totals);
           setSignups(data.signups || []);
           setReferral(data.referral ?? null);
+          if (data.scheme) setScheme(data.scheme);
           setPaidCents(Number(data.payouts?.paidCents) || 0);
         }
       } catch (e) {
@@ -106,15 +114,15 @@ export default function AgentPortalPage() {
   }
 
   const sales = totals?.sales ?? 0;
-  const reached = currentMilestone(sales);
-  const next = nextMilestone(sales);
-  const progress = progressToNext(sales);
+  const reached = currentMilestone(sales, scheme.milestones);
+  const next = nextMilestone(sales, scheme.milestones);
+  const progress = progressToNext(sales, scheme.milestones);
 
   return (
     <GlassBackground>
       <GlassPageHeader
         title="Sales Portal"
-        subtitle={`${user.fullName || user.email} — commission is ${Math.round(COMMISSION_RATE * 100)}% of each business's first payment`}
+        subtitle={`${user.fullName || user.email} — commission is ${scheme.ratePercent}% of each business's first payment`}
       >
         <Button variant="outline" size="sm" className="gap-2 border-gray-300 text-gray-600" onClick={logout}>
           <LogOut className="h-4 w-4" /> Sign out
@@ -222,7 +230,7 @@ export default function AgentPortalPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {MILESTONES.map((m) => {
+            {scheme.milestones.map((m: Milestone) => {
               const hit = sales >= m.sales;
               return (
                 <div
