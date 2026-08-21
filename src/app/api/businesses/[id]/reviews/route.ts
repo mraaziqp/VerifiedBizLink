@@ -74,8 +74,8 @@ export async function POST(
 ) {
   try {
     const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: 'Must be signed in to leave a review' }, { status: 401 });
+    if (!session || session.role !== 'customer') {
+      return NextResponse.json({ error: 'Only customers can leave reviews' }, { status: 403 });
     }
 
     const { id } = await params;
@@ -96,7 +96,7 @@ export async function POST(
     }
 
     // Prevent reviewing own business
-    const [biz] = await db`SELECT user_id FROM businesses WHERE id = ${id}`;
+    const [biz] = await db`SELECT user_id, assisted_by_user_id FROM businesses WHERE id = ${id}`;
     if (!biz) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
@@ -129,6 +129,11 @@ export async function POST(
         ${`${session.fullName} left you a ${rating}-star review: "${title.trim()}"`}
       )
     `.catch(() => null);
+
+    if (biz.assisted_by_user_id) {
+      const { logAgentActivity } = await import('@/lib/agents');
+      await logAgentActivity(biz.assisted_by_user_id, 'review_received', `${session.fullName} left a ${rating}-star review`, biz.user_id).catch(() => null);
+    }
 
     return NextResponse.json({
       review: {

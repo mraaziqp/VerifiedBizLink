@@ -93,9 +93,10 @@ export async function POST(request: NextRequest) {
     const verificationToken = crypto.randomUUID();
     const verificationTokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    let userRole = 'user';
-    let headline = 'Professional';
+    let userRole = 'customer';
+    let headline = 'Member';
     if (role === 'business') { userRole = 'business'; headline = `Owner at ${companyName || 'Company'}`; }
+    if (role === 'customer') { userRole = 'customer'; headline = 'Member'; }
 
     const newUsers = await db`
       INSERT INTO users (email, password_hash, full_name, role, headline, avatar_url, email_verification_token, email_verification_token_expires_at, date_of_birth)
@@ -137,7 +138,7 @@ export async function POST(request: NextRequest) {
       if (code) {
         const agent = await db`
           SELECT id, full_name FROM users
-          WHERE referral_code = ${code}
+          WHERE LOWER(referral_code) = ${code.toLowerCase()}
             AND role = 'sales_agent'
             AND is_suspended IS NOT TRUE
           LIMIT 1
@@ -173,6 +174,12 @@ export async function POST(request: NextRequest) {
         )
         ON CONFLICT DO NOTHING
       `;
+
+      // Log signup for attributed agent
+      if (agentId) {
+        const { logAgentActivity } = await import('@/lib/agents');
+        await logAgentActivity(agentId, 'signup', `${companyName} signed up (${agentName || 'via link'})`, user.id).catch(() => {});
+      }
     }
 
     // Send verification email (non-blocking — don't fail signup if email fails,

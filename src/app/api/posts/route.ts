@@ -43,6 +43,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const allowedPostRoles = ['business', 'admin', 'banker', 'lawyer', 'finance_admin', 'compliance_admin'];
+    if (!allowedPostRoles.includes(session.role)) {
+      return NextResponse.json({ error: 'Only business accounts can create posts' }, { status: 403 });
+    }
+
     const { content, image_url, video_url } = await request.json();
     if (!content?.trim()) {
       return NextResponse.json({ error: 'Content is required' }, { status: 400 });

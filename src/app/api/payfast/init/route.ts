@@ -43,6 +43,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Verification fee is a one-time payment, not a subscription
+    if (purchaseType === 'verification_fee') {
+      const [biz] = await db`SELECT verification_paid FROM businesses WHERE user_id = ${session.id} LIMIT 1`;
+      if (biz?.verification_paid) {
+        return NextResponse.json({ error: 'Your business is already verified.' }, { status: 409 });
+      }
+    }
+
     const paymentRef = `VBL-${Date.now()}-${session.id.substring(0, 8)}`;
     const amountCents = Math.round(amount * 100);
 

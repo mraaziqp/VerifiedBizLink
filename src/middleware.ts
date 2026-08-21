@@ -118,7 +118,7 @@ const PUBLIC_BUSINESS_API = new RegExp(`^/api/businesses/${UUID}(/reviews(/${UUI
 // Vetting Hub to actually submit business documents) without being able to
 // wander into the rest of the app and publish anything. Staff are exempt
 // (provisioned directly, not through the public signup+verify flow).
-const UNVERIFIED_ALLOWED_PREFIXES = ['/settings', '/onboarding', '/vetting'];
+const UNVERIFIED_ALLOWED_PREFIXES = ['/settings', '/onboarding', '/vetting', '/business/verify'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

@@ -13,10 +13,24 @@ import { getCommissionSettings } from '@/lib/settings';
  * moved. Only what has genuinely been PAID is recorded, in commission_payouts.
  */
 
+/**
+ * Generates a referral code from the agent's full name.
+ *
+ * The code is the agent's name with spaces, special chars stripped, and
+ * lowercased. e.g. "Mohammed Parker" -> "mohammedparker"
+ */
+export function generateNameBasedCode(fullName: string): string {
+  return fullName
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 30) || 'agent';
+}
+
 /** No O/0 or I/1 — these codes get read aloud and written on paper. */
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_LENGTH = 6;
 
+/** Legacy random code generator — kept for backward compatibility. */
 export function generateReferralCode(): string {
   let out = '';
   while (out.length < CODE_LENGTH) {
@@ -29,8 +43,32 @@ export function generateReferralCode(): string {
   return out;
 }
 
-/** Allocates a code that is not already taken. */
-export async function allocateReferralCode(): Promise<string> {
+/**
+ * Allocates a name-based referral code that is not already taken.
+ * Falls back to adding numeric suffixes for collisions.
+ */
+export async function allocateReferralCode(fullName?: string): Promise<string> {
+  if (fullName) {
+    const base = generateNameBasedCode(fullName);
+    if (base.length >= 3) {
+      // Try the name as-is first
+      const clash0 = (await db`
+        SELECT 1 FROM users WHERE LOWER(referral_code) = ${base} LIMIT 1
+      `) as unknown as unknown[];
+      if (clash0.length === 0) return base;
+
+      // Try with numeric suffixes
+      for (let i = 2; i <= 20; i++) {
+        const candidate = `${base}${i}`;
+        const clash = (await db`
+          SELECT 1 FROM users WHERE LOWER(referral_code) = ${candidate} LIMIT 1
+        `) as unknown as unknown[];
+        if (clash.length === 0) return candidate;
+      }
+    }
+  }
+
+  // Fallback to random code if name-based fails
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const code = generateReferralCode();
     const clash = (await db`
@@ -64,6 +102,27 @@ export function generateInviteToken(): string {
 }
 
 export const INVITE_TTL_DAYS = 14;
+
+/**
+ * Logs an activity event for a sales agent.
+ * Non-blocking — failures are logged but never throw.
+ */
+export async function logAgentActivity(
+  agentId: string,
+  eventType: string,
+  description: string,
+  businessId?: string | null,
+  metadata?: Record<string, unknown>,
+): Promise<void> {
+  try {
+    await db`
+      INSERT INTO agent_activity_log (agent_id, event_type, business_id, description, metadata)
+      VALUES (${agentId}, ${eventType}, ${businessId || null}, ${description}, ${JSON.stringify(metadata || {})}::jsonb)
+    `;
+  } catch (err) {
+    console.error('Agent activity log write failed:', err);
+  }
+}
 
 export interface AgentSummary {
   id: string;

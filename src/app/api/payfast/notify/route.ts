@@ -253,6 +253,25 @@ export async function POST(request: NextRequest) {
           `.catch(err => console.log('Ad credit top-up note:', err.message));
           grantMessage = `${creditDays} ad-day credit${creditDays === 1 ? '' : 's'} added to your account.`;
         }
+      } else if (purchaseType === 'verification_fee') {
+        const paidAmount = parseFloat(payfastData.amount_gross as string);
+        if (Number.isFinite(paidAmount) && paidAmount >= 49 - 0.01) {
+          await db`
+            UPDATE businesses SET verification_paid = TRUE, verification_paid_at = NOW(), updated_at = NOW()
+            WHERE user_id = ${userId}
+          `.catch(err => console.log('Verification fee update note:', err.message));
+          grantMessage = 'Your business has been verified! The verified badge is now active on your profile.';
+
+          // Log for attributed agent
+          const [biz] = await db`SELECT assisted_by_user_id FROM businesses WHERE user_id = ${userId} LIMIT 1`.catch(() => []);
+          if (biz?.assisted_by_user_id) {
+            const { logAgentActivity } = await import('@/lib/agents');
+            await logAgentActivity(biz.assisted_by_user_id, 'verification_paid', 'Business paid R49 verification fee', userId).catch(() => {});
+          }
+        } else {
+          console.error(`Blocked verification fee: paid R${paidAmount}, requires R49`, { userId, paymentRef });
+          grantMessage = 'Your payment was received, but the amount did not match the verification fee. Please contact support.';
+        }
       }
 
       // Create notification

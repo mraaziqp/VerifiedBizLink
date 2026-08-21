@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     const rawToken = generateInviteToken();
-    const code = await allocateReferralCode();
+    const code = await allocateReferralCode(name);
     const expires = new Date(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000);
 
     await db`

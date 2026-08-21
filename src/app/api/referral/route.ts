@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const rows = (await db`
       SELECT id, full_name
       FROM users
-      WHERE referral_code = ${code}
+      WHERE LOWER(referral_code) = ${code.toLowerCase()}
         AND role = ${ROLES.SALES_AGENT}
         AND is_suspended IS NOT TRUE
       LIMIT 1

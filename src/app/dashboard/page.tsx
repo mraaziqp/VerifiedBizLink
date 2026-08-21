@@ -12,6 +12,8 @@ import {
   MessageSquare,
   Users,
   Compass,
+  Heart,
+  Star,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -189,7 +191,7 @@ export default function Dashboard() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <Link href="/dashboard/profile">
-            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group">
+            <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group h-full">
               <div className="bg-white/20 p-3 rounded-lg w-fit group-hover:scale-110 transition-transform">
                 <User className="h-6 w-6" />
               </div>
@@ -198,28 +200,54 @@ export default function Dashboard() {
             </div>
           </Link>
 
-          <Link href="/dashboard/posts">
-            <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group">
-              <div className="bg-white/20 p-3 rounded-lg w-fit group-hover:scale-110 transition-transform">
-                <MessageSquare className="h-6 w-6" />
-              </div>
-              <h3 className="text-lg font-bold mt-4">Posts</h3>
-              <p className="text-purple-100 text-sm mt-1">Manage your content</p>
-            </div>
-          </Link>
+          {user?.role === 'customer' ? (
+            <>
+              <Link href="/dashboard/favorites">
+                <div className="bg-gradient-to-br from-pink-500 to-pink-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group h-full">
+                  <div className="bg-white/20 p-3 rounded-lg w-fit group-hover:scale-110 transition-transform">
+                    <Heart className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-bold mt-4">Favorites</h3>
+                  <p className="text-pink-100 text-sm mt-1">Saved businesses</p>
+                </div>
+              </Link>
 
-          <Link href="/network">
-            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group">
-              <div className="bg-white/20 p-3 rounded-lg w-fit group-hover:scale-110 transition-transform">
-                <Users className="h-6 w-6" />
-              </div>
-              <h3 className="text-lg font-bold mt-4">My Network</h3>
-              <p className="text-emerald-100 text-sm mt-1">Connections &amp; requests</p>
-            </div>
-          </Link>
+              <Link href="/dashboard/reviews">
+                <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group h-full">
+                  <div className="bg-white/20 p-3 rounded-lg w-fit group-hover:scale-110 transition-transform">
+                    <Star className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-bold mt-4">My Reviews</h3>
+                  <p className="text-indigo-100 text-sm mt-1">Your feedback</p>
+                </div>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link href="/dashboard/posts">
+                <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group h-full">
+                  <div className="bg-white/20 p-3 rounded-lg w-fit group-hover:scale-110 transition-transform">
+                    <MessageSquare className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-bold mt-4">Posts</h3>
+                  <p className="text-purple-100 text-sm mt-1">Manage your content</p>
+                </div>
+              </Link>
+
+              <Link href="/network">
+                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group h-full">
+                  <div className="bg-white/20 p-3 rounded-lg w-fit group-hover:scale-110 transition-transform">
+                    <Users className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-bold mt-4">My Network</h3>
+                  <p className="text-emerald-100 text-sm mt-1">Connections &amp; requests</p>
+                </div>
+              </Link>
+            </>
+          )}
 
           <Link href="/explore">
-            <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group">
+            <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl p-6 text-white cursor-pointer hover:shadow-lg transition-all hover:-translate-y-1 group h-full">
               <div className="bg-white/20 p-3 rounded-lg w-fit group-hover:scale-110 transition-transform">
                 <Compass className="h-6 w-6" />
               </div>

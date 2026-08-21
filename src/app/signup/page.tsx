@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   ShieldCheck, Building2, Loader2,
-  Lock, Eye, EyeOff, CheckCircle2, Circle,
+  Lock, Eye, EyeOff, CheckCircle2, Circle, User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ type AccountRole = "customer" | "business";
 // Customer signups are paused until the business directory is populated —
 // only business accounts can register for now.
 const ROLES: { value: AccountRole; label: string; icon: React.ElementType; desc: string }[] = [
+  { value: "customer", label: "Customer", icon: User, desc: "Browse and review verified businesses" },
   { value: "business", label: "Business", icon: Building2, desc: "Set up your company profile for review" },
 ];
 
@@ -39,7 +40,7 @@ const strengthLabel = ["", "Very Weak", "Weak", "Fair", "Good", "Strong"];
 const strengthColor = ["", "bg-red-500", "bg-orange-400", "bg-yellow-400", "bg-lime-500", "bg-green-500"];
 
 export default function SignupPage() {
-  const [role, setRole] = useState<AccountRole>("business");
+  const [role, setRole] = useState<AccountRole>("customer");
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -277,159 +278,161 @@ export default function SignupPage() {
               </div>
 
               {/* Business fields */}
-              <div className="space-y-4 p-4 rounded-2xl border border-blue-100 bg-blue-50/50">
-                <p className="text-xs font-bold text-blue-700 uppercase tracking-wider flex items-center gap-2">
-                  <Building2 className="h-3.5 w-3.5" /> Business Details
-                </p>
-                <div className="space-y-1.5">
-                  <Label htmlFor="company-name" className="text-sm font-semibold text-gray-700">Company Name</Label>
-                  <Input
-                    id="company-name"
-                    required
-                    placeholder="Acme Corp Pty Ltd"
-                    className="h-11 rounded-xl border-gray-200 bg-white"
-                    value={formData.companyName}
-                    onChange={(e) => update("companyName", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="reg-number" className="text-sm font-semibold text-gray-700">CIPC Registration Number</Label>
-                  <Input
-                    id="reg-number"
-                    required
-                    placeholder="2024/123456/07"
-                    className="h-11 rounded-xl border-gray-200 bg-white"
-                    value={formData.regNumber}
-                    onChange={(e) => update("regNumber", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="industry" className="text-sm font-semibold text-gray-700">Category</Label>
-                  <select
-                    id="industry"
-                    required
-                    className="w-full h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm"
-                    value={formData.industry}
-                    onChange={(e) => update("industry", e.target.value)}
-                  >
-                    <option value="">Select a category</option>
-                    {BUSINESS_CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-400">Helps customers find you when browsing by category.</p>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-gray-700">Assisted Sign Up?</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => update("assistedSignup", false)}
-                      className={cn(
-                        "h-11 rounded-xl border-2 text-sm font-bold transition-all",
-                        !formData.assistedSignup
-                          ? "border-yellow-400 bg-yellow-50 text-gray-900"
-                          : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300"
-                      )}
-                    >
-                      No
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => update("assistedSignup", true)}
-                      className={cn(
-                        "h-11 rounded-xl border-2 text-sm font-bold transition-all",
-                        formData.assistedSignup
-                          ? "border-yellow-400 bg-yellow-50 text-gray-900"
-                          : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300"
-                      )}
-                    >
-                      Yes
-                    </button>
+              {role === "business" && (
+                <div className="space-y-4 p-4 rounded-2xl border border-blue-100 bg-blue-50/50">
+                  <p className="text-xs font-bold text-blue-700 uppercase tracking-wider flex items-center gap-2">
+                    <Building2 className="h-3.5 w-3.5" /> Business Details
+                  </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="company-name" className="text-sm font-semibold text-gray-700">Company Name</Label>
+                    <Input
+                      id="company-name"
+                      required
+                      placeholder="Acme Corp Pty Ltd"
+                      className="h-11 rounded-xl border-gray-200 bg-white"
+                      value={formData.companyName}
+                      onChange={(e) => update("companyName", e.target.value)}
+                    />
                   </div>
-                  {/* Arrived via an agent's link or QR — attribution is already
-                      settled, so the manual picker would only invite mistakes. */}
-                  {referral && (
-                    <div className="mt-2 rounded-xl border border-green-200 bg-green-50 p-3">
-                      <p className="text-sm font-semibold text-green-800">
-                        Referred by {referral.agentName}
-                      </p>
-                      <p className="mt-0.5 text-xs text-green-700">
-                        Your sign up will be credited to them automatically. Code {referral.code}.
-                      </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="reg-number" className="text-sm font-semibold text-gray-700">CIPC Registration Number</Label>
+                    <Input
+                      id="reg-number"
+                      required
+                      placeholder="2024/123456/07"
+                      className="h-11 rounded-xl border-gray-200 bg-white"
+                      value={formData.regNumber}
+                      onChange={(e) => update("regNumber", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="industry" className="text-sm font-semibold text-gray-700">Category</Label>
+                    <select
+                      id="industry"
+                      required
+                      className="w-full h-11 rounded-xl border border-gray-200 bg-white px-3 text-sm"
+                      value={formData.industry}
+                      onChange={(e) => update("industry", e.target.value)}
+                    >
+                      <option value="">Select a category</option>
+                      {BUSINESS_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-400">Helps customers find you when browsing by category.</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-gray-700">Assisted Sign Up?</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => update("assistedSignup", false)}
+                        className={cn(
+                          "h-11 rounded-xl border-2 text-sm font-bold transition-all",
+                          !formData.assistedSignup
+                            ? "border-yellow-400 bg-yellow-50 text-gray-900"
+                            : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300"
+                        )}
+                      >
+                        No
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => update("assistedSignup", true)}
+                        className={cn(
+                          "h-11 rounded-xl border-2 text-sm font-bold transition-all",
+                          formData.assistedSignup
+                            ? "border-yellow-400 bg-yellow-50 text-gray-900"
+                            : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300"
+                        )}
+                      >
+                        Yes
+                      </button>
                     </div>
-                  )}
-                  {formData.assistedSignup && !referral && (
-                    <div className="pt-1.5">
-                      <Label htmlFor="assisted-by" className="text-sm font-semibold text-gray-700">Assisted By</Label>
-                      {agents.length > 0 ? (
-                        <>
-                          {/* Picking a real agent records assisted_by_user_id,
-                              which is what commission is calculated from. A
-                              typed name alone can never be paid out on. */}
-                          <select
+                    {/* Arrived via an agent's link or QR — attribution is already
+                        settled, so the manual picker would only invite mistakes. */}
+                    {referral && (
+                      <div className="mt-2 rounded-xl border border-green-200 bg-green-50 p-3">
+                        <p className="text-sm font-semibold text-green-800">
+                          Referred by {referral.agentName}
+                        </p>
+                        <p className="mt-0.5 text-xs text-green-700">
+                          Your sign up will be credited to them automatically. Code {referral.code}.
+                        </p>
+                      </div>
+                    )}
+                    {formData.assistedSignup && !referral && (
+                      <div className="pt-1.5">
+                        <Label htmlFor="assisted-by" className="text-sm font-semibold text-gray-700">Assisted By</Label>
+                        {agents.length > 0 ? (
+                          <>
+                            {/* Picking a real agent records assisted_by_user_id,
+                                which is what commission is calculated from. A
+                                typed name alone can never be paid out on. */}
+                            <select
+                              id="assisted-by"
+                              required
+                              className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 mt-1.5 text-sm text-gray-900"
+                              value={formData.assistedByUserId}
+                              onChange={(e) => {
+                                const picked = agents.find((a) => a.id === e.target.value);
+                                update("assistedByUserId", e.target.value);
+                                update("assistedBy", picked?.name ?? "");
+                              }}
+                            >
+                              <option value="">Select the agent who assisted…</option>
+                              {agents.map((a) => (
+                                <option key={a.id} value={a.id}>{a.name}</option>
+                              ))}
+                            </select>
+                          </>
+                        ) : (
+                          <Input
                             id="assisted-by"
                             required
-                            className="h-11 w-full rounded-xl border border-gray-200 bg-white px-3 mt-1.5 text-sm text-gray-900"
-                            value={formData.assistedByUserId}
-                            onChange={(e) => {
-                              const picked = agents.find((a) => a.id === e.target.value);
-                              update("assistedByUserId", e.target.value);
-                              update("assistedBy", picked?.name ?? "");
-                            }}
-                          >
-                            <option value="">Select the agent who assisted…</option>
-                            {agents.map((a) => (
-                              <option key={a.id} value={a.id}>{a.name}</option>
-                            ))}
-                          </select>
-                        </>
-                      ) : (
-                        <Input
-                          id="assisted-by"
-                          required
-                          placeholder="Agent name or number"
-                          className="h-11 rounded-xl border-gray-200 bg-white mt-1.5"
-                          value={formData.assistedBy}
-                          onChange={(e) => update("assistedBy", e.target.value)}
-                        />
-                      )}
-                    </div>
-                  )}
+                            placeholder="Agent name or number"
+                            className="h-11 rounded-xl border-gray-200 bg-white mt-1.5"
+                            value={formData.assistedBy}
+                            onChange={(e) => update("assistedBy", e.target.value)}
+                          />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="website" className="text-sm font-semibold text-gray-700">Website <span className="font-normal text-gray-400">(optional)</span></Label>
+                    <Input
+                      id="website"
+                      type="url"
+                      placeholder="https://yourcompany.co.za"
+                      className="h-11 rounded-xl border-gray-200 bg-white"
+                      value={formData.website}
+                      onChange={(e) => update("website", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold text-gray-700">Social Media <span className="font-normal text-gray-400">(optional)</span></Label>
+                    <Input
+                      placeholder="LinkedIn URL or handle"
+                      className="h-11 rounded-xl border-gray-200 bg-white"
+                      value={formData.linkedin}
+                      onChange={(e) => update("linkedin", e.target.value)}
+                    />
+                    <Input
+                      placeholder="Instagram @handle"
+                      className="h-11 rounded-xl border-gray-200 bg-white"
+                      value={formData.instagram}
+                      onChange={(e) => update("instagram", e.target.value)}
+                    />
+                    <Input
+                      placeholder="Facebook page URL or handle"
+                      className="h-11 rounded-xl border-gray-200 bg-white"
+                      value={formData.facebook}
+                      onChange={(e) => update("facebook", e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="website" className="text-sm font-semibold text-gray-700">Website <span className="font-normal text-gray-400">(optional)</span></Label>
-                  <Input
-                    id="website"
-                    type="url"
-                    placeholder="https://yourcompany.co.za"
-                    className="h-11 rounded-xl border-gray-200 bg-white"
-                    value={formData.website}
-                    onChange={(e) => update("website", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-gray-700">Social Media <span className="font-normal text-gray-400">(optional)</span></Label>
-                  <Input
-                    placeholder="LinkedIn URL or handle"
-                    className="h-11 rounded-xl border-gray-200 bg-white"
-                    value={formData.linkedin}
-                    onChange={(e) => update("linkedin", e.target.value)}
-                  />
-                  <Input
-                    placeholder="Instagram @handle"
-                    className="h-11 rounded-xl border-gray-200 bg-white"
-                    value={formData.instagram}
-                    onChange={(e) => update("instagram", e.target.value)}
-                  />
-                  <Input
-                    placeholder="Facebook page URL or handle"
-                    className="h-11 rounded-xl border-gray-200 bg-white"
-                    value={formData.facebook}
-                    onChange={(e) => update("facebook", e.target.value)}
-                  />
-                </div>
-              </div>
+              )}
 
               {/* Email */}
               <div className="space-y-1.5">
