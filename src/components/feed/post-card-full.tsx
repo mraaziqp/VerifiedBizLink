@@ -22,6 +22,7 @@ interface PostCardFullProps {
   postId: string;
   content: string;
   imageUrl?: string;
+  videoUrl?: string;
   authorName: string;
   authorAvatar: string;
   likes: number;
@@ -32,6 +33,7 @@ export function PostCardFull({
   postId,
   content,
   imageUrl,
+  videoUrl,
   authorName,
   authorAvatar,
   likes,
@@ -151,12 +153,26 @@ export function PostCardFull({
         <p className="text-white mb-4">{content}</p>
 
         {/* Post Image */}
-        {imageUrl && (
+        {imageUrl && !videoUrl && (
           <img
             src={imageUrl}
             alt="Post"
-            className="w-full rounded-lg mb-4 max-h-96 object-cover"
+            className="w-full rounded-xl mb-4 max-h-96 object-cover"
           />
+        )}
+
+        {/* Post Video */}
+        {videoUrl && (
+          <div className="relative w-full rounded-xl overflow-hidden mb-4 bg-black aspect-video max-h-[440px] border border-gray-800">
+            <video
+              src={videoUrl}
+              controls
+              playsInline
+              preload="metadata"
+              poster={imageUrl || undefined}
+              className="w-full h-full object-contain"
+            />
+          </div>
         )}
       </CardContent>
 

@@ -262,9 +262,9 @@ export default function SignupPage() {
               ))}
             </div>
 
-            <form className="space-y-4" onSubmit={handleSignup}>
+            <form className="space-y-4" onSubmit={handleSignup} suppressHydrationWarning>
               {/* Account holder's own name */}
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" suppressHydrationWarning>
                 <Label htmlFor="full-name" className="text-sm font-semibold text-gray-700">Your Full Name</Label>
                 <Input
                   id="full-name"

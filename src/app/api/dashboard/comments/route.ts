@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { getSession } from '@/lib/auth';
+import db from '@/lib/db';
 
 // GET comments for a post
 export async function GET(req: NextRequest) {
@@ -8,146 +9,115 @@ export async function GET(req: NextRequest) {
     const postId = searchParams.get('postId');
 
     if (!postId) {
-      return NextResponse.json(
-        { error: 'postId is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'postId is required' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
-      .from('post_comments')
-      .select(`
-        id,
-        content,
-        image_url,
-        likes_count,
-        created_at,
-        users (id, full_name, avatar_url)
-      `)
-      .eq('post_id', postId)
-      .order('created_at', { ascending: false });
+    const rows = await db`
+      SELECT
+        c.id,
+        c.content,
+        c.image_url,
+        c.likes_count,
+        c.created_at,
+        json_build_object('id', u.id, 'full_name', u.full_name, 'avatar_url', u.avatar_url) AS users
+      FROM post_comments c
+      LEFT JOIN users u ON u.id = c.user_id
+      WHERE c.post_id = ${postId}
+      ORDER BY c.created_at DESC
+    `;
 
-    if (error) throw error;
-
-    return NextResponse.json({ comments: data });
+    return NextResponse.json({ comments: rows });
   } catch (err) {
     console.error('Get comments error:', err);
-    return NextResponse.json(
-      { error: 'Failed to get comments' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to get comments' }, { status: 500 });
   }
 }
 
 // POST create comment
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { postId, content, imageUrl } = body;
 
-    // Get user ID from session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!postId || !content?.trim()) {
+      return NextResponse.json({ error: 'postId and content are required' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
-      .from('post_comments')
-      .insert([
-        {
-          post_id: postId,
-          user_id: session.user.id,
-          content,
-          image_url: imageUrl,
-        },
-      ])
-      .select();
+    const [comment] = await db`
+      INSERT INTO post_comments (post_id, user_id, content, image_url, created_at)
+      VALUES (${postId}, ${session.id}, ${content.trim()}, ${imageUrl || null}, NOW())
+      RETURNING id, post_id, user_id, content, image_url, created_at
+    `;
 
-    if (error) throw error;
-
-    // Update post comments count
-    await supabase.rpc('increment_post_comments', { post_id: postId });
+    // Increment post comments count
+    await db`
+      UPDATE posts SET comments_count = COALESCE(comments_count, 0) + 1
+      WHERE id = ${postId}
+    `.catch(() => {});
 
     // Create notification for post owner
-    const { data: post } = await supabase
-      .from('posts')
-      .select('user_id')
-      .eq('id', postId)
-      .single();
-
-    if (post?.user_id && post.user_id !== session.user.id) {
-      await supabase
-        .from('user_notifications')
-        .insert([
-          {
-            user_id: post.user_id,
-            type: 'comment',
-            title: 'New comment on your post',
-            message: `Someone commented: "${content.substring(0, 50)}..."`,
-            related_user_id: session.user.id,
-            related_post_id: postId,
-          },
-        ]);
+    const [post] = await db`SELECT user_id FROM posts WHERE id = ${postId} LIMIT 1`.catch(() => []);
+    if (post?.user_id && post.user_id !== session.id) {
+      await db`
+        INSERT INTO notifications (user_id, type, title, content, created_at)
+        VALUES (
+          ${post.user_id},
+          'new_comment',
+          'New comment on your post',
+          ${`${session.fullName || 'Someone'} commented: "${content.substring(0, 50)}..."`},
+          NOW()
+        )
+      `.catch(() => {});
     }
 
-    return NextResponse.json({ comment: data[0] });
+    return NextResponse.json({ comment });
   } catch (err) {
     console.error('Create comment error:', err);
-    return NextResponse.json(
-      { error: 'Failed to create comment' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 });
   }
 }
 
 // DELETE comment
 export async function DELETE(req: NextRequest) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await req.json();
     const { commentId, postId } = body;
 
-    // Get user ID from session
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    if (!commentId) {
+      return NextResponse.json({ error: 'commentId is required' }, { status: 400 });
     }
 
-    // Verify user owns the comment
-    const { data: comment } = await supabase
-      .from('post_comments')
-      .select('user_id')
-      .eq('id', commentId)
-      .single();
-
-    if (comment?.user_id !== session.user.id) {
-      return NextResponse.json(
-        { error: 'You can only delete your own comments' },
-        { status: 403 }
-      );
+    const [comment] = await db`SELECT user_id FROM post_comments WHERE id = ${commentId} LIMIT 1`;
+    if (!comment) {
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
     }
 
-    const { error } = await supabase
-      .from('post_comments')
-      .delete()
-      .eq('id', commentId);
+    if (comment.user_id !== session.id && session.role !== 'admin') {
+      return NextResponse.json({ error: 'You can only delete your own comments' }, { status: 403 });
+    }
 
-    if (error) throw error;
+    await db`DELETE FROM post_comments WHERE id = ${commentId}`;
 
-    // Update post comments count
-    await supabase.rpc('decrement_post_comments', { post_id: postId });
+    if (postId) {
+      await db`
+        UPDATE posts SET comments_count = GREATEST(COALESCE(comments_count, 1) - 1, 0)
+        WHERE id = ${postId}
+      `.catch(() => {});
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error('Delete comment error:', err);
-    return NextResponse.json(
-      { error: 'Failed to delete comment' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to delete comment' }, { status: 500 });
   }
 }

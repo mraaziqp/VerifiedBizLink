@@ -271,9 +271,9 @@ function LoginForm() {
             <p className="mt-2 text-gray-500">Sign in to your account to continue</p>
           </div>
 
-          <form className="space-y-5" onSubmit={handleLogin}>
+          <form className="space-y-5" onSubmit={handleLogin} suppressHydrationWarning>
             {/* Email */}
-            <div className="space-y-2">
+            <div className="space-y-2" suppressHydrationWarning>
               <Label htmlFor="email" className="text-sm font-semibold text-gray-700">
                 Email Address
               </Label>
@@ -286,11 +286,12 @@ function LoginForm() {
                 className="h-12 rounded-xl border-gray-200 bg-gray-50 focus:bg-white transition-colors text-gray-900 placeholder:text-gray-400"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                suppressHydrationWarning
               />
             </div>
 
             {/* Password */}
-            <div className="space-y-2">
+            <div className="space-y-2" suppressHydrationWarning>
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-sm font-semibold text-gray-700">
                   Password
@@ -305,7 +306,7 @@ function LoginForm() {
                   </Link>
                 </div>
               </div>
-              <div className="relative">
+              <div className="relative" suppressHydrationWarning>
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
@@ -315,6 +316,7 @@ function LoginForm() {
                   className="h-12 rounded-xl border-gray-200 bg-gray-50 focus:bg-white transition-colors pr-12 text-gray-900"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  suppressHydrationWarning
                 />
                 <button
                   type="button"

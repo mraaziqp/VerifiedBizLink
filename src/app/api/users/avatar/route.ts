@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase';
 import { getSession, createSession, sessionCookieOptions } from '@/lib/auth';
+import { Storage } from '@google-cloud/storage';
 import db from '@/lib/db';
 
-const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB (client compresses well below this)
+const MAX_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 export async function POST(request: NextRequest) {
@@ -23,29 +23,42 @@ export async function POST(request: NextRequest) {
     }
 
     if (file.size > MAX_SIZE_BYTES) {
-      return NextResponse.json({ error: 'File too large (max 2MB)' }, { status: 400 });
+      return NextResponse.json({ error: 'File too large (max 5MB)' }, { status: 400 });
     }
 
     const buffer = await file.arrayBuffer();
-
-    // Prefer Supabase Storage (lightweight URL); fall back to base64 in the DB.
     let storedUrl = '';
-    try {
-      // Built here, inside the existing fallback, so a missing Supabase key
-      // degrades to the base64 path instead of failing the build at import.
-      const supabase = getSupabaseAdmin();
-      const ext = (file.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
-      const path = `${session.id}/${Date.now()}.${ext}`;
-      const { error } = await supabase.storage
-        .from('avatars')
-        .upload(path, buffer, { contentType: file.type, upsert: true });
-      if (!error) {
-        storedUrl = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
-      } else {
-        console.error('[avatar] Supabase upload failed, using base64 fallback:', error.message);
+
+    const bucketName =
+      process.env.GCP_STORAGE_BUCKET ||
+      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
+      'verified-biz-link.firebasestorage.app';
+
+    if (process.env.GCP_CLIENT_EMAIL && process.env.GCP_PRIVATE_KEY) {
+      try {
+        const storage = new Storage({
+          projectId: process.env.GCP_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          credentials: {
+            client_email: process.env.GCP_CLIENT_EMAIL,
+            private_key: process.env.GCP_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          },
+        });
+
+        const ext = (file.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+        const destination = `avatars/${session.id}/${Date.now()}.${ext}`;
+        const bucket = storage.bucket(bucketName);
+        const gcsFile = bucket.file(destination);
+
+        await gcsFile.save(Buffer.from(buffer), {
+          contentType: file.type,
+          resumable: false,
+          metadata: { cacheControl: 'public, max-age=31536000' },
+        });
+
+        storedUrl = `https://storage.googleapis.com/${bucketName}/${destination}`;
+      } catch (gcsError) {
+        console.warn('Avatar GCS upload note, falling back to data URL:', gcsError);
       }
-    } catch (e) {
-      console.error('[avatar] Supabase threw, using base64 fallback:', e);
     }
 
     if (!storedUrl) {
@@ -58,10 +71,6 @@ export async function POST(request: NextRequest) {
       RETURNING id, email, full_name, role, avatar_url, headline, email_verified
     `;
 
-    // A Supabase URL is short enough for the JWT; base64 is not, so keep it
-    // empty in that case (/api/auth/me always reads avatar_url fresh from DB).
-    // This reissues the JWT for the SAME session (not a new login) — carry
-    // over session.sid rather than registering a new user_sessions row.
     const token = await createSession({
       id: updated[0].id,
       email: updated[0].email,

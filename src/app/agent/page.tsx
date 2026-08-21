@@ -6,17 +6,20 @@ import {
   Loader2, Users, TrendingUp, Wallet, Clock, Trophy, Target, CheckCircle2, LogOut,
   Link2, Copy, Check, QrCode, Phone, Mail, MessageSquare, Plus, Search,
   Calendar, Award, Sparkles, ArrowUpRight, Share2, HelpCircle, Activity,
-  ChevronRight, Calculator, FileText, CheckCircle, RefreshCw
+  ChevronRight, Calculator, FileText, CheckCircle, RefreshCw, Send, LayoutGrid,
+  ListFilter, DollarSign, Building2, Flame, AlertCircle, ExternalLink, Download, ShieldCheck, Repeat
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { GlassBackground, GlassCard, GlassPageHeader, SectionTitle, StatCard } from '@/components/shared/glass-ui';
 import { AGENT_PORTAL_ROLES, hasRole } from '@/lib/roles';
 import {
-  DEFAULT_MILESTONES, DEFAULT_COMMISSION_RATE, currentMilestone, nextMilestone,
-  progressToNext, formatRand, type Milestone,
+  DEFAULT_MILESTONES, OFFICIAL_WEEKLY_TIERS, MONTHLY_RETENTION_RATE,
+  currentMilestone, nextMilestone, progressToNext, formatRand,
+  type Milestone, type WeeklyTier, getWeeklyTierRate
 } from '@/lib/commission';
 import {
   Dialog,
@@ -54,10 +57,12 @@ interface Referral {
 interface Totals {
   signups: number;
   sales: number;
+  weeklySales?: number;
   pending: number;
   awaitingPayment: number;
   revenueCents: number;
   commissionCents: number;
+  retentionMonthlyCents?: number;
 }
 
 interface Lead {
@@ -81,20 +86,20 @@ interface ActivityEvent {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  verified: 'bg-emerald-500/15 text-emerald-700 border-emerald-300',
-  reviewing: 'bg-blue-500/15 text-blue-700 border-blue-300',
-  pending: 'bg-amber-500/15 text-amber-700 border-amber-300',
-  rejected: 'bg-red-500/15 text-red-700 border-red-300',
-  unregistered: 'bg-gray-200 text-gray-700 border-gray-300',
+  verified: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  reviewing: 'bg-blue-50 text-blue-700 border-blue-200',
+  pending: 'bg-amber-50 text-amber-700 border-amber-200',
+  rejected: 'bg-red-50 text-red-700 border-red-200',
+  unregistered: 'bg-slate-100 text-slate-700 border-slate-200',
 };
 
-const LEAD_STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
-  new: { label: 'New Lead', bg: 'bg-blue-50 border-blue-200', text: 'text-blue-700' },
-  contacted: { label: 'Contacted', bg: 'bg-purple-50 border-purple-200', text: 'text-purple-700' },
-  interested: { label: 'High Interest', bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700' },
-  closed: { label: 'Converted', bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700' },
-  lost: { label: 'Archived', bg: 'bg-gray-50 border-gray-200', text: 'text-gray-600' },
-};
+const LEAD_STAGES: { id: Lead['status']; label: string; bg: string; border: string; text: string; dot: string }[] = [
+  { id: 'new', label: 'New Lead', bg: 'bg-blue-50/70', border: 'border-blue-200', text: 'text-blue-700', dot: 'bg-blue-500' },
+  { id: 'contacted', label: 'Contacted', bg: 'bg-purple-50/70', border: 'border-purple-200', text: 'text-purple-700', dot: 'bg-purple-500' },
+  { id: 'interested', label: 'High Interest', bg: 'bg-amber-50/70', border: 'border-amber-200', text: 'text-amber-700', dot: 'bg-amber-500' },
+  { id: 'closed', label: 'Converted (Won)', bg: 'bg-emerald-50/70', border: 'border-emerald-200', text: 'text-emerald-700', dot: 'bg-emerald-500' },
+  { id: 'lost', label: 'Archived', bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-500', dot: 'bg-slate-400' },
+];
 
 const when = (d: string | null) =>
   d ? new Date(d).toLocaleDateString('en-ZA', { dateStyle: 'medium' }) : '—';
@@ -105,21 +110,27 @@ export default function AgentPortalPage() {
   const router = useRouter();
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'overview' | 'leads' | 'activity' | 'toolkit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'policy' | 'leads' | 'activity' | 'toolkit'>('overview');
+  const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
 
   // Core Data
   const [totals, setTotals] = useState<Totals | null>(null);
   const [signups, setSignups] = useState<Signup[]>([]);
   const [referral, setReferral] = useState<Referral | null>(null);
+  const [currentWeeklyTier, setCurrentWeeklyTier] = useState<{ weeklySales: number; tierName: string; ratePercent: number }>({
+    weeklySales: 0,
+    tierName: 'Tier 1 (1–10/wk)',
+    ratePercent: 20,
+  });
   const [scheme, setScheme] = useState<{ ratePercent: number; milestones: Milestone[] }>({
-    ratePercent: Math.round(DEFAULT_COMMISSION_RATE * 100),
+    ratePercent: 20,
     milestones: DEFAULT_MILESTONES,
   });
   const [paidCents, setPaidCents] = useState(0);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Leads CRM state
+  // Leads CRM State
   const [leads, setLeads] = useState<Lead[]>([]);
   const [leadSearch, setLeadSearch] = useState('');
   const [leadStatusFilter, setLeadStatusFilter] = useState<string>('all');
@@ -134,21 +145,25 @@ export default function AgentPortalPage() {
     nextFollowupAt: '',
   });
 
-  // Activity Log state
+  // Activity Log State
   const [activities, setActivities] = useState<ActivityEvent[]>([]);
   const [loadingActivities, setLoadingActivities] = useState(false);
 
-  // Toolkit Calculator state
-  const [calcSignups, setCalcSignups] = useState<number>(10);
-  const [calcPlanPrice, setCalcPlanPrice] = useState<number>(299);
+  // Toolkit Simulator State
+  const [simWeeklySales, setSimWeeklySales] = useState<number>(12);
+  const [simAvgPackage, setSimAvgPackage] = useState<number>(299);
+  const [simActiveClients, setSimActiveClients] = useState<number>(30);
 
-  // Check auth
+  // Outreach Channels
+  const [pitchChannel, setPitchChannel] = useState<'whatsapp' | 'email' | 'call'>('whatsapp');
+
+  // Auth Guard
   useEffect(() => {
     if (authLoading) return;
     if (!user || !hasRole(user.role, AGENT_PORTAL_ROLES)) router.replace('/');
   }, [authLoading, user, router]);
 
-  // Load Dashboard Data
+  // Load Data
   const loadDashboard = async () => {
     try {
       const res = await fetch('/api/agent/dashboard');
@@ -157,6 +172,7 @@ export default function AgentPortalPage() {
         setTotals(data.totals);
         setSignups(data.signups || []);
         setReferral(data.referral ?? null);
+        if (data.currentWeeklyTier) setCurrentWeeklyTier(data.currentWeeklyTier);
         if (data.scheme) setScheme(data.scheme);
         setPaidCents(Number(data.payouts?.paidCents) || 0);
       }
@@ -167,7 +183,6 @@ export default function AgentPortalPage() {
     }
   };
 
-  // Load Leads
   const loadLeads = async () => {
     try {
       const res = await fetch('/api/agent/leads');
@@ -180,7 +195,6 @@ export default function AgentPortalPage() {
     }
   };
 
-  // Load Activity Log
   const loadActivities = async () => {
     setLoadingActivities(true);
     try {
@@ -202,7 +216,6 @@ export default function AgentPortalPage() {
     loadActivities();
   }, []);
 
-  // Handle Add Lead
   const handleCreateLead = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLead.businessName) {
@@ -217,22 +230,21 @@ export default function AgentPortalPage() {
         body: JSON.stringify(newLead),
       });
       if (res.ok) {
-        toast({ title: 'Lead added to your CRM pipeline!' });
+        toast({ title: 'Prospect added to CRM pipeline!' });
         setIsAddLeadOpen(false);
         setNewLead({ businessName: '', contactName: '', contactEmail: '', contactPhone: '', notes: '', nextFollowupAt: '' });
         loadLeads();
       } else {
         const err = await res.json().catch(() => ({}));
-        toast({ title: 'Could not create lead', description: err.error, variant: 'destructive' });
+        toast({ title: 'Could not create prospect', description: err.error, variant: 'destructive' });
       }
     } catch {
-      toast({ title: 'Failed to add lead', variant: 'destructive' });
+      toast({ title: 'Failed to add prospect', variant: 'destructive' });
     } finally {
       setCreatingLead(false);
     }
   };
 
-  // Handle Update Lead Status
   const handleUpdateLeadStatus = async (id: string, status: Lead['status']) => {
     try {
       const res = await fetch('/api/agent/leads', {
@@ -242,14 +254,13 @@ export default function AgentPortalPage() {
       });
       if (res.ok) {
         setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
-        toast({ title: `Status updated to ${LEAD_STATUS_CONFIG[status]?.label || status}` });
+        toast({ title: `Status updated to ${LEAD_STAGES.find(s => s.id === status)?.label || status}` });
       }
     } catch {
       toast({ title: 'Could not update status', variant: 'destructive' });
     }
   };
 
-  // Filtered leads
   const filteredLeads = useMemo(() => {
     return leads.filter((l) => {
       const matchesSearch =
@@ -263,255 +274,313 @@ export default function AgentPortalPage() {
 
   if (authLoading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-400">
-        <Loader2 className="mr-2 h-6 w-6 animate-spin text-yellow-400" /> Loading Sales Portal…
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 text-slate-500">
+        <Loader2 className="mr-2 h-7 w-7 animate-spin text-amber-500" /> Loading Business Advisor Command Center…
       </div>
     );
   }
 
   const sales = totals?.sales ?? 0;
-  const reached = currentMilestone(sales, scheme.milestones);
+  const weeklySales = totals?.weeklySales ?? 0;
+  const signupsCount = totals?.signups ?? 0;
+  const conversionRate = signupsCount > 0 ? Math.round((sales / signupsCount) * 100) : 0;
   const next = nextMilestone(sales, scheme.milestones);
   const progress = progressToNext(sales, scheme.milestones);
 
-  // WhatsApp Pitch template
-  const pitchText = `Hi! I noticed your business and wanted to introduce VerifiedBizLink — South Africa's trusted business directory. You can get officially verified and listed to attract verified customers. Register here with my link: ${referral?.link || 'https://verifiedbizlink.co.za'}`;
+  // Policy Simulator calculations
+  const simWeeklyTier = getWeeklyTierRate(simWeeklySales);
+  const simWeeklyAcquisitionCommission = simWeeklySales * simAvgPackage * simWeeklyTier.rate;
+  const simMonthlyAcquisition = simWeeklyAcquisitionCommission * 4.33;
+  const simMonthlyRetention = simActiveClients * simAvgPackage * MONTHLY_RETENTION_RATE;
+  const simTotalMonthlyEarnings = simMonthlyAcquisition + simMonthlyRetention;
+
+  // Outreach pitches
+  const whatsappPitch = `Hi! I noticed your business and wanted to invite you to join VerifiedBizLink — South Africa's official verified business directory. Get your Gold Verified Badge and boost your Google & local customer visibility. Register directly with my partner link here: ${referral?.link || 'https://verifiedbizlink.co.za'}`;
+  const emailPitchSubject = `Get Verified on VerifiedBizLink — Increase Customer Trust & Inquiries`;
+  const emailPitchBody = `Hi,\n\nI'm reaching out from VerifiedBizLink (https://verifiedbizlink.co.za) to help you get your business officially verified and ranked.\n\nWhy top South African businesses get verified:\n• Official Gold Verified Badge on your company profile\n• Higher visibility in search results for local clients\n• Photo & video product showcase with verified reviews\n\nRegister your profile in 2 minutes: ${referral?.link || 'https://verifiedbizlink.co.za'}\n\nKind regards,\n${user.fullName || 'Business Advisor'}`;
 
   return (
-    <GlassBackground>
-      <GlassPageHeader
-        title="Marketer & Sales Command Center"
-        subtitle={`${user.fullName || user.email} · Partner Code: ${referral?.code || '—'} · Rate: ${scheme.ratePercent}%`}
-      >
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 border-slate-700 bg-slate-900/60 text-slate-200 hover:bg-slate-800"
-            onClick={() => {
-              loadDashboard();
-              loadLeads();
-              loadActivities();
-              toast({ title: 'Data refreshed' });
-            }}
-          >
-            <RefreshCw className="h-3.5 w-3.5" /> Refresh
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2 border-red-500/30 text-red-400 hover:bg-red-500/10 hover:text-red-300" onClick={logout}>
-            <LogOut className="h-3.5 w-3.5" /> Sign out
-          </Button>
-        </div>
-      </GlassPageHeader>
+    <div className="min-h-screen bg-gradient-to-b from-amber-50/40 via-slate-50/60 to-white text-slate-900 pb-20">
+      {/* Top Header with Safe Area Padding */}
+      <header className="sticky top-0 z-30 backdrop-blur-md bg-white/95 border-b border-slate-200 shadow-xs pt-[max(env(safe-area-inset-top,0px),1.25rem)] sm:pt-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-amber-400 text-slate-950 font-bold shadow-xs">
+              <Flame className="h-5 w-5 fill-slate-950" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Business Advisor Command Center
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 font-medium">
+                {user.fullName || user.email} · Partner Code: <span className="font-bold text-amber-600">{referral?.code || '—'}</span> · Active Tier: <span className="font-extrabold text-slate-900">{currentWeeklyTier.ratePercent}%</span>
+              </p>
+            </div>
+          </div>
 
-      <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:py-8">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-slate-200 bg-white text-slate-700 hover:bg-slate-50 rounded-xl shadow-xs"
+              onClick={() => {
+                loadDashboard();
+                loadLeads();
+                loadActivities();
+                toast({ title: 'Data refreshed' });
+              }}
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 border-red-200 text-red-600 hover:bg-red-50 rounded-xl"
+              onClick={logout}
+            >
+              <LogOut className="h-3.5 w-3.5" /> Sign out
+            </Button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {/* Policy Highlights Banner */}
+        <div className="rounded-2xl border border-amber-300/80 bg-gradient-to-r from-amber-100/60 via-amber-50/40 to-white p-4 sm:p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-amber-950 font-black text-sm sm:text-base">
+              <ShieldCheck className="h-5 w-5 text-amber-600" />
+              <span>Official Business Advisor Commission Policy (Version 1.0)</span>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-600 max-w-2xl">
+              Earn <span className="font-bold text-slate-900">20% to 50% weekly tiered acquisition commission</span> on new business subscriptions + <span className="font-bold text-amber-700">5% monthly recurring retention commission</span> for 12 consecutive months!
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <code className="flex-1 md:w-80 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-mono text-slate-800 truncate select-all shadow-xs">
+              {referral?.link || 'https://verifiedbizlink.co.za'}
+            </code>
+            <Button
+              size="sm"
+              className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold gap-1.5 shrink-0 rounded-xl shadow-xs"
+              onClick={async () => {
+                if (!referral?.link) return;
+                await navigator.clipboard.writeText(referral.link);
+                setCopied(true);
+                toast({ title: 'Partner tracking link copied!' });
+                setTimeout(() => setCopied(false), 2000);
+              }}
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? 'Copied' : 'Copy'}
+            </Button>
+          </div>
+        </div>
+
         {/* Navigation Tabs */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              activeTab === 'overview'
-                ? 'bg-yellow-400 text-slate-950 shadow-lg shadow-yellow-400/20'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-            }`}
-          >
-            <TrendingUp className="h-4 w-4" /> Overview & Targets
-          </button>
-          <button
-            onClick={() => setActiveTab('leads')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all relative ${
-              activeTab === 'leads'
-                ? 'bg-yellow-400 text-slate-950 shadow-lg shadow-yellow-400/20'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-            }`}
-          >
-            <Users className="h-4 w-4" /> Lead CRM Pipeline
-            {leads.length > 0 && (
-              <span className={`px-1.5 py-0.5 rounded-full text-xs font-bold ${activeTab === 'leads' ? 'bg-slate-950 text-yellow-400' : 'bg-yellow-400/20 text-yellow-400'}`}>
-                {leads.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab('activity')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              activeTab === 'activity'
-                ? 'bg-yellow-400 text-slate-950 shadow-lg shadow-yellow-400/20'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-            }`}
-          >
-            <Activity className="h-4 w-4" /> Live Activity Stream
-          </button>
-          <button
-            onClick={() => setActiveTab('toolkit')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              activeTab === 'toolkit'
-                ? 'bg-yellow-400 text-slate-950 shadow-lg shadow-yellow-400/20'
-                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/60'
-            }`}
-          >
-            <Sparkles className="h-4 w-4" /> Marketer Toolkit & Calculator
-          </button>
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+          {[
+            { id: 'overview', label: 'Overview & Targets', icon: TrendingUp },
+            { id: 'policy', label: 'Commission Policy & Tiers', icon: FileText },
+            { id: 'leads', label: `Pipeline CRM (${leads.length})`, icon: Users },
+            { id: 'activity', label: 'Live Activity Stream', icon: Activity },
+            { id: 'toolkit', label: 'Earnings Simulator & Pitches', icon: Sparkles },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  isActive
+                    ? 'bg-amber-400 text-slate-950 shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <Icon className="h-4 w-4" /> {tab.label}
+              </button>
+            );
+          })}
         </div>
 
         {/* ======================= TAB 1: OVERVIEW ======================= */}
         {activeTab === 'overview' && (
           <div className="space-y-6">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-              <StatCard label="Total Sign-ups" value={totals?.signups ?? 0} icon={Users} gradient="from-blue-500 to-cyan-500" loading={loading} />
-              <StatCard label="Converted Sales" value={sales} icon={TrendingUp} gradient="from-emerald-500 to-teal-500" loading={loading} />
-              <StatCard label="Awaiting Payment" value={totals?.pending ?? 0} icon={Clock} gradient="from-amber-500 to-orange-500" loading={loading} />
-              <StatCard label="Commission Earned" value={formatRand(totals?.commissionCents ?? 0)} icon={Wallet} gradient="from-purple-500 to-pink-500" loading={loading} />
+            {/* KPI Cards Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="border border-slate-200 bg-white shadow-xs rounded-2xl p-5 space-y-1.5">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-xs font-bold uppercase tracking-wider">This Week&apos;s Sales</span>
+                  <Flame className="h-4.5 w-4.5 text-amber-500" />
+                </div>
+                <div className="text-3xl font-black text-slate-900">
+                  {loading ? '—' : weeklySales}
+                </div>
+                <p className="text-[11px] text-amber-700 font-bold">
+                  Active Tier: {currentWeeklyTier.ratePercent}% Rate
+                </p>
+              </Card>
+
+              <Card className="border border-slate-200 bg-white shadow-xs rounded-2xl p-5 space-y-1.5">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-xs font-bold uppercase tracking-wider">Converted Sales</span>
+                  <TrendingUp className="h-4.5 w-4.5 text-emerald-500" />
+                </div>
+                <div className="text-3xl font-black text-emerald-600">
+                  {loading ? '—' : sales}
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  {conversionRate}% conversion rate
+                </p>
+              </Card>
+
+              <Card className="border border-slate-200 bg-white shadow-xs rounded-2xl p-5 space-y-1.5">
+                <div className="flex items-center justify-between text-slate-500">
+                  <span className="text-xs font-bold uppercase tracking-wider">5% Monthly Retention</span>
+                  <Repeat className="h-4.5 w-4.5 text-purple-500" />
+                </div>
+                <div className="text-3xl font-black text-purple-700">
+                  {loading ? '—' : formatRand(totals?.retentionMonthlyCents ?? 0)}
+                </div>
+                <p className="text-[11px] text-slate-500 font-medium">Recurring monthly for 12 mos</p>
+              </Card>
+
+              <Card className="border border-amber-300 bg-amber-50/70 shadow-xs rounded-2xl p-5 space-y-1.5">
+                <div className="flex items-center justify-between text-amber-900">
+                  <span className="text-xs font-bold uppercase tracking-wider">Total Commission</span>
+                  <Wallet className="h-4.5 w-4.5 text-amber-600" />
+                </div>
+                <div className="text-3xl font-black text-amber-950">
+                  {loading ? '—' : formatRand(totals?.commissionCents ?? 0)}
+                </div>
+                <p className="text-[11px] text-amber-800 font-semibold">
+                  Paid out: {formatRand(paidCents)}
+                </p>
+              </Card>
             </div>
 
-            {/* Quick Share Banner */}
-            {referral?.code && (
-              <GlassCard className="border-yellow-400/30 bg-gradient-to-r from-yellow-950/20 via-slate-900/60 to-slate-900/60">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-yellow-400" />
-                      <h3 className="text-lg font-bold text-slate-100">Your Personalized Referral Link</h3>
-                    </div>
-                    <p className="text-sm text-slate-400">
-                      Share this direct link. Anyone who signs up is automatically tied to your account with {scheme.ratePercent}% commission.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <code className="rounded-xl border border-slate-700 bg-slate-950/80 px-3.5 py-2.5 text-xs font-mono text-yellow-400 max-w-[280px] sm:max-w-md truncate">
-                      {referral.link}
-                    </code>
-                    <Button
-                      size="sm"
-                      className="bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-bold gap-1.5 shrink-0 shadow-md shadow-yellow-400/20"
-                      onClick={async () => {
-                        if (!referral.link) return;
-                        try {
-                          await navigator.clipboard.writeText(referral.link);
-                          setCopied(true);
-                          toast({ title: 'Link copied to clipboard!' });
-                          setTimeout(() => setCopied(false), 2000);
-                        } catch {
-                          toast({ title: 'Could not copy', description: referral.link, variant: 'destructive' });
-                        }
-                      }}
-                    >
-                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                      {copied ? 'Copied' : 'Copy'}
-                    </Button>
-                  </div>
+            {/* Weekly Tier Boost Tracker */}
+            <Card className="border border-slate-200 bg-white shadow-xs rounded-2xl p-6 space-y-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-5 w-5 text-amber-500" />
+                  <h3 className="font-extrabold text-base text-slate-900">Weekly Tiered Acquisition Ladder</h3>
                 </div>
-              </GlassCard>
-            )}
-
-            {/* Target Ladder */}
-            <GlassCard>
-              <SectionTitle icon={Trophy}>Milestone Rewards</SectionTitle>
-              <div className="mb-6">
-                <div className="mb-2 flex items-end justify-between gap-3">
-                  <p className="text-sm text-slate-300">
-                    {next ? (
-                      <>
-                        <span className="font-bold text-yellow-400">{next.sales - sales}</span>{' '}
-                        more {next.sales - sales === 1 ? 'sale' : 'sales'} to reach{' '}
-                        <span className="font-bold text-slate-100">{next.name}</span> — {next.reward}
-                      </>
-                    ) : (
-                      <span className="font-bold text-emerald-400">All milestones achieved! Incredible work.</span>
-                    )}
-                  </p>
-                  <span className="shrink-0 text-sm font-bold text-yellow-400">{progress}% Progress</span>
-                </div>
-                <div className="h-3 w-full overflow-hidden rounded-full bg-slate-800">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-yellow-400 to-amber-500 transition-all duration-700"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
+                <span className="text-xs font-extrabold text-amber-900 bg-amber-100 border border-amber-300 px-3 py-1 rounded-full">
+                  Current Week: {currentWeeklyTier.tierName} ({currentWeeklyTier.ratePercent}%)
+                </span>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                {scheme.milestones.map((m: Milestone) => {
-                  const hit = sales >= m.sales;
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {OFFICIAL_WEEKLY_TIERS.map((tier) => {
+                  const isCurrent = currentWeeklyTier.ratePercent === tier.percent;
                   return (
                     <div
-                      key={m.sales}
-                      className={`rounded-2xl border p-4 transition-all ${
-                        hit
-                          ? 'border-yellow-400/40 bg-yellow-950/20 shadow-md shadow-yellow-500/5'
-                          : 'border-slate-800 bg-slate-900/40'
+                      key={tier.percent}
+                      className={`p-4 rounded-xl border transition-all ${
+                        isCurrent
+                          ? 'border-amber-400 bg-amber-50/90 shadow-xs ring-2 ring-amber-400/30'
+                          : 'border-slate-200 bg-slate-50/50'
                       }`}
                     >
-                      <div className="mb-1 flex items-center justify-between gap-2">
-                        <span className={`font-bold ${hit ? 'text-yellow-400' : 'text-slate-300'}`}>{m.name}</span>
-                        {hit ? (
-                          <CheckCircle2 className="h-5 w-5 shrink-0 text-yellow-400" />
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`font-bold text-sm ${isCurrent ? 'text-amber-950' : 'text-slate-700'}`}>
+                          {tier.tierName}
+                        </span>
+                        {isCurrent ? (
+                          <Badge className="bg-amber-500 text-slate-950 text-[10px] font-extrabold">Active</Badge>
                         ) : (
-                          <Target className="h-5 w-5 shrink-0 text-slate-600" />
+                          <span className="text-xs font-bold text-slate-400">{tier.percent}%</span>
                         )}
                       </div>
-                      <p className="text-sm font-semibold text-slate-100">{m.sales} sales required</p>
-                      <p className="mt-0.5 text-xs text-slate-400">{m.reward}</p>
-                      {!hit && <p className="mt-2 text-xs text-slate-500 font-medium">{m.sales - sales} more to go</p>}
+                      <p className="text-2xl font-black text-slate-900 mt-1">{tier.percent}%</p>
+                      <p className="text-xs text-slate-500 mt-0.5 font-medium">
+                        {tier.maxSales ? `${tier.minSales} – ${tier.maxSales} sales/week` : `${tier.minSales}+ sales/week`}
+                      </p>
                     </div>
                   );
                 })}
               </div>
-            </GlassCard>
+            </Card>
 
-            {/* Recent Signups Book */}
-            <GlassCard className="p-0 overflow-hidden">
-              <div className="p-5 sm:p-6 pb-4 flex items-center justify-between">
-                <SectionTitle icon={Users}>Attributed Sign-ups</SectionTitle>
-                <span className="text-xs text-slate-400">{signups.length} total registered</span>
+            {/* Attributed Signups Ledger */}
+            <Card className="border border-slate-200 bg-white shadow-xs rounded-2xl overflow-hidden">
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                    <Building2 className="h-4.5 w-4.5 text-amber-500" />
+                    Attributed Business Accounts
+                  </h3>
+                  <p className="text-xs text-slate-500">Businesses registered and verified via your tracking link</p>
+                </div>
+                <Badge variant="outline" className="text-xs font-bold">
+                  {signups.length} Registered
+                </Badge>
               </div>
+
               {loading ? (
-                <div className="flex items-center justify-center p-12 text-slate-400">
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin text-yellow-400" /> Loading your sign-ups…
+                <div className="p-12 text-center text-slate-400">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-amber-500 mb-2" />
+                  Loading attributed sign-ups…
                 </div>
               ) : signups.length === 0 ? (
-                <div className="p-12 text-center text-slate-400">
-                  No sign-ups attributed yet. Share your referral link or add leads to the CRM!
+                <div className="p-12 text-center text-slate-400 space-y-2">
+                  <p className="text-sm font-semibold text-slate-600">No attributed businesses yet.</p>
+                  <p className="text-xs text-slate-400">Share your partner link or add prospects to start earning weekly commission!</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-y border-slate-800 bg-slate-950/50 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                        <th className="px-5 py-3">Business</th>
-                        <th className="px-5 py-3">Registered</th>
-                        <th className="px-5 py-3">Package</th>
-                        <th className="px-5 py-3">First Payment</th>
-                        <th className="px-5 py-3">Your Commission</th>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="px-5 py-3.5">Business &amp; Owner</th>
+                        <th className="px-5 py-3.5">Registration Date</th>
+                        <th className="px-5 py-3.5">Package</th>
+                        <th className="px-5 py-3.5">Acquisition Payment</th>
+                        <th className="px-5 py-3.5">Acquisition Comm.</th>
+                        <th className="px-5 py-3.5">5% Monthly Retention</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60">
+                    <tbody className="divide-y divide-slate-100">
                       {signups.map((s) => (
-                        <tr key={s.businessId} className="text-slate-300 hover:bg-slate-800/30 transition-colors">
+                        <tr key={s.businessId} className="hover:bg-amber-50/30 transition-colors">
                           <td className="px-5 py-4">
-                            <div className="font-semibold text-slate-100">{s.companyName}</div>
-                            <div className="text-xs text-slate-400">{s.ownerName} ({s.ownerEmail})</div>
-                            <span className={`mt-1.5 inline-block rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${STATUS_STYLES[s.status] || STATUS_STYLES.unregistered}`}>
+                            <div className="font-bold text-slate-900">{s.companyName}</div>
+                            <div className="text-xs text-slate-500">{s.ownerName} · {s.ownerEmail}</div>
+                            <span className={`inline-block mt-1 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full border ${STATUS_STYLES[s.status] || STATUS_STYLES.unregistered}`}>
                               {s.status}
                             </span>
                           </td>
-                          <td className="px-5 py-4 text-xs text-slate-400">{when(s.signedUpAt)}</td>
-                          <td className="px-5 py-4 text-slate-200 font-medium">{s.packageType || 'Free Tier'}</td>
+                          <td className="px-5 py-4 text-xs text-slate-500 font-medium">
+                            {when(s.signedUpAt)}
+                          </td>
+                          <td className="px-5 py-4 text-xs font-bold text-slate-700">
+                            {s.packageType || 'Free Tier'}
+                          </td>
                           <td className="px-5 py-4">
                             {s.converted ? (
-                              <>
-                                <div className="font-bold text-slate-100">{formatRand(s.firstPaymentCents)}</div>
-                                <div className="text-xs text-slate-500">{when(s.paidAt)}</div>
-                              </>
+                              <div>
+                                <span className="font-extrabold text-slate-900">{formatRand(s.firstPaymentCents)}</span>
+                                <div className="text-[10px] text-slate-400">{when(s.paidAt)}</div>
+                              </div>
                             ) : (
-                              <span className="text-slate-500 text-xs">Pending payment</span>
+                              <span className="text-xs text-slate-400 italic">Pending payment</span>
                             )}
                           </td>
                           <td className="px-5 py-4">
                             {s.converted ? (
-                              <span className="font-bold text-emerald-400">{formatRand(s.commissionCents)}</span>
+                              <span className="font-bold text-emerald-600">{formatRand(s.commissionCents)}</span>
                             ) : (
-                              <span className="text-slate-600">—</span>
+                              <span className="text-slate-300">—</span>
+                            )}
+                          </td>
+                          <td className="px-5 py-4">
+                            {s.converted ? (
+                              <span className="font-bold text-purple-700">{formatRand(Math.floor(s.firstPaymentCents * MONTHLY_RETENTION_RATE))} / mo</span>
+                            ) : (
+                              <span className="text-slate-300">—</span>
                             )}
                           </td>
                         </tr>
@@ -520,187 +589,342 @@ export default function AgentPortalPage() {
                   </table>
                 </div>
               )}
-            </GlassCard>
+            </Card>
           </div>
         )}
 
-        {/* ======================= TAB 2: LEADS CRM ======================= */}
-        {activeTab === 'leads' && (
+        {/* ======================= TAB 2: COMMISSION POLICY ======================= */}
+        {activeTab === 'policy' && (
           <div className="space-y-6">
-            {/* Header & Add Lead Actions */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
-                  <Users className="h-6 w-6 text-yellow-400" /> Pipeline &amp; Prospects
-                </h2>
-                <p className="text-sm text-slate-400">Keep track of business owners you meet and convert them to paid members.</p>
+            <Card className="border border-slate-200 bg-white shadow-xs rounded-2xl p-6 space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-amber-400 text-slate-950 font-bold shadow-xs">
+                  <FileText className="h-6 w-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900">
+                    Business Advisor Commission &amp; Incentive Policy
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium">Official Version 1.0 · VerifiedBizLink (Pty) Ltd</p>
+                </div>
               </div>
 
-              <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
-                <DialogTrigger asChild>
-                  <Button className="bg-yellow-400 text-slate-950 hover:bg-yellow-300 font-bold gap-2 shadow-lg shadow-yellow-400/20">
-                    <Plus className="h-4 w-4" /> Add Prospect / Lead
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 sm:max-w-lg">
-                  <form onSubmit={handleCreateLead}>
-                    <DialogHeader>
-                      <DialogTitle>Add New Prospect</DialogTitle>
-                      <DialogDescription className="text-slate-400">
-                        Record a business lead you are reaching out to.
-                      </DialogDescription>
-                    </DialogHeader>
+              {/* Policy Section 4: Weekly Tiered Commission */}
+              <div className="space-y-3">
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <Trophy className="h-4.5 w-4.5 text-amber-500" />
+                  1. Weekly Tiered Acquisition Commission
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Your weekly acquisition commission is determined by the number of qualifying new paying businesses secured during the commission week. The percentage applies to the total subscription value for new businesses for that week:
+                </p>
 
-                    <div className="space-y-4 py-4">
-                      <div>
-                        <Label className="text-xs text-slate-300 font-bold">Business Name *</Label>
-                        <Input
-                          placeholder="e.g. Cape Town Artisans"
-                          value={newLead.businessName}
-                          onChange={(e) => setNewLead({ ...newLead, businessName: e.target.value })}
-                          className="bg-slate-950 border-slate-700 text-slate-100 mt-1"
-                          required
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label className="text-xs text-slate-300 font-bold">Contact Name</Label>
-                          <Input
-                            placeholder="e.g. John Doe"
-                            value={newLead.contactName}
-                            onChange={(e) => setNewLead({ ...newLead, contactName: e.target.value })}
-                            className="bg-slate-950 border-slate-700 text-slate-100 mt-1"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-slate-300 font-bold">Phone / WhatsApp</Label>
-                          <Input
-                            placeholder="e.g. 0821234567"
-                            value={newLead.contactPhone}
-                            onChange={(e) => setNewLead({ ...newLead, contactPhone: e.target.value })}
-                            className="bg-slate-950 border-slate-700 text-slate-100 mt-1"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label className="text-xs text-slate-300 font-bold">Email Address</Label>
-                        <Input
-                          type="email"
-                          placeholder="john@example.co.za"
-                          value={newLead.contactEmail}
-                          onChange={(e) => setNewLead({ ...newLead, contactEmail: e.target.value })}
-                          className="bg-slate-950 border-slate-700 text-slate-100 mt-1"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <Label className="text-xs text-slate-300 font-bold">Next Follow-up Date</Label>
-                          <Input
-                            type="date"
-                            value={newLead.nextFollowupAt}
-                            onChange={(e) => setNewLead({ ...newLead, nextFollowupAt: e.target.value })}
-                            className="bg-slate-950 border-slate-700 text-slate-100 mt-1"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label className="text-xs text-slate-300 font-bold">Notes / Conversation context</Label>
-                        <textarea
-                          placeholder="Interested in R49 verification fee..."
-                          value={newLead.notes}
-                          onChange={(e) => setNewLead({ ...newLead, notes: e.target.value })}
-                          className="w-full rounded-md bg-slate-950 border border-slate-700 p-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-yellow-400 mt-1 min-h-[80px]"
-                        />
-                      </div>
-                    </div>
-
-                    <DialogFooter>
-                      <Button type="button" variant="outline" onClick={() => setIsAddLeadOpen(false)} className="border-slate-700">
-                        Cancel
-                      </Button>
-                      <Button type="submit" disabled={creatingLead} className="bg-yellow-400 text-slate-950 hover:bg-yellow-300 font-bold">
-                        {creatingLead ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Prospect'}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </div>
-
-            {/* Filter Bar */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
-                <Input
-                  placeholder="Search prospects by name, contact, or phone..."
-                  value={leadSearch}
-                  onChange={(e) => setLeadSearch(e.target.value)}
-                  className="pl-10 bg-slate-900/60 border-slate-800 text-slate-100"
-                />
+                <div className="overflow-x-auto rounded-xl border border-slate-200">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
+                      <tr>
+                        <th className="p-3">Tier</th>
+                        <th className="p-3">Qualifying New Paying Businesses / Week</th>
+                        <th className="p-3">Commission Rate</th>
+                        <th className="p-3">Example Weekly Payout</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      <tr>
+                        <td className="p-3 font-bold text-slate-900">Tier 1</td>
+                        <td className="p-3">1 – 10 businesses</td>
+                        <td className="p-3 font-extrabold text-amber-600">20%</td>
+                        <td className="p-3 text-slate-600">8 businesses @ R10,000 value = <span className="font-bold text-slate-900">R2,000</span></td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-bold text-slate-900">Tier 2</td>
+                        <td className="p-3">11 – 15 businesses</td>
+                        <td className="p-3 font-extrabold text-amber-600">30%</td>
+                        <td className="p-3 text-slate-600">14 businesses @ R18,000 value = <span className="font-bold text-slate-900">R5,400</span></td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-bold text-slate-900">Tier 3</td>
+                        <td className="p-3">16 – 20 businesses</td>
+                        <td className="p-3 font-extrabold text-amber-600">40%</td>
+                        <td className="p-3 text-slate-600">18 businesses @ R25,000 value = <span className="font-bold text-slate-900">R10,000</span></td>
+                      </tr>
+                      <tr className="bg-amber-50/50">
+                        <td className="p-3 font-bold text-amber-950">Tier 4</td>
+                        <td className="p-3 font-bold text-amber-950">21+ businesses</td>
+                        <td className="p-3 font-extrabold text-amber-700">50%</td>
+                        <td className="p-3 text-amber-900">22 businesses @ R30,000 value = <span className="font-bold text-amber-950">R15,000</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
-              <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
-                {['all', 'new', 'contacted', 'interested', 'closed', 'lost'].map((st) => (
-                  <Button
-                    key={st}
-                    size="sm"
-                    variant={leadStatusFilter === st ? 'default' : 'outline'}
-                    onClick={() => setLeadStatusFilter(st)}
-                    className={`capitalize text-xs rounded-xl ${
-                      leadStatusFilter === st
-                        ? 'bg-yellow-400 text-slate-950 font-bold'
-                        : 'border-slate-800 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {st}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Leads Table */}
-            <GlassCard className="p-0 overflow-hidden">
-              {filteredLeads.length === 0 ? (
-                <div className="p-12 text-center text-slate-400 space-y-3">
-                  <Users className="h-10 w-10 text-slate-600 mx-auto" />
-                  <p className="text-base font-semibold text-slate-300">No prospects matching filter</p>
-                  <p className="text-sm text-slate-500 max-w-sm mx-auto">
-                    Start adding local businesses you want to pitch to build your recurring commission pipeline.
+              {/* Policy Section 8 & 9: Monthly Retention */}
+              <div className="space-y-3 pt-2">
+                <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                  <Repeat className="h-4.5 w-4.5 text-purple-600" />
+                  2. Monthly Recurring Retention Commission
+                </h3>
+                <div className="p-4 rounded-xl border border-purple-200 bg-purple-50/60 space-y-2 text-xs text-purple-950 leading-relaxed">
+                  <p>
+                    • In addition to weekly acquisition commission, Advisors receive a recurring retention commission equal to <span className="font-bold">5% of each monthly subscription payment</span> received from every qualifying business originally registered by that Advisor.
+                  </p>
+                  <p>
+                    • <span className="font-bold">Duration:</span> Payable for a maximum of <span className="font-bold">12 consecutive months</span> from the customer&apos;s first successful payment while the account remains active.
+                  </p>
+                  <p>
+                    • <span className="font-bold">Example:</span> For a business paying R500/month, the Advisor receives 5% × R500 = <span className="font-bold">R25/month</span>. Active for 12 months = <span className="font-bold">R300 total retention commission</span> from that single customer.
                   </p>
                 </div>
-              ) : (
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* ======================= TAB 3: PIPELINE CRM ======================= */}
+        {activeTab === 'leads' && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-amber-500" />
+                  Prospect &amp; Lead Management CRM
+                </h2>
+                <p className="text-xs text-slate-500">Track local business owners and convert them to verified members.</p>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="flex rounded-xl border border-slate-200 p-1 bg-white shadow-xs">
+                  <button
+                    onClick={() => setViewMode('kanban')}
+                    className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                      viewMode === 'kanban' ? 'bg-amber-400 text-slate-950 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    <LayoutGrid className="h-4 w-4" /> Kanban
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table')}
+                    className={`p-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+                      viewMode === 'table' ? 'bg-amber-400 text-slate-950 shadow-xs' : 'text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    <ListFilter className="h-4 w-4" /> Table
+                  </button>
+                </div>
+
+                <Dialog open={isAddLeadOpen} onOpenChange={setIsAddLeadOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold gap-1.5 rounded-xl shadow-xs">
+                      <Plus className="h-4 w-4" /> Add Prospect
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-lg rounded-2xl">
+                    <form onSubmit={handleCreateLead}>
+                      <DialogHeader>
+                        <DialogTitle className="font-extrabold text-lg">Add New Business Prospect</DialogTitle>
+                        <DialogDescription className="text-slate-500 text-xs">
+                          Record contact details to follow up and convert with your referral link.
+                        </DialogDescription>
+                      </DialogHeader>
+
+                      <div className="space-y-3.5 py-4">
+                        <div>
+                          <Label className="text-xs font-bold text-slate-700">Business / Trade Name *</Label>
+                          <Input
+                            placeholder="e.g. Cape Town Artisans"
+                            value={newLead.businessName}
+                            onChange={(e) => setNewLead({ ...newLead, businessName: e.target.value })}
+                            className="bg-slate-50 border-slate-200 rounded-xl mt-1 text-sm"
+                            required
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs font-bold text-slate-700">Contact Person</Label>
+                            <Input
+                              placeholder="e.g. John Doe"
+                              value={newLead.contactName}
+                              onChange={(e) => setNewLead({ ...newLead, contactName: e.target.value })}
+                              className="bg-slate-50 border-slate-200 rounded-xl mt-1 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-bold text-slate-700">Phone / WhatsApp</Label>
+                            <Input
+                              placeholder="e.g. 0821234567"
+                              value={newLead.contactPhone}
+                              onChange={(e) => setNewLead({ ...newLead, contactPhone: e.target.value })}
+                              className="bg-slate-50 border-slate-200 rounded-xl mt-1 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label className="text-xs font-bold text-slate-700">Email Address</Label>
+                            <Input
+                              type="email"
+                              placeholder="john@example.co.za"
+                              value={newLead.contactEmail}
+                              onChange={(e) => setNewLead({ ...newLead, contactEmail: e.target.value })}
+                              className="bg-slate-50 border-slate-200 rounded-xl mt-1 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <Label className="text-xs font-bold text-slate-700">Next Follow-up Date</Label>
+                            <Input
+                              type="date"
+                              value={newLead.nextFollowupAt}
+                              onChange={(e) => setNewLead({ ...newLead, nextFollowupAt: e.target.value })}
+                              className="bg-slate-50 border-slate-200 rounded-xl mt-1 text-sm"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label className="text-xs font-bold text-slate-700">Notes</Label>
+                          <textarea
+                            placeholder="Interested in R49 verification fee..."
+                            value={newLead.notes}
+                            onChange={(e) => setNewLead({ ...newLead, notes: e.target.value })}
+                            className="w-full rounded-xl bg-slate-50 border border-slate-200 p-2.5 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-400 mt-1 min-h-[70px]"
+                          />
+                        </div>
+                      </div>
+
+                      <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setIsAddLeadOpen(false)} className="rounded-xl">
+                          Cancel
+                        </Button>
+                        <Button type="submit" disabled={creatingLead} className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-xl">
+                          {creatingLead ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Prospect'}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </div>
+
+            {/* Kanban / Table Rendering */}
+            {viewMode === 'kanban' ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                {LEAD_STAGES.map((stage) => {
+                  const stageLeads = filteredLeads.filter((l) => l.status === stage.id);
+                  return (
+                    <div key={stage.id} className="flex flex-col rounded-2xl border border-slate-200 bg-slate-100/60 p-3 min-h-[400px]">
+                      <div className="flex items-center justify-between mb-3 px-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`h-2.5 w-2.5 rounded-full ${stage.dot}`} />
+                          <span className="text-xs font-bold text-slate-800">{stage.label}</span>
+                        </div>
+                        <span className="text-xs font-extrabold text-slate-400 bg-white px-2 py-0.5 rounded-full border border-slate-200">
+                          {stageLeads.length}
+                        </span>
+                      </div>
+
+                      <div className="flex-1 space-y-2.5 overflow-y-auto">
+                        {stageLeads.length === 0 ? (
+                          <div className="h-28 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center text-xs text-slate-400">
+                            Empty
+                          </div>
+                        ) : (
+                          stageLeads.map((lead) => {
+                            const cleanPhone = lead.contact_phone?.replace(/\D/g, '') || '';
+                            return (
+                              <div
+                                key={lead.id}
+                                className="bg-white rounded-xl border border-slate-200 p-3 shadow-xs space-y-2 hover:border-amber-400 transition-all"
+                              >
+                                <h4 className="font-bold text-xs text-slate-900 line-clamp-1">{lead.business_name}</h4>
+                                {lead.contact_name && <p className="text-[11px] text-slate-500">{lead.contact_name}</p>}
+                                {lead.notes && <p className="text-[11px] text-slate-600 bg-slate-50 p-1.5 rounded-lg line-clamp-2 italic">&quot;{lead.notes}&quot;</p>}
+
+                                <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[10px]">
+                                  {lead.next_followup_at ? (
+                                    <span className="text-amber-700 font-semibold flex items-center gap-1">
+                                      <Calendar className="h-3 w-3" />
+                                      {when(lead.next_followup_at)}
+                                    </span>
+                                  ) : (
+                                    <span className="text-slate-400">No date</span>
+                                  )}
+
+                                  <div className="flex items-center gap-1">
+                                    {cleanPhone && (
+                                      <a
+                                        href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappPitch)}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="p-1 rounded bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
+                                        title="WhatsApp"
+                                      >
+                                        <MessageSquare className="h-3.5 w-3.5" />
+                                      </a>
+                                    )}
+                                    {lead.contact_email && (
+                                      <a
+                                        href={`mailto:${lead.contact_email}?subject=${encodeURIComponent(emailPitchSubject)}&body=${encodeURIComponent(emailPitchBody)}`}
+                                        className="p-1 rounded bg-blue-50 text-blue-600 hover:bg-blue-100"
+                                        title="Email"
+                                      >
+                                        <Mail className="h-3.5 w-3.5" />
+                                      </a>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="pt-1">
+                                  <select
+                                    value={lead.status}
+                                    onChange={(e) => handleUpdateLeadStatus(lead.id, e.target.value as Lead['status'])}
+                                    className="w-full text-[10px] font-bold bg-slate-50 border border-slate-200 rounded-lg p-1 text-slate-700"
+                                  >
+                                    <option value="new">Move to New</option>
+                                    <option value="contacted">Move to Contacted</option>
+                                    <option value="interested">Move to High Interest</option>
+                                    <option value="closed">Move to Converted</option>
+                                    <option value="lost">Move to Archived</option>
+                                  </select>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <Card className="border border-slate-200 bg-white rounded-2xl overflow-hidden shadow-xs">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-y border-slate-800 bg-slate-950/50 text-left text-xs font-semibold uppercase tracking-wider text-slate-400">
-                        <th className="px-5 py-3">Business / Contact</th>
-                        <th className="px-5 py-3">Stage</th>
-                        <th className="px-5 py-3">Follow-up</th>
-                        <th className="px-5 py-3">Notes</th>
-                        <th className="px-5 py-3 text-right">Quick Contact</th>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="px-5 py-3.5">Business / Contact</th>
+                        <th className="px-5 py-3.5">Stage</th>
+                        <th className="px-5 py-3.5">Follow-up</th>
+                        <th className="px-5 py-3.5">Notes</th>
+                        <th className="px-5 py-3.5 text-right">Outreach</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60">
+                    <tbody className="divide-y divide-slate-100">
                       {filteredLeads.map((lead) => {
-                        const cfg = LEAD_STATUS_CONFIG[lead.status] || LEAD_STATUS_CONFIG.new;
                         const cleanPhone = lead.contact_phone?.replace(/\D/g, '') || '';
                         return (
-                          <tr key={lead.id} className="text-slate-300 hover:bg-slate-800/30 transition-colors">
+                          <tr key={lead.id} className="hover:bg-amber-50/20 transition-colors">
                             <td className="px-5 py-4">
-                              <div className="font-bold text-slate-100">{lead.business_name}</div>
-                              {lead.contact_name && <div className="text-xs text-slate-400">{lead.contact_name}</div>}
-                              {lead.contact_email && <div className="text-xs text-slate-500">{lead.contact_email}</div>}
+                              <div className="font-bold text-slate-900">{lead.business_name}</div>
+                              {lead.contact_name && <div className="text-xs text-slate-500">{lead.contact_name}</div>}
                             </td>
-
                             <td className="px-5 py-4">
                               <select
                                 value={lead.status}
                                 onChange={(e) => handleUpdateLeadStatus(lead.id, e.target.value as Lead['status'])}
-                                className={`rounded-lg border px-2.5 py-1 text-xs font-bold bg-slate-950 focus:outline-none focus:ring-1 focus:ring-yellow-400 ${cfg.text} ${cfg.bg}`}
+                                className="rounded-xl border border-slate-200 px-2.5 py-1 text-xs font-bold bg-white"
                               >
                                 <option value="new">New Lead</option>
                                 <option value="contacted">Contacted</option>
@@ -709,41 +933,17 @@ export default function AgentPortalPage() {
                                 <option value="lost">Archived</option>
                               </select>
                             </td>
-
-                            <td className="px-5 py-4 text-xs text-slate-400">
-                              {lead.next_followup_at ? (
-                                <span className="flex items-center gap-1.5 text-amber-400 font-medium">
-                                  <Calendar className="h-3.5 w-3.5" />
-                                  {when(lead.next_followup_at)}
-                                </span>
-                              ) : (
-                                '—'
-                              )}
-                            </td>
-
-                            <td className="px-5 py-4 text-xs text-slate-400 max-w-xs truncate">
-                              {lead.notes || '—'}
-                            </td>
-
+                            <td className="px-5 py-4 text-xs text-slate-500">{when(lead.next_followup_at)}</td>
+                            <td className="px-5 py-4 text-xs text-slate-600 max-w-xs truncate">{lead.notes || '—'}</td>
                             <td className="px-5 py-4 text-right">
-                              <div className="flex items-center justify-end gap-2">
+                              <div className="flex items-center justify-end gap-1.5">
                                 {cleanPhone && (
-                                  <a
-                                    href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(pitchText)}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-                                    title="Message on WhatsApp"
-                                  >
+                                  <a href={`https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappPitch)}`} target="_blank" rel="noopener noreferrer" className="p-2 rounded-xl bg-emerald-50 text-emerald-600 hover:bg-emerald-100">
                                     <MessageSquare className="h-4 w-4" />
                                   </a>
                                 )}
                                 {lead.contact_email && (
-                                  <a
-                                    href={`mailto:${lead.contact_email}?subject=VerifiedBizLink%20Invitation&body=${encodeURIComponent(pitchText)}`}
-                                    className="p-2 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors"
-                                    title="Send Email"
-                                  >
+                                  <a href={`mailto:${lead.contact_email}?subject=${encodeURIComponent(emailPitchSubject)}&body=${encodeURIComponent(emailPitchBody)}`} className="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100">
                                     <Mail className="h-4 w-4" />
                                   </a>
                                 )}
@@ -755,103 +955,95 @@ export default function AgentPortalPage() {
                     </tbody>
                   </table>
                 </div>
-              )}
-            </GlassCard>
+              </Card>
+            )}
           </div>
         )}
 
-        {/* ======================= TAB 3: ACTIVITY STREAM ======================= */}
+        {/* ======================= TAB 4: ACTIVITY STREAM ======================= */}
         {activeTab === 'activity' && (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-100 flex items-center gap-2">
-                <Activity className="h-6 w-6 text-yellow-400" /> Live Activity &amp; Commission Stream
+            <Card className="border border-slate-200 bg-white shadow-xs rounded-2xl p-6">
+              <h2 className="text-xl font-extrabold text-slate-900 flex items-center gap-2 mb-4">
+                <Activity className="h-5 w-5 text-amber-500" />
+                Live Attribution &amp; Event Stream
               </h2>
-              <p className="text-sm text-slate-400">Real-time log of customer signups, verification purchases, and reviews for your accounts.</p>
-            </div>
-
-            <GlassCard>
               {loadingActivities ? (
-                <div className="flex items-center justify-center p-12 text-slate-400">
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin text-yellow-400" /> Loading stream…
+                <div className="p-12 text-center text-slate-400">
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto text-amber-500 mb-2" />
+                  Loading activity stream…
                 </div>
               ) : activities.length === 0 ? (
-                <div className="p-12 text-center text-slate-400">
-                  No activity logged yet. When attributed businesses sign up or pay fees, events appear here instantly.
-                </div>
+                <div className="p-12 text-center text-slate-400">No activity events logged yet.</div>
               ) : (
-                <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-800">
+                <div className="relative pl-6 space-y-5 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
                   {activities.map((ev) => (
-                    <div key={ev.id} className="relative flex items-start gap-4">
-                      <div className="absolute -left-6 top-1 h-5 w-5 rounded-full border-2 border-slate-900 bg-yellow-400 flex items-center justify-center shadow">
+                    <div key={ev.id} className="relative flex items-start gap-3">
+                      <div className="absolute -left-6 top-1 h-5 w-5 rounded-full border-2 border-white bg-amber-400 shadow-xs flex items-center justify-center">
                         <div className="h-1.5 w-1.5 rounded-full bg-slate-950" />
                       </div>
-                      <div className="flex-1 rounded-xl border border-slate-800 bg-slate-900/60 p-4">
+                      <div className="flex-1 rounded-xl border border-slate-200 bg-slate-50/70 p-4 shadow-xs">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold uppercase tracking-wider text-yellow-400">
+                          <span className="text-xs font-extrabold uppercase text-amber-800 tracking-wider">
                             {ev.event_type.replace('_', ' ')}
                           </span>
-                          <span className="text-xs text-slate-500">{when(ev.created_at)}</span>
+                          <span className="text-xs text-slate-400 font-medium">{when(ev.created_at)}</span>
                         </div>
-                        <p className="mt-1 text-sm font-medium text-slate-200">{ev.description}</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-800">{ev.description}</p>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-            </GlassCard>
+            </Card>
           </div>
         )}
 
-        {/* ======================= TAB 4: TOOLKIT & CALCULATOR ======================= */}
+        {/* ======================= TAB 5: TOOLKIT & SIMULATOR ======================= */}
         {activeTab === 'toolkit' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Commission Simulator */}
-            <GlassCard className="space-y-6">
+            {/* Policy Commission Simulator */}
+            <Card className="border border-slate-200 bg-white shadow-xs rounded-2xl p-6 space-y-5">
               <div className="flex items-center gap-2">
-                <Calculator className="h-6 w-6 text-yellow-400" />
-                <h3 className="text-xl font-bold text-slate-100">Commission Earnings Simulator</h3>
+                <Calculator className="h-5 w-5 text-amber-500" />
+                <h3 className="font-extrabold text-base text-slate-900">Policy Earnings Simulator</h3>
               </div>
 
-              <p className="text-sm text-slate-400">
-                Adjust the sliders below to see your potential monthly and yearly earnings based on your {scheme.ratePercent}% commission rate.
-              </p>
-
-              <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+              <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-xs">
                 <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-slate-300 font-medium">Businesses signed up per month:</span>
-                    <span className="font-bold text-yellow-400">{calcSignups} businesses</span>
+                  <div className="flex justify-between font-bold text-slate-700 mb-1.5">
+                    <span>New Businesses Signed Up / Week:</span>
+                    <span className="text-amber-600 font-black">{simWeeklySales} / week ({simWeeklyTier.percent}% Tier Rate)</span>
                   </div>
                   <input
                     type="range"
                     min="1"
-                    max="100"
-                    value={calcSignups}
-                    onChange={(e) => setCalcSignups(Number(e.target.value))}
-                    className="w-full accent-yellow-400 cursor-pointer"
+                    max="30"
+                    value={simWeeklySales}
+                    onChange={(e) => setSimWeeklySales(Number(e.target.value))}
+                    className="w-full accent-amber-500 cursor-pointer"
                   />
                 </div>
 
                 <div>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="text-slate-300 font-medium">Average Package Price:</span>
-                    <span className="font-bold text-yellow-400">R{calcPlanPrice} / mo</span>
+                  <div className="flex justify-between font-bold text-slate-700 mb-1.5">
+                    <span>Average Package Price / Subscription:</span>
+                    <span className="text-amber-600 font-black">R{simAvgPackage}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 mt-2">
                     {[
-                      { label: 'Verified Fee (R49)', val: 49 },
+                      { label: 'Verification Fee (R49)', val: 49 },
                       { label: 'Growth Plan (R299)', val: 299 },
                       { label: 'Scale Plan (R699)', val: 699 },
                     ].map((p) => (
                       <button
                         key={p.val}
                         type="button"
-                        onClick={() => setCalcPlanPrice(p.val)}
-                        className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
-                          calcPlanPrice === p.val
-                            ? 'bg-yellow-400/10 border-yellow-400 text-yellow-400'
-                            : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700'
+                        onClick={() => setSimAvgPackage(p.val)}
+                        className={`py-2 px-2 rounded-xl text-xs font-bold border transition-all ${
+                          simAvgPackage === p.val
+                            ? 'bg-amber-400 border-amber-500 text-slate-950 shadow-xs'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-amber-300'
                         }`}
                       >
                         {p.label}
@@ -859,86 +1051,133 @@ export default function AgentPortalPage() {
                     ))}
                   </div>
                 </div>
+
+                <div>
+                  <div className="flex justify-between font-bold text-slate-700 mb-1.5">
+                    <span>Active Retained Clients (5% Monthly Recurring):</span>
+                    <span className="text-purple-700 font-black">{simActiveClients} active businesses</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={simActiveClients}
+                    onChange={(e) => setSimActiveClients(Number(e.target.value))}
+                    className="w-full accent-purple-500 cursor-pointer"
+                  />
+                </div>
               </div>
 
-              {/* Result Callout */}
-              <div className="rounded-2xl border border-yellow-400/40 bg-gradient-to-br from-yellow-950/30 to-slate-900 p-5 text-center space-y-2">
-                <p className="text-xs uppercase tracking-widest font-bold text-yellow-400">Estimated Monthly Commission</p>
-                <p className="text-4xl font-extrabold text-slate-100">
-                  R{Math.round(calcSignups * calcPlanPrice * (scheme.ratePercent / 100)).toLocaleString()}
+              <div className="rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-100/70 to-amber-50 p-5 text-center space-y-1">
+                <p className="text-[10px] uppercase tracking-widest font-extrabold text-amber-900">Total Projected Monthly Earnings</p>
+                <p className="text-3xl font-black text-slate-900">
+                  R{Math.round(simTotalMonthlyEarnings).toLocaleString()} / mo
                 </p>
-                <p className="text-xs text-slate-400">
-                  Annual Projection: R{Math.round(calcSignups * calcPlanPrice * (scheme.ratePercent / 100) * 12).toLocaleString()} / year
+                <p className="text-xs text-slate-600 font-medium pt-1">
+                  Weekly Acquisition: <span className="font-bold text-amber-900">R{Math.round(simWeeklyAcquisitionCommission).toLocaleString()} / wk</span> · Monthly Retention: <span className="font-bold text-purple-800">R{Math.round(simMonthlyRetention).toLocaleString()} / mo</span>
                 </p>
               </div>
-            </GlassCard>
+            </Card>
 
-            {/* Quick Share & Pitch Generator */}
-            <GlassCard className="space-y-6">
+            {/* Outreach Pitch Kit & QR Code */}
+            <Card className="border border-slate-200 bg-white shadow-xs rounded-2xl p-6 space-y-5">
               <div className="flex items-center gap-2">
-                <Share2 className="h-6 w-6 text-yellow-400" />
-                <h3 className="text-xl font-bold text-slate-100">Marketing Assets &amp; Quick Share</h3>
+                <Share2 className="h-5 w-5 text-amber-500" />
+                <h3 className="font-extrabold text-base text-slate-900">Advisor Collateral &amp; Outreach</h3>
               </div>
 
-              {/* QR Code & Share link */}
               {referral?.qrUrl && (
-                <div className="flex items-center gap-4 p-4 rounded-2xl border border-slate-800 bg-slate-950/60">
+                <div className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50/60">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={referral.qrUrl} alt="Referral QR" className="h-20 w-20 rounded-xl bg-white p-1 shrink-0" />
+                  <img src={referral.qrUrl} alt="Referral QR" className="h-18 w-18 rounded-lg bg-white p-1 border border-slate-200 shrink-0 shadow-xs" />
                   <div className="space-y-1">
-                    <p className="text-sm font-bold text-slate-200">Your Marketer QR Code</p>
-                    <p className="text-xs text-slate-400">Print or present this to business owners to let them register directly on the spot.</p>
+                    <p className="text-xs font-bold text-slate-900">Advisor Direct QR Code</p>
+                    <p className="text-[11px] text-slate-500">Present this QR code on your phone when meeting business owners in person.</p>
                   </div>
                 </div>
               )}
 
-              {/* Ready-to-use Pitch */}
-              <div className="space-y-2">
-                <Label className="text-xs text-slate-300 font-bold uppercase tracking-wider">
-                  Ready-to-Send WhatsApp Pitch Message
-                </Label>
-                <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3 text-xs text-slate-300 relative">
-                  <p>{pitchText}</p>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="mt-3 gap-1 text-xs border-slate-700 hover:bg-slate-800"
-                    onClick={async () => {
-                      await navigator.clipboard.writeText(pitchText);
-                      toast({ title: 'Pitch copied to clipboard!' });
-                    }}
+              <div className="space-y-3">
+                <div className="flex items-center gap-1.5 border-b border-slate-100 pb-2">
+                  <button
+                    onClick={() => setPitchChannel('whatsapp')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      pitchChannel === 'whatsapp' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:bg-slate-100'
+                    }`}
                   >
-                    <Copy className="h-3 w-3" /> Copy Pitch Text
-                  </Button>
+                    WhatsApp Pitch
+                  </button>
+                  <button
+                    onClick={() => setPitchChannel('email')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      pitchChannel === 'email' ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100'
+                    }`}
+                  >
+                    Email Script
+                  </button>
+                  <button
+                    onClick={() => setPitchChannel('call')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                      pitchChannel === 'call' ? 'bg-amber-500 text-slate-950' : 'text-slate-500 hover:bg-slate-100'
+                    }`}
+                  >
+                    In-Person Script
+                  </button>
                 </div>
-              </div>
 
-              {/* Elevator bullet points */}
-              <div className="space-y-2">
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Why Businesses Say Yes</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-300">
-                  <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-900/50 border border-slate-800">
-                    <CheckCircle className="h-4 w-4 text-yellow-400 shrink-0" />
-                    <span>Instant Gold Verified Badge</span>
+                {pitchChannel === 'whatsapp' && (
+                  <div className="space-y-2">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 font-mono leading-relaxed">
+                      {whatsappPitch}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs rounded-xl font-bold border-slate-200"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(whatsappPitch);
+                        toast({ title: 'WhatsApp pitch copied!' });
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" /> Copy WhatsApp Message
+                    </Button>
                   </div>
-                  <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-900/50 border border-slate-800">
-                    <CheckCircle className="h-4 w-4 text-yellow-400 shrink-0" />
-                    <span>Builds Trust with Customers</span>
+                )}
+
+                {pitchChannel === 'email' && (
+                  <div className="space-y-2">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 font-mono whitespace-pre-line leading-relaxed max-h-48 overflow-y-auto">
+                      {emailPitchBody}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1.5 text-xs rounded-xl font-bold border-slate-200"
+                      onClick={async () => {
+                        await navigator.clipboard.writeText(`Subject: ${emailPitchSubject}\n\n${emailPitchBody}`);
+                        toast({ title: 'Email template copied!' });
+                      }}
+                    >
+                      <Copy className="h-3.5 w-3.5" /> Copy Email Template
+                    </Button>
                   </div>
-                  <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-900/50 border border-slate-800">
-                    <CheckCircle className="h-4 w-4 text-yellow-400 shrink-0" />
-                    <span>Free Tier + Only R49 for badge</span>
+                )}
+
+                {pitchChannel === 'call' && (
+                  <div className="space-y-2 text-xs text-slate-700 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                    <p className="font-bold text-slate-900">Key Value Props to Highlight:</p>
+                    <ul className="list-disc pl-4 space-y-1 text-[11px] text-slate-600">
+                      <li>&quot;VerifiedBizLink gives your business the official Gold Verified Badge.&quot;</li>
+                      <li>&quot;Free registration + only R49 once-off to get verified with higher search ranking.&quot;</li>
+                      <li>&quot;Upload high-res product photos, customer testimonials, and direct WhatsApp contact buttons.&quot;</li>
+                    </ul>
                   </div>
-                  <div className="flex items-center gap-2 p-2 rounded-lg bg-slate-900/50 border border-slate-800">
-                    <CheckCircle className="h-4 w-4 text-yellow-400 shrink-0" />
-                    <span>Photo Gallery &amp; Reviews</span>
-                  </div>
-                </div>
+                )}
               </div>
-            </GlassCard>
+            </Card>
           </div>
         )}
-      </div>
-    </GlassBackground>
+      </main>
+    </div>
   );
 }

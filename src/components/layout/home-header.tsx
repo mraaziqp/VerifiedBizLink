@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Bell, Menu, CheckCheck,
+  Bell, Menu, CheckCheck, Trash2, X,
 } from "lucide-react";
 import { VBLLogo } from "@/components/ui/vbl-logo";
 import { useRouter } from "next/navigation";
@@ -53,6 +53,7 @@ export function HomeHeader() {
     let mounted = true;
 
     const fetchNotifications = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       const response = await fetch("/api/notifications", { cache: "no-store" }).catch(() => null);
       if (!response?.ok) return;
 
@@ -66,7 +67,7 @@ export function HomeHeader() {
     };
 
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 15000);
+    const interval = setInterval(fetchNotifications, 30000);
 
     return () => {
       mounted = false;
@@ -90,6 +91,18 @@ export function HomeHeader() {
       setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
       setUnreadCount(0);
     }
+  };
+
+  const dismissNotification = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await fetch(`/api/notifications?id=${id}`, { method: 'DELETE' }).catch(() => null);
+    setNotifications((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const clearAll = async () => {
+    await fetch('/api/notifications?clearAll=true', { method: 'DELETE' }).catch(() => null);
+    setNotifications([]);
+    setUnreadCount(0);
   };
 
   const openNotification = async (item: NotificationItem) => {
@@ -147,16 +160,30 @@ export function HomeHeader() {
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between gap-2 text-white">
               <span>Notifications</span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={markAllAsRead}
-                className="h-8 rounded-lg border-amber-300/40 bg-transparent text-amber-300 hover:bg-amber-500/10"
-              >
-                <CheckCheck className="h-3.5 w-3.5 mr-1" />
-                Mark all read
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={markAllAsRead}
+                  className="h-8 rounded-lg border-amber-300/40 bg-transparent text-amber-300 hover:bg-amber-500/10 text-xs"
+                >
+                  <CheckCheck className="h-3.5 w-3.5 mr-1" />
+                  Mark read
+                </Button>
+                {notifications.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearAll}
+                    className="h-8 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs"
+                    title="Clear all notifications"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
             </DialogTitle>
             <DialogDescription className="text-white/60">
               Live updates from connections, compliance, and platform activity.
@@ -171,33 +198,42 @@ export function HomeHeader() {
             )}
 
             {!loadingNotifications && notifications.length === 0 && (
-              <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-3 text-sm text-white/70">
-                No notifications yet.
+              <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-6 text-center text-sm text-white/50">
+                No notifications right now.
               </div>
             )}
 
             {!loadingNotifications &&
               notifications.map((item) => (
-                <button
+                <div
                   key={item.id}
-                  type="button"
-                  onClick={() => openNotification(item)}
-                  className={`w-full text-left rounded-lg border px-3 py-2 transition-all ${
+                  className={`w-full flex items-start justify-between gap-2 rounded-lg border px-3 py-2 transition-all cursor-pointer group ${
                     item.read
                       ? "border-white/10 bg-white/[0.03] text-white/75"
                       : "border-amber-300/40 bg-amber-400/10 text-white"
                   }`}
+                  onClick={() => openNotification(item)}
                 >
-                  <p className="text-sm font-medium leading-snug">{item.message}</p>
-                  <p className="text-[11px] mt-1 text-white/45">
-                    {new Date(item.created_at).toLocaleString("en-ZA", {
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </button>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium leading-snug">{item.message}</p>
+                    <p className="text-[11px] mt-1 text-white/45">
+                      {new Date(item.created_at).toLocaleString("en-ZA", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={(e) => dismissNotification(item.id, e)}
+                    className="text-white/30 hover:text-red-400 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Dismiss"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               ))}
           </div>
         </DialogContent>

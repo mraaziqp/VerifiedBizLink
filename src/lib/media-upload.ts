@@ -1,60 +1,59 @@
-import { supabase } from './supabase';
+import { storage } from './firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 export async function uploadImage(
   userId: string,
   file: File,
-  bucket: 'profile-pictures' | 'business-images' | 'post-media' = 'post-media'
+  folder: 'profile-pictures' | 'business-images' | 'post-media' = 'post-media'
 ): Promise<{ url: string; error?: string }> {
   try {
-    // Validate file
-    const maxSize = 10 * 1024 * 1024; // 10MB
+    const maxSize = 25 * 1024 * 1024;
     if (file.size > maxSize) {
-      return { url: '', error: 'File too large (max 10MB)' };
+      return { url: '', error: 'File too large (max 25MB)' };
     }
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      return { url: '', error: 'Invalid file type. Use JPG, PNG, WebP, or GIF' };
+    // Try Firebase Storage first
+    if (storage) {
+      try {
+        const ext = file.name.split('.').pop() || 'bin';
+        const timestamp = Date.now();
+        const path = `${folder}/${userId}/${timestamp}.${ext}`;
+        const storageRef = ref(storage, path);
+
+        const snapshot = await uploadBytes(storageRef, file, {
+          contentType: file.type,
+        });
+
+        const downloadUrl = await getDownloadURL(snapshot.ref);
+        return { url: downloadUrl };
+      } catch (fbError) {
+        console.warn('Firebase upload error, trying backend route:', fbError);
+      }
     }
 
-    // Create unique filename
-    const ext = file.name.split('.').pop();
-    const timestamp = Date.now();
-    const filename = `${userId}/${timestamp}.${ext}`;
-
-    // Upload to Supabase
-    const { error } = await supabase.storage
-      .from(bucket)
-      .upload(filename, file, { upsert: true });
-
-    if (error) {
-      return { url: '', error: error.message };
+    // Fallback: Use /api/media/upload
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/media/upload', { method: 'POST', body: formData });
+    const data = await res.json();
+    if (res.ok && data.url) {
+      return { url: data.url };
     }
 
-    // Get public URL
-    const { data: publicData } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(filename);
-
-    return { url: publicData.publicUrl };
-  } catch {
-    return { url: '', error: 'Upload failed' };
+    return { url: '', error: data.error || 'Upload failed' };
+  } catch (err) {
+    return { url: '', error: err instanceof Error ? err.message : 'Upload failed' };
   }
 }
 
 export async function deleteImage(
-  filePath: string,
-  bucket: 'profile-pictures' | 'business-images' | 'post-media' = 'post-media'
+  filePath: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabase.storage
-      .from(bucket)
-      .remove([filePath]);
-
-    if (error) {
-      return { success: false, error: error.message };
+    if (storage && filePath.includes('firebasestorage')) {
+      const storageRef = ref(storage, filePath);
+      await deleteObject(storageRef);
     }
-
     return { success: true };
   } catch {
     return { success: false, error: 'Delete failed' };

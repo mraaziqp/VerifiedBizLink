@@ -266,13 +266,13 @@
   background: linear-gradient(135deg, rgba(255, 204, 0, 0.15) 0%, rgba(255, 204, 0, 0.08) 100%);
 }
 
-/* Safe-area support for iOS notch / Android nav bar */
+/* Safe-area support for iOS notch / Dynamic Island / Android nav bar */
 .safe-area-pb {
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 0.75rem);
 }
 
 .safe-area-pt {
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: max(env(safe-area-inset-top, 0px), 1.75rem);
 }
 
 /* Confetti particle fall animation */

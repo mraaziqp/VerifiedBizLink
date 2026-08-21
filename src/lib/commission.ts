@@ -1,30 +1,56 @@
 /**
- * Sales agent commission and gamification rules.
+ * VERIFIEDBIZLINK
+ * Business Advisor Commission & Incentive Policy (Version 1.0)
  *
- * Kept in one place so Finance and the agent portal can never disagree about
- * what an agent is owed. Money is handled in cents throughout, because that
- * is how `payments.amount` is stored (see /api/payfast/init, which writes
- * `Math.round(amount * 100)`); converting to rand happens only at display.
+ * Implements the official commission policy:
+ * 1. Weekly Tiered Acquisition Commission (applied to qualifying new paying businesses per week):
+ *    - 1 – 10 businesses/week: 20%
+ *    - 11 – 15 businesses/week: 30%
+ *    - 16 – 20 businesses/week: 40%
+ *    - 21+ businesses/week: 50%
+ *
+ * 2. Monthly Retention Commission:
+ *    - 5% recurring retention commission on each monthly subscription payment received
+ *    - Payable for up to 12 consecutive months from the customer's first successful subscription payment
  */
 
+export interface WeeklyTier {
+  minSales: number;
+  maxSales: number | null;
+  rate: number;
+  percent: number;
+  tierName: string;
+  example: string;
+}
+
+/** Official Weekly Acquisition Tiers */
+export const OFFICIAL_WEEKLY_TIERS: WeeklyTier[] = [
+  { minSales: 1, maxSales: 10, rate: 0.20, percent: 20, tierName: 'Tier 1 (1–10/wk)', example: '20% commission' },
+  { minSales: 11, maxSales: 15, rate: 0.30, percent: 30, tierName: 'Tier 2 (11–15/wk)', example: '30% commission' },
+  { minSales: 16, maxSales: 20, rate: 0.40, percent: 40, tierName: 'Tier 3 (16–20/wk)', example: '40% commission' },
+  { minSales: 21, maxSales: null, rate: 0.50, percent: 50, tierName: 'Tier 4 (21+/wk)', example: '50% commission' },
+];
+
+/** Monthly recurring retention rate */
+export const MONTHLY_RETENTION_RATE = 0.05; // 5%
+export const RETENTION_MAX_MONTHS = 12; // 12 months max
+
+/** Default base commission rate fallback */
+export const DEFAULT_COMMISSION_RATE = 0.20;
+
 /**
- * Fallback rate, used only when settings cannot be read.
- *
- * The live rate is editable in Admin > Sales Agents and stored in
- * platform_settings; an individual agent can also carry a negotiated
- * override. Nothing should read this constant to decide a payout — take the
- * rate from settings and pass it in, so a rate change reaches every screen at
- * once instead of some of them.
+ * Determine weekly tier commission rate based on qualifying new paying businesses secured in the week.
  */
-export const DEFAULT_COMMISSION_RATE = 0.5;
+export function getWeeklyTierRate(weeklySalesCount: number): { rate: number; percent: number; tierName: string } {
+  if (weeklySalesCount >= 21) return { rate: 0.50, percent: 50, tierName: 'Tier 4 (21+/wk)' };
+  if (weeklySalesCount >= 16) return { rate: 0.40, percent: 40, tierName: 'Tier 3 (16–20/wk)' };
+  if (weeklySalesCount >= 11) return { rate: 0.30, percent: 30, tierName: 'Tier 2 (11–15/wk)' };
+  if (weeklySalesCount >= 1) return { rate: 0.20, percent: 20, tierName: 'Tier 1 (1–10/wk)' };
+  return { rate: 0.20, percent: 20, tierName: 'Base Tier (20%)' };
+}
 
 /**
  * Commission on a qualifying payment, in cents.
- *
- * The rate is an explicit argument rather than a module constant so a caller
- * cannot silently assume 50% after the business has agreed something else.
- * Rounded down, so many small commissions can never sum to more than the
- * agreed share of revenue.
  */
 export function commissionCents(
   paymentCents: number,
@@ -35,27 +61,31 @@ export function commissionCents(
   return Math.floor(paymentCents * safeRate);
 }
 
-export interface Milestone {
-  /** Converted (paid) sign-ups required. */
-  sales: number;
-  name: string;
-  /** The real-world reward. Edit these three lines to change the scheme. */
-  reward: string;
+/**
+ * Calculate retention commission (5% for up to 12 months)
+ */
+export function calculateRetentionCommission(monthlyPaymentCents: number, activeMonths: number = 1): number {
+  if (!Number.isFinite(monthlyPaymentCents) || monthlyPaymentCents <= 0) return 0;
+  const eligibleMonths = Math.min(Math.max(1, activeMonths), RETENTION_MAX_MONTHS);
+  return Math.floor(monthlyPaymentCents * MONTHLY_RETENTION_RATE * eligibleMonths);
 }
 
-/**
- * Fallback ladder, used only if settings cannot be read. The live ladder is
- * editable in Admin > Sales Agents; these functions all take the ladder as an
- * argument so a screen can never render targets that differ from the ones
- * being paid against.
- */
+export interface Milestone {
+  sales: number;
+  name: string;
+  reward: string;
+  rateBoost?: string;
+}
+
+/** Gamified performance milestones aligned with official policy */
 export const DEFAULT_MILESTONES: Milestone[] = [
-  { sales: 5, name: 'Bronze', reward: 'Free lunch' },
-  { sales: 20, name: 'Silver', reward: 'Half-day off' },
-  { sales: 25, name: 'Gold', reward: 'Bonus payout' },
+  { sales: 10, name: 'Bronze Advisor (10 Sales)', reward: 'Tier 1 Mastery · 20% Base Rate', rateBoost: '20%' },
+  { sales: 15, name: 'Silver Advisor (15 Sales)', reward: 'Tier 2 Achieved · 30% Weekly Rate', rateBoost: '30%' },
+  { sales: 20, name: 'Gold Advisor (20 Sales)', reward: 'Tier 3 Achieved · 40% Weekly Rate', rateBoost: '40%' },
+  { sales: 25, name: 'Platinum Executive (21+ Sales)', reward: 'Top Tier 4 · 50% Top Weekly Commission Rate', rateBoost: '50%' },
 ];
 
-/** Highest milestone the agent has already reached, or null. */
+/** Highest milestone reached */
 export function currentMilestone(sales: number, ladder: Milestone[] = DEFAULT_MILESTONES): Milestone | null {
   let reached: Milestone | null = null;
   for (const m of ladder) {
@@ -64,12 +94,12 @@ export function currentMilestone(sales: number, ladder: Milestone[] = DEFAULT_MI
   return reached;
 }
 
-/** The next milestone still to hit, or null once every target is cleared. */
+/** Next milestone */
 export function nextMilestone(sales: number, ladder: Milestone[] = DEFAULT_MILESTONES): Milestone | null {
   return ladder.find((m) => sales < m.sales) ?? null;
 }
 
-/** Progress toward the next milestone as a 0-100 percentage. */
+/** Progress percentage (0-100) */
 export function progressToNext(sales: number, ladder: Milestone[] = DEFAULT_MILESTONES): number {
   const next = nextMilestone(sales, ladder);
   if (!next) return 100;
@@ -79,7 +109,7 @@ export function progressToNext(sales: number, ladder: Milestone[] = DEFAULT_MILE
   return Math.min(100, Math.max(0, Math.round(((sales - previous) / span) * 100)));
 }
 
-/** Cents -> "R1 234,56"-style string for display. */
+/** Cents -> "R1 234,56" string formatting */
 export function formatRand(cents: number): string {
   const rand = (Number(cents) || 0) / 100;
   return `R${rand.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;

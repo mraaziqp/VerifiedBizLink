@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseAdmin } from '@/lib/supabase';
+import { Storage } from '@google-cloud/storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,66 +10,73 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file size (max 5MB for faster uploads)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (max 15MB for images/media)
+    if (file.size > 15 * 1024 * 1024) {
       return NextResponse.json(
-        { error: 'File size exceeds 5MB limit' },
+        { error: 'File size exceeds 15MB limit' },
         { status: 400 }
       );
     }
 
     // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const allowedTypes = [
+      'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+      'video/mp4', 'video/webm', 'video/quicktime'
+    ];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF' },
+        { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, MP4, WebM' },
         { status: 400 }
       );
     }
 
-    // Try to upload to Supabase first for efficiency
-    try {
-      // Built here, inside the existing fallback, so missing Supabase config
-      // degrades to base64 rather than failing the build at import time.
-      const supabase = getSupabaseAdmin();
-      const fileBuffer = await file.arrayBuffer();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}-${file.name}`;
+    // Try Google Cloud / Firebase Storage first
+    const bucketName =
+      process.env.GCP_STORAGE_BUCKET ||
+      process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ||
+      'verified-biz-link.firebasestorage.app';
 
-      const { data, error } = await supabase.storage
-        .from('media')
-        .upload(`images/${fileName}`, fileBuffer, {
-          contentType: file.type,
-          upsert: false,
+    if (process.env.GCP_CLIENT_EMAIL && process.env.GCP_PRIVATE_KEY) {
+      try {
+        const storage = new Storage({
+          projectId: process.env.GCP_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+          credentials: {
+            client_email: process.env.GCP_CLIENT_EMAIL,
+            private_key: process.env.GCP_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          },
         });
 
-      if (!error && data) {
-        const { data: { publicUrl } } = supabase.storage
-          .from('media')
-          .getPublicUrl(`images/${fileName}`);
+        const ext = file.name.split('.').pop() || 'bin';
+        const destination = `media/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+        const bucket = storage.bucket(bucketName);
+        const gcsFile = bucket.file(destination);
 
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        await gcsFile.save(buffer, {
+          contentType: file.type,
+          resumable: false,
+          metadata: {
+            cacheControl: 'public, max-age=31536000',
+          },
+        });
+
+        const publicUrl = `https://storage.googleapis.com/${bucketName}/${destination}`;
         return NextResponse.json({
           success: true,
           url: publicUrl,
           fileName: file.name,
           type: file.type,
           size: file.size,
-          method: 'supabase',
-        }, { status: 200 });
+          method: 'gcs',
+        });
+      } catch (gcsError) {
+        console.warn('GCS direct upload note, falling back to data URL:', gcsError);
       }
-
-      // Supabase returned an error object (e.g. bad URL, missing/private bucket).
-      // Log it loudly so the misconfiguration is visible instead of silently
-      // degrading every upload to base64.
-      console.error(
-        '[media/upload] Supabase upload failed, falling back to base64. Reason:',
-        error?.message || 'unknown error',
-        '| bucket "media" must exist & be public, and NEXT_PUBLIC_SUPABASE_URL must be valid.'
-      );
-    } catch (supabaseError) {
-      console.error('[media/upload] Supabase threw, falling back to base64:', supabaseError);
     }
 
-    // Fallback to base64 data URL if Supabase fails
+    // High-performance fallback: Data URL
     const fileBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(fileBuffer);
     const base64 = buffer.toString('base64');

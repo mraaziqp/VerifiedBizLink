@@ -6,6 +6,7 @@ import {
   Shield, Globe, Phone, MapPin, Building2, Users,
   Star, CalendarCheck, ArrowLeft, Loader2, BadgeCheck, MessageCircle,
   Facebook, Instagram, Linkedin, Youtube, ChevronLeft, ChevronRight, X, Eye,
+  Video, Play,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -327,34 +328,54 @@ export default function BusinessProfilePage() {
               <Card className="border-border">
                 <CardContent className="p-5 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h2 className="font-black text-foreground">Photo Gallery</h2>
-                    <span className="text-xs text-foreground/50 font-medium">{gallery.length} photos</span>
+                    <h2 className="font-black text-foreground">Media &amp; Photo Showcase</h2>
+                    <span className="text-xs text-foreground/50 font-medium">{gallery.length} items</span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {gallery.map((img, idx) => (
-                      <button
-                        key={img.id}
-                        type="button"
-                        onClick={() => setLightboxIndex(idx)}
-                        className="group relative aspect-square overflow-hidden rounded-xl bg-foreground/5 block text-left focus:outline-none focus:ring-2 focus:ring-primary"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={img.image_url}
-                          alt={img.title || business.companyName}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-300"
-                        />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Eye className="h-6 w-6 text-white drop-shadow-md" />
-                        </div>
-                        {img.title && (
-                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <p className="text-[11px] text-white font-medium truncate">{img.title}</p>
+                    {gallery.map((img, idx) => {
+                      const isVid = /\.(mp4|webm|mov|m4v|ogg)(\?.*)?$/i.test(img.image_url) || img.image_url.includes('/videos/');
+                      return (
+                        <button
+                          key={img.id}
+                          type="button"
+                          onClick={() => setLightboxIndex(idx)}
+                          className="group relative aspect-square overflow-hidden rounded-xl bg-foreground/5 block text-left focus:outline-none focus:ring-2 focus:ring-primary"
+                        >
+                          {isVid ? (
+                            <>
+                              <video
+                                src={img.image_url}
+                                className="w-full h-full object-cover"
+                                preload="metadata"
+                              />
+                              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                <div className="p-2.5 rounded-full bg-amber-400 text-slate-950 shadow-md">
+                                  <Play className="h-5 w-5 fill-slate-950" />
+                                </div>
+                              </div>
+                              <span className="absolute top-2 left-2 bg-black/70 text-amber-400 text-[9px] font-extrabold px-1.5 py-0.5 rounded flex items-center gap-1">
+                                <Video className="h-3 w-3" /> VIDEO
+                              </span>
+                            </>
+                          ) : (
+                            <img
+                              src={img.image_url}
+                              alt={img.title || business.companyName}
+                              loading="lazy"
+                              className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-300"
+                            />
+                          )}
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <Eye className="h-6 w-6 text-white drop-shadow-md" />
                           </div>
-                        )}
-                      </button>
-                    ))}
+                          {img.title && (
+                            <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <p className="text-[11px] text-white font-medium truncate">{img.title}</p>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
@@ -582,12 +603,20 @@ export default function BusinessProfilePage() {
               </button>
             )}
 
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={gallery[lightboxIndex].image_url}
-              alt={gallery[lightboxIndex].title || business.companyName}
-              className="max-h-[75vh] max-w-full object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-200"
-            />
+            {/\.(mp4|webm|mov|m4v|ogg)(\?.*)?$/i.test(gallery[lightboxIndex].image_url) || gallery[lightboxIndex].image_url.includes('/videos/') ? (
+              <video
+                src={gallery[lightboxIndex].image_url}
+                controls
+                autoPlay
+                className="max-h-[75vh] max-w-full rounded-xl shadow-2xl bg-black"
+              />
+            ) : (
+              <img
+                src={gallery[lightboxIndex].image_url}
+                alt={gallery[lightboxIndex].title || business.companyName}
+                className="max-h-[75vh] max-w-full object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-200"
+              />
+            )}
 
             {gallery.length > 1 && (
               <button

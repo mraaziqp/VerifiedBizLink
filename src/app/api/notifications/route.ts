@@ -64,3 +64,25 @@ export async function PATCH(request: NextRequest) {
 
   return NextResponse.json({ success: true });
 }
+
+// DELETE — dismiss a single notification or clear all
+export async function DELETE(request: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
+  const clearAll = searchParams.get('clearAll') === 'true';
+
+  try {
+    if (clearAll) {
+      await db`DELETE FROM notifications WHERE user_id = ${session.id}`;
+    } else if (id) {
+      await db`DELETE FROM notifications WHERE id = ${id} AND user_id = ${session.id}`;
+    }
+  } catch (error) {
+    console.error('Notification delete error:', error);
+  }
+
+  return NextResponse.json({ success: true });
+}

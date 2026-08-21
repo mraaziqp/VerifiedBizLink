@@ -1,4 +1,4 @@
-﻿
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -27,6 +27,7 @@ interface Post {
   user_id: string;
   content: string;
   image_url: string | null;
+  video_url?: string | null;
   likes_count: number;
   comments_count: number;
   created_at: string;
@@ -386,9 +387,9 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
                 </div>
               ) : (
                 <>
-                  <p className="text-gray-700 leading-relaxed text-[15px]">{post.content}</p>
-                  {post.image_url && (
-                    <PostImage url={post.image_url} className="mt-3 border-gray-100 bg-gray-50" />
+                  <p className="text-slate-800 leading-relaxed text-[15px]">{post.content}</p>
+                  {(post.video_url || post.image_url) && (
+                    <PostImage url={post.video_url || post.image_url || ''} className="mt-3" />
                   )}
                 </>
               )}

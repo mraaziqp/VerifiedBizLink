@@ -359,7 +359,7 @@ function SettingsForm() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-[max(env(safe-area-inset-top,0px),2.5rem)] pb-6 sm:py-6 overflow-x-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           <aside className="hidden lg:block lg:col-span-3 sticky top-6">
             <SidebarLeft />

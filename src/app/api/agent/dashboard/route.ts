@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { AGENT_PORTAL_ROLES, ROLES, hasRole } from '@/lib/roles';
-import { commissionCents } from '@/lib/commission';
+import {
+  commissionCents, getWeeklyTierRate, OFFICIAL_WEEKLY_TIERS,
+  MONTHLY_RETENTION_RATE, calculateRetentionCommission
+} from '@/lib/commission';
 import { referralLink, referralQrUrl } from '@/lib/agents';
 import { getCommissionSettings } from '@/lib/settings';
 import { appUrlFromRequest } from '@/lib/email';
@@ -12,11 +15,9 @@ type Row = Record<string, unknown>;
 /**
  * GET /api/agent/dashboard
  *
- * Everything the sales agent portal needs, scoped to one agent.
- *
- * An agent may only ever see their own book. Admins may pass ?agentId= to
- * review a specific agent; for anyone else the parameter is ignored outright
- * rather than validated, so there is no way to probe another agent's numbers.
+ * Implements VerifiedBizLink Business Advisor Commission & Incentive Policy (Version 1.0)
+ * - Weekly Tiered Acquisition (20% to 50%)
+ * - 5% Monthly Recurring Retention
  */
 export async function GET(request: NextRequest) {
   try {
@@ -29,15 +30,6 @@ export async function GET(request: NextRequest) {
     const requested = request.nextUrl.searchParams.get('agentId');
     const agentId = isAdmin && requested ? requested : session!.id;
 
-    /**
-     * One query, two joins:
-     *   - every business this agent signed up (assisted_by_user_id)
-     *   - that business owner's FIRST completed payment, if any
-     *
-     * DISTINCT ON gives us the earliest completed payment per user, which is
-     * what commission is calculated from. Ordering by COALESCE(completed_at,
-     * created_at) matters: older rows predate completed_at being populated.
-     */
     const rows = (await db`
       WITH first_payment AS (
         SELECT DISTINCT ON (p.user_id)
@@ -59,15 +51,32 @@ export async function GET(request: NextRequest) {
       ORDER BY b.created_at DESC
     `) as unknown as Row[];
 
-    // Resolved before the rows are mapped, because each signup's commission
-    // is calculated with it. A negotiated per-agent rate beats the default.
     const settings = await getCommissionSettings();
     const me = (await db`
       SELECT referral_code, commission_rate_override FROM users WHERE id = ${agentId} LIMIT 1
     `.catch(() => [])) as unknown as Row[];
+
+    // Calculate weekly sales count for the current week (Monday to now)
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+
+    const weeklySalesCount = rows.filter((r) => {
+      const cents = Number(r.first_payment_cents) || 0;
+      if (cents <= 0 || !r.paid_at) return false;
+      const paidDate = new Date(r.paid_at as string);
+      return paidDate >= monday;
+    }).length;
+
+    // Apply Weekly Tiered Rate (20% for 1-10, 30% for 11-15, 40% for 16-20, 50% for 21+)
+    const weeklyTier = getWeeklyTierRate(weeklySalesCount);
+
     const override = me[0]?.commission_rate_override;
     const effectiveRate =
-      override !== null && override !== undefined ? Number(override) : settings.defaultRate;
+      override !== null && override !== undefined ? Number(override) : weeklyTier.rate;
 
     const signups = rows.map((r) => {
       const cents = Number(r.first_payment_cents) || 0;
@@ -80,7 +89,6 @@ export async function GET(request: NextRequest) {
         ownerName: r.full_name,
         ownerEmail: r.email,
         emailVerified: r.email_verified === true,
-        // A sign-up only becomes a "sale" once it has actually paid.
         converted: cents > 0,
         firstPaymentCents: cents,
         commissionCents: commissionCents(cents, effectiveRate),
@@ -91,7 +99,11 @@ export async function GET(request: NextRequest) {
 
     const converted = signups.filter((s) => s.converted);
 
-    // The agent's own sharing kit and payout position.
+    // Calculate recurring 5% retention commission on paying accounts
+    const retentionMonthlyCents = converted.reduce((sum, s) => {
+      return sum + Math.floor(s.firstPaymentCents * MONTHLY_RETENTION_RATE);
+    }, 0);
+
     const code = (me[0]?.referral_code as string) || null;
     const base = appUrlFromRequest(request);
     const link = code ? referralLink(base, code) : null;
@@ -104,6 +116,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       agentId,
+      policy: {
+        version: '1.0',
+        weeklyTiers: OFFICIAL_WEEKLY_TIERS,
+        retentionRatePercent: Math.round(MONTHLY_RETENTION_RATE * 100),
+      },
+      currentWeeklyTier: {
+        weeklySales: weeklySalesCount,
+        tierName: weeklyTier.tierName,
+        ratePercent: Math.round(effectiveRate * 100),
+      },
       scheme: {
         ratePercent: Math.round(effectiveRate * 100),
         milestones: settings.milestones,
@@ -115,15 +137,17 @@ export async function GET(request: NextRequest) {
       },
       payouts: {
         paidCents,
+        retentionMonthlyCents,
       },
       totals: {
         signups: signups.length,
         sales: converted.length,
+        weeklySales: weeklySalesCount,
         pending: signups.length - converted.length,
-        // Verified but not yet paying — the agent's warmest follow-up list.
         awaitingPayment: signups.filter((s) => !s.converted && s.emailVerified).length,
         revenueCents: converted.reduce((sum, s) => sum + s.firstPaymentCents, 0),
         commissionCents: converted.reduce((sum, s) => sum + s.commissionCents, 0),
+        retentionMonthlyCents,
       },
       signups,
     });

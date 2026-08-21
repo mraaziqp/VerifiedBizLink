@@ -1,10 +1,12 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell, MapPin, Building2, Zap, Megaphone } from "lucide-react";
+import {
+  Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell,
+  MapPin, Building2, Zap, Megaphone, CheckCheck, Trash2, X, Sparkles
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { GoldCheckmark } from "@/components/ui/gold-checkmark";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,14 +31,12 @@ interface Notification {
   created_at: string;
 }
 
-// 'banker' is the internal RBAC role name (shared with STAFF_ROLES checks
-// elsewhere) — show the friendly title staff actually use instead.
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
   banker: 'Compliance Officer',
-  lawyer: 'Lawyer',
-  business: 'Business',
-  customer: 'Customer',
+  lawyer: 'Legal Counsel',
+  business: 'Business Owner',
+  customer: 'Member',
 };
 
 const navigation = [
@@ -58,26 +58,14 @@ export function SidebarLeft() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [businessVerified, setBusinessVerified] = useState(false);
-  // Every navigation to a page that renders this sidebar remounts it from
-  // scratch, resetting businessVerified to its false default until this
-  // fetch resolves — without a loading flag, a genuinely verified
-  // business's Gold badge visibly disappears and reappears on every page
-  // change. Gating the badge on this instead of just businessVerified means
-  // it renders nothing (not a wrong answer) while the real check is in
-  // flight.
   const [verificationLoading, setVerificationLoading] = useState(true);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Takes an optional signal so the polling effect below can abort an
-  // in-flight request on unmount. This sidebar is rendered per-page (not in
-  // the root layout), so it unmounts on every navigation — without this, a
-  // request in flight when you navigate away resolves into a dead component
-  // and its response is downloaded for nothing.
   const fetchNotifications = useCallback((signal?: AbortSignal) => {
     if (!user) return;
     fetch('/api/notifications', { signal })
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (signal?.aborted) return;
         if (d?.notifications) setNotifications(d.notifications);
@@ -86,10 +74,6 @@ export function SidebarLeft() {
   }, [user]);
 
   useEffect(() => {
-    // The gold checkmark means "this business passed CIPC/SARS vetting" —
-    // it must never render just because someone is logged in. Only
-    // business/staff accounts can have a business at all, and only a
-    // 'verified' status earns the badge.
     if (!user || !['business', 'admin', 'banker', 'lawyer'].includes(user.role)) {
       setBusinessVerified(false);
       setVerificationLoading(false);
@@ -98,7 +82,7 @@ export function SidebarLeft() {
     setVerificationLoading(true);
     const controller = new AbortController();
     fetch('/api/business/profile', { signal: controller.signal })
-      .then((r) => r.ok ? r.json() : null)
+      .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         if (controller.signal.aborted) return;
         setBusinessVerified(d?.business?.status === 'verified');
@@ -115,8 +99,7 @@ export function SidebarLeft() {
   useEffect(() => {
     const controller = new AbortController();
     fetchNotifications(controller.signal);
-    // Poll every 60 seconds
-    const interval = setInterval(() => fetchNotifications(controller.signal), 60_000);
+    const interval = setInterval(() => fetchNotifications(controller.signal), 30_000);
     return () => {
       clearInterval(interval);
       controller.abort();
@@ -132,6 +115,17 @@ export function SidebarLeft() {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
+  const dismissNotification = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    await fetch(`/api/notifications?id=${id}`, { method: 'DELETE' });
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const clearAllNotifications = async () => {
+    await fetch('/api/notifications?clearAll=true', { method: 'DELETE' });
+    setNotifications([]);
+  };
+
   const initials = user?.fullName
     ? user.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
     : 'VB';
@@ -140,81 +134,90 @@ export function SidebarLeft() {
   const canManageBusiness = user && (user.role === 'business' || isAdmin);
 
   return (
-    // The wrapping <aside> on every page that renders this is `sticky
-    // top-6` with no height cap of its own, so on a full nav list (Home
-    // through Admin Hub) plus the profile card, this stack can run taller
-    // than the viewport — sticky doesn't create a scroll context, so the
-    // only way to reach Notifications/Sign Out was scrolling the whole
-    // page. Capping height and scrolling internally keeps the logo/profile
-    // pinned in view while the nav list scrolls on its own.
-    <div className="flex max-h-[calc(100vh-3rem)] flex-col gap-6 overflow-y-auto">
-      {/* App Logo */}
-      <div className="flex items-center px-2 py-1">
-        <VBLLogo variant="full" size="lg" iconSize={88} theme="dark" />
+    <div className="flex flex-col gap-4">
+      {/* Brand Header & Logo — clean framing, zero cut-off */}
+      <div className="flex items-center justify-between px-3 py-2.5 bg-white/90 rounded-2xl border border-slate-200/90 shadow-xs">
+        <VBLLogo variant="full" size="sm" iconSize={36} theme="dark" />
+        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300/60">
+          Pro
+        </span>
       </div>
 
-      {/* Profile Card */}
-      <Card className="overflow-hidden shadow-sm">
-        <div className="h-16 bg-gradient-to-r from-yellow-400 to-yellow-500" />
-        <CardContent className="pt-0 -mt-8 text-center pb-6">
+      {/* Profile Card — Unified, elegant luxury gradient without harsh cut-offs */}
+      <Card className="overflow-hidden shadow-xs border border-amber-200/80 bg-gradient-to-b from-amber-50/80 via-white to-white rounded-2xl p-5 text-center">
+        {/* Centered Avatar with gold ring */}
+        <div className="flex justify-center mb-3">
           {loading ? (
-            <div className="space-y-3 mt-2">
-              <Skeleton className="h-16 w-16 rounded-full mx-auto" />
-              <Skeleton className="h-4 w-32 mx-auto" />
-              <Skeleton className="h-3 w-24 mx-auto" />
-            </div>
+            <Skeleton className="h-16 w-16 rounded-full mx-auto" />
           ) : (
-            <>
-              <Avatar className="h-16 w-16 mx-auto border-4 border-white">
-                <AvatarImage src={user?.avatarUrl || undefined} alt={user?.fullName} />
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-              <div className="mt-3 flex items-center justify-center gap-1.5">
-                <h3 className="font-semibold text-lg text-gray-900">{user?.fullName || 'Guest'}</h3>
-                {!verificationLoading && businessVerified && <GoldCheckmark />}
-              </div>
-              <p className="text-sm text-gray-500 font-medium">{user?.headline || 'VerifiedBizLink Member'}</p>
-              {user && (
-                <div className="mt-4 pt-4 border-t grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Role</p>
-                    <p className="text-sm font-semibold text-gray-900">{ROLE_LABELS[(user.role || '').toLowerCase()] || user.role}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-400 uppercase font-bold tracking-wider">Status</p>
-                    <p className="text-sm font-semibold text-primary">Active</p>
-                  </div>
-                </div>
-              )}
-            </>
+            <Avatar className="h-16 w-16 border-2 border-white shadow-md ring-2 ring-amber-400">
+              <AvatarImage src={user?.avatarUrl || undefined} alt={user?.fullName} />
+              <AvatarFallback className="bg-amber-100 text-amber-900 font-extrabold text-lg">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
           )}
-        </CardContent>
+        </div>
+
+        {loading ? (
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-32 mx-auto" />
+            <Skeleton className="h-3 w-24 mx-auto" />
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+              <h3 className="font-bold text-base text-slate-900 leading-tight">
+                {user?.fullName || 'Guest User'}
+              </h3>
+              {!verificationLoading && businessVerified && <GoldCheckmark />}
+            </div>
+            <p className="text-xs text-slate-500 font-medium mt-0.5 line-clamp-2">
+              {user?.headline || 'VerifiedBizLink Member'}
+            </p>
+
+            {user && (
+              <div className="mt-4 pt-3 border-t border-amber-100/80 grid grid-cols-2 gap-2 text-center">
+                <div className="bg-slate-50/90 rounded-xl p-2 border border-slate-200/70">
+                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Role</p>
+                  <p className="text-xs font-bold text-slate-900 truncate mt-0.5">
+                    {ROLE_LABELS[(user.role || '').toLowerCase()] || user.role}
+                  </p>
+                </div>
+                <div className="bg-slate-50/90 rounded-xl p-2 border border-slate-200/70">
+                  <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Status</p>
+                  <p className="text-xs font-bold text-emerald-600 truncate mt-0.5 flex items-center justify-center gap-1">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                    Active
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </Card>
 
       {/* Main Navigation */}
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-1 bg-white/70 backdrop-blur-sm p-1.5 rounded-2xl border border-slate-200/80 shadow-xs">
         {navigation.map((item) => {
-          // My Business, Ad Manager and Vetting Hub are for business accounts
-          // (to manage their profile, run ad campaigns, and upload
-          // verification docs) and staff (who need to view/support all of
-          // these) — hidden for plain customer accounts.
           if ((item.name === "My Business" || item.name === "Ad Manager" || item.name === "Vetting Hub") && !canManageBusiness) {
             return null;
           }
+          const isActive = pathname === item.href;
           return (
             <Link
               key={item.name}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group",
-                pathname === item.href
-                  ? "bg-primary/10 text-primary font-semibold"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                "flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 group font-semibold text-sm",
+                isActive
+                  ? "bg-amber-400 text-slate-950 font-bold shadow-xs shadow-amber-400/20"
+                  : "text-slate-600 hover:bg-amber-50/70 hover:text-amber-950"
               )}
             >
               <item.icon className={cn(
-                "h-5 w-5",
-                pathname === item.href ? "text-primary" : "text-gray-400 group-hover:text-gray-600"
+                "h-4.5 w-4.5",
+                isActive ? "text-slate-950" : "text-slate-400 group-hover:text-amber-600"
               )} />
               <span>{item.name}</span>
             </Link>
@@ -225,15 +228,15 @@ export function SidebarLeft() {
           <Link
             href="/admin"
             className={cn(
-              "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group mt-1",
+              "flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 group mt-1 font-bold text-sm",
               pathname.startsWith('/admin')
-                ? "bg-gray-900 text-primary font-semibold"
-                : "text-gray-600 hover:bg-gray-900 hover:text-primary"
+                ? "bg-slate-950 text-amber-400 font-bold shadow-xs"
+                : "text-slate-700 hover:bg-slate-900 hover:text-amber-400"
             )}
           >
             <Shield className={cn(
-              "h-5 w-5",
-              pathname.startsWith('/admin') ? "text-primary" : "text-gray-400 group-hover:text-primary"
+              "h-4.5 w-4.5",
+              pathname.startsWith('/admin') ? "text-amber-400" : "text-slate-400 group-hover:text-amber-400"
             )} />
             <span>Admin Hub</span>
           </Link>
@@ -246,46 +249,69 @@ export function SidebarLeft() {
           <PopoverTrigger asChild>
             <Button
               variant="ghost"
-              className="w-full justify-start gap-3 text-gray-500 hover:text-gray-900 hover:bg-gray-100 px-4 rounded-xl relative"
+              className="w-full justify-start gap-3 text-slate-600 hover:text-slate-900 hover:bg-amber-50/80 px-3.5 rounded-xl relative h-10 border border-slate-200/80 bg-white/70"
             >
               <span className="relative">
-                <Bell className="h-5 w-5" />
+                <Bell className="h-4.5 w-4.5 text-slate-500" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-[10px] text-white flex items-center justify-center font-bold">
+                  <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-red-500 text-[9px] text-white flex items-center justify-center font-bold">
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
                 )}
               </span>
-              <span>Notifications</span>
+              <span className="text-sm font-semibold">Notifications</span>
               {unreadCount > 0 && (
-                <Badge variant="destructive" className="ml-auto text-[10px] h-5 px-1.5">
-                  {unreadCount}
+                <Badge className="ml-auto text-[10px] h-5 px-1.5 font-bold bg-amber-400 text-slate-950 hover:bg-amber-500">
+                  {unreadCount} new
                 </Badge>
               )}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-80 p-0" align="start" side="right">
-            <div className="flex items-center justify-between px-4 py-3 border-b">
-              <h4 className="font-bold text-sm text-gray-900">Notifications</h4>
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllRead}
-                  className="text-xs text-primary font-bold hover:underline"
-                >
-                  Mark all read
-                </button>
-              )}
+          <PopoverContent className="w-84 p-0 shadow-2xl rounded-2xl border border-slate-200 bg-white" align="start" side="right">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl">
+              <div className="flex items-center gap-2">
+                <h4 className="font-bold text-sm text-gray-900">Notifications</h4>
+                {unreadCount > 0 && (
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-100 text-amber-800 font-bold">
+                    {unreadCount} unread
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {unreadCount > 0 && (
+                  <button
+                    onClick={markAllRead}
+                    className="text-xs text-amber-700 font-bold hover:underline flex items-center gap-1"
+                  >
+                    <CheckCheck className="h-3.5 w-3.5" /> Mark read
+                  </button>
+                )}
+                {notifications.length > 0 && (
+                  <button
+                    onClick={clearAllNotifications}
+                    className="text-xs text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
+                    title="Clear all"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="max-h-72 overflow-y-auto">
+
+            <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
               {notifications.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-8 font-medium">No notifications yet</p>
+                <div className="p-8 text-center space-y-2">
+                  <Bell className="h-8 w-8 text-gray-300 mx-auto" />
+                  <p className="text-sm text-gray-500 font-medium">All caught up!</p>
+                  <p className="text-xs text-gray-400">No active notifications</p>
+                </div>
               ) : (
                 notifications.map((n) => (
                   <div
                     key={n.id}
                     className={cn(
-                      "px-4 py-3 border-b last:border-0 cursor-pointer hover:bg-gray-50 transition-colors",
-                      !n.read && "bg-primary/5"
+                      "px-4 py-3 cursor-pointer hover:bg-amber-50/40 transition-colors relative group flex items-start justify-between gap-3",
+                      !n.read && "bg-amber-50/50"
                     )}
                     onClick={async () => {
                       await fetch('/api/notifications', {
@@ -300,12 +326,30 @@ export function SidebarLeft() {
                       router.push(n.link || '/network');
                     }}
                   >
-                    <p className={cn("text-sm", !n.read ? "font-semibold text-gray-900" : "text-gray-600")}>
-                      {n.message}
-                    </p>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {new Date(n.created_at).toLocaleDateString()}
-                    </p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        {!n.read && <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />}
+                        <p className={cn("text-xs leading-snug", !n.read ? "font-bold text-gray-900" : "text-gray-600 font-medium")}>
+                          {n.message}
+                        </p>
+                      </div>
+                      <p className="text-[10px] text-gray-400 mt-1">
+                        {new Date(n.created_at).toLocaleDateString('en-ZA', {
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={(e) => dismissNotification(n.id, e)}
+                      className="text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-gray-100 shrink-0"
+                      title="Dismiss notification"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 ))
               )}
@@ -314,19 +358,20 @@ export function SidebarLeft() {
         </Popover>
       )}
 
-      <div className="mt-auto">
+      {/* Sign out / Sign in */}
+      <div className="pt-1">
         {user ? (
           <Button
             variant="ghost"
-            className="w-full justify-start gap-3 text-gray-500 hover:text-red-500 hover:bg-red-50 px-4 rounded-xl"
+            className="w-full justify-start gap-3 text-slate-500 hover:text-red-600 hover:bg-red-50 px-3.5 rounded-xl h-10 border border-transparent hover:border-red-200/60 font-semibold text-sm transition-all"
             onClick={logout}
           >
-            <LogOut className="h-5 w-5" />
+            <LogOut className="h-4.5 w-4.5" />
             <span>Sign Out</span>
           </Button>
         ) : (
           <Link href="/login">
-            <Button className="w-full bg-primary text-gray-900 font-bold rounded-xl">
+            <Button className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xl h-10 shadow-md shadow-amber-400/20">
               Sign In
             </Button>
           </Link>

@@ -62,7 +62,6 @@ export default function RootLayout({
             <MobileNav />
             <AdBanner />
             <ChatWidget />
-            <MessagesWidget />
             <Toaster />
           </MobileMenuProvider>
         </AuthProvider>
