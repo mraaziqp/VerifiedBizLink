@@ -34,6 +34,9 @@ export async function compressImage(
       bitmap.close?.();
       return file;
     }
+    // Fill with white to prevent transparent PNGs turning black when saved as JPEG
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, width, height);
     ctx.drawImage(bitmap, 0, 0, width, height);
     bitmap.close?.();
 
