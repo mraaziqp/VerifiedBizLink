@@ -51,28 +51,38 @@ export function appUrlFromRequest(request?: { headers: Headers }): string {
 
 let cachedTransporter: nodemailer.Transporter | null = null;
 
-function getTransporter(): nodemailer.Transporter {
+function getTransporter(): nodemailer.Transporter | null {
   if (cachedTransporter) return cachedTransporter;
 
   const user = process.env.TITAN_EMAIL_ADDRESS;
   const pass = process.env.TITAN_EMAIL_PASSWORD;
   if (!user || !pass) {
-    throw new Error('TITAN_EMAIL_ADDRESS / TITAN_EMAIL_PASSWORD environment variables are missing.');
+    console.warn('[EMAIL WARNING] TITAN_EMAIL_ADDRESS / TITAN_EMAIL_PASSWORD environment variables are missing.');
+    return null;
   }
 
-  cachedTransporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_PORT === 465,
-    auth: { user, pass },
-  });
-  return cachedTransporter;
+  try {
+    cachedTransporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465,
+      auth: { user, pass },
+    });
+    return cachedTransporter;
+  } catch (err) {
+    console.error('[EMAIL ERROR] Could not create nodemailer transporter:', err);
+    return null;
+  }
 }
 
 // For callers that need to send custom HTML (support tickets, message
 // notifications) rather than one of the templated emails above.
 export async function sendRawEmail(to: string, subject: string, html: string) {
   const transporter = getTransporter();
+  if (!transporter) {
+    console.log(`[DEV EMAIL] To: ${to} | Subject: ${subject}`);
+    return;
+  }
   await transporter.sendMail({
     from: `VerifiedBizLink <${FROM_EMAIL}>`,
     to,
@@ -85,6 +95,10 @@ export async function sendPasswordResetEmail(to: string, fullName: string, token
   const link = `${baseUrl ?? APP_URL}/reset-password?token=${token}`;
   try {
     const transporter = getTransporter();
+    if (!transporter) {
+      console.log(`[DEV PASSWORD RESET LINK] To: ${to} -> ${link}`);
+      return;
+    }
     const html = await render(PasswordResetEmail({ resetLink: link }));
     await transporter.sendMail({
       from: `VerifiedBizLink <${FROM_EMAIL}>`,
@@ -102,6 +116,10 @@ export async function sendVerificationEmail(to: string, fullName: string, token:
   const link = `${baseUrl ?? APP_URL}/api/auth/verify-email?token=${token}`;
   try {
     const transporter = getTransporter();
+    if (!transporter) {
+      console.log(`[DEV VERIFICATION LINK] To: ${to} -> ${link}`);
+      return;
+    }
     const html = await render(VerificationEmail({ userFirstName: fullName, verificationLink: link }));
     await transporter.sendMail({
       from: `VerifiedBizLink <${FROM_EMAIL}>`,
@@ -111,6 +129,7 @@ export async function sendVerificationEmail(to: string, fullName: string, token:
     });
   } catch (error) {
     console.error('Failed to dispatch verification email to:', to, error);
+    console.log(`[FALLBACK VERIFICATION LINK] To: ${to} -> ${link}`);
     throw error;
   }
 }

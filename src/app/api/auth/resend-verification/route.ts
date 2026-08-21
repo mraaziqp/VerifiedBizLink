@@ -25,9 +25,11 @@ export async function POST(request: Request) {
   const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
   await db`UPDATE users SET email_verification_token = ${hashOneTimeToken(token)}, email_verification_token_expires_at = ${tokenExpiresAt.toISOString()}, updated_at = NOW() WHERE id = ${session.id}`;
 
-  sendVerificationEmail(rows[0].email, rows[0].full_name, token, appUrlFromRequest(request)).catch((err) => {
+  const baseUrl = appUrlFromRequest(request);
+  const verifyLink = `${baseUrl}/api/auth/verify-email?token=${token}`;
+  sendVerificationEmail(rows[0].email, rows[0].full_name, token, baseUrl).catch((err) => {
     console.error('Resend-verification email failed for', rows[0].email, err);
   });
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, verificationUrl: verifyLink });
 }
