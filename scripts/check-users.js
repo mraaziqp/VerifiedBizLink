@@ -1,6 +1,6 @@
 const { neon } = require('@neondatabase/serverless');
 
-const url = 'postgresql://neondb_owner:npg_fNXAh3ri2mDC@ep-fancy-lake-abff641p-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require';
+const url = 'process.env.DATABASE_URL';
 const sql = neon(url);
 
 (async () => {

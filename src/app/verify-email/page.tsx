@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Loader2, CheckCircle2, XCircle, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { VBLLogo } from "@/components/ui/vbl-logo";
 import Link from "next/link";
 
@@ -14,12 +15,60 @@ function VerifyEmailContent() {
   const error = params.get("error");
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [needsEmail, setNeedsEmail] = useState(false);
 
   const handleResend = async () => {
     setResending(true);
+    setResendError(null);
     try {
-      const res = await fetch("/api/auth/resend-verification", { method: "POST" });
-      if (res.ok) setResent(true);
+      // First try the authenticated path (no body needed)
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+
+      if (res.status === 401) {
+        // User is not logged in on this device — show email input
+        setNeedsEmail(true);
+        setResending(false);
+        return;
+      }
+
+      if (res.ok) {
+        setResent(true);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setResendError(data.error || "Could not send verification email. Please try again.");
+      }
+    } catch {
+      setResendError("Could not connect to the server.");
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const handleResendWithEmail = async () => {
+    if (!emailInput.trim()) return;
+    setResending(true);
+    setResendError(null);
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailInput.trim() }),
+      });
+      if (res.ok) {
+        setResent(true);
+        setNeedsEmail(false);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setResendError(data.error || "Could not send verification email.");
+      }
+    } catch {
+      setResendError("Could not connect to the server.");
     } finally {
       setResending(false);
     }
@@ -90,16 +139,53 @@ function VerifyEmailContent() {
             <h1 className="text-xl font-bold text-gray-900">Verification failed</h1>
             <p className="text-sm text-gray-500 mt-2">
               {error === "expired"
-                ? "This verification link has expired."
+                ? "This verification link has expired. Request a new one below."
                 : error === "invalid"
                 ? "This verification link is invalid or has already been used."
                 : "Something went wrong. Please try again."}
             </p>
           </div>
-          <Button className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl" onClick={handleResend} disabled={resending}>
-            {resending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending…</> : "Send a new verification email"}
-          </Button>
-          {resent && <p className="text-sm font-semibold text-green-600">New link sent! Check your inbox.</p>}
+
+          {resendError && (
+            <p className="text-sm font-semibold text-red-600">{resendError}</p>
+          )}
+
+          {/* If user isn't logged in, show email input for unauthenticated resend */}
+          {needsEmail ? (
+            <div className="space-y-3">
+              <p className="text-xs text-gray-500">
+                Enter the email address you signed up with and we&apos;ll send a fresh verification link.
+              </p>
+              <Input
+                type="email"
+                placeholder="your@email.com"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                className="text-center rounded-xl"
+              />
+              <Button
+                className="w-full bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl"
+                onClick={handleResendWithEmail}
+                disabled={resending || !emailInput.trim()}
+              >
+                {resending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending…</> : "Send new verification link"}
+              </Button>
+            </div>
+          ) : !resent ? (
+            <Button
+              className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl"
+              onClick={handleResend}
+              disabled={resending}
+            >
+              {resending ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Sending…</> : "Send a new verification email"}
+            </Button>
+          ) : null}
+
+          {resent && <p className="text-sm font-semibold text-green-600">New verification link sent! Check your inbox.</p>}
+
+          <Link href="/login" className="block text-xs text-gray-400 hover:text-gray-600 transition-colors mt-2">
+            ← Back to login
+          </Link>
         </>
       )}
     </div>

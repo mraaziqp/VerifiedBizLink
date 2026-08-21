@@ -30,7 +30,11 @@ export async function GET(request: NextRequest) {
 
     const rows = await db`
       UPDATE users
-      SET email_verified = TRUE, email_verification_token = NULL, email_verification_token_expires_at = NULL, updated_at = NOW()
+      SET email_verified = TRUE,
+          email_verified_at = NOW(),
+          email_verification_token = NULL,
+          email_verification_token_expires_at = NULL,
+          updated_at = NOW()
       WHERE id = ${u.id}
       RETURNING id, email, full_name, role, avatar_url, headline
     `;

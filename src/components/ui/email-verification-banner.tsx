@@ -12,8 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { REQUIRE_EMAIL_VERIFICATION } from "@/lib/feature-flags";
-
-const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
+import { STAFF_ROLES } from "@/lib/roles";
 
 export function EmailVerificationBanner() {
   const { user } = useAuth();
