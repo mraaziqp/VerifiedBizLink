@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Plus, Zap, Trash2, Pause, Play, Loader2, Sparkles, Eye, MousePointerClick, Pencil, Coins } from 'lucide-react';
+import {
+  ArrowLeft, Plus, Zap, Trash2, Pause, Play, Loader2, Sparkles, Eye,
+  MousePointerClick, Pencil, Coins, Megaphone, LayoutGrid, Image as ImageIcon,
+  CheckCircle2, Clock, HelpCircle, ExternalLink
+} from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { GlassBackground } from '@/components/shared/glass-ui';
+import { ImageUploader } from '@/components/media/image-uploader';
 
 interface Ad {
   id: string;
@@ -26,15 +31,24 @@ interface Ad {
   duration_days: number | null;
   impressions: number;
   clicks: number;
+  slot_placement?: string;
+  image_url?: string | null;
+  credits_spent?: number;
+  status?: string;
 }
 
-const BOOST_PRICE = 100;
-const AD_CREDIT_PRICE_PER_DAY = 10;
-const DURATION_PRESETS = [7, 14, 30, 60];
+const SLOT_OPTIONS = [
+  { id: 'feed_inline', label: 'In-Feed Sponsored Post', cost: 5, desc: 'Displayed directly between timeline posts on the main feed.' },
+  { id: 'top_banner', label: 'Top Header Featured Banner', cost: 10, desc: 'High-impact banner pinned at the top of Explore & Marketplace.' },
+  { id: 'sidebar_spotlight', label: 'Sidebar Recommended Spotlight', cost: 15, desc: 'Featured permanently on the right-hand sidebar of desktop & tablets.' },
+];
+
+const DURATION_PRESETS = [3, 7, 14, 30];
+
 const CREDIT_PACKS = [
-  { days: 10, price: 10 * AD_CREDIT_PRICE_PER_DAY },
-  { days: 30, price: 30 * AD_CREDIT_PRICE_PER_DAY },
-  { days: 60, price: 60 * AD_CREDIT_PRICE_PER_DAY },
+  { credits: 50, price: 49, bonus: 'Starter Pack' },
+  { credits: 150, price: 129, bonus: 'Most Popular (Save 15%)' },
+  { credits: 400, price: 299, bonus: 'Best Value (Save 25%)' },
 ];
 
 export default function BusinessAdsPage() {
@@ -47,16 +61,20 @@ export default function BusinessAdsPage() {
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [boostingId, setBoostingId] = useState<string | null>(null);
 
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({ title: '', description: '', ctaText: 'Learn More', ctaUrl: '', durationDays: 14 });
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    ctaText: 'Learn More',
+    ctaUrl: '',
+    durationDays: 7,
+    slotPlacement: 'feed_inline',
+    imageUrl: '',
+  });
+
   const [adCredits, setAdCredits] = useState(0);
   const [buyingCredits, setBuyingCredits] = useState<number | null>(null);
-
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editFormData, setEditFormData] = useState({ title: '', description: '', ctaText: '', ctaUrl: '' });
-  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchAds = useCallback(async () => {
     try {
@@ -70,7 +88,7 @@ export default function BusinessAdsPage() {
         setAdCredits(data.adCredits || 0);
       }
     } catch {
-      /* keep whatever is shown */
+      /* keep previous state */
     } finally {
       setLoading(false);
     }
@@ -80,8 +98,25 @@ export default function BusinessAdsPage() {
     fetchAds();
   }, [fetchAds]);
 
-  const handleCreateAd = async () => {
-    if (!formData.title.trim() || !formData.description.trim()) return;
+  const selectedSlot = SLOT_OPTIONS.find((s) => s.id === formData.slotPlacement) || SLOT_OPTIONS[0];
+  const totalRequiredCredits = formData.durationDays * selectedSlot.cost;
+  const hasEnoughCredits = adCredits >= totalRequiredCredits;
+
+  const handleCreateAd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.title.trim() || !formData.description.trim()) {
+      toast({ title: 'Title and description are required', variant: 'destructive' });
+      return;
+    }
+    if (!hasEnoughCredits) {
+      toast({
+        title: 'Not enough ad credits',
+        description: `This campaign requires ${totalRequiredCredits} credits. Please top up your balance below.`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await fetch('/api/business/ads', {
@@ -91,93 +126,57 @@ export default function BusinessAdsPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setFormData({ title: '', description: '', ctaText: 'Learn More', ctaUrl: '', durationDays: 14 });
+        setFormData({
+          title: '',
+          description: '',
+          ctaText: 'Learn More',
+          ctaUrl: '',
+          durationDays: 7,
+          slotPlacement: 'feed_inline',
+          imageUrl: '',
+        });
         setShowCreateForm(false);
         setAdCredits(data.adCredits ?? adCredits);
-        toast({ title: 'Ad created' });
+        toast({ title: 'Sponsored campaign launched successfully!' });
         fetchAds();
       } else {
         const data = await res.json().catch(() => ({}));
         toast({ title: 'Could not create ad', description: data.error, variant: 'destructive' });
       }
     } catch {
-      toast({ title: 'Could not create ad', variant: 'destructive' });
+      toast({ title: 'Network error', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleBuyCredits = async (days: number, price: number) => {
-    setBuyingCredits(days);
+  const handleToggleActive = async (id: string, currentlyActive: boolean) => {
+    setTogglingId(id);
     try {
-      const res = await fetch('/api/payfast/init', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: price,
-          description: `${days} Ad-Day Credits`,
-          purchaseType: 'ad_credits_topup',
-        }),
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Failed to start payment');
-      }
-      const { payfastUrl, data, signature } = await res.json();
-
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = payfastUrl;
-      Object.keys(data).forEach((key) => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = String(data[key]);
-        form.appendChild(input);
-      });
-      const sigInput = document.createElement('input');
-      sigInput.type = 'hidden';
-      sigInput.name = 'signature';
-      sigInput.value = signature;
-      form.appendChild(sigInput);
-      document.body.appendChild(form);
-      form.submit();
-    } catch (err: any) {
-      toast({ title: 'Could not start payment', description: err.message, variant: 'destructive' });
-      setBuyingCredits(null);
-    }
-  };
-
-  const handleToggleStatus = async (ad: Ad) => {
-    setTogglingId(ad.id);
-    try {
-      const res = await fetch(`/api/business/ads/${ad.id}`, {
+      const res = await fetch(`/api/business/ads/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: !ad.is_active }),
+        body: JSON.stringify({ isActive: !currentlyActive }),
       });
       if (res.ok) {
+        toast({ title: currentlyActive ? 'Campaign paused' : 'Campaign activated' });
         fetchAds();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        toast({ title: 'Could not update ad', description: data.error, variant: 'destructive' });
       }
     } catch {
-      toast({ title: 'Could not update ad', variant: 'destructive' });
+      toast({ title: 'Could not toggle ad', variant: 'destructive' });
     } finally {
       setTogglingId(null);
     }
   };
 
-  const handleDeleteAd = async (id: string) => {
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this ad?')) return;
     setDeletingId(id);
     try {
       const res = await fetch(`/api/business/ads/${id}`, { method: 'DELETE' });
       if (res.ok) {
-        setAds((prev) => prev.filter((a) => a.id !== id));
         toast({ title: 'Ad deleted' });
-      } else {
-        toast({ title: 'Could not delete ad', variant: 'destructive' });
+        setAds((prev) => prev.filter((a) => a.id !== id));
       }
     } catch {
       toast({ title: 'Could not delete ad', variant: 'destructive' });
@@ -186,412 +185,380 @@ export default function BusinessAdsPage() {
     }
   };
 
-  const startEdit = (ad: Ad) => {
-    setEditingId(ad.id);
-    setEditFormData({
-      title: ad.title,
-      description: ad.description,
-      ctaText: ad.cta_text || 'Learn More',
-      ctaUrl: ad.cta_url || '',
-    });
-  };
-
-  const handleSaveEdit = async (id: string) => {
-    if (!editFormData.title.trim() || !editFormData.description.trim()) return;
-    setSavingEdit(true);
-    try {
-      const res = await fetch(`/api/business/ads/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editFormData),
-      });
-      if (res.ok) {
-        setEditingId(null);
-        toast({ title: 'Ad updated' });
-        fetchAds();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        toast({ title: 'Could not update ad', description: data.error, variant: 'destructive' });
-      }
-    } catch {
-      toast({ title: 'Could not update ad', variant: 'destructive' });
-    } finally {
-      setSavingEdit(false);
-    }
-  };
-
-  const handleBoostAd = async (ad: Ad) => {
-    setBoostingId(ad.id);
+  const handleBuyCredits = async (amountRands: number) => {
+    setBuyingCredits(amountRands);
     try {
       const res = await fetch('/api/payfast/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          amount: BOOST_PRICE,
-          description: `Boost Ad: ${ad.title}`,
-          adId: ad.id,
-          purchaseType: 'ad_boost',
+          amount: amountRands,
+          description: `VerifiedBizLink Ad Credits (${amountRands} ZAR)`,
+          purchaseType: 'ad_credits_topup',
         }),
       });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Failed to start payment');
+      const data = await res.json();
+      if (res.ok && data.payfastUrl) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = data.payfastUrl;
+        Object.entries(data.data).forEach(([k, v]) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = k;
+          input.value = String(v);
+          form.appendChild(input);
+        });
+        const sig = document.createElement('input');
+        sig.type = 'hidden';
+        sig.name = 'signature';
+        sig.value = data.signature;
+        form.appendChild(sig);
+        document.body.appendChild(form);
+        form.submit();
+      } else {
+        toast({ title: 'Payment initiation error', description: data.error, variant: 'destructive' });
+        setBuyingCredits(null);
       }
-      const { payfastUrl, data, signature } = await res.json();
-
-      const form = document.createElement('form');
-      form.method = 'POST';
-      form.action = payfastUrl;
-      Object.keys(data).forEach((key) => {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = key;
-        input.value = String(data[key]);
-        form.appendChild(input);
-      });
-      const sigInput = document.createElement('input');
-      sigInput.type = 'hidden';
-      sigInput.name = 'signature';
-      sigInput.value = signature;
-      form.appendChild(sigInput);
-      document.body.appendChild(form);
-      form.submit();
-    } catch (err: any) {
-      toast({ title: 'Could not start payment', description: err.message, variant: 'destructive' });
-      setBoostingId(null);
+    } catch {
+      toast({ title: 'Payment server error', variant: 'destructive' });
+      setBuyingCredits(null);
     }
   };
 
   return (
     <GlassBackground>
-      {/* Navigation */}
-      <div className="safe-area-pt bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-40 p-4">
-        <Link href="/business/dashboard" className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Business Dashboard
-        </Link>
-      </div>
-
-      <div className="max-w-6xl mx-auto p-4 sm:p-6 pb-20 space-y-5 sm:space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Sponsored Listings</h1>
-            <p className="text-gray-500 mt-1.5 text-sm sm:text-base">
-              {loading
-                ? 'Loading your plan…'
-                : `${active} of ${limit} active — ${packageType === 'free' ? 'Free plan' : `${packageType} plan`}`}
+            <Link
+              href="/business/dashboard"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-slate-800 mb-2"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to Business Dashboard
+            </Link>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+              <Megaphone className="h-7 w-7 text-amber-500" />
+              Ad Manager &amp; Sponsored Listings
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
+              Boost your reach, acquire new clients, and showcase your business across high-traffic placement slots.
             </p>
           </div>
+
+          {/* Credits Badge & Topup */}
+          <div className="flex items-center gap-3 bg-white border border-amber-300 rounded-2xl p-2.5 shadow-xs">
+            <div className="p-2 rounded-xl bg-amber-100 text-amber-950 font-bold">
+              <Coins className="h-5 w-5 text-amber-600" />
+            </div>
+            <div>
+              <span className="text-[10px] uppercase font-bold text-slate-400 block">AVAILABLE BALANCE</span>
+              <p className="text-xl font-black text-amber-950">{adCredits} Credits</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Credit Top-up Row */}
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+              <Coins className="h-4.5 w-4.5 text-amber-500" />
+              Top Up Ad Credits (Instant Activation via PayFast)
+            </h3>
+            <span className="text-xs text-slate-500 font-medium">1 Credit ≈ R1 Ad Spend</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {CREDIT_PACKS.map((pack) => (
+              <div
+                key={pack.credits}
+                className="rounded-xl border border-slate-200 p-4 bg-slate-50/50 flex flex-col justify-between space-y-3 hover:border-amber-400 transition-all"
+              >
+                <div>
+                  <Badge variant="outline" className="text-[10px] font-extrabold text-amber-900 border-amber-300 bg-amber-50">
+                    {pack.bonus}
+                  </Badge>
+                  <p className="text-2xl font-black text-slate-900 mt-2">{pack.credits} Credits</p>
+                  <p className="text-xs text-slate-500">Total: R{pack.price}</p>
+                </div>
+                <Button
+                  onClick={() => handleBuyCredits(pack.price)}
+                  disabled={buyingCredits !== null}
+                  className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs"
+                >
+                  {buyingCredits === pack.price ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                  Buy {pack.credits} Credits
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Campaign Creation / List Action */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-black text-slate-900">Your Active &amp; Past Campaigns</h2>
           <Button
-            onClick={() => setShowCreateForm(true)}
-            disabled={limit === 0}
-            className="gap-2 bg-yellow-400 text-slate-900 hover:bg-yellow-300 disabled:opacity-50 h-11 w-full sm:w-auto"
+            onClick={() => setShowCreateForm(!showCreateForm)}
+            className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold gap-2 rounded-xl shadow-xs"
           >
-            <Plus className="h-4 w-4" />
-            Create Ad
+            {showCreateForm ? 'Cancel Campaign' : <><Plus className="h-4 w-4" /> Create New Sponsored Ad</>}
           </Button>
         </div>
 
-        {/* Ad Credits Balance */}
-        <Card className="bg-white/80 backdrop-blur-xl border-gray-200">
-          <CardContent className="p-5 sm:p-6 space-y-5">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-yellow-400/10 flex items-center justify-center shrink-0">
-                <Coins className="h-5 w-5 text-yellow-400" />
-              </div>
-              <div>
-                <p className="text-gray-500 text-xs uppercase tracking-wider font-bold">Ad Credits</p>
-                <p className="text-2xl font-bold text-gray-900">{loading ? '…' : adCredits} <span className="text-sm font-normal text-gray-500">ad-days</span></p>
-              </div>
-            </div>
-            <p className="text-xs text-gray-400">1 credit = 1 day an ad can run. Your plan tops these up monthly.</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {CREDIT_PACKS.map((pack) => (
-                <Button
-                  key={pack.days}
-                  onClick={() => handleBuyCredits(pack.days, pack.price)}
-                  disabled={buyingCredits !== null}
-                  className="gap-1.5 bg-gray-100 hover:bg-gray-200 border border-yellow-400/30 text-yellow-600 h-11 font-semibold"
-                >
-                  {buyingCredits === pack.days ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                  +{pack.days} days — R{pack.price}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {limit === 0 && !loading && (
-          <Card className="bg-yellow-400/10 border-yellow-400/30">
-            <CardContent className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <Sparkles className="h-6 w-6 text-yellow-400 shrink-0" />
-                <p className="text-gray-700 text-sm">
-                  Sponsored listings appear across VerifiedBizLink to boost your visibility. Upgrade your plan to create one.
-                </p>
-              </div>
-              <Link href="/pricing" className="w-full sm:w-auto">
-                <Button className="bg-yellow-400 text-slate-900 hover:bg-yellow-300 w-full sm:w-auto h-11">View Plans</Button>
-              </Link>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Create Ad Form */}
+        {/* Create Campaign Form */}
         {showCreateForm && (
-          <Card className="bg-white/80 backdrop-blur-xl border-gray-200">
-            <CardHeader className="border-b border-gray-200">
-              <CardTitle className="text-gray-900">Create New Sponsored Listing</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <div>
-                <label className="text-gray-500 text-sm mb-2 block">Title</label>
-                <Input
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder="e.g., Summer Sale 2026"
-                  className="bg-white border-gray-300 text-gray-900"
-                />
+          <Card className="border border-amber-300 bg-white rounded-2xl p-6 shadow-md animate-in fade-in space-y-6">
+            <form onSubmit={handleCreateAd} className="space-y-5">
+              <div className="border-b border-slate-100 pb-3">
+                <h3 className="text-base font-extrabold text-slate-900">Campaign Details &amp; Placement Slot</h3>
+                <p className="text-xs text-slate-500">Customize where and how your sponsored ad is delivered.</p>
               </div>
-              <div>
-                <label className="text-gray-500 text-sm mb-2 block">Description</label>
-                <Textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="Describe what you're promoting"
-                  className="bg-white border-gray-300 text-gray-900"
-                />
+
+              {/* Placement Slot Picker */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700">Choose Placement Slot *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {SLOT_OPTIONS.map((opt) => {
+                    const isSelected = formData.slotPlacement === opt.id;
+                    return (
+                      <div
+                        key={opt.id}
+                        onClick={() => setFormData({ ...formData, slotPlacement: opt.id })}
+                        className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'border-amber-400 bg-amber-50/70 ring-2 ring-amber-400/30'
+                            : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-xs text-slate-900">{opt.label}</span>
+                          <span className="text-xs font-black text-amber-700">{opt.cost} credits/day</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1">{opt.desc}</p>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+
+              {/* Title & Description */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-gray-500 text-sm mb-2 block">Button Text</label>
+                  <label className="text-xs font-bold text-slate-700">Headline / Ad Title *</label>
                   <Input
-                    value={formData.ctaText}
-                    onChange={(e) => setFormData({ ...formData, ctaText: e.target.value })}
-                    placeholder="Learn More"
-                    className="bg-white border-gray-300 text-gray-900"
+                    placeholder="e.g. 20% Off All Solar Installations This Month"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="bg-slate-50 border-slate-200 rounded-xl mt-1 text-sm font-semibold"
+                    required
                   />
                 </div>
+
                 <div>
-                  <label className="text-gray-500 text-sm mb-2 block">Link (optional)</label>
+                  <label className="text-xs font-bold text-slate-700">Call-to-Action Text</label>
                   <Input
-                    value={formData.ctaUrl}
-                    onChange={(e) => setFormData({ ...formData, ctaUrl: e.target.value })}
-                    placeholder="https://yourbusiness.co.za"
-                    className="bg-white border-gray-300 text-gray-900"
+                    placeholder="e.g. Get Quote, Book Now, Shop Deals"
+                    value={formData.ctaText}
+                    onChange={(e) => setFormData({ ...formData, ctaText: e.target.value })}
+                    className="bg-slate-50 border-slate-200 rounded-xl mt-1 text-sm"
                   />
                 </div>
               </div>
+
               <div>
-                <label className="text-gray-500 text-sm mb-2 block">How long should it run?</label>
-                <div className="flex flex-wrap gap-2">
-                  {DURATION_PRESETS.map((days) => (
+                <label className="text-xs font-bold text-slate-700">Ad Copy &amp; Offer Description *</label>
+                <Textarea
+                  placeholder="Describe your special promotion, service benefits, and why customers should choose you..."
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="bg-slate-50 border-slate-200 rounded-xl mt-1 text-xs min-h-[80px]"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-700">Destination Link / Website URL</label>
+                  <Input
+                    placeholder="https://yourwebsite.co.za/promo"
+                    value={formData.ctaUrl}
+                    onChange={(e) => setFormData({ ...formData, ctaUrl: e.target.value })}
+                    className="bg-slate-50 border-slate-200 rounded-xl mt-1 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700">Creative Image / Banner URL (Optional)</label>
+                  <Input
+                    placeholder="https://... or upload photo"
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                    className="bg-slate-50 border-slate-200 rounded-xl mt-1 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Duration Presets */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700">Campaign Duration (Days)</label>
+                <div className="flex flex-wrap items-center gap-2">
+                  {DURATION_PRESETS.map((d) => (
                     <button
-                      key={days}
+                      key={d}
                       type="button"
-                      onClick={() => setFormData({ ...formData, durationDays: days })}
-                      className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-colors ${
-                        formData.durationDays === days
-                          ? 'bg-yellow-400 text-slate-900 border-yellow-400'
-                          : 'bg-gray-100 text-gray-600 border-gray-300 hover:border-yellow-400/50'
+                      onClick={() => setFormData({ ...formData, durationDays: d })}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
+                        formData.durationDays === d
+                          ? 'bg-amber-400 border-amber-500 text-slate-950 shadow-xs'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-amber-300'
                       }`}
                     >
-                      {days} days
+                      {d} Days
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
-                  Costs {formData.durationDays} ad-credit{formData.durationDays === 1 ? '' : 's'} — you have {adCredits}.
-                  {formData.durationDays > adCredits && (
-                    <span className="text-red-700 font-semibold"> Not enough credits — buy more above.</span>
-                  )}
-                </p>
               </div>
-              <div className="flex gap-2 justify-end">
-                <Button
-                  onClick={() => setShowCreateForm(false)}
-                  variant="outline"
-                  className="border-gray-300 text-gray-600"
-                >
+
+              {/* Total Calculation Card */}
+              <div className="rounded-2xl border border-amber-300 bg-amber-50/80 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                <div>
+                  <span className="font-bold text-slate-800">
+                    Duration: <strong className="text-slate-900">{formData.durationDays} Days</strong> × {selectedSlot.cost} credits/day ({selectedSlot.label})
+                  </span>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Your balance: <strong className="text-slate-900">{adCredits} credits</strong> · Required: <strong className="text-amber-950">{totalRequiredCredits} credits</strong>
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-xs font-black text-amber-950 text-xl block">
+                    {totalRequiredCredits} Credits Total
+                  </span>
+                  {!hasEnoughCredits && (
+                    <span className="text-[11px] font-bold text-red-600">
+                      Need {totalRequiredCredits - adCredits} more credits
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="outline" onClick={() => setShowCreateForm(false)} className="rounded-xl">
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleCreateAd}
-                  disabled={saving || !formData.title.trim() || !formData.description.trim() || formData.durationDays > adCredits}
-                  className="bg-yellow-400 text-slate-900 hover:bg-yellow-300"
+                  type="submit"
+                  disabled={saving || !hasEnoughCredits}
+                  className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-xl shadow-xs"
                 >
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create Ad'}
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Launch Campaign
                 </Button>
               </div>
-            </CardContent>
+            </form>
           </Card>
         )}
 
         {/* Ads List */}
-        <div className="space-y-4 sm:space-y-5">
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Your Ads ({ads.length})</h2>
+        {loading ? (
+          <div className="p-12 text-center text-slate-400">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto text-amber-500 mb-2" />
+            Loading campaigns…
+          </div>
+        ) : ads.length === 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center space-y-3 shadow-xs">
+            <Megaphone className="h-10 w-10 text-amber-500 mx-auto" />
+            <h3 className="font-extrabold text-base text-slate-900">No campaigns created yet</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              Create your first sponsored ad to appear in the Feed, Top Banner, or Sidebar spotlight and drive direct verified inquiries.
+            </p>
+            <Button
+              onClick={() => setShowCreateForm(true)}
+              className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-xl shadow-xs text-xs"
+            >
+              Launch First Campaign
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {ads.map((ad) => {
+              const isExpired = ad.expires_at ? new Date(ad.expires_at) < new Date() : false;
+              const ctr = ad.impressions > 0 ? ((ad.clicks / ad.impressions) * 100).toFixed(1) : '0.0';
 
-          {loading ? (
-            <div className="flex justify-center py-16">
-              <Loader2 className="h-8 w-8 text-yellow-400 animate-spin" />
-            </div>
-          ) : ads.length === 0 ? (
-            <Card className="bg-white/80 backdrop-blur-xl border-gray-200">
-              <CardContent className="p-8 text-center">
-                <p className="text-gray-500">No sponsored listings yet.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            ads.map((ad) => (
-              <Card key={ad.id} className="bg-white/80 backdrop-blur-xl border-gray-200 hover:border-yellow-400/30 transition-colors">
-                <CardContent className="p-5 sm:p-6 space-y-4">
-                  {editingId === ad.id ? (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-gray-500 text-sm mb-2 block">Title</label>
-                        <Input
-                          value={editFormData.title}
-                          onChange={(e) => setEditFormData({ ...editFormData, title: e.target.value })}
-                          className="bg-white border-gray-300 text-gray-900"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-gray-500 text-sm mb-2 block">Description</label>
-                        <Textarea
-                          value={editFormData.description}
-                          onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                          className="bg-white border-gray-300 text-gray-900"
-                        />
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-gray-500 text-sm mb-2 block">Button Text</label>
-                          <Input
-                            value={editFormData.ctaText}
-                            onChange={(e) => setEditFormData({ ...editFormData, ctaText: e.target.value })}
-                            className="bg-white border-gray-300 text-gray-900"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-gray-500 text-sm mb-2 block">Link (optional)</label>
-                          <Input
-                            value={editFormData.ctaUrl}
-                            onChange={(e) => setEditFormData({ ...editFormData, ctaUrl: e.target.value })}
-                            className="bg-white border-gray-300 text-gray-900"
-                          />
-                        </div>
-                      </div>
-                      <div className="flex gap-2 justify-end pt-2">
-                        <Button onClick={() => setEditingId(null)} variant="outline" size="sm" className="border-gray-300 text-gray-600">
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={() => handleSaveEdit(ad.id)}
-                          disabled={savingEdit || !editFormData.title.trim() || !editFormData.description.trim()}
-                          size="sm"
-                          className="bg-yellow-400 text-slate-900 hover:bg-yellow-300"
+              return (
+                <div
+                  key={ad.id}
+                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4 hover:border-amber-300 transition-all"
+                >
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-extrabold text-base text-slate-900">{ad.title}</h3>
+                        <Badge
+                          variant={ad.is_active && !isExpired ? 'default' : 'secondary'}
+                          className={ad.is_active && !isExpired ? 'bg-emerald-500 text-white font-bold text-[10px]' : 'text-[10px] font-bold'}
                         >
-                          {savingEdit ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Changes'}
-                        </Button>
+                          {ad.is_active && !isExpired ? 'Active' : isExpired ? 'Completed' : 'Paused'}
+                        </Badge>
+                        <span className="text-[10px] font-bold text-amber-900 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                          {ad.slot_placement?.replace('_', ' ') || 'In-Feed'}
+                        </span>
                       </div>
+                      <p className="text-xs text-slate-500 line-clamp-1">{ad.description}</p>
                     </div>
-                  ) : (
-                    <div className="flex justify-between items-start gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-xl font-bold text-gray-900">{ad.title}</h3>
-                          {ad.is_boosted && ad.boost_expires_at && new Date(ad.boost_expires_at) > new Date() && (
-                            <Badge className="bg-yellow-400/20 text-yellow-400 gap-1">
-                              <Zap className="h-3 w-3" /> Boosted until {new Date(ad.boost_expires_at).toLocaleDateString()}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-gray-500 text-sm mt-1">{ad.description}</p>
-                        {ad.expires_at && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            {(() => {
-                              const daysLeft = Math.ceil((new Date(ad.expires_at as string).getTime() - Date.now()) / 86400000);
-                              return daysLeft > 0
-                                ? `${daysLeft} day${daysLeft === 1 ? '' : 's'} left on its ${ad.duration_days}-day run`
-                                : 'Run finished — paused automatically';
-                            })()}
-                          </p>
-                        )}
-                      </div>
-                      <Badge className={ad.is_active ? 'bg-green-500/20 text-green-700' : 'bg-slate-500/20 text-slate-700'}>
-                        {ad.is_active ? 'Active' : 'Paused'}
-                      </Badge>
-                    </div>
-                  )}
 
-                  {editingId !== ad.id && (
-                  <div className="flex items-center gap-5 text-sm">
-                    <div className="flex items-center gap-1.5 text-gray-600">
-                      <Eye className="h-4 w-4 text-gray-400" />
-                      <span className="font-semibold">{(ad.impressions ?? 0).toLocaleString()}</span>
-                      <span className="text-gray-400">impressions</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-gray-600">
-                      <MousePointerClick className="h-4 w-4 text-gray-400" />
-                      <span className="font-semibold">{(ad.clicks ?? 0).toLocaleString()}</span>
-                      <span className="text-gray-400">clicks</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-gray-600">
-                      <span className="text-gray-400">CTR</span>
-                      <span className="font-semibold">
-                        {ad.impressions > 0 ? `${((ad.clicks / ad.impressions) * 100).toFixed(1)}%` : '—'}
-                      </span>
+                    {/* Analytics Pills */}
+                    <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs">
+                      <div className="text-center">
+                        <span className="text-[10px] text-slate-400 font-bold block">VIEWS</span>
+                        <span className="font-extrabold text-slate-900">{ad.impressions.toLocaleString()}</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="text-[10px] text-slate-400 font-bold block">CLICKS</span>
+                        <span className="font-extrabold text-blue-600">{ad.clicks.toLocaleString()}</span>
+                      </div>
+                      <div className="text-center">
+                        <span className="text-[10px] text-slate-400 font-bold block">CTR</span>
+                        <span className="font-extrabold text-emerald-600">{ctr}%</span>
+                      </div>
                     </div>
                   </div>
-                  )}
 
-                  {editingId !== ad.id && (
-                  <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-200">
-                    <Button
-                      onClick={() => handleToggleStatus(ad)}
-                      disabled={togglingId === ad.id}
-                      className={`gap-2 h-10 ${ad.is_active ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
-                    >
-                      {togglingId === ad.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : ad.is_active ? (
-                        <><Pause className="h-4 w-4" /> Pause</>
-                      ) : (
-                        <><Play className="h-4 w-4" /> Resume</>
-                      )}
-                    </Button>
-                    <Button
-                      onClick={() => startEdit(ad)}
-                      className="gap-2 h-10 bg-gray-200 hover:bg-gray-300 text-gray-900"
-                    >
-                      <Pencil className="h-4 w-4" /> Edit
-                    </Button>
-                    {!(ad.is_boosted && ad.boost_expires_at && new Date(ad.boost_expires_at) > new Date()) && (
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2 border-t border-slate-100 text-xs">
+                    <div className="flex items-center gap-4 text-slate-500 text-[11px]">
+                      <span>Created: {new Date(ad.created_at).toLocaleDateString('en-ZA')}</span>
+                      <span>Expires: <strong className={isExpired ? 'text-red-500' : 'text-slate-800'}>{ad.expires_at ? new Date(ad.expires_at).toLocaleDateString('en-ZA') : '—'}</strong></span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
                       <Button
-                        onClick={() => handleBoostAd(ad)}
-                        disabled={boostingId === ad.id}
-                        className="gap-2 h-10 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold"
+                        size="sm"
+                        variant="outline"
+                        disabled={togglingId === ad.id || isExpired}
+                        onClick={() => handleToggleActive(ad.id, ad.is_active)}
+                        className="h-8 text-xs font-bold gap-1 rounded-xl"
                       >
-                        {boostingId === ad.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-                        Boost — R{BOOST_PRICE}
+                        {ad.is_active ? <Pause className="h-3.5 w-3.5 text-amber-500" /> : <Play className="h-3.5 w-3.5 text-emerald-500" />}
+                        {ad.is_active ? 'Pause' : 'Resume'}
                       </Button>
-                    )}
-                    <Button
-                      onClick={() => handleDeleteAd(ad.id)}
-                      disabled={deletingId === ad.id}
-                      className="gap-2 h-10 bg-red-600/20 text-red-700 hover:bg-red-600/30 sm:ml-auto"
-                    >
-                      {deletingId === ad.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                      Delete
-                    </Button>
+
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={deletingId === ad.id}
+                        onClick={() => handleDelete(ad.id)}
+                        className="h-8 text-xs font-bold text-red-600 border-red-200 hover:bg-red-50 rounded-xl"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </GlassBackground>
   );

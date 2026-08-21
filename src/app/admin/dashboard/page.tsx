@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard, History, UserCheck, Trophy, ShieldAlert, Receipt, Link2 } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard, History, UserCheck, Trophy, ShieldAlert, Receipt, Link2, Megaphone } from 'lucide-react';
 import Link from 'next/link';
 import { AdminBackground, AdminCard, AdminPageHeader, StatCard } from '@/components/admin/ui';
 
@@ -81,6 +81,7 @@ export default function AdminDashboard() {
     { id: 'network-monitoring', name: 'Network Status', description: 'Monitor system health, uptime, and performance', icon: Zap, href: '/admin/network', color: 'from-red-500 to-rose-500' },
     { id: 'activity-logs', name: 'Activity Logs', description: 'Every admin action, in order', icon: History, href: '/admin/logs', color: 'from-slate-600 to-slate-700' },
     { id: 'admin-settings', name: 'Settings', description: 'Configure platform settings and admin preferences', icon: Settings, href: '/admin/settings', color: 'from-gray-600 to-gray-700' },
+    { id: 'ad-management', name: 'Ad Placement & Credits', description: 'Monitor sponsored campaigns, configure placement slots & frequency, and manage business ad credits', icon: Megaphone, href: '/admin/ads', color: 'from-amber-500 to-yellow-500', badge: 'Active' },
     { id: 'agents', name: 'Sales Agents & Payouts', description: 'Invite marketers, issue referral links and QR codes, track commission owed', icon: Link2, href: '/admin/agents', color: 'from-indigo-500 to-violet-500' },
     { id: 'agent-signups', name: 'Agent Sign Up Dashboard', description: 'Every business signup marked as assisted by a sales agent', icon: UserCheck, href: '/admin/agent-signups', color: 'from-teal-500 to-cyan-500' },
     { id: 'agent-sales', name: 'Agent Sales Dashboard', description: 'Assisted signups grouped by agent, with the tier each business took', icon: Trophy, href: '/admin/agent-sales', color: 'from-amber-500 to-orange-500' },

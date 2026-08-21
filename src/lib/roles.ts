@@ -58,6 +58,10 @@ export function hasRole(role: string | undefined | null, allowed: string[]): boo
   return !!role && allowed.includes(role);
 }
 
+export function isStaff(role: string | undefined | null): boolean {
+  return hasRole(role, STAFF_ROLES);
+}
+
 export function isStaffRole(role: string | undefined | null): boolean {
   return hasRole(role, STAFF_ROLES);
 }

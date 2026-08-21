@@ -71,7 +71,7 @@ export function AdBanner() {
   useEffect(() => {
     // Show to customers and businesses browsing the platform — not staff,
     // who are doing internal admin/vetting work, not shopping around.
-    if (!user || !["user", "business"].includes(user.role)) return;
+    if (!user || !["user", "business", "customer"].includes(user.role)) return;
 
     const fetchAdSettings = async () => {
       try {

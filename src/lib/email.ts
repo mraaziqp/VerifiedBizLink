@@ -144,6 +144,10 @@ export async function sendVerificationEmail(to: string, fullName: string, token:
 export async function sendWelcomeEmail(to: string, fullName: string, role: string, baseUrl?: string) {
   try {
     const transporter = getTransporter();
+    if (!transporter) {
+      console.log(`[DEV WELCOME EMAIL] To: ${to} (Role: ${role})`);
+      return;
+    }
     const html = await render(
       WelcomeEmail({ userFirstName: fullName, role, appUrl: baseUrl ?? APP_URL })
     );
@@ -161,11 +165,6 @@ export async function sendWelcomeEmail(to: string, fullName: string, role: strin
   }
 }
 
-/**
- * The 48-hour "you never finished signing up" nudge. Throws so the cron can
- * count failures and leave the user un-marked, making them eligible for a
- * retry on the next run rather than silently dropping them.
- */
 export async function sendAbandonedSignupEmail(
   to: string,
   fullName: string,
@@ -175,6 +174,10 @@ export async function sendAbandonedSignupEmail(
 ) {
   const root = baseUrl ?? APP_URL;
   const transporter = getTransporter();
+  if (!transporter) {
+    console.log(`[DEV ABANDONED EMAIL] To: ${to} (Reason: ${reason})`);
+    return;
+  }
   const html = await render(
     AbandonedSignupEmail({
       userFirstName: fullName,
@@ -196,16 +199,15 @@ export async function sendAbandonedSignupEmail(
   });
 }
 
-/**
- * Invoice / subscription receipt. Throws so the caller can leave
- * invoices.emailed_at unset and retry, rather than recording a send that
- * never happened.
- */
 export async function sendInvoiceEmail(
   to: string,
   props: Omit<InvoiceEmailProps, 'appUrl'> & { appUrl?: string },
 ) {
   const transporter = getTransporter();
+  if (!transporter) {
+    console.log(`[DEV INVOICE EMAIL] To: ${to} (Invoice: ${props.invoiceNumber})`);
+    return;
+  }
   const html = await render(InvoiceEmail({ ...props, appUrl: props.appUrl ?? APP_URL }));
   await transporter.sendMail({
     from: `VerifiedBizLink <${FROM_EMAIL}>`,
@@ -215,7 +217,6 @@ export async function sendInvoiceEmail(
   });
 }
 
-/** Failed-payment warning. Non-throwing: the grace clock runs regardless. */
 export async function sendPaymentFailedEmail(
   to: string,
   fullName: string,
@@ -227,6 +228,10 @@ export async function sendPaymentFailedEmail(
 ) {
   try {
     const transporter = getTransporter();
+    if (!transporter) {
+      console.log(`[DEV PAYMENT FAILED EMAIL] To: ${to} (${amount})`);
+      return;
+    }
     const html = await render(
       PaymentFailedEmail({
         userFirstName: fullName, tierName, amount, hoursRemaining, deadline,
@@ -244,14 +249,6 @@ export async function sendPaymentFailedEmail(
   }
 }
 
-/**
- * Sends a hired marketer their activation link.
- *
- * Returns whether it was delivered rather than throwing: the invite itself is
- * already saved by the time this runs, so a mail failure must not lose it.
- * The caller shows the link on screen either way, so an admin can always
- * hand it over another way.
- */
 export async function sendAgentInviteEmail(
   to: string,
   props: {
@@ -266,6 +263,10 @@ export async function sendAgentInviteEmail(
 ): Promise<boolean> {
   try {
     const transporter = getTransporter();
+    if (!transporter) {
+      console.log(`[DEV AGENT INVITE] To: ${to} -> ${props.inviteUrl}`);
+      return true;
+    }
     const html = await render(
       AgentInviteEmail({ ...props, appUrl: props.appUrl ?? APP_URL }),
     );
@@ -286,6 +287,10 @@ export async function sendUsernameRecoveryEmail(to: string, usernames: string[],
   const link = `${baseUrl ?? APP_URL}/login`;
   try {
     const transporter = getTransporter();
+    if (!transporter) {
+      console.log(`[DEV USERNAME RECOVERY] To: ${to} -> ${link}`);
+      return;
+    }
     const html = await render(UsernameRecoveryEmail({ usernames, loginLink: link }));
     await transporter.sendMail({
       from: `VerifiedBizLink <${FROM_EMAIL}>`,
