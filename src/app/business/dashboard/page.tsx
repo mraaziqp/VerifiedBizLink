@@ -10,7 +10,7 @@ import {
   Zap, Award, Globe, MessageSquare, ArrowRight, CheckCircle2,
   AlertTriangle, Activity, Clock, Star, Sparkles, Target,
   Lightbulb, CheckSquare, Flame, Radio,
-  BarChart, Bell, Home
+  BarChart, Bell, Home, Shield
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -422,6 +422,30 @@ export default function BusinessDashboard() {
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <>
+            {/* R49 Verification Callout Banner for unverified businesses */}
+            {business.status !== 'verified' && (
+              <div className="mb-6 rounded-2xl border-2 border-yellow-400/40 bg-gradient-to-r from-yellow-500/15 via-amber-500/10 to-slate-900/10 p-5 backdrop-blur-xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shrink-0 shadow-md">
+                    <Shield className="h-6 w-6 text-slate-950" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-gray-900">Unlock your Gold Verified Badge</h3>
+                      <Badge className="bg-yellow-400 text-slate-950 font-bold border-0 text-[10px]">R49 ONCE-OFF</Badge>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-0.5 max-w-xl">
+                      Verified businesses receive 3x more customer inquiries, appear higher in search results, and display the official gold badge.
+                    </p>
+                  </div>
+                </div>
+                <Link href="/business/verify" className="shrink-0 w-full sm:w-auto">
+                  <Button className="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-bold shadow-md shadow-yellow-400/20">
+                    Get Verified for R49 →
+                  </Button>
+                </Link>
+              </div>
+            )}
             {/* Welcome & Setup Guide Banner for new signups or incomplete setup */}
             {(isNewSignup || profileCompletion < 100) && (
               <div className="mb-8 rounded-2xl bg-gradient-to-br from-yellow-400 via-amber-400 to-yellow-500 p-6 text-slate-900 shadow-xl border border-yellow-300 relative overflow-hidden">

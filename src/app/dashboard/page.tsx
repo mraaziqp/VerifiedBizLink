@@ -260,13 +260,22 @@ export default function Dashboard() {
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="rounded-2xl bg-white/80 border border-gray-200 p-6 shadow-sm">
-            <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Connections</p>
+            <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Network Connections</p>
             <p className="text-4xl font-bold text-gray-900 mt-2">{stats?.connectionsCount ?? 0}</p>
           </div>
-          <div className="rounded-2xl bg-white/80 border border-gray-200 p-6 shadow-sm">
-            <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Your Posts</p>
-            <p className="text-4xl font-bold text-gray-900 mt-2">{stats?.postsCount ?? 0}</p>
-          </div>
+          {user?.role !== 'customer' ? (
+            <div className="rounded-2xl bg-white/80 border border-gray-200 p-6 shadow-sm">
+              <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Your Posts</p>
+              <p className="text-4xl font-bold text-gray-900 mt-2">{stats?.postsCount ?? 0}</p>
+            </div>
+          ) : (
+            <div className="rounded-2xl bg-white/80 border border-gray-200 p-6 shadow-sm">
+              <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Verified Directory</p>
+              <Link href="/explore" className="text-sm font-bold text-yellow-600 hover:text-yellow-700 flex items-center gap-1 mt-3">
+                Browse 100% Verified South African Businesses →
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Recent Activity */}

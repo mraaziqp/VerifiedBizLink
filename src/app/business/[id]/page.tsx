@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   Shield, Globe, Phone, MapPin, Building2, Users,
   Star, CalendarCheck, ArrowLeft, Loader2, BadgeCheck, MessageCircle,
-  Facebook, Instagram, Linkedin, Youtube,
+  Facebook, Instagram, Linkedin, Youtube, ChevronLeft, ChevronRight, X, Eye,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import { GoldCheckmark } from "@/components/ui/gold-checkmark";
 import { TrustScoreInfo } from "@/components/ui/trust-score-info";
 import { Certificate } from "@/components/ui/certificate";
 import { ApprovalCelebrationModal } from "@/components/ui/approval-celebration-modal";
+import { ReportDialog } from "@/components/shared/report-dialog";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -76,6 +77,18 @@ export default function BusinessProfilePage() {
   const [connecting, setConnecting] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [previousStatus, setPreviousStatus] = useState<string | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (lightboxIndex === null) return;
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowRight") setLightboxIndex((lightboxIndex + 1) % gallery.length);
+      if (e.key === "ArrowLeft") setLightboxIndex((lightboxIndex - 1 + gallery.length) % gallery.length);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [lightboxIndex, gallery.length]);
 
   const fetchBusiness = useCallback(async () => {
     setLoading(true);
@@ -229,6 +242,7 @@ export default function BusinessProfilePage() {
                       {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
                       Connect
                     </Button>
+                    <ReportDialog targetType="business" targetId={business.id} />
                   </>
                 )}
                 {!user && (
@@ -312,23 +326,34 @@ export default function BusinessProfilePage() {
             {gallery.length > 0 && (
               <Card className="border-border">
                 <CardContent className="p-5 space-y-3">
-                  <h2 className="font-black text-foreground">Gallery</h2>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {gallery.map((img) => (
-                      <a
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-black text-foreground">Photo Gallery</h2>
+                    <span className="text-xs text-foreground/50 font-medium">{gallery.length} photos</span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {gallery.map((img, idx) => (
+                      <button
                         key={img.id}
-                        href={img.image_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="aspect-square overflow-hidden rounded-lg bg-foreground/5 block"
+                        type="button"
+                        onClick={() => setLightboxIndex(idx)}
+                        className="group relative aspect-square overflow-hidden rounded-xl bg-foreground/5 block text-left focus:outline-none focus:ring-2 focus:ring-primary"
                       >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={img.image_url}
                           alt={img.title || business.companyName}
                           loading="lazy"
-                          className="w-full h-full object-cover hover:scale-105 transition-transform"
+                          className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-300"
                         />
-                      </a>
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <Eye className="h-6 w-6 text-white drop-shadow-md" />
+                        </div>
+                        {img.title && (
+                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <p className="text-[11px] text-white font-medium truncate">{img.title}</p>
+                          </div>
+                        )}
+                      </button>
                     ))}
                   </div>
                 </CardContent>
@@ -522,6 +547,65 @@ export default function BusinessProfilePage() {
           </div>
         </div>
       </main>
+
+      {/* ======================= FULLSCREEN LIGHTBOX MODAL ======================= */}
+      {lightboxIndex !== null && gallery[lightboxIndex] && (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col items-center justify-between p-4 sm:p-8 animate-in fade-in duration-200">
+          {/* Top Bar */}
+          <div className="w-full flex items-center justify-between text-slate-300 max-w-6xl">
+            <div>
+              <h3 className="text-base font-bold text-white">
+                {gallery[lightboxIndex].title || business.companyName}
+              </h3>
+              <p className="text-xs text-slate-400">
+                {lightboxIndex + 1} of {gallery.length}
+              </p>
+            </div>
+
+            <button
+              onClick={() => setLightboxIndex(null)}
+              className="p-2 rounded-xl bg-slate-800/80 hover:bg-red-500/20 text-slate-200 hover:text-red-400 transition-colors"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+
+          {/* Image Preview with Arrows */}
+          <div className="relative flex-1 w-full max-w-5xl flex items-center justify-center my-4 overflow-hidden">
+            {gallery.length > 1 && (
+              <button
+                onClick={() => setLightboxIndex((lightboxIndex - 1 + gallery.length) % gallery.length)}
+                className="absolute left-2 sm:left-4 z-10 p-3 rounded-full bg-slate-900/80 hover:bg-primary hover:text-primary-foreground text-white border border-slate-700 shadow-2xl transition-all"
+                title="Previous (Left Arrow)"
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </button>
+            )}
+
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={gallery[lightboxIndex].image_url}
+              alt={gallery[lightboxIndex].title || business.companyName}
+              className="max-h-[75vh] max-w-full object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-200"
+            />
+
+            {gallery.length > 1 && (
+              <button
+                onClick={() => setLightboxIndex((lightboxIndex + 1) % gallery.length)}
+                className="absolute right-2 sm:right-4 z-10 p-3 rounded-full bg-slate-900/80 hover:bg-primary hover:text-primary-foreground text-white border border-slate-700 shadow-2xl transition-all"
+                title="Next (Right Arrow)"
+              >
+                <ChevronRight className="h-6 w-6" />
+              </button>
+            )}
+          </div>
+
+          {/* Bottom Caption */}
+          <div className="text-center text-xs text-slate-500">
+            Press <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">←</kbd> / <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">→</kbd> to browse, <kbd className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">ESC</kbd> to close.
+          </div>
+        </div>
+      )}
     </div>
   );
 }
