@@ -147,6 +147,7 @@ function SettingsForm() {
 
   const [profileForm, setProfileForm] = useState({
     fullName: "",
+    email: "",
     headline: "",
     location: "",
     bio: "",
@@ -175,6 +176,7 @@ function SettingsForm() {
         if (data) {
           setProfileForm({
             fullName: data.fullName || "",
+            email: data.email || "",
             headline: data.headline || "",
             location: data.location || "",
             bio: data.bio || "",
@@ -191,6 +193,7 @@ function SettingsForm() {
       setProfileForm(prev => ({
         ...prev,
         fullName: prev.fullName || user.fullName || "",
+        email: prev.email || user.email || "",
         headline: prev.headline || user.headline || "",
         avatarUrl: prev.avatarUrl || user.avatarUrl || "",
       }));
@@ -206,6 +209,7 @@ function SettingsForm() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             fullName: profileForm.fullName,
+            email: profileForm.email,
             headline: profileForm.headline,
             location: profileForm.location,
             bio: profileForm.bio,
@@ -469,9 +473,11 @@ function SettingsForm() {
                         <div className="space-y-2">
                           <Label>Email Address</Label>
                           <Input
-                            value={user?.email || ""}
-                            disabled
-                            className="rounded-xl h-11 bg-gray-50"
+                            type="email"
+                            value={profileForm.email}
+                            onChange={e => setProfileForm(p => ({ ...p, email: e.target.value }))}
+                            placeholder="your.email@example.com"
+                            className="rounded-xl h-11"
                           />
                         </div>
                         <div className="space-y-2">

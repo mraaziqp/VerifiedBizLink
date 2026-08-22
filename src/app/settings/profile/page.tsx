@@ -5,7 +5,10 @@ import Link from 'next/link';
 import { User, ChevronLeft, Save, Loader2 } from 'lucide-react';
 import { GlassBackground } from '@/components/shared/glass-ui';
 
+import { useToast } from '@/hooks/use-toast';
+
 export default function ProfileSettingsPage() {
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState({
@@ -51,6 +54,7 @@ export default function ProfileSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: profileData.fullName,
+          email: profileData.email,
           phone: profileData.phone,
           location: profileData.location,
           headline: profileData.headline,
@@ -59,13 +63,13 @@ export default function ProfileSettingsPage() {
       });
 
       if (response.ok) {
-        alert('Profile updated successfully!');
+        toast({ title: '✅ Profile Updated', description: 'Your profile details have been saved.' });
       } else {
         const error = await response.json().catch(() => ({}));
-        alert(error.error || 'Failed to save profile');
+        toast({ title: 'Update Failed', description: error.error || 'Failed to save profile', variant: 'destructive' });
       }
     } catch (error) {
-      alert('Failed to save profile');
+      toast({ title: 'Connection Error', description: 'Failed to contact server', variant: 'destructive' });
       console.error(error);
     } finally {
       setIsSaving(false);
@@ -127,10 +131,11 @@ export default function ProfileSettingsPage() {
               <input
                 type="email"
                 value={profileData.email}
-                disabled
-                className="w-full rounded-lg border border-gray-200 bg-gray-100 px-4 py-3 text-gray-500 cursor-not-allowed"
+                onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+                placeholder="your.email@example.com"
               />
-              <p className="mt-2 text-sm text-gray-500">This is your login email and can&apos;t be changed here.</p>
+              <p className="mt-2 text-xs text-gray-500">Your official account email address.</p>
             </div>
 
             {/* Phone */}

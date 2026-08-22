@@ -8,13 +8,26 @@ export async function PUT(request: NextRequest) {
     const session = await getSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { fullName, headline, location, bio, phone, avatarUrl, currentPassword, newPassword } = await request.json();
+    const { fullName, email, headline, location, bio, phone, avatarUrl, currentPassword, newPassword } = await request.json();
 
     const current = await db`
-      SELECT password_hash, full_name, headline, location, bio, phone, avatar_url
+      SELECT password_hash, email, full_name, headline, location, bio, phone, avatar_url
       FROM users WHERE id = ${session.id}
     `;
     if (!current.length) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    let newEmail = current[0].email;
+    if (email && email.trim().toLowerCase() !== current[0].email) {
+      const sanitizedEmail = email.trim().toLowerCase();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail)) {
+        return NextResponse.json({ error: 'Please enter a valid email address' }, { status: 400 });
+      }
+      const existing = await db`SELECT id FROM users WHERE email = ${sanitizedEmail} AND id != ${session.id} LIMIT 1`;
+      if (existing.length > 0) {
+        return NextResponse.json({ error: 'This email address is already in use by another account' }, { status: 400 });
+      }
+      newEmail = sanitizedEmail;
+    }
 
     if (newPassword) {
       if (!currentPassword) {
@@ -33,6 +46,7 @@ export async function PUT(request: NextRequest) {
     // silently blank out the fields it didn't mention.
     const updated = await db`
       UPDATE users SET
+        email = ${newEmail},
         full_name = ${fullName !== undefined ? fullName : current[0].full_name},
         headline = ${headline !== undefined ? headline : current[0].headline},
         location = ${location !== undefined ? location : current[0].location},
