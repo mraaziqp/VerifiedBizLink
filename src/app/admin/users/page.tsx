@@ -208,9 +208,61 @@ export default function AdminUsersPage() {
       u.full_name?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const [exportingEmail, setExportingEmail] = useState(false);
+
+  const handleExportUsersEmail = async () => {
+    setExportingEmail(true);
+    try {
+      const res = await fetch('/api/admin/users/export-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'info@verifiedbizlink.co.za' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({
+          title: '✅ Users List Emailed!',
+          description: `Master directory (${data.count} users + CSV spreadsheet) sent to ${data.recipient}`,
+        });
+      } else {
+        toast({
+          title: 'Failed to Send Email',
+          description: data.error || 'Could not dispatch email',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({
+        title: 'Connection Error',
+        description: 'Failed to contact server',
+        variant: 'destructive',
+      });
+    } finally {
+      setExportingEmail(false);
+    }
+  };
+
   return (
     <AdminBackground>
       <AdminPageHeader title="User Management" subtitle={`${users.length} total users`}>
+        <Button
+          onClick={handleExportUsersEmail}
+          disabled={exportingEmail}
+          className="gap-2 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold"
+          size="sm"
+        >
+          {exportingEmail ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Compiling & Sending…
+            </>
+          ) : (
+            <>
+              <Mail className="h-4 w-4" />
+              Email Users List
+            </>
+          )}
+        </Button>
         <Link href="/admin">
           <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10">
             <ArrowLeft className="h-4 w-4" /> Back to Admin

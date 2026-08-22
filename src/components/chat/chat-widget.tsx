@@ -203,12 +203,13 @@ export default function ChatWidget() {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-40 md:bottom-28 right-6 bg-yellow-400 text-slate-900 rounded-full p-4 shadow-lg hover:bg-yellow-500 transition-all duration-300 hover:scale-110 z-50"
-        title="Open Chat"
+        className="fixed bottom-24 md:bottom-8 right-22 md:right-24 z-50 w-14 h-14 bg-yellow-400 text-slate-900 rounded-full shadow-2xl flex items-center justify-center hover:bg-yellow-300 transition-all duration-200 hover:scale-105 active:scale-95"
+        title="Direct Messages"
+        aria-label="Direct Messages"
       >
         <MessageCircle className="h-6 w-6" />
         {conversations.some(c => c.unread_count > 0) && (
-          <span className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold ring-2 ring-white">
             {conversations.reduce((sum, c) => sum + c.unread_count, 0)}
           </span>
         )}

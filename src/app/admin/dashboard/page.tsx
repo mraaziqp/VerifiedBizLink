@@ -4,8 +4,9 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard, History, UserCheck, Trophy, ShieldAlert, Receipt, Link2, Megaphone } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard, History, UserCheck, Trophy, ShieldAlert, Receipt, Link2, Megaphone, Mail, Loader2, Download } from 'lucide-react';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 import { AdminBackground, AdminCard, AdminPageHeader, StatCard } from '@/components/admin/ui';
 
 interface AdminTool {
@@ -30,9 +31,43 @@ interface AdminStats {
 export default function AdminDashboard() {
   const { user } = useAuth();
   const router = useRouter();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [exportingEmail, setExportingEmail] = useState(false);
+
+  const handleExportUsersEmail = async () => {
+    setExportingEmail(true);
+    try {
+      const res = await fetch('/api/admin/users/export-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'info@verifiedbizlink.co.za' }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast({
+          title: '✅ Users List Emailed!',
+          description: `Master directory (${data.count} users + CSV attached) sent to ${data.recipient}`,
+        });
+      } else {
+        toast({
+          title: 'Failed to Send Email',
+          description: data.error || 'Could not dispatch email',
+          variant: 'destructive',
+        });
+      }
+    } catch {
+      toast({
+        title: 'Connection Error',
+        description: 'Failed to contact server',
+        variant: 'destructive',
+      });
+    } finally {
+      setExportingEmail(false);
+    }
+  };
 
   useEffect(() => {
     if (user) setLoading(false);
@@ -141,6 +176,37 @@ export default function AdminDashboard() {
             </div>
           </div>
         </AdminCard>
+
+        {isSuperAdmin && (
+          <div className="mb-8 rounded-2xl border border-amber-300/60 bg-gradient-to-r from-amber-50 via-yellow-50 to-white p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Mail className="h-5 w-5 text-amber-600" />
+                <h3 className="font-bold text-gray-900 text-base">Export & Email User Directory</h3>
+              </div>
+              <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
+                Compiles all real registered users, businesses, verification timestamps, and package tiers into a detailed report with an attached CSV spreadsheet, emailed instantly to <strong className="text-gray-900">info@verifiedbizlink.co.za</strong>.
+              </p>
+            </div>
+            <Button
+              onClick={handleExportUsersEmail}
+              disabled={exportingEmail}
+              className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold gap-2 px-5 rounded-xl shadow-xs shrink-0 self-stretch sm:self-auto"
+            >
+              {exportingEmail ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Compiling & Dispatching…
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4" />
+                  Email Master Users List
+                </>
+              )}
+            </Button>
+          </div>
+        )}
 
         <h2 className="mb-6 text-xl font-bold text-gray-900 sm:text-2xl">
           {isAdmin ? 'Admin Tools' : 'Compliance Tools'}
