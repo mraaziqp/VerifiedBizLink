@@ -8,6 +8,7 @@ import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings,
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { AdminBackground, AdminCard, AdminPageHeader, StatCard } from '@/components/admin/ui';
+import { EmailTestSandbox } from '@/components/admin/email-test-sandbox';
 
 interface AdminTool {
   id: string;
@@ -206,6 +207,10 @@ export default function AdminDashboard() {
               )}
             </Button>
           </div>
+        )}
+
+        {isSuperAdmin && (
+          <EmailTestSandbox defaultEmail={user.email} />
         )}
 
         <h2 className="mb-6 text-xl font-bold text-gray-900 sm:text-2xl">
