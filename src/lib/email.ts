@@ -10,7 +10,10 @@ import { InvoiceEmail, type InvoiceEmailProps } from '@/emails/InvoiceEmail';
 import { PaymentFailedEmail } from '@/emails/PaymentFailedEmail';
 import { AgentInviteEmail } from '@/emails/AgentInviteEmail';
 
-const SMTP_HOST = process.env.SMTP_HOST || 'smtpout.secureserver.net';
+// Note: info@verifiedbizlink.co.za is hosted on GoDaddy Secureserver (smtpout.secureserver.net).
+// If AWS Amplify has SMTP_HOST set to smtp.titan.email, we automatically override it to smtpout.secureserver.net.
+const rawHost = process.env.SMTP_HOST;
+const SMTP_HOST = (!rawHost || rawHost.includes('titan')) ? 'smtpout.secureserver.net' : rawHost;
 const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
 const FROM_EMAIL = process.env.TITAN_EMAIL_ADDRESS || process.env.SMTP_USER || 'info@verifiedbizlink.co.za';
 const FROM_PASS = process.env.TITAN_EMAIL_PASSWORD || process.env.SMTP_PASS || process.env.SMTP_PASSWORD || 'Verified@123!@';
@@ -31,43 +34,58 @@ export function appUrlFromRequest(request?: { headers: Headers }): string {
 }
 
 /**
- * Resilient email dispatcher with dual-port (Port 465 SSL -> Port 587 STARTTLS) auto-failover.
+ * Resilient email dispatcher with dual-port (Port 465 SSL -> Port 587 STARTTLS) and host auto-failover.
  * This guarantees dispatch works across all cloud environments (AWS Lambda/Amplify, local, VPS).
  */
 export async function sendWithFallback(mailOptions: nodemailer.SendMailOptions): Promise<nodemailer.SentMessageInfo> {
   const user = FROM_EMAIL;
   const pass = FROM_PASS;
 
-  // Primary: Port 465 SSL (or configured SMTP_PORT)
-  try {
-    const primaryTransporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_PORT === 465,
-      requireTLS: SMTP_PORT !== 465,
-      auth: { user, pass },
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 10000,
-      tls: { rejectUnauthorized: false },
-    });
-    return await primaryTransporter.sendMail(mailOptions);
-  } catch (err465) {
-    console.warn(`[SMTP Port ${SMTP_PORT} failed, attempting Port 587 STARTTLS fallback]:`, err465);
-    // Fallback: Port 587 STARTTLS
-    const fallbackTransporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: 587,
-      secure: false,
-      requireTLS: true,
-      auth: { user, pass },
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 10000,
-      tls: { rejectUnauthorized: false },
-    });
-    return await fallbackTransporter.sendMail(mailOptions);
+  const hostsToTry = [SMTP_HOST, 'smtpout.secureserver.net'];
+  const uniqueHosts = Array.from(new Set(hostsToTry.filter(Boolean)));
+
+  let lastError: unknown = null;
+
+  for (const host of uniqueHosts) {
+    // 1. Try Port 465 (SSL)
+    try {
+      const t465 = nodemailer.createTransport({
+        host,
+        port: 465,
+        secure: true,
+        auth: { user, pass },
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 10000,
+        tls: { rejectUnauthorized: false },
+      });
+      return await t465.sendMail(mailOptions);
+    } catch (err465) {
+      console.warn(`[SMTP ${host}:465 failed]:`, err465);
+      lastError = err465;
+    }
+
+    // 2. Try Port 587 (STARTTLS)
+    try {
+      const t587 = nodemailer.createTransport({
+        host,
+        port: 587,
+        secure: false,
+        requireTLS: true,
+        auth: { user, pass },
+        connectionTimeout: 8000,
+        greetingTimeout: 8000,
+        socketTimeout: 10000,
+        tls: { rejectUnauthorized: false },
+      });
+      return await t587.sendMail(mailOptions);
+    } catch (err587) {
+      console.warn(`[SMTP ${host}:587 failed]:`, err587);
+      lastError = err587;
+    }
   }
+
+  throw lastError || new Error('All SMTP dispatch attempts failed');
 }
 
 // For callers that need to send custom HTML

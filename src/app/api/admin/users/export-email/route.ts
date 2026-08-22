@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, isStaff } from '@/lib/auth';
 import db from '@/lib/db';
-import nodemailer from 'nodemailer';
+import { sendWithFallback } from '@/lib/email';
 
-const SMTP_HOST = process.env.SMTP_HOST || 'smtpout.secureserver.net';
-const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
-const FROM_EMAIL = process.env.TITAN_EMAIL_ADDRESS || 'info@verifiedbizlink.co.za';
-const PASS = process.env.TITAN_EMAIL_PASSWORD || 'Verified@123!@';
 const TARGET_EMAIL = 'info@verifiedbizlink.co.za';
 
 export async function POST(request: NextRequest) {
@@ -191,21 +187,11 @@ export async function POST(request: NextRequest) {
       </html>
     `;
 
-    const transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_PORT === 465,
-      auth: { user: FROM_EMAIL, pass: PASS },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 15000,
-    });
-
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const fileName = `VerifiedBizLink_Users_${timestamp}.csv`;
 
-    await transporter.sendMail({
-      from: `"VerifiedBizLink Admin" <${FROM_EMAIL}>`,
+    await sendWithFallback({
+      from: `"VerifiedBizLink Admin" <info@verifiedbizlink.co.za>`,
       to: recipientEmail,
       subject: `📊 VerifiedBizLink Users Master Export (${totalUsers} Users) — ${new Date().toLocaleDateString('en-ZA')}`,
       html: htmlBody,
