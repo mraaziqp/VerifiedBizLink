@@ -67,6 +67,9 @@ function getTransporter(): nodemailer.Transporter | null {
       port: SMTP_PORT,
       secure: SMTP_PORT === 465,
       auth: { user, pass },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     });
     return cachedTransporter;
   } catch (err) {

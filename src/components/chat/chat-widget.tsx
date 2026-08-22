@@ -197,6 +197,8 @@ export default function ChatWidget() {
     conv.participant_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  if (!user) return null;
+
   if (!isOpen) {
     return (
       <button

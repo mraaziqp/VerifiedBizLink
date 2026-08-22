@@ -65,6 +65,7 @@ export async function GET() {
             ON (c.requester_id = b.user_id OR c.receiver_id = b.user_id)
            AND c.status = 'accepted'
           WHERE b.status = 'verified'
+            AND u.role = 'business'
             AND b.user_id <> ${session.id}
           GROUP BY
             b.id, u.id, u.full_name, u.headline, u.avatar_url,
@@ -97,6 +98,7 @@ export async function GET() {
             ON (c.requester_id = b.user_id OR c.receiver_id = b.user_id)
            AND c.status = 'accepted'
           WHERE b.status = 'verified'
+            AND u.role = 'business'
           GROUP BY
             b.id, u.id, u.full_name, u.headline, u.avatar_url,
             b.company_name, b.industry, b.trust_score, b.created_at

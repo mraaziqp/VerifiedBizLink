@@ -316,7 +316,9 @@ export default function Home() {
                 here instead of a feed they can't meaningfully use. */}
             {user ? (
               <>
-                <PostCreator onPostCreated={() => setFeedRefresh((v) => v + 1)} />
+                {user.role !== 'customer' && (
+                  <PostCreator onPostCreated={() => setFeedRefresh((v) => v + 1)} />
+                )}
                 <ActivityFeed refreshTrigger={feedRefresh} />
               </>
             ) : (
