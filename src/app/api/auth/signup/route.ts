@@ -182,11 +182,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send verification email (non-blocking — don't fail signup if email fails,
-    // but do log it so a broken Postmark key/domain doesn't fail silently)
-    sendVerificationEmail(user.email, user.full_name, verificationToken, appUrlFromRequest(request)).catch((err) => {
+    // Send verification email (await so serverless Lambda environments don't kill the connection prematurely)
+    try {
+      await sendVerificationEmail(user.email, user.full_name, verificationToken, appUrlFromRequest(request));
+    } catch (err) {
       console.error('Signup verification email failed for', user.email, err);
-    });
+    }
 
     const sessionUser = {
       id: user.id,

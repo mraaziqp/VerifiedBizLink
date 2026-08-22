@@ -45,9 +45,11 @@ export async function POST(request: Request) {
       `;
 
       const baseUrl = appUrlFromRequest(request);
-      sendVerificationEmail(rows[0].email, rows[0].full_name, token, baseUrl).catch((err) => {
+      try {
+        await sendVerificationEmail(rows[0].email, rows[0].full_name, token, baseUrl);
+      } catch (err) {
         console.error('Resend-verification (unauthenticated) email failed for', rows[0].email, err);
-      });
+      }
 
       return NextResponse.json({ success: true, message: 'If that email is registered, a verification link has been sent.' });
     } catch {
@@ -74,9 +76,11 @@ export async function POST(request: Request) {
   `;
 
   const baseUrl = appUrlFromRequest(request);
-  sendVerificationEmail(rows[0].email, rows[0].full_name, token, baseUrl).catch((err) => {
+  try {
+    await sendVerificationEmail(rows[0].email, rows[0].full_name, token, baseUrl);
+  } catch (err) {
     console.error('Resend-verification email failed for', rows[0].email, err);
-  });
+  }
 
   // Only expose the instant verification URL in non-production environments
   const isDev = process.env.NODE_ENV !== 'production';

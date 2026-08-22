@@ -33,8 +33,75 @@ const SERVICES = [
 ];
 
 const SA_PROVINCES = [
-  "Eastern Cape","Free State","Gauteng","KwaZulu-Natal","Limpopo",
-  "Mpumalanga","North West","Northern Cape","Western Cape",
+  "Western Cape",
+  "Eastern Cape",
+  "Free State",
+  "Gauteng",
+  "KwaZulu-Natal",
+  "Limpopo",
+  "Mpumalanga",
+  "North West",
+  "Northern Cape",
+];
+
+const WESTERN_CAPE_REGIONS = [
+  {
+    region: "Cape Town Metro",
+    areas: [
+      "Cape Town City Bowl & CBD",
+      "Atlantic Seaboard (Sea Point, Camps Bay, Green Point)",
+      "Southern Suburbs (Claremont, Rondebosch, Constantia, Wynberg)",
+      "Northern Suburbs (Bellville, Durbanville, Parow, Brackenfell)",
+      "South Peninsula (Hout Bay, Muizenberg, Fish Hoek, Simon's Town)",
+      "Cape Flats (Athlone, Mitchells Plain, Grassy Park)",
+      "Helderberg (Somerset West, Strand, Gordons Bay)",
+      "Blouberg / Table View / Melkbosstrand",
+    ],
+  },
+  {
+    region: "Cape Winelands",
+    areas: [
+      "Stellenbosch & surrounds",
+      "Paarl & Wellington",
+      "Franschhoek",
+      "Worcester & Breede River",
+      "Robertson & Montagu",
+    ],
+  },
+  {
+    region: "Garden Route & Klein Karoo",
+    areas: [
+      "George & Wilderness",
+      "Knysna & Sedgefield",
+      "Mossel Bay & Dana Bay",
+      "Plettenberg Bay",
+      "Oudtshoorn & Klein Karoo",
+    ],
+  },
+  {
+    region: "Overberg",
+    areas: [
+      "Hermanus & Walker Bay",
+      "Caledon & Grabouw / Elgin",
+      "Bredasdorp & Cape Agulhas",
+      "Swellendam",
+    ],
+  },
+  {
+    region: "West Coast",
+    areas: [
+      "Saldanha Bay & Langebaan",
+      "Vredenburg & Paternoster",
+      "Malmesbury & Swartland",
+      "Cederberg & Clanwilliam",
+    ],
+  },
+  {
+    region: "Central Karoo",
+    areas: [
+      "Beaufort West & Prince Albert",
+    ],
+  },
 ];
 
 // Presentation metadata per tier key — prices and features come live from
@@ -74,7 +141,9 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [selectedIndustries, setSelectedIndustries] = useState<string[]>([]);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [selectedProvince, setSelectedProvince] = useState("");
+  const [selectedProvince, setSelectedProvince] = useState("Western Cape");
+  const [selectedArea, setSelectedArea] = useState("");
+  const [locationView, setLocationView] = useState<"western_cape" | "all_provinces">("western_cape");
   const [selectedPackage, setSelectedPackage] = useState("free");
   const [saving, setSaving] = useState(false);
   const [packages, setPackages] = useState<ApiTier[]>(
@@ -128,6 +197,10 @@ export default function OnboardingPage() {
         });
         router.push("/vetting");
       } else {
+        const finalLocation = selectedArea
+          ? `${selectedArea}, ${selectedProvince}`
+          : selectedProvince;
+
         await fetch("/api/users/preferences", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -135,6 +208,7 @@ export default function OnboardingPage() {
             industries: selectedIndustries,
             services: selectedServices,
             province: selectedProvince,
+            location: finalLocation,
             interests: selectedIndustries,
           }),
         });
@@ -266,25 +340,132 @@ export default function OnboardingPage() {
                   <div>
                     <Badge className="bg-green-100 text-green-700 border-green-200 font-bold mb-2">Location</Badge>
                     <h2 className="text-2xl font-extrabold text-gray-900">Where are you based?</h2>
-                    <p className="text-gray-500 mt-1 text-sm">We&apos;ll surface local businesses and opportunities near you.</p>
+                    <p className="text-gray-500 mt-1 text-sm">We&apos;re actively expanding across the Western Cape. Select your specific area for local recommendations.</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {SA_PROVINCES.map((prov) => {
-                      const active = selectedProvince === prov;
-                      return (
-                        <button key={prov} onClick={() => setSelectedProvince(prov)}
-                          className={cn("p-3 rounded-xl border text-sm font-semibold text-left flex items-center gap-2 transition-all",
-                            active ? "border-green-400 bg-green-50 text-green-800 shadow-sm" : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300")}>
-                          <MapPin className={cn("h-3.5 w-3.5", active ? "text-green-500" : "text-gray-400")} />{prov}
-                        </button>
-                      );
-                    })}
-                    <button onClick={() => setSelectedProvince("Prefer not to say")}
-                      className={cn("p-3 rounded-xl border text-sm font-semibold text-left col-span-2 transition-all",
-                        selectedProvince === "Prefer not to say" ? "border-gray-400 bg-gray-100 text-gray-800" : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300")}>
-                      Prefer not to say
+
+                  {/* Province/Region Segmented Switcher */}
+                  <div className="flex rounded-xl bg-gray-100 p-1 text-xs font-bold">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLocationView("western_cape");
+                        setSelectedProvince("Western Cape");
+                      }}
+                      className={cn(
+                        "flex-1 py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5",
+                        locationView === "western_cape"
+                          ? "bg-white text-gray-900 shadow-sm font-extrabold"
+                          : "text-gray-500 hover:text-gray-900"
+                      )}
+                    >
+                      <MapPin className="h-3.5 w-3.5 text-green-600" />
+                      Western Cape (Active Hub)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLocationView("all_provinces");
+                        setSelectedArea("");
+                      }}
+                      className={cn(
+                        "flex-1 py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5",
+                        locationView === "all_provinces"
+                          ? "bg-white text-gray-900 shadow-sm font-extrabold"
+                          : "text-gray-500 hover:text-gray-900"
+                      )}
+                    >
+                      Other SA Provinces
                     </button>
                   </div>
+
+                  {/* Active Selection Indicator */}
+                  {(selectedArea || selectedProvince) && (
+                    <div className="flex items-center gap-2 p-2.5 bg-green-50 border border-green-200 rounded-xl text-xs font-semibold text-green-800">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 shrink-0" />
+                      <span>Selected: <strong className="font-extrabold">{selectedArea ? `${selectedArea}, Western Cape` : selectedProvince}</strong></span>
+                    </div>
+                  )}
+
+                  {/* Western Cape Regions & Sub-Areas */}
+                  {locationView === "western_cape" && (
+                    <div className="space-y-4 max-h-[340px] overflow-y-auto pr-1">
+                      {WESTERN_CAPE_REGIONS.map((reg) => (
+                        <div key={reg.region} className="rounded-xl border border-gray-200/80 bg-gray-50/50 p-3 space-y-2">
+                          <p className="text-xs font-extrabold text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
+                            <MapPin className="h-3 w-3 text-amber-500" /> {reg.region}
+                          </p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {reg.areas.map((area) => {
+                              const active = selectedArea === area;
+                              return (
+                                <button
+                                  key={area}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedProvince("Western Cape");
+                                    setSelectedArea(area);
+                                  }}
+                                  className={cn(
+                                    "px-2.5 py-1.5 rounded-lg text-xs font-medium border text-left transition-all",
+                                    active
+                                      ? "bg-green-600 border-green-600 text-white shadow-sm font-bold"
+                                      : "bg-white border-gray-200 text-gray-700 hover:border-gray-400 hover:bg-gray-50"
+                                  )}
+                                >
+                                  {active && <CheckCircle2 className="inline h-3 w-3 mr-1 -mt-0.5" />}
+                                  {area}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* All Provinces View */}
+                  {locationView === "all_provinces" && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {SA_PROVINCES.map((prov) => {
+                        const active = selectedProvince === prov && !selectedArea;
+                        return (
+                          <button
+                            key={prov}
+                            type="button"
+                            onClick={() => {
+                              setSelectedProvince(prov);
+                              setSelectedArea("");
+                            }}
+                            className={cn(
+                              "p-3 rounded-xl border text-sm font-semibold text-left flex items-center gap-2 transition-all",
+                              active
+                                ? "border-green-500 bg-green-50 text-green-800 shadow-sm"
+                                : "border-gray-200 bg-gray-50 text-gray-700 hover:border-gray-300"
+                            )}
+                          >
+                            <MapPin className={cn("h-3.5 w-3.5", active ? "text-green-500" : "text-gray-400")} />
+                            {prov}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedProvince("Prefer not to say");
+                      setSelectedArea("");
+                    }}
+                    className={cn(
+                      "w-full p-2.5 rounded-xl border text-xs font-semibold text-center transition-all",
+                      selectedProvince === "Prefer not to say"
+                        ? "border-gray-400 bg-gray-100 text-gray-800"
+                        : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300"
+                    )}
+                  >
+                    Prefer not to say
+                  </button>
                 </div>
               )}
               {step === 5 && (
