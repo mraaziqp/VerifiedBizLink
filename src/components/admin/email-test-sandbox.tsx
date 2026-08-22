@@ -111,7 +111,7 @@ export function EmailTestSandbox({ defaultEmail }: { defaultEmail?: string }) {
       } else {
         toast({
           title: 'Delivery Failed',
-          description: data.error || data.detail || 'Could not send test email',
+          description: data.detail ? `${data.error}: ${data.detail}` : (data.error || 'Could not send test email'),
           variant: 'destructive',
         });
       }

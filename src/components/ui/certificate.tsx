@@ -111,27 +111,39 @@ export function Certificate({ businessName, verifiedDate, certificateNumber }: C
         </div>
       </div>
 
-      <Card className="overflow-hidden border-amber-200/30 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="relative aspect-video bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 flex flex-col items-center justify-center gap-4 border border-amber-500/20">
-          {/* Gold seal circle with green checkmark */}
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 h-20 w-20 rounded-full border-2 border-amber-400/60 flex items-center justify-center bg-slate-800/50">
-            <span className="text-4xl text-emerald-500 font-bold">✓</span>
+      <Card className="overflow-hidden border-amber-200/30 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-xl">
+        <div className="relative bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 p-6 sm:p-8 flex flex-col items-center justify-center gap-4 border border-amber-500/20 rounded-xl">
+          {/* Gold seal circle with green checkmark (natural flow, no overlapping) */}
+          <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full border-2 border-amber-400/80 flex items-center justify-center bg-slate-800/80 shadow-lg shadow-amber-500/10 ring-4 ring-amber-400/10">
+            <span className="text-3xl sm:text-4xl text-emerald-400 font-extrabold select-none">✓</span>
           </div>
 
-          <div className="mt-8 text-center space-y-3">
-            <p className="text-xs uppercase tracking-widest text-amber-400/80 font-bold">Certificate of Verification</p>
-            <h2 className="text-2xl font-black text-white">{businessName}</h2>
-            <p className="text-sm text-emerald-400 font-semibold">This business is verified and trusted.</p>
-            <div className="flex items-center justify-center gap-3 text-xs font-bold text-emerald-400">
-              <span className="flex items-center gap-1">✓ CIPC</span>
-              <span className="text-slate-500">•</span>
-              <span className="flex items-center gap-1">✓ SARS</span>
+          <div className="text-center space-y-2.5 max-w-sm">
+            <p className="text-[10px] sm:text-xs uppercase tracking-[0.2em] text-amber-400 font-extrabold">
+              Certificate of Verification
+            </p>
+            <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight break-words">
+              {businessName}
+            </h2>
+            <p className="text-xs sm:text-sm text-emerald-400 font-semibold">
+              This business is verified and trusted.
+            </p>
+            <div className="flex items-center justify-center gap-3 text-xs font-bold text-emerald-400 pt-1">
+              <span className="flex items-center gap-1 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded-full">
+                ✓ CIPC
+              </span>
+              <span className="text-slate-600">•</span>
+              <span className="flex items-center gap-1 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded-full">
+                ✓ SARS
+              </span>
             </div>
-            <p className="text-xs text-slate-400 font-mono pt-2">Verified {verifiedDate}</p>
-            <p className="text-xs text-slate-400 font-mono">Cert #{certificateNumber}</p>
+            <div className="pt-2 space-y-0.5 text-[11px] text-slate-400 font-mono">
+              <p>Verified {verifiedDate}</p>
+              <p className="text-slate-400">Cert #{certificateNumber}</p>
+            </div>
           </div>
 
-          <div className="absolute bottom-6 left-0 right-0 flex items-center justify-center">
+          <div className="w-full flex items-center justify-center pt-2">
             <div className="h-px w-32 bg-gradient-to-r from-transparent via-amber-400/40 to-transparent" />
           </div>
         </div>
