@@ -30,30 +30,49 @@ export function appUrlFromRequest(request?: { headers: Headers }): string {
   return APP_URL;
 }
 
-let cachedTransporter: nodemailer.Transporter | null = null;
-
-function getTransporter(): nodemailer.Transporter {
-  if (cachedTransporter) return cachedTransporter;
-
+/**
+ * Resilient email dispatcher with dual-port (Port 465 SSL -> Port 587 STARTTLS) auto-failover.
+ * This guarantees dispatch works across all cloud environments (AWS Lambda/Amplify, local, VPS).
+ */
+export async function sendWithFallback(mailOptions: nodemailer.SendMailOptions): Promise<nodemailer.SentMessageInfo> {
   const user = FROM_EMAIL;
   const pass = FROM_PASS;
 
-  cachedTransporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_PORT === 465,
-    auth: { user, pass },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 20000,
-  });
-  return cachedTransporter;
+  // Primary: Port 465 SSL (or configured SMTP_PORT)
+  try {
+    const primaryTransporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: SMTP_PORT === 465,
+      requireTLS: SMTP_PORT !== 465,
+      auth: { user, pass },
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000,
+      tls: { rejectUnauthorized: false },
+    });
+    return await primaryTransporter.sendMail(mailOptions);
+  } catch (err465) {
+    console.warn(`[SMTP Port ${SMTP_PORT} failed, attempting Port 587 STARTTLS fallback]:`, err465);
+    // Fallback: Port 587 STARTTLS
+    const fallbackTransporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: 587,
+      secure: false,
+      requireTLS: true,
+      auth: { user, pass },
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 10000,
+      tls: { rejectUnauthorized: false },
+    });
+    return await fallbackTransporter.sendMail(mailOptions);
+  }
 }
 
 // For callers that need to send custom HTML
 export async function sendRawEmail(to: string, subject: string, html: string) {
-  const transporter = getTransporter();
-  await transporter.sendMail({
+  return await sendWithFallback({
     from: `VerifiedBizLink <${FROM_EMAIL}>`,
     to,
     subject,
@@ -64,9 +83,8 @@ export async function sendRawEmail(to: string, subject: string, html: string) {
 export async function sendPasswordResetEmail(to: string, fullName: string, token: string, baseUrl?: string) {
   const link = `${baseUrl ?? APP_URL}/reset-password?token=${token}`;
   try {
-    const transporter = getTransporter();
     const html = await render(React.createElement(PasswordResetEmail, { resetLink: link }));
-    await transporter.sendMail({
+    return await sendWithFallback({
       from: `VerifiedBizLink <${FROM_EMAIL}>`,
       to,
       subject: 'Reset your VerifiedBizLink password',
@@ -81,9 +99,8 @@ export async function sendPasswordResetEmail(to: string, fullName: string, token
 export async function sendVerificationEmail(to: string, fullName: string, token: string, baseUrl?: string) {
   const link = `${baseUrl ?? APP_URL}/api/auth/verify-email?token=${token}`;
   try {
-    const transporter = getTransporter();
     const html = await render(React.createElement(VerificationEmail, { userFirstName: fullName, verificationLink: link }));
-    await transporter.sendMail({
+    return await sendWithFallback({
       from: `VerifiedBizLink <${FROM_EMAIL}>`,
       to,
       subject: 'Verify your VerifiedBizLink email address',
@@ -98,11 +115,10 @@ export async function sendVerificationEmail(to: string, fullName: string, token:
 
 export async function sendWelcomeEmail(to: string, fullName: string, role: string, baseUrl?: string) {
   try {
-    const transporter = getTransporter();
     const html = await render(
       React.createElement(WelcomeEmail, { userFirstName: fullName, role, appUrl: baseUrl ?? APP_URL })
     );
-    await transporter.sendMail({
+    return await sendWithFallback({
       from: `VerifiedBizLink <${FROM_EMAIL}>`,
       to,
       subject:
@@ -125,7 +141,6 @@ export async function sendAbandonedSignupEmail(
 ) {
   const root = baseUrl ?? APP_URL;
   try {
-    const transporter = getTransporter();
     const html = await render(
       React.createElement(AbandonedSignupEmail, {
         userFirstName: fullName,
@@ -136,7 +151,7 @@ export async function sendAbandonedSignupEmail(
         appUrl: root,
       })
     );
-    await transporter.sendMail({
+    return await sendWithFallback({
       from: `VerifiedBizLink <${FROM_EMAIL}>`,
       to,
       subject:
@@ -155,9 +170,8 @@ export async function sendInvoiceEmail(
   props: Omit<InvoiceEmailProps, 'appUrl'> & { appUrl?: string },
 ) {
   try {
-    const transporter = getTransporter();
     const html = await render(React.createElement(InvoiceEmail, { ...props, appUrl: props.appUrl ?? APP_URL }));
-    await transporter.sendMail({
+    return await sendWithFallback({
       from: `VerifiedBizLink <${FROM_EMAIL}>`,
       to,
       subject: `Invoice ${props.invoiceNumber} — ${props.tierName}`,
@@ -178,14 +192,13 @@ export async function sendPaymentFailedEmail(
   baseUrl?: string,
 ) {
   try {
-    const transporter = getTransporter();
     const html = await render(
       React.createElement(PaymentFailedEmail, {
         userFirstName: fullName, tierName, amount, hoursRemaining, deadline,
         appUrl: baseUrl ?? APP_URL,
       })
     );
-    await transporter.sendMail({
+    return await sendWithFallback({
       from: `VerifiedBizLink <${FROM_EMAIL}>`,
       to,
       subject: `Action needed: we couldn't process your ${tierName} payment`,
@@ -209,11 +222,10 @@ export async function sendAgentInviteEmail(
   },
 ): Promise<boolean> {
   try {
-    const transporter = getTransporter();
     const html = await render(
       React.createElement(AgentInviteEmail, { ...props, appUrl: props.appUrl ?? APP_URL })
     );
-    await transporter.sendMail({
+    await sendWithFallback({
       from: `VerifiedBizLink <${FROM_EMAIL}>`,
       to,
       subject: 'Activate your VerifiedBizLink sales account',
@@ -229,9 +241,8 @@ export async function sendAgentInviteEmail(
 export async function sendUsernameRecoveryEmail(to: string, usernames: string[], baseUrl?: string) {
   const link = `${baseUrl ?? APP_URL}/login`;
   try {
-    const transporter = getTransporter();
     const html = await render(React.createElement(UsernameRecoveryEmail, { usernames, loginLink: link }));
-    await transporter.sendMail({
+    return await sendWithFallback({
       from: `VerifiedBizLink <${FROM_EMAIL}>`,
       to,
       subject: 'Your VerifiedBizLink usernames',

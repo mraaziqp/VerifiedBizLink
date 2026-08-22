@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import { getSession, isStaff } from '@/lib/auth';
 import {
   sendVerificationEmail,
@@ -111,50 +112,49 @@ export async function POST(request: NextRequest) {
       }
 
       case 'all': {
-        await Promise.all([
-          sendVerificationEmail(recipient, 'Test Business Owner', mockToken, baseUrl),
-          sendWelcomeEmail(recipient, 'Test Business Owner', 'business', baseUrl),
-          sendPasswordResetEmail(recipient, 'Test User', mockToken, baseUrl),
-          sendAgentInviteEmail(recipient, {
-            fullName: 'Test Sales Marketer',
-            inviteUrl: `${baseUrl}/agent-invite/${mockToken}`,
-            referralCode: 'TEST-MKTR-88',
-            invitedByName: session.fullName || 'VerifiedBizLink Management',
-            commissionPercent: 20,
-            expiresInDays: 7,
-            appUrl: baseUrl,
-          }),
-          sendInvoiceEmail(recipient, {
-            userFirstName: 'Test',
-            invoiceNumber: `INV-TEST-${Math.floor(1000 + Math.random() * 9000)}`,
-            tierName: 'Gold Verified Tier',
-            description: 'VerifiedBizLink Gold Business Subscription',
-            amount: 'R1,499.00',
-            purchasedOn: new Date().toLocaleDateString('en-ZA'),
-            renewalPrice: 'R1,499.00',
-            nextBillingAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-ZA'),
-            intervalLabel: 'monthly',
-            terms: 'Cancel anytime in Settings > Billing before your renewal date.',
-            appUrl: baseUrl,
-          }),
-          sendPaymentFailedEmail(
-            recipient,
-            'Test Business Owner',
-            'Gold Verified Tier',
-            'R1,499.00',
-            48,
-            new Date(Date.now() + 48 * 60 * 60 * 1000).toLocaleDateString('en-ZA'),
-            baseUrl,
-          ),
-          sendAbandonedSignupEmail(
-            recipient,
-            'Test Registrant',
-            'unverified',
-            mockToken,
-            baseUrl,
-          ),
-          sendUsernameRecoveryEmail(recipient, ['test.business.owner', 'acme_solutions_za'], baseUrl),
-        ]);
+        // Run sequentially to avoid concurrent SMTP throttling
+        await sendVerificationEmail(recipient, 'Test Business Owner', mockToken, baseUrl);
+        await sendWelcomeEmail(recipient, 'Test Business Owner', 'business', baseUrl);
+        await sendPasswordResetEmail(recipient, 'Test User', mockToken, baseUrl);
+        await sendAgentInviteEmail(recipient, {
+          fullName: 'Test Sales Marketer',
+          inviteUrl: `${baseUrl}/agent-invite/${mockToken}`,
+          referralCode: 'TEST-MKTR-88',
+          invitedByName: session.fullName || 'VerifiedBizLink Management',
+          commissionPercent: 20,
+          expiresInDays: 7,
+          appUrl: baseUrl,
+        });
+        await sendInvoiceEmail(recipient, {
+          userFirstName: 'Test',
+          invoiceNumber: `INV-TEST-${Math.floor(1000 + Math.random() * 9000)}`,
+          tierName: 'Gold Verified Tier',
+          description: 'VerifiedBizLink Gold Business Subscription',
+          amount: 'R1,499.00',
+          purchasedOn: new Date().toLocaleDateString('en-ZA'),
+          renewalPrice: 'R1,499.00',
+          nextBillingAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-ZA'),
+          intervalLabel: 'monthly',
+          terms: 'Cancel anytime in Settings > Billing before your renewal date.',
+          appUrl: baseUrl,
+        });
+        await sendPaymentFailedEmail(
+          recipient,
+          'Test Business Owner',
+          'Gold Verified Tier',
+          'R1,499.00',
+          48,
+          new Date(Date.now() + 48 * 60 * 60 * 1000).toLocaleDateString('en-ZA'),
+          baseUrl,
+        );
+        await sendAbandonedSignupEmail(
+          recipient,
+          'Test Registrant',
+          'unverified',
+          mockToken,
+          baseUrl,
+        );
+        await sendUsernameRecoveryEmail(recipient, ['test.business.owner', 'acme_solutions_za'], baseUrl);
         results.all = 'Full test suite (all 8 emails) dispatched successfully!';
         break;
       }
