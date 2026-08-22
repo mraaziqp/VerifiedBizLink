@@ -4,9 +4,11 @@ import db from '@/lib/db';
 import { sendWelcomeEmail, appUrlFromRequest } from '@/lib/email';
 
 export async function GET(request: NextRequest) {
+  const baseUrl = appUrlFromRequest(request);
   const token = request.nextUrl.searchParams.get('token');
+  
   if (!token) {
-    return NextResponse.redirect(new URL('/verify-email?error=missing', request.url));
+    return NextResponse.redirect(`${baseUrl}/verify-email?error=missing`);
   }
 
   try {
@@ -18,14 +20,14 @@ export async function GET(request: NextRequest) {
     `;
 
     if (userRows.length === 0) {
-      return NextResponse.redirect(new URL('/verify-email?error=invalid', request.url));
+      return NextResponse.redirect(`${baseUrl}/verify-email?error=invalid`);
     }
 
     const u = userRows[0];
     const now = new Date();
     
     if (u.email_verification_token_expires_at && new Date(u.email_verification_token_expires_at) < now) {
-      return NextResponse.redirect(new URL('/verify-email?error=expired', request.url));
+      return NextResponse.redirect(`${baseUrl}/verify-email?error=expired`);
     }
 
     const rows = await db`
@@ -40,7 +42,7 @@ export async function GET(request: NextRequest) {
     `;
 
     if (rows.length === 0) {
-      return NextResponse.redirect(new URL('/verify-email?error=invalid', request.url));
+      return NextResponse.redirect(`${baseUrl}/verify-email?error=invalid`);
     }
 
     const verifiedUser = rows[0];
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest) {
       verifiedUser.email,
       (verifiedUser.full_name || '').split(' ')[0],
       verifiedUser.role,
-      appUrlFromRequest(request)
+      baseUrl
     );
 
     const sessionUser = {
@@ -65,11 +67,11 @@ export async function GET(request: NextRequest) {
     };
 
     const newJwt = await createTrackedSession(sessionUser, request);
-    const response = NextResponse.redirect(new URL('/verify-email?success=1', request.url));
+    const response = NextResponse.redirect(`${baseUrl}/verify-email?success=1`);
     response.cookies.set('vbl_session', newJwt, sessionCookieOptions(request.headers.get('host')));
     return response;
   } catch (error) {
     console.error('Email verification error:', error);
-    return NextResponse.redirect(new URL('/verify-email?error=server', request.url));
+    return NextResponse.redirect(`${baseUrl}/verify-email?error=server`);
   }
 }
