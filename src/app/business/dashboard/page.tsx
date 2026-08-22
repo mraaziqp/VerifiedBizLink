@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { GlassBackground, glassInteractive } from '@/components/shared/glass-ui';
 import { TrustScoreInfo } from '@/components/ui/trust-score-info';
+import { isStaffRole } from '@/lib/roles';
 
 interface Business {
   id: string;
@@ -145,6 +146,7 @@ export default function BusinessDashboard() {
   const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
   const [business, setBusiness] = useState<Business | null>(null);
+  const [adminBusinesses, setAdminBusinesses] = useState<{ id: string; company_name: string; status: string; package_type: string }[]>([]);
   const [stats, setStats] = useState<BusinessStats | null>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -161,7 +163,7 @@ export default function BusinessDashboard() {
     }
   }, []);
 
-  const canManage = !!user && (user.role === 'business' || ['admin', 'banker', 'lawyer'].includes(user.role));
+  const canManage = !!user && (user.role === 'business' || isStaffRole(user.role));
 
   const fetchActivity = useCallback(async () => {
     try {
@@ -183,14 +185,16 @@ export default function BusinessDashboard() {
     return Bell;
   };
 
-  const fetchBusinessData = useCallback(async () => {
+  const fetchBusinessData = useCallback(async (selectedBizId?: string) => {
     try {
       setLoading(true);
-      const res = await fetch('/api/business/profile');
+      const url = selectedBizId ? `/api/business/profile?bizId=${selectedBizId}` : '/api/business/profile';
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         setBusiness(data.business);
         setStats(data.stats);
+        if (data.adminBusinesses) setAdminBusinesses(data.adminBusinesses);
       } else {
         setError('Failed to load business data');
       }
@@ -307,7 +311,30 @@ export default function BusinessDashboard() {
 
       {/* Premium Header */}
       <div className="safe-area-pt bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-5 sm:py-6 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 py-5 sm:py-6 sm:px-6 lg:px-8 space-y-3">
+          {adminBusinesses.length > 0 && isStaffRole(user?.role) && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3 px-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+              <div className="flex items-center gap-2 text-amber-900 font-bold">
+                <Shield className="h-4 w-4 text-amber-600" />
+                <span>Admin View: Inspecting Business</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-amber-800 font-medium">Switch Business:</label>
+                <select
+                  value={business?.id || ''}
+                  onChange={(e) => fetchBusinessData(e.target.value)}
+                  className="bg-white border border-amber-300 rounded-xl px-3 py-1.5 text-xs font-semibold text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400 cursor-pointer shadow-xs"
+                >
+                  {adminBusinesses.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.company_name} ({b.status})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between gap-3 mb-4 sm:mb-5">
             <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
               <div className="relative shrink-0">

@@ -19,7 +19,7 @@ export default function BusinessVerifyPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user || user.role !== 'business') {
+    if (!user || (user.role !== 'business' && !['admin', 'banker', 'lawyer', 'finance_admin', 'compliance_admin'].includes(user.role))) {
       router.replace('/');
       return;
     }

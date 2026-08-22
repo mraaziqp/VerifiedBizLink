@@ -12,12 +12,22 @@ const SLOT_RATES: Record<string, number> = {
   sidebar_spotlight: 15,
 };
 
-async function getOwnBusiness(userId: string) {
+import { isStaff } from '@/lib/roles';
+
+async function getOwnBusiness(userId: string, isStaffUser?: boolean) {
   const rows = await db`
     SELECT id, company_name, package_type, trial_package, trial_ends_at, ad_credits
     FROM businesses WHERE user_id = ${userId} LIMIT 1
   `;
-  return rows[0] ?? null;
+  if (rows.length > 0) return rows[0];
+  if (isStaffUser) {
+    const firstBiz = await db`
+      SELECT id, company_name, package_type, trial_package, trial_ends_at, ad_credits
+      FROM businesses ORDER BY created_at DESC LIMIT 1
+    `;
+    return firstBiz[0] ?? null;
+  }
+  return null;
 }
 
 // GET /api/business/ads — the current user's own ads
@@ -25,7 +35,8 @@ export async function GET() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const biz = await getOwnBusiness(session.id);
+  const staffUser = isStaff(session.role);
+  const biz = await getOwnBusiness(session.id, staffUser);
   if (!biz) return NextResponse.json({ ads: [], limit: 0, active: 0, adCredits: 0 });
 
   await ensureMonthlyAdCredits(biz.id);
