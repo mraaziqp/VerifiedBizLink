@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 import db from '@/lib/db';
-import { calculateAgentCommission, getWeeklyTierRate, weekKeyOf } from '@/lib/commission';
+import {
+  calculateAgentCommission, calculateRetentionFromPayments,
+  getWeeklyTierRate, weekKeyOf,
+} from '@/lib/commission';
 
 /**
  * Sales agent programme: referral codes, invite tokens, and the commission
@@ -135,6 +138,14 @@ export interface AgentSummary {
   linkSignups: number;
   revenueCents: number;
   commissionEarnedCents: number;
+  /** Weekly tiered acquisition commission (policy 4). */
+  acquisitionCommissionCents: number;
+  /** 5% monthly retention, capped at 12 months (policy 8). */
+  retentionCommissionCents: number;
+  /** Sales that met policy 5 and 14. */
+  qualifyingSales: number;
+  /** Paid signups excluded by policy (unverified, self-registered). */
+  excludedSales: number;
   commissionPaidCents: number;
   commissionOwedCents: number;
   /** The rate actually applied to this agent, 0–1. */
@@ -214,7 +225,12 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
       ORDER BY p.user_id, COALESCE(p.completed_at, p.created_at) ASC
     )
     SELECT b.assisted_by_user_id AS agent_id, fp.amount AS cents, fp.paid_at,
-           ag.commission_rate_override AS rate_override
+           ag.commission_rate_override AS rate_override,
+           b.status AS business_status,
+           -- Policy §5: verification must be complete for a sale to qualify.
+           (b.status = 'verified') AS is_verified,
+           -- Policy §14: an Advisor registering themselves does not qualify.
+           (b.user_id = b.assisted_by_user_id) AS is_self_registration
     FROM businesses b
     JOIN first_payment fp ON fp.user_id = b.user_id
     JOIN users ag ON ag.id = b.assisted_by_user_id
@@ -223,13 +239,29 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
 
   // Group by agent first: the tier depends on how many of THAT agent's sales
   // fell in each week, so it cannot be decided one row at a time.
-  const salesByAgent = new Map<string, { amountCents: number; paidAt: string; override: number | null }[]>();
+  const salesByAgent = new Map<
+    string,
+    { amountCents: number; paidAt: string; qualifies: boolean; disqualifiedReason: string | null; override: number | null }[]
+  >();
   for (const r of perAgentEarned) {
     const id = String(r.agent_id);
     const list = salesByAgent.get(id) ?? [];
+
+    // Policy §5 and §14 decide whether this sale earns anything. The reason is
+    // carried through so a zero can be explained rather than just shown.
+    const selfRegistered = r.is_self_registration === true;
+    const verified = r.is_verified === true;
+    const disqualifiedReason = selfRegistered
+      ? 'Self-registration (policy §14)'
+      : !verified
+        ? `Verification not complete (currently "${r.business_status}")`
+        : null;
+
     list.push({
       amountCents: Number(r.cents) || 0,
       paidAt: String(r.paid_at),
+      qualifies: disqualifiedReason === null,
+      disqualifiedReason,
       override:
         r.rate_override !== null && r.rate_override !== undefined ? Number(r.rate_override) : null,
     });
@@ -237,6 +269,8 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
   }
 
   const earned = new Map<string, number>();
+  const qualifyingCount = new Map<string, number>();
+  const excludedCount = new Map<string, number>();
   // How many qualifying sales each agent has landed in the CURRENT week —
   // this is what decides the tier a new sale would be priced at.
   const currentWeekSales = new Map<string, number>();
@@ -245,13 +279,60 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
   for (const [id, sales] of salesByAgent) {
     const override = sales[0]?.override ?? null;
     const result = calculateAgentCommission(sales, override);
-    earned.set(id, result.totalCommissionCents);
+    earned.set(id, result.acquisitionCommissionCents);
+    qualifyingCount.set(id, result.qualifyingSales);
+    excludedCount.set(id, result.excludedSales);
     currentWeekSales.set(id, result.weeklyCounts[thisWeek] ?? 0);
+  }
+
+  /**
+   * Retention commission (policy §8): 5% of every monthly payment actually
+   * received, for at most 12 months from the customer's first payment.
+   * Computed from real payments, because §9 ends it the moment payments stop.
+   */
+  const retentionRows = (await db`
+    WITH first_payment AS (
+      SELECT DISTINCT ON (p.user_id)
+        p.user_id, COALESCE(p.completed_at, p.created_at) AS first_at
+      FROM payments p WHERE p.status = 'completed'
+      ORDER BY p.user_id, COALESCE(p.completed_at, p.created_at) ASC
+    )
+    SELECT b.assisted_by_user_id AS agent_id,
+           p.amount AS cents,
+           COALESCE(p.completed_at, p.created_at) AS paid_at,
+           fp.first_at
+    FROM payments p
+    JOIN businesses b ON b.user_id = p.user_id
+    JOIN first_payment fp ON fp.user_id = p.user_id
+    WHERE p.status = 'completed'
+      AND b.assisted_by_user_id IS NOT NULL
+      AND b.status = 'verified'
+      AND b.user_id <> b.assisted_by_user_id
+  `.catch(() => [])) as unknown as Row[];
+
+  const retentionByAgent = new Map<string, number>();
+  const retentionInput = new Map<string, { amountCents: number; paidAt: string; firstPaymentAt: string }[]>();
+  for (const r of retentionRows) {
+    const id = String(r.agent_id);
+    const list = retentionInput.get(id) ?? [];
+    list.push({
+      amountCents: Number(r.cents) || 0,
+      paidAt: String(r.paid_at),
+      firstPaymentAt: String(r.first_at),
+    });
+    retentionInput.set(id, list);
+  }
+  for (const [id, payments] of retentionInput) {
+    retentionByAgent.set(id, calculateRetentionFromPayments(payments).totalCents);
   }
 
   return rows.map((r) => {
     const id = String(r.id);
-    const earnedCents = earned.get(id) || 0;
+    const acquisitionCents = earned.get(id) || 0;
+    const retentionCents = retentionByAgent.get(id) || 0;
+    // What the Advisor has earned in total under the policy: weekly
+    // acquisition (§4) plus monthly retention (§8).
+    const earnedCents = acquisitionCents + retentionCents;
     const paidCents = Number(r.paid_cents) || 0;
     return {
       id,
@@ -265,6 +346,10 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
       linkSignups: Number(r.link_signups) || 0,
       revenueCents: Number(r.revenue_cents) || 0,
       commissionEarnedCents: earnedCents,
+      acquisitionCommissionCents: acquisitionCents,
+      retentionCommissionCents: retentionCents,
+      qualifyingSales: qualifyingCount.get(id) ?? 0,
+      excludedSales: excludedCount.get(id) ?? 0,
       commissionPaidCents: paidCents,
       commissionOwedCents: Math.max(0, earnedCents - paidCents),
       // Under the weekly policy there is no single lifetime rate, so this

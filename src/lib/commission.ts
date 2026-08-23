@@ -86,17 +86,29 @@ export function weekKeyOf(date: Date | string): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * One payment that may earn commission.
+ *
+ * `qualifies` carries policy §5: a subscription qualifies only when the
+ * business registered successfully, any required verification is complete,
+ * the payment was actually received, and it is not reversed, refunded or
+ * under investigation. Non-qualifying payments are kept rather than filtered
+ * out so the dashboard can show WHY something earned nothing.
+ */
 export interface QualifyingSale {
-  /** The payment commission is earned on, in cents. */
   amountCents: number;
-  /** When it was actually paid — determines which week it counts toward. */
+  /** When the money was received — decides which commission week it counts in. */
   paidAt: string | Date | null;
+  qualifies: boolean;
+  /** Human-readable reason when it does not qualify. */
+  disqualifiedReason?: string | null;
 }
 
-export interface SaleCommission extends QualifyingSale {
+export interface WeekCommission {
   weekKey: string;
-  /** Sales in that same week, which sets the tier. */
-  weekSaleCount: number;
+  saleCount: number;
+  /** Policy §6: the tier applies to the week's TOTAL qualifying value. */
+  qualifyingValueCents: number;
   rate: number;
   ratePercent: number;
   tierName: string;
@@ -104,60 +116,122 @@ export interface SaleCommission extends QualifyingSale {
 }
 
 export interface AgentCommissionResult {
-  perSale: SaleCommission[];
-  totalCommissionCents: number;
-  /** Week key -> how many qualifying sales landed in it. */
+  weeks: WeekCommission[];
+  acquisitionCommissionCents: number;
+  qualifyingSales: number;
+  excludedSales: number;
   weeklyCounts: Record<string, number>;
 }
 
 /**
- * Applies the official weekly tiered acquisition policy to an agent's sales.
+ * Weekly tiered acquisition commission, per the official policy.
  *
- * The tier is decided PER WEEK, by how many qualifying sales landed in that
- * week — not by the current week's count. Rating everything at this week's
- * tier would retroactively re-price months of history every time an agent has
- * a good week, so a payout run could differ from the one before it without a
- * single new sale.
+ * Policy §6: "the Advisor's qualifying new paying businesses are counted...
+ * The applicable percentage is applied to the TOTAL value of qualifying new
+ * subscription payments received during that week."
  *
- * A negotiated per-agent rate, when set, replaces the tier entirely — that is
- * what "negotiated" means, and it keeps an individual agreement predictable.
+ * So the rate is applied once to the week's total, not to each payment
+ * separately. Rounding each payment down individually would shave a cent per
+ * sale off the Advisor — on the policy's own Example 2 (14 sales, R18,000)
+ * the total must be exactly R5,400, and only sum-then-apply guarantees that.
+ *
+ * The tier is decided PER WEEK by that week's volume. Pricing everything at
+ * the current week's tier would retroactively re-value months of history
+ * every time an Advisor had a good week.
+ *
+ * A negotiated per-agent rate replaces the tier entirely.
  */
 export function calculateAgentCommission(
   sales: QualifyingSale[],
   overrideRate?: number | null,
 ): AgentCommissionResult {
-  const qualifying = sales.filter((s) => (Number(s.amountCents) || 0) > 0 && s.paidAt);
+  const qualifying = sales.filter((s) => s.qualifies && (Number(s.amountCents) || 0) > 0 && s.paidAt);
 
-  const weeklyCounts: Record<string, number> = {};
+  const buckets = new Map<string, { count: number; valueCents: number }>();
   for (const sale of qualifying) {
     const key = weekKeyOf(sale.paidAt as string | Date);
-    weeklyCounts[key] = (weeklyCounts[key] || 0) + 1;
+    const b = buckets.get(key) ?? { count: 0, valueCents: 0 };
+    b.count += 1;
+    b.valueCents += Number(sale.amountCents) || 0;
+    buckets.set(key, b);
   }
 
   const hasOverride =
     overrideRate !== null && overrideRate !== undefined && Number.isFinite(Number(overrideRate));
 
-  const perSale = qualifying.map((sale) => {
-    const weekKey = weekKeyOf(sale.paidAt as string | Date);
-    const weekSaleCount = weeklyCounts[weekKey] || 0;
-    const tier = getWeeklyTierRate(weekSaleCount);
-    const rate = hasOverride ? Number(overrideRate) : tier.rate;
-    return {
-      ...sale,
-      weekKey,
-      weekSaleCount,
-      rate,
-      ratePercent: Math.round(rate * 100),
-      tierName: hasOverride ? 'Negotiated rate' : tier.tierName,
-      commissionCents: commissionCents(Number(sale.amountCents) || 0, rate),
-    };
-  });
+  const weeks: WeekCommission[] = [...buckets.entries()]
+    .sort(([a], [b]) => (a < b ? 1 : -1))
+    .map(([weekKey, b]) => {
+      const tier = getWeeklyTierRate(b.count);
+      const rate = hasOverride ? Number(overrideRate) : tier.rate;
+      return {
+        weekKey,
+        saleCount: b.count,
+        qualifyingValueCents: b.valueCents,
+        rate,
+        ratePercent: Math.round(rate * 100),
+        tierName: hasOverride ? 'Negotiated rate' : tier.tierName,
+        // Applied to the week's total — policy §6.
+        commissionCents: commissionCents(b.valueCents, rate),
+      };
+    });
+
+  const weeklyCounts: Record<string, number> = {};
+  for (const [k, b] of buckets) weeklyCounts[k] = b.count;
 
   return {
-    perSale,
-    totalCommissionCents: perSale.reduce((sum, s) => sum + s.commissionCents, 0),
+    weeks,
+    acquisitionCommissionCents: weeks.reduce((sum, w) => sum + w.commissionCents, 0),
+    qualifyingSales: qualifying.length,
+    excludedSales: sales.length - qualifying.length,
     weeklyCounts,
   };
+}
+
+export interface RetentionPayment {
+  amountCents: number;
+  paidAt: string | Date;
+  /** The customer's first successful subscription payment — starts the clock. */
+  firstPaymentAt: string | Date;
+}
+
+/**
+ * Monthly retention commission, per policy §8 and §9.
+ *
+ * 5% of each monthly subscription payment ACTUALLY received, for at most 12
+ * consecutive months from the customer's first successful payment. It is
+ * therefore computed from real payments rather than projected from the first
+ * one: §9 ends it the moment payments cease, so a projection would keep
+ * paying an Advisor for a customer who has already stopped.
+ *
+ * The first payment itself is excluded — that one earns acquisition
+ * commission under §4, and paying both on the same payment would double-count.
+ */
+export function calculateRetentionFromPayments(payments: RetentionPayment[]): {
+  totalCents: number;
+  eligiblePayments: number;
+} {
+  let totalCents = 0;
+  let eligiblePayments = 0;
+
+  for (const p of payments) {
+    const paid = new Date(p.paidAt);
+    const first = new Date(p.firstPaymentAt);
+    if (Number.isNaN(paid.getTime()) || Number.isNaN(first.getTime())) continue;
+    if (paid <= first) continue; // the acquisition payment, not a retention one
+
+    const cutoff = new Date(first.getTime());
+    cutoff.setMonth(cutoff.getMonth() + RETENTION_MAX_MONTHS);
+    if (paid > cutoff) continue; // past the 12-month window
+
+    const amount = Number(p.amountCents) || 0;
+    if (amount <= 0) continue;
+
+    totalCents += Math.floor(amount * MONTHLY_RETENTION_RATE);
+    eligiblePayments += 1;
+  }
+
+  return { totalCents, eligiblePayments };
 }
 
 export interface Milestone {
