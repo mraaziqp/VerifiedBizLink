@@ -4,6 +4,7 @@ import {
   calculateAgentCommission, calculateRetentionFromPayments,
   getWeeklyTierRate, weekKeyOf,
 } from '@/lib/commission';
+import { getClawbackPositions } from '@/lib/clawbacks';
 
 /**
  * Sales agent programme: referral codes, invite tokens, and the commission
@@ -142,6 +143,12 @@ export interface AgentSummary {
   acquisitionCommissionCents: number;
   /** 5% monthly retention, capped at 12 months (policy 8). */
   retentionCommissionCents: number;
+  /** Approved clawbacks against this advisor (policy 12). */
+  clawedBackCents: number;
+  /** Overpaid commission that needs recovering. */
+  recoverableCents: number;
+  /** Clawbacks raised but not yet decided. */
+  pendingClawbacks: number;
   /** Sales that met policy 5 and 14. */
   qualifyingSales: number;
   /** Paid signups excluded by policy (unverified, self-registered). */
@@ -326,13 +333,21 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
     retentionByAgent.set(id, calculateRetentionFromPayments(payments).totalCents);
   }
 
+  const clawbacks = await getClawbackPositions();
+
   return rows.map((r) => {
     const id = String(r.id);
     const acquisitionCents = earned.get(id) || 0;
     const retentionCents = retentionByAgent.get(id) || 0;
+    const position = clawbacks.get(id) ?? { creditedCents: 0, appliedCents: 0, pendingCount: 0 };
+    // An undecided or waived clawback is credited back, so raising the flag
+    // does not move the Advisor's balance until someone rules on it.
+    const clawedBackCents = position.appliedCents;
     // What the Advisor has earned in total under the policy: weekly
     // acquisition (§4) plus monthly retention (§8).
-    const earnedCents = acquisitionCents + retentionCents;
+    // Acquisition (§4) + retention (§8), plus anything credited back because
+    // its clawback is still undecided or was waived.
+    const earnedCents = acquisitionCents + retentionCents + position.creditedCents;
     const paidCents = Number(r.paid_cents) || 0;
     return {
       id,
@@ -348,10 +363,22 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
       commissionEarnedCents: earnedCents,
       acquisitionCommissionCents: acquisitionCents,
       retentionCommissionCents: retentionCents,
+      clawedBackCents,
+      pendingClawbacks: position.pendingCount,
       qualifyingSales: qualifyingCount.get(id) ?? 0,
       excludedSales: excludedCount.get(id) ?? 0,
       commissionPaidCents: paidCents,
+      /**
+       * Owed and recoverable are two sides of the same subtraction, each
+       * clamped at zero: a negative balance is not something to pay, and an
+       * overpayment is a debt to recover rather than a negative amount owed.
+       * The clawback is NOT subtracted again here — reversing the payment
+       * already removed its commission from earnedCents, so deducting it a
+       * second time would double-count the same money.
+       */
       commissionOwedCents: Math.max(0, earnedCents - paidCents),
+      /** Paid out but no longer earned — what has to come back. */
+      recoverableCents: Math.max(0, paidCents - earnedCents),
       // Under the weekly policy there is no single lifetime rate, so this
       // reports what the agent's NEXT sale would earn: their negotiated rate
       // if they have one, otherwise the tier their current week has reached.
