@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { GlassBackground, GlassCard } from '@/components/shared/glass-ui';
+import { AgentReferralField } from '@/components/billing/agent-referral-field';
 import Link from 'next/link';
 
 export default function BusinessVerifyPage() {
@@ -137,6 +138,10 @@ export default function BusinessVerifyPage() {
                   <p className="text-4xl font-extrabold text-gray-900">R49</p>
                   <p className="text-sm text-gray-500 mt-1">Once-off payment</p>
                 </div>
+
+                {/* Credit the advisor before paying — after the payment lands
+                    the commission has already been calculated without them. */}
+                <AgentReferralField className="max-w-sm mx-auto text-left" />
 
                 <Button
                   onClick={handlePayment}

@@ -127,28 +127,48 @@ export async function POST(request: NextRequest) {
        * A suspended agent resolves to nothing, so a departed marketer stops
        * earning the moment their account is suspended.
        */
-      let agentId: string | null =
-        assistedSignup === true ? (assistedByUserId || null) : null;
-      let agentName: string | null =
-        assistedSignup === true ? (assistedBy || '').trim() || null : null;
-      let resolvedCode: string | null = null;
-      let source: string | null = agentId ? 'manual' : null;
+      const { resolveAgent, resolveAgentById } = await import('@/lib/agents');
 
-      const code = String(referralCode || '').trim().toUpperCase();
-      if (code) {
-        const agent = await db`
-          SELECT id, full_name FROM users
-          WHERE LOWER(referral_code) = ${code.toLowerCase()}
-            AND role = 'sales_agent'
-            AND is_suspended IS NOT TRUE
-          LIMIT 1
-        `.catch(() => []);
-        if (agent.length > 0) {
-          agentId = String(agent[0].id);
-          agentName = String(agent[0].full_name || '');
-          resolvedCode = code;
-          source = 'referral_link';
+      let agentId: string | null = null;
+      let agentName: string | null = null;
+      let resolvedCode: string | null = null;
+      let source: string | null = null;
+
+      // A referral link always wins: the business arrived through that
+      // advisor's link, whoever is standing next to them.
+      const linkAgent = await resolveAgent(referralCode);
+      if (linkAgent) {
+        agentId = linkAgent.id;
+        agentName = linkAgent.fullName;
+        resolvedCode = linkAgent.referralCode;
+        source = 'referral_link';
+      } else if (assistedSignup === true) {
+        // An assisted signup: resolve whatever they picked or typed. The id
+        // from the dropdown is checked against the database too rather than
+        // trusted — otherwise anyone could post an arbitrary agent id and
+        // redirect someone else's commission to themselves.
+        const picked =
+          (await resolveAgent(assistedBy)) ??
+          (assistedByUserId ? await resolveAgentById(assistedByUserId) : null);
+
+        if (!picked) {
+          // Refusing is the point. Storing an unresolved name is what caused
+          // advisors to work sales that were credited to nobody, with nothing
+          // anywhere to show it had happened.
+          return NextResponse.json(
+            {
+              error:
+                "We couldn't find that advisor. Check the name or referral code with them and try again.",
+              field: 'assistedBy',
+            },
+            { status: 400 },
+          );
         }
+
+        agentId = picked.id;
+        agentName = picked.fullName;
+        resolvedCode = picked.referralCode;
+        source = 'manual';
       }
 
       // No trial package is granted — new businesses start on Free and upgrade

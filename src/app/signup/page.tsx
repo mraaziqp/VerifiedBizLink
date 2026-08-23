@@ -387,14 +387,25 @@ export default function SignupPage() {
                             </select>
                           </>
                         ) : (
-                          <Input
-                            id="assisted-by"
-                            required
-                            placeholder="Agent name or number"
-                            className="h-11 rounded-xl border-gray-200 bg-white mt-1.5"
-                            value={formData.assistedBy}
-                            onChange={(e) => update("assistedBy", e.target.value)}
-                          />
+                          <>
+                            {/* Fallback for when the agent list didn't load.
+                                The value is resolved server-side against
+                                referral code, name and email — a name that
+                                matches nobody is refused rather than stored
+                                as text no commission can ever be paid on. */}
+                            <Input
+                              id="assisted-by"
+                              required
+                              placeholder="Referral code or agent's full name"
+                              className="h-11 rounded-xl border-gray-200 bg-white mt-1.5"
+                              value={formData.assistedBy}
+                              onChange={(e) => update("assistedBy", e.target.value)}
+                            />
+                            <p className="mt-1.5 text-xs text-gray-500">
+                              Ask them for their referral code — it makes sure they
+                              get credited for helping you.
+                            </p>
+                          </>
                         )}
                       </div>
                     )}

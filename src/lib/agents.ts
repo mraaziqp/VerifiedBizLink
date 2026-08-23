@@ -5,6 +5,7 @@ import {
   getWeeklyTierRate, weekKeyOf,
 } from '@/lib/commission';
 import { getClawbackPositions } from '@/lib/clawbacks';
+import { ROLES } from '@/lib/roles';
 
 /**
  * Sales agent programme: referral codes, invite tokens, and the commission
@@ -125,6 +126,87 @@ export async function logAgentActivity(
   } catch (err) {
     console.error('Agent activity log write failed:', err);
   }
+}
+
+/** Guards the id lookup — a non-uuid would make Postgres throw, not return zero rows. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export interface ResolvedAgent {
+  id: string;
+  fullName: string;
+  referralCode: string | null;
+}
+
+/**
+ * Resolves whatever a person typed into an actual advisor.
+ *
+ * Attribution used to depend on the signup form's dropdown having loaded. If
+ * it hadn't, the form fell back to a free-text box and stored the typed
+ * string in businesses.assisted_by with assisted_by_user_id left NULL — and
+ * commission is calculated from the id, never the text. A real signup was
+ * recorded against nobody: the advisor did the work and earned nothing, with
+ * nothing on screen to say so.
+ *
+ * People type whatever identifies the advisor to them, so all of it resolves:
+ * the referral code, the full name, or the work email. Matching is
+ * case-insensitive because the codes in the database are a mix of both.
+ *
+ * Suspended advisors resolve to nothing, so a departed marketer stops earning
+ * the moment their account is suspended.
+ */
+export async function resolveAgent(input: string | null | undefined): Promise<ResolvedAgent | null> {
+  const needle = String(input ?? '').trim();
+  if (!needle) return null;
+
+  const lowered = needle.toLowerCase();
+
+  const rows = (await db`
+    SELECT id, full_name, referral_code
+    FROM users
+    WHERE role = ${ROLES.SALES_AGENT}
+      AND is_suspended IS NOT TRUE
+      AND (
+        LOWER(referral_code) = ${lowered}
+        OR LOWER(full_name)  = ${lowered}
+        OR LOWER(email)      = ${lowered}
+      )
+    LIMIT 2
+  `.catch(() => [])) as unknown as Record<string, unknown>[];
+
+  // Exactly one match, or it is not an identification. Two advisors sharing a
+  // name must be told apart by code rather than guessed at.
+  if (rows.length !== 1) return null;
+
+  return {
+    id: String(rows[0].id),
+    fullName: String(rows[0].full_name ?? ''),
+    referralCode: (rows[0].referral_code as string) ?? null,
+  };
+}
+
+/**
+ * Same check, by id — for the signup form's dropdown. The id is still
+ * verified against the database rather than trusted from the request body.
+ */
+export async function resolveAgentById(id: string | null | undefined): Promise<ResolvedAgent | null> {
+  const candidate = String(id ?? '').trim();
+  if (!UUID_RE.test(candidate)) return null;
+
+  const rows = (await db`
+    SELECT id, full_name, referral_code
+    FROM users
+    WHERE id = ${candidate}
+      AND role = ${ROLES.SALES_AGENT}
+      AND is_suspended IS NOT TRUE
+    LIMIT 1
+  `.catch(() => [])) as unknown as Record<string, unknown>[];
+
+  if (rows.length === 0) return null;
+  return {
+    id: String(rows[0].id),
+    fullName: String(rows[0].full_name ?? ''),
+    referralCode: (rows[0].referral_code as string) ?? null,
+  };
 }
 
 export interface AgentSummary {

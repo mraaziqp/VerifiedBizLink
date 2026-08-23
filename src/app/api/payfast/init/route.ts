@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
-import crypto from 'crypto';
+import { orderPayfastFields, signPayfast, payfastEnv, payfastEnvWasDirty } from '@/lib/payfast';
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,10 +60,27 @@ export async function POST(request: NextRequest) {
     `.catch(err => console.log('Payment record creation note:', err.message));
 
     // Payfast API credentials (from environment)
-    const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || '';
-    const PAYFAST_MERCHANT_KEY = process.env.PAYFAST_MERCHANT_KEY || '';
-    const PAYFAST_URL = process.env.PAYFAST_URL || 'https://www.payfast.co.za/eng/process';
+    const PAYFAST_MERCHANT_ID = payfastEnv('PAYFAST_MERCHANT_ID');
+    const PAYFAST_MERCHANT_KEY = payfastEnv('PAYFAST_MERCHANT_KEY');
+    const PAYFAST_URL = payfastEnv('PAYFAST_URL') || 'https://www.payfast.co.za/eng/process';
     const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://www.verifiedbizlink.co.za';
+
+    if (!PAYFAST_MERCHANT_ID || !PAYFAST_MERCHANT_KEY) {
+      console.error('PayFast is not configured — merchant id or key is missing.');
+      return NextResponse.json(
+        { error: 'Payments are not configured yet. Please contact support.' },
+        { status: 503 },
+      );
+    }
+
+    // A passphrase that arrived with a byte-order mark signs a string PayFast
+    // cannot reproduce, and the only symptom is a 400 on the payment page
+    // with nothing in our logs. Say so here instead.
+    for (const key of ['PAYFAST_MERCHANT_ID', 'PAYFAST_MERCHANT_KEY', 'PAYFAST_PASSPHRASE'] as const) {
+      if (payfastEnvWasDirty(key)) {
+        console.warn(`${key} contained whitespace or an invisible character — cleaned before signing. Fix it at source.`);
+      }
+    }
 
     // Tier purchases are real monthly subscriptions — PayFast bills the
     // customer's card automatically every month until cancelled. Ad boosts
@@ -71,8 +88,21 @@ export async function POST(request: NextRequest) {
     // commitment).
     const isSubscription = (purchaseType || '').startsWith('subscription_');
 
-    // Build Payfast data
-    const payfastData = {
+    // item_description is only meaningful for ad campaigns — calling a tier
+    // subscription "Ad Campaign" is what the customer sees on the PayFast
+    // page and on their bank statement.
+    const itemDescription = adId
+      ? `VerifiedBizLink Ad Campaign - ${description}`
+      : `VerifiedBizLink - ${description}`;
+
+    /**
+     * Ordered and stripped of blanks by orderPayfastFields. Both matter:
+     * PayFast rebuilds the signature from the fields in the order they are
+     * posted and skips blank ones, so a sorted string or an empty
+     * custom_str1 produces "Generated signature does not match submitted
+     * signature" on every single payment.
+     */
+    const payfastData = orderPayfastFields({
       merchant_id: PAYFAST_MERCHANT_ID,
       merchant_key: PAYFAST_MERCHANT_KEY,
       return_url: `${APP_URL}/ads/payment-success?ref=${encodeURIComponent(paymentRef)}`,
@@ -84,7 +114,7 @@ export async function POST(request: NextRequest) {
       m_payment_id: paymentRef,
       amount: amount.toFixed(2),
       item_name: description,
-      item_description: `VerifiedBizLink Ad Campaign - ${description}`,
+      item_description: itemDescription,
       custom_str1: adId || '',
       custom_str2: session.id,
       custom_str3: purchaseType || 'ad_credits',
@@ -97,51 +127,27 @@ export async function POST(request: NextRequest) {
             cycles: '0', // 0 = bill indefinitely until cancelled
           }
         : {}),
-    };
+    });
 
-    // Create signature matching Payfast guidelines (RFC 3986 style, spaces to +)
-    let dataString = Object.keys(payfastData)
-      .sort()
-      .map(key => {
-        const val = (payfastData as any)[key];
-        const encodedVal = encodeURIComponent(val)
-          .replace(/%20/g, '+')
-          .replace(/!/g, '%21')
-          .replace(/'/g, '%27')
-          .replace(/\(/g, '%28')
-          .replace(/\)/g, '%29')
-          .replace(/\*/g, '%2A');
-        return `${key}=${encodedVal}`;
-      })
-      .join('&');
-
-    if (process.env.PAYFAST_PASSPHRASE) {
-      const encodedPass = encodeURIComponent(process.env.PAYFAST_PASSPHRASE)
-        .replace(/%20/g, '+')
-        .replace(/!/g, '%21')
-        .replace(/'/g, '%27')
-        .replace(/\(/g, '%28')
-        .replace(/\)/g, '%29')
-        .replace(/\*/g, '%2A');
-      dataString += `&passphrase=${encodedPass}`;
-    }
-
-    const signature = crypto
-      .createHash('md5')
-      .update(dataString)
-      .digest('hex');
+    const signature = signPayfast(
+      Object.entries(payfastData),
+      payfastEnv('PAYFAST_PASSPHRASE'),
+    );
 
     return NextResponse.json({
       success: true,
       paymentRef,
       payfastUrl: PAYFAST_URL,
+      // The client must post these in exactly this order — the signature was
+      // built over it. Object key order is insertion order, which the form
+      // builder preserves.
       data: payfastData,
       signature,
     });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Payment init error:', error);
     return NextResponse.json(
-      { error: error.message || 'Payment initialization failed' },
+      { error: error instanceof Error ? error.message : 'Payment initialization failed' },
       { status: 500 }
     );
   }

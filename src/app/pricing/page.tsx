@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 
 import { SubpageNav } from "@/components/layout/subpage-nav";
+import { AgentReferralField } from "@/components/billing/agent-referral-field";
 
 interface Tier {
   key: string;
@@ -132,6 +133,10 @@ export default function PricingPage() {
 
       {/* Pricing Cards */}
       <div className="max-w-6xl mx-auto px-4 pb-16">
+        {/* Credit the advisor before paying, not after — this is the last
+            moment the sale can still be attributed to whoever earned it. */}
+        {user?.role === 'business' && <AgentReferralField className="mb-6 max-w-xl mx-auto" />}
+
         {loading ? (
           <div className="flex justify-center py-24">
             <Loader2 className="h-8 w-8 text-yellow-500 animate-spin" />

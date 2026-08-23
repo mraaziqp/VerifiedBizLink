@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import crypto from 'crypto';
+import { signPayfast, payfastEnv } from '@/lib/payfast';
 import { getTier, AD_CREDIT_PRICE_PER_DAY, AD_BOOST_PRICE, AD_BOOST_DURATION_DAYS } from '@/lib/tiers';
 import { nextBillingDate } from '@/lib/billing';
 import { issueInvoice } from '@/lib/invoices';
@@ -9,16 +9,17 @@ import { appUrlFromRequest } from '@/lib/email';
 // PayFast's official anti-spoofing check (required by their integration
 // guide, not optional): post the exact ITN body back to PayFast and only
 // trust it if they confirm it as a transaction they actually processed.
-// Without this — and without a PAYFAST_PASSPHRASE, which this deployment
-// doesn't have configured — the signature check above proves nothing:
+//
+// The signature alone is not proof of origin unless a passphrase is set:
 // merchant_id is not secret (it's sent to the browser on every checkout),
-// so anyone can compute a "valid" signature for a completely fabricated
+// so without one anybody could compute a "valid" signature for a fabricated
 // POST straight to this endpoint and grant themselves (or any user_id they
-// guess) a free tier upgrade, ad boost, or ad credits. This closes that.
+// guess) a free tier upgrade, ad boost, or ad credits. This closes that gap
+// whether or not a passphrase is configured.
 async function isGenuineItn(rawBody: string): Promise<boolean> {
-  const payfastUrl = process.env.PAYFAST_URL || '';
+  const payfastUrl = payfastEnv('PAYFAST_URL');
   const validateUrl =
-    process.env.PAYFAST_VALIDATE_URL ||
+    payfastEnv('PAYFAST_VALIDATE_URL') ||
     (payfastUrl.includes('sandbox')
       ? 'https://sandbox.payfast.co.za/eng/query/validate'
       : 'https://www.payfast.co.za/eng/query/validate');
@@ -50,40 +51,15 @@ export async function POST(request: NextRequest) {
     });
 
     // Verify signature
-    const PAYFAST_MERCHANT_ID = process.env.PAYFAST_MERCHANT_ID || '';
+    const PAYFAST_MERCHANT_ID = payfastEnv('PAYFAST_MERCHANT_ID');
 
-    // Create signature for verification matching Payfast signature guidelines (RFC 3986, spaces to +)
-    let dataString = Object.keys(payfastData)
-      .filter(key => key !== 'signature')
-      .sort()
-      .map(key => {
-        const val = payfastData[key];
-        const encodedVal = encodeURIComponent(val)
-          .replace(/%20/g, '+')
-          .replace(/!/g, '%21')
-          .replace(/'/g, '%27')
-          .replace(/\(/g, '%28')
-          .replace(/\)/g, '%29')
-          .replace(/\*/g, '%2A');
-        return `${key}=${encodedVal}`;
-      })
-      .join('&');
-
-    if (process.env.PAYFAST_PASSPHRASE) {
-      const encodedPass = encodeURIComponent(process.env.PAYFAST_PASSPHRASE)
-        .replace(/%20/g, '+')
-        .replace(/!/g, '%21')
-        .replace(/'/g, '%27')
-        .replace(/\(/g, '%28')
-        .replace(/\)/g, '%29')
-        .replace(/\*/g, '%2A');
-      dataString += `&passphrase=${encodedPass}`;
-    }
-
-    const expectedSignature = crypto
-      .createHash('md5')
-      .update(dataString)
-      .digest('hex');
+    // Built from the POST in the order PayFast sent it. Sorting the keys here
+    // compares against a string PayFast never generated, which rejected every
+    // genuine notification with a 403.
+    const expectedSignature = signPayfast(
+      formData.entries(),
+      payfastEnv('PAYFAST_PASSPHRASE'),
+    );
 
     const receivedSignature = payfastData.signature as string;
 
@@ -311,8 +287,19 @@ export async function POST(request: NextRequest) {
       } else if (purchaseType === 'verification_fee') {
         const paidAmount = parseFloat(payfastData.amount_gross as string);
         if (Number.isFinite(paidAmount) && paidAmount >= 49 - 0.01) {
+          // status, not just verification_paid. The badge shown across the
+          // app reads status, and commission counts a sale only when the
+          // business is verified — so setting the flag alone left the
+          // customer paying R49 for a badge that never appeared and the
+          // advisor earning nothing, while this very message told them both
+          // it had worked.
           await db`
-            UPDATE businesses SET verification_paid = TRUE, verification_paid_at = NOW(), updated_at = NOW()
+            UPDATE businesses
+            SET verification_paid = TRUE,
+                verification_paid_at = NOW(),
+                status = 'verified',
+                verified_at = COALESCE(verified_at, NOW()),
+                updated_at = NOW()
             WHERE user_id = ${userId}
           `.catch(err => console.log('Verification fee update note:', err.message));
           grantMessage = 'Your business has been verified! The verified badge is now active on your profile.';
