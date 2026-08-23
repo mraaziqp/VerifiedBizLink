@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
   try {
     const rawBody = await request.text();
     const formData = new URLSearchParams(rawBody);
-    const payfastData: Record<string, any> = {};
+    const payfastData: Record<string, string> = {};
     formData.forEach((value, key) => {
       payfastData[key] = value;
     });
@@ -113,14 +113,69 @@ export async function POST(request: NextRequest) {
     // Update payment status based on payment_status
     const paymentStatus = payfastData.payment_status as string;
     const paymentRef = payfastData.m_payment_id as string;
+    const normalizedStatus = String(paymentStatus || '').trim().toUpperCase();
+
+    // A refund, reversal or chargeback is not a status update — it undoes a
+    // payment that has already earned an advisor commission, so it goes
+    // through the clawback path (Commission Policy §12) instead of falling
+    // through to the UPDATE below. Left unhandled it landed on 'pending',
+    // which quietly demoted a completed payment and removed its commission
+    // with nothing flagged for anyone to see.
+    if (
+      normalizedStatus === 'REFUNDED' ||
+      normalizedStatus === 'REVERSED' ||
+      normalizedStatus === 'CHARGEBACK'
+    ) {
+      const { reversePaymentAndRaiseClawback } = await import('@/lib/clawbacks');
+      const result = await reversePaymentAndRaiseClawback({
+        paymentReference: paymentRef,
+        reason: `PayFast reported this payment as ${normalizedStatus.toLowerCase()}`,
+        actorName: 'PayFast (automatic)',
+      }).catch((err) => {
+        console.error('Automatic clawback failed:', err);
+        return null;
+      });
+      console.log('PayFast reversal handled:', result?.reason ?? 'error');
+
+      // The tier is deliberately not stripped here. One reversed month is not
+      // the same as a fraudulent account, and an admin deciding the clawback
+      // is the right person to decide the account too.
+      await db`
+        INSERT INTO notifications (user_id, title, content, link)
+        SELECT id, 'Payment reversed by PayFast',
+               ${`${paymentRef} came back as ${normalizedStatus.toLowerCase()}. The account still holds its plan — review it.`},
+               '/admin/payments'
+        FROM users WHERE role = 'admin'
+      `.catch((err) => console.log('Reversal notification note:', err.message));
+
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
 
     let dbStatus = 'pending';
-    if (paymentStatus === 'COMPLETE') {
+    if (normalizedStatus === 'COMPLETE') {
       dbStatus = 'completed';
-    } else if (paymentStatus === 'FAILED') {
+    } else if (normalizedStatus === 'FAILED') {
       dbStatus = 'failed';
-    } else if (paymentStatus === 'PENDING') {
+    } else if (normalizedStatus === 'PENDING') {
       dbStatus = 'pending';
+    } else if (normalizedStatus === 'CANCELLED') {
+      // A cancelled subscription says nothing about the charges already
+      // taken, so stop the renewal and leave the ledger alone.
+      await db`
+        UPDATE businesses
+        SET auto_renew = FALSE, subscription_status = 'cancelled', updated_at = NOW()
+        WHERE payfast_token = ${payfastData.token || null}
+      `.catch((err) => console.log('Subscription cancellation note:', err.message));
+      return NextResponse.json({ success: true }, { status: 200 });
+    } else {
+      // Something PayFast added that this code has never seen. Recording it
+      // as 'pending' would demote a completed payment, so do nothing and say
+      // so loudly enough to be found in the logs.
+      console.error('Unrecognised PayFast payment_status — ignored:', {
+        paymentStatus,
+        paymentRef,
+      });
+      return NextResponse.json({ success: true }, { status: 200 });
     }
 
     // Update payment record. payments has no updated_at column (only
@@ -283,10 +338,10 @@ export async function POST(request: NextRequest) {
 
     // Return 200 OK to acknowledge receipt
     return NextResponse.json({ success: true }, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Payfast webhook error:', error);
     return NextResponse.json(
-      { error: error.message || 'Webhook processing failed' },
+      { error: error instanceof Error ? error.message : 'Webhook processing failed' },
       { status: 500 }
     );
   }
