@@ -4,7 +4,8 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard, History, UserCheck, Trophy, ShieldAlert, Receipt, Link2, Megaphone, Mail, Loader2, Download } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard, History, UserCheck, Trophy, ShieldAlert, Receipt, Link2, Megaphone, Mail, Loader2, MessageSquare } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { AdminBackground, AdminCard, AdminPageHeader, StatCard } from '@/components/admin/ui';
@@ -14,7 +15,7 @@ interface AdminTool {
   id: string;
   name: string;
   description: string;
-  icon: any;
+  icon: LucideIcon;
   href: string;
   color: string;
   badge?: string;
@@ -33,7 +34,8 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
+  // Derived, not stored: the page is "loading" exactly while auth has no user.
+  const loading = !user;
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [exportingEmail, setExportingEmail] = useState(false);
@@ -69,10 +71,6 @@ export default function AdminDashboard() {
       setExportingEmail(false);
     }
   };
-
-  useEffect(() => {
-    if (user) setLoading(false);
-  }, [user]);
 
   useEffect(() => {
     let active = true;
@@ -121,6 +119,7 @@ export default function AdminDashboard() {
     { id: 'agents', name: 'Sales Agents & Payouts', description: 'Invite marketers, issue referral links and QR codes, track commission owed', icon: Link2, href: '/admin/agents', color: 'from-indigo-500 to-violet-500' },
     { id: 'agent-signups', name: 'Agent Sign Up Dashboard', description: 'Every business signup marked as assisted by a sales agent', icon: UserCheck, href: '/admin/agent-signups', color: 'from-teal-500 to-cyan-500' },
     { id: 'agent-sales', name: 'Agent Sales Dashboard', description: 'Assisted signups grouped by agent, with the tier each business took', icon: Trophy, href: '/admin/agent-sales', color: 'from-amber-500 to-orange-500' },
+    { id: 'agent-issues', name: 'Advisor Reports', description: 'Queries and problems raised by the sales team, with screenshots — answered from here', icon: MessageSquare, href: '/admin/agent-issues', color: 'from-sky-500 to-blue-500' },
     { id: 'activity', name: 'Activity & Receipts', description: 'Every sign-up and payment as it happens, with receipt references', icon: Receipt, href: '/admin/activity', color: 'from-teal-500 to-emerald-500' },
     { id: 'security', name: 'Security & Moderation', description: 'Warnings, strikes, bans, verification control and account removal', icon: ShieldAlert, href: '/admin/security', color: 'from-rose-500 to-red-500' },
   ];

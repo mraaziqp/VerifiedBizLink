@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { AdminBackground, AdminCard, AdminPageHeader, StatCard } from '@/components/admin/ui';
+import { ClawbackReviewPanel } from '@/components/admin/clawback-review-panel';
 import { formatRand } from '@/lib/commission';
 
 interface Agent {
@@ -884,6 +885,8 @@ export default function AdminAgentsPage() {
             </div>
           )}
         </AdminCard>
+
+        <ClawbackReviewPanel />
 
         <p className="px-1 text-xs text-gray-500">
           Commission is a share of each referred business&apos;s first payment, calculated

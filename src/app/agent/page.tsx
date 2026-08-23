@@ -3,23 +3,25 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Loader2, Users, TrendingUp, Wallet, Clock, Trophy, Target, CheckCircle2, LogOut,
-  Link2, Copy, Check, QrCode, Phone, Mail, MessageSquare, Plus, Search,
-  Calendar, Award, Sparkles, ArrowUpRight, Share2, HelpCircle, Activity,
-  ChevronRight, Calculator, FileText, CheckCircle, RefreshCw, Send, LayoutGrid,
-  ListFilter, DollarSign, Building2, Flame, AlertCircle, ExternalLink, Download, ShieldCheck, Repeat
+  Loader2, Users, TrendingUp, Wallet, Trophy, LogOut,
+  Copy, Check, Mail, MessageSquare, Plus, Search, Award,
+  Calendar, Sparkles, Share2, Activity,
+  Calculator, FileText, RefreshCw, LayoutGrid,
+  ListFilter, Building2, Flame, ShieldCheck, Repeat,
+  LifeBuoy
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { AgentSupportPanel } from '@/components/agent/agent-support-panel';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { AGENT_PORTAL_ROLES, hasRole } from '@/lib/roles';
 import {
   DEFAULT_MILESTONES, OFFICIAL_WEEKLY_TIERS, MONTHLY_RETENTION_RATE,
-  currentMilestone, nextMilestone, progressToNext, formatRand,
-  type Milestone, type WeeklyTier, getWeeklyTierRate
+  nextMilestone, progressToNext, formatRand,
+  type Milestone, getWeeklyTierRate
 } from '@/lib/commission';
 import {
   Dialog,
@@ -110,7 +112,7 @@ export default function AgentPortalPage() {
   const router = useRouter();
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'overview' | 'policy' | 'leads' | 'activity' | 'toolkit'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'policy' | 'leads' | 'activity' | 'toolkit' | 'support'>('overview');
   const [viewMode, setViewMode] = useState<'kanban' | 'table'>('kanban');
 
   // Core Data
@@ -147,7 +149,9 @@ export default function AgentPortalPage() {
 
   // Activity Log State
   const [activities, setActivities] = useState<ActivityEvent[]>([]);
-  const [loadingActivities, setLoadingActivities] = useState(false);
+  // Starts true: the first fetch is already on its way from the mount effect,
+  // so the spinner is the honest initial state.
+  const [loadingActivities, setLoadingActivities] = useState(true);
 
   // Toolkit Simulator State
   const [simWeeklySales, setSimWeeklySales] = useState<number>(12);
@@ -196,7 +200,6 @@ export default function AgentPortalPage() {
   };
 
   const loadActivities = async () => {
-    setLoadingActivities(true);
     try {
       const res = await fetch('/api/agent/activity');
       if (res.ok) {
@@ -211,9 +214,9 @@ export default function AgentPortalPage() {
   };
 
   useEffect(() => {
-    loadDashboard();
-    loadLeads();
-    loadActivities();
+    void (async () => {
+      await Promise.all([loadDashboard(), loadLeads(), loadActivities()]);
+    })();
   }, []);
 
   const handleCreateLead = async (e: React.FormEvent) => {
@@ -284,8 +287,8 @@ export default function AgentPortalPage() {
   const weeklySales = totals?.weeklySales ?? 0;
   const signupsCount = totals?.signups ?? 0;
   const conversionRate = signupsCount > 0 ? Math.round((sales / signupsCount) * 100) : 0;
-  const next = nextMilestone(sales, scheme.milestones);
-  const progress = progressToNext(sales, scheme.milestones);
+  const milestoneNext = nextMilestone(sales, scheme.milestones);
+  const milestoneProgress = progressToNext(sales, scheme.milestones);
 
   // Policy Simulator calculations
   const simWeeklyTier = getWeeklyTierRate(simWeeklySales);
@@ -326,6 +329,7 @@ export default function AgentPortalPage() {
               onClick={() => {
                 loadDashboard();
                 loadLeads();
+                setLoadingActivities(true);
                 loadActivities();
                 toast({ title: 'Data refreshed' });
               }}
@@ -380,19 +384,20 @@ export default function AgentPortalPage() {
 
         {/* Navigation Tabs */}
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
-          {[
+          {([
             { id: 'overview', label: 'Overview & Targets', icon: TrendingUp },
             { id: 'policy', label: 'Commission Policy & Tiers', icon: FileText },
             { id: 'leads', label: `Pipeline CRM (${leads.length})`, icon: Users },
             { id: 'activity', label: 'Live Activity Stream', icon: Activity },
             { id: 'toolkit', label: 'Earnings Simulator & Pitches', icon: Sparkles },
-          ].map((tab) => {
+            { id: 'support', label: 'My Details & Contact Directors', icon: LifeBuoy },
+          ] as const).map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                   isActive
                     ? 'bg-amber-400 text-slate-950 shadow-xs'
@@ -504,6 +509,56 @@ export default function AgentPortalPage() {
                 })}
               </div>
             </Card>
+
+            {/* Milestone bonuses — set by admins on the fly, so this reflects
+                whatever the scheme currently is rather than a hard-coded ladder. */}
+            {scheme.milestones.length > 0 && (
+              <Card className="border border-slate-200 bg-white shadow-xs rounded-2xl p-6 space-y-4">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-amber-500" />
+                    <h3 className="font-extrabold text-base text-slate-900">Milestone Bonuses</h3>
+                  </div>
+                  {milestoneNext ? (
+                    <span className="text-xs font-bold text-slate-600">
+                      {Math.max(0, milestoneNext.sales - sales)} more sale
+                      {milestoneNext.sales - sales === 1 ? '' : 's'} to {milestoneNext.name}
+                    </span>
+                  ) : (
+                    <span className="text-xs font-extrabold text-emerald-700">Every milestone reached</span>
+                  )}
+                </div>
+
+                <div className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 transition-all"
+                    style={{ width: `${milestoneProgress}%` }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {scheme.milestones.map((m) => {
+                    const reached = sales >= m.sales;
+                    return (
+                      <div
+                        key={m.sales}
+                        className={`rounded-xl border p-3 ${
+                          reached ? 'border-emerald-300 bg-emerald-50/70' : 'border-slate-200 bg-slate-50/50'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className={`text-sm font-bold ${reached ? 'text-emerald-800' : 'text-slate-700'}`}>
+                            {m.name}
+                          </span>
+                          {reached && <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />}
+                        </div>
+                        <p className="mt-1 text-xs font-medium text-slate-500">{m.reward}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            )}
 
             {/* Attributed Signups Ledger */}
             <Card className="border border-slate-200 bg-white shadow-xs rounded-2xl overflow-hidden">
@@ -693,7 +748,30 @@ export default function AgentPortalPage() {
                 <p className="text-xs text-slate-500">Track local business owners and convert them to verified members.</p>
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                {/* The pipeline gets long fast — a marketer standing in a mall
+                    needs to find one shop by name, not scroll five columns. */}
+                <div className="relative flex-1 sm:flex-none">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    value={leadSearch}
+                    onChange={(e) => setLeadSearch(e.target.value)}
+                    placeholder="Find a prospect…"
+                    className="h-9 w-full rounded-xl border-slate-200 bg-white pl-9 text-sm text-slate-900 sm:w-56"
+                  />
+                </div>
+
+                <select
+                  value={leadStatusFilter}
+                  onChange={(e) => setLeadStatusFilter(e.target.value)}
+                  className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700"
+                >
+                  <option value="all">All stages</option>
+                  {LEAD_STAGES.map((s) => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
+                  ))}
+                </select>
+
                 <div className="flex rounded-xl border border-slate-200 p-1 bg-white shadow-xs">
                   <button
                     onClick={() => setViewMode('kanban')}
@@ -998,6 +1076,9 @@ export default function AgentPortalPage() {
             </Card>
           </div>
         )}
+
+        {/* ======================= TAB 6: MY DETAILS & SUPPORT ======================= */}
+        {activeTab === 'support' && <AgentSupportPanel />}
 
         {/* ======================= TAB 5: TOOLKIT & SIMULATOR ======================= */}
         {activeTab === 'toolkit' && (
