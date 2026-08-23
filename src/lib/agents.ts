@@ -1,7 +1,6 @@
 import crypto from 'crypto';
 import db from '@/lib/db';
-import { commissionCents } from '@/lib/commission';
-import { getCommissionSettings } from '@/lib/settings';
+import { calculateAgentCommission, getWeeklyTierRate, weekKeyOf } from '@/lib/commission';
 
 /**
  * Sales agent programme: referral codes, invite tokens, and the commission
@@ -154,13 +153,10 @@ type Row = Record<string, unknown>;
  * is earned on that first payment, so an unpaid signup earns nothing yet and
  * is reported separately rather than being quietly counted.
  *
- * The rate comes from platform settings, with a per-agent override taking
- * precedence, so a negotiated rate is honoured everywhere at once.
+ * Commission follows the official weekly tiered policy, with a per-agent
+ * negotiated rate taking precedence when one is set.
  */
 export async function getAgentSummaries(): Promise<AgentSummary[]> {
-  // The platform rate, and any per-agent rate negotiated on top of it.
-  const settings = await getCommissionSettings();
-
   const rows = (await db`
     WITH first_payment AS (
       SELECT DISTINCT ON (p.user_id)
@@ -199,15 +195,25 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
     ORDER BY u.full_name ASC
   `) as unknown as Row[];
 
-  // Commission is computed per payment, not on the summed revenue, so the
-  // per-payment rounding matches what each individual invoice would show.
+  /**
+   * Commission is computed per payment through the SAME official policy the
+   * agent portal shows, so the number an agent sees and the number Finance
+   * pays from cannot differ. This previously applied a flat settings rate
+   * here while the portal applied weekly tiers — two different answers for
+   * the same money.
+   *
+   * paid_at is selected because the weekly acquisition tier depends on which
+   * week a payment landed in.
+   */
   const perAgentEarned = (await db`
     WITH first_payment AS (
-      SELECT DISTINCT ON (p.user_id) p.user_id, p.amount
+      SELECT DISTINCT ON (p.user_id)
+        p.user_id, p.amount,
+        COALESCE(p.completed_at, p.created_at) AS paid_at
       FROM payments p WHERE p.status = 'completed'
       ORDER BY p.user_id, COALESCE(p.completed_at, p.created_at) ASC
     )
-    SELECT b.assisted_by_user_id AS agent_id, fp.amount AS cents,
+    SELECT b.assisted_by_user_id AS agent_id, fp.amount AS cents, fp.paid_at,
            ag.commission_rate_override AS rate_override
     FROM businesses b
     JOIN first_payment fp ON fp.user_id = b.user_id
@@ -215,13 +221,32 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
     WHERE b.assisted_by_user_id IS NOT NULL
   `) as unknown as Row[];
 
-  const earned = new Map<string, number>();
+  // Group by agent first: the tier depends on how many of THAT agent's sales
+  // fell in each week, so it cannot be decided one row at a time.
+  const salesByAgent = new Map<string, { amountCents: number; paidAt: string; override: number | null }[]>();
   for (const r of perAgentEarned) {
     const id = String(r.agent_id);
-    const rate = r.rate_override !== null && r.rate_override !== undefined
-      ? Number(r.rate_override)
-      : settings.defaultRate;
-    earned.set(id, (earned.get(id) || 0) + commissionCents(Number(r.cents) || 0, rate));
+    const list = salesByAgent.get(id) ?? [];
+    list.push({
+      amountCents: Number(r.cents) || 0,
+      paidAt: String(r.paid_at),
+      override:
+        r.rate_override !== null && r.rate_override !== undefined ? Number(r.rate_override) : null,
+    });
+    salesByAgent.set(id, list);
+  }
+
+  const earned = new Map<string, number>();
+  // How many qualifying sales each agent has landed in the CURRENT week —
+  // this is what decides the tier a new sale would be priced at.
+  const currentWeekSales = new Map<string, number>();
+  const thisWeek = weekKeyOf(new Date());
+
+  for (const [id, sales] of salesByAgent) {
+    const override = sales[0]?.override ?? null;
+    const result = calculateAgentCommission(sales, override);
+    earned.set(id, result.totalCommissionCents);
+    currentWeekSales.set(id, result.weeklyCounts[thisWeek] ?? 0);
   }
 
   return rows.map((r) => {
@@ -242,10 +267,13 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
       commissionEarnedCents: earnedCents,
       commissionPaidCents: paidCents,
       commissionOwedCents: Math.max(0, earnedCents - paidCents),
+      // Under the weekly policy there is no single lifetime rate, so this
+      // reports what the agent's NEXT sale would earn: their negotiated rate
+      // if they have one, otherwise the tier their current week has reached.
       effectiveRate:
         r.commission_rate_override !== null && r.commission_rate_override !== undefined
           ? Number(r.commission_rate_override)
-          : settings.defaultRate,
+          : getWeeklyTierRate(currentWeekSales.get(id) ?? 0).rate,
       rateOverride:
         r.commission_rate_override !== null && r.commission_rate_override !== undefined
           ? Number(r.commission_rate_override)

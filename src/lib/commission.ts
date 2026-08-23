@@ -70,6 +70,96 @@ export function calculateRetentionCommission(monthlyPaymentCents: number, active
   return Math.floor(monthlyPaymentCents * MONTHLY_RETENTION_RATE * eligibleMonths);
 }
 
+/**
+ * Monday-start week key (e.g. "2026-W34") for a payment date.
+ *
+ * The acquisition tier is a WEEKLY measure, so every calculation has to agree
+ * on where a week begins. Monday-start matches how the sales week is run.
+ */
+export function weekKeyOf(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : new Date(date.getTime());
+  if (Number.isNaN(d.getTime())) return 'invalid';
+  d.setHours(0, 0, 0, 0);
+  // Shift to the Monday of this week.
+  const day = d.getDay(); // 0 = Sunday
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+export interface QualifyingSale {
+  /** The payment commission is earned on, in cents. */
+  amountCents: number;
+  /** When it was actually paid — determines which week it counts toward. */
+  paidAt: string | Date | null;
+}
+
+export interface SaleCommission extends QualifyingSale {
+  weekKey: string;
+  /** Sales in that same week, which sets the tier. */
+  weekSaleCount: number;
+  rate: number;
+  ratePercent: number;
+  tierName: string;
+  commissionCents: number;
+}
+
+export interface AgentCommissionResult {
+  perSale: SaleCommission[];
+  totalCommissionCents: number;
+  /** Week key -> how many qualifying sales landed in it. */
+  weeklyCounts: Record<string, number>;
+}
+
+/**
+ * Applies the official weekly tiered acquisition policy to an agent's sales.
+ *
+ * The tier is decided PER WEEK, by how many qualifying sales landed in that
+ * week — not by the current week's count. Rating everything at this week's
+ * tier would retroactively re-price months of history every time an agent has
+ * a good week, so a payout run could differ from the one before it without a
+ * single new sale.
+ *
+ * A negotiated per-agent rate, when set, replaces the tier entirely — that is
+ * what "negotiated" means, and it keeps an individual agreement predictable.
+ */
+export function calculateAgentCommission(
+  sales: QualifyingSale[],
+  overrideRate?: number | null,
+): AgentCommissionResult {
+  const qualifying = sales.filter((s) => (Number(s.amountCents) || 0) > 0 && s.paidAt);
+
+  const weeklyCounts: Record<string, number> = {};
+  for (const sale of qualifying) {
+    const key = weekKeyOf(sale.paidAt as string | Date);
+    weeklyCounts[key] = (weeklyCounts[key] || 0) + 1;
+  }
+
+  const hasOverride =
+    overrideRate !== null && overrideRate !== undefined && Number.isFinite(Number(overrideRate));
+
+  const perSale = qualifying.map((sale) => {
+    const weekKey = weekKeyOf(sale.paidAt as string | Date);
+    const weekSaleCount = weeklyCounts[weekKey] || 0;
+    const tier = getWeeklyTierRate(weekSaleCount);
+    const rate = hasOverride ? Number(overrideRate) : tier.rate;
+    return {
+      ...sale,
+      weekKey,
+      weekSaleCount,
+      rate,
+      ratePercent: Math.round(rate * 100),
+      tierName: hasOverride ? 'Negotiated rate' : tier.tierName,
+      commissionCents: commissionCents(Number(sale.amountCents) || 0, rate),
+    };
+  });
+
+  return {
+    perSale,
+    totalCommissionCents: perSale.reduce((sum, s) => sum + s.commissionCents, 0),
+    weeklyCounts,
+  };
+}
+
 export interface Milestone {
   sales: number;
   name: string;
