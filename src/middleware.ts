@@ -104,6 +104,11 @@ const VERIFICATION_EXEMPT_PATHS = [
   '/api/businesses/packages',
   '/api/businesses/documents',
   '/api/businesses/submit',
+  // Crediting the advisor who helped you is part of finishing signup, not
+  // content creation. An unverified account can already reach /business/verify
+  // and start a R49 payment, so gating only the referral code meant the one
+  // path that loses an advisor their commission was the one left blocked.
+  '/api/businesses/referral',
 ];
 // A verified business's public trust profile (page + the API it reads from)
 // must be viewable without an account — that's the whole point of showing

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ROLES } from '@/lib/roles';
+import { REFERRAL_CODE_MAX_LENGTH } from '@/lib/agents';
 import db from '@/lib/db';
 
 type Row = Record<string, unknown>;
@@ -17,14 +18,18 @@ type Row = Record<string, unknown>;
  * commission the moment their account is suspended.
  */
 export async function GET(request: NextRequest) {
-  const code = (request.nextUrl.searchParams.get('code') || '').trim().toUpperCase();
-  if (!code || code.length > 16) {
+  // Compared case-insensitively because the codes in the database are a mix
+  // of upper and lower case, and bounded by the same limit the generator
+  // uses — a shorter cap here silently kills the links of every advisor
+  // whose name is long enough to exceed it.
+  const code = (request.nextUrl.searchParams.get('code') || '').trim();
+  if (!code || code.length > REFERRAL_CODE_MAX_LENGTH) {
     return NextResponse.json({ valid: false });
   }
 
   try {
     const rows = (await db`
-      SELECT id, full_name
+      SELECT id, full_name, referral_code
       FROM users
       WHERE LOWER(referral_code) = ${code.toLowerCase()}
         AND role = ${ROLES.SALES_AGENT}
@@ -38,7 +43,9 @@ export async function GET(request: NextRequest) {
       valid: true,
       agentId: rows[0].id,
       agentName: rows[0].full_name || 'your agent',
-      code,
+      // The stored code, not the visitor's spelling of it — otherwise the
+      // signup page shows a code that does not match the advisor's card.
+      code: rows[0].referral_code,
     });
   } catch (error) {
     console.error('Referral resolve error:', error);

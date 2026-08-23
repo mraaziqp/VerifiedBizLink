@@ -23,11 +23,23 @@ import { ROLES } from '@/lib/roles';
  * The code is the agent's name with spaces, special chars stripped, and
  * lowercased. e.g. "Mohammed Parker" -> "mohammedparker"
  */
+/**
+ * The longest a referral code may be.
+ *
+ * Every place that generates, stores or validates a code must agree on this.
+ * They did not: codes were generated up to 30 characters while the public
+ * lookup rejected anything over 16, so an advisor whose name was long enough
+ * — "Katleho Karabo Mphutlane" reaches 22 — got a referral link that silently
+ * resolved to nothing. The signup page showed no "Referred by" banner and the
+ * sale was credited to nobody, exactly like a mistyped name.
+ */
+export const REFERRAL_CODE_MAX_LENGTH = 30;
+
 export function generateNameBasedCode(fullName: string): string {
   return fullName
     .toLowerCase()
     .replace(/[^a-z0-9]/g, '')
-    .slice(0, 30) || 'agent';
+    .slice(0, REFERRAL_CODE_MAX_LENGTH) || 'agent';
 }
 
 /** No O/0 or I/1 — these codes get read aloud and written on paper. */
@@ -75,8 +87,11 @@ export async function allocateReferralCode(fullName?: string): Promise<string> {
   // Fallback to random code if name-based fails
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const code = generateReferralCode();
+    // Case-insensitive like every other code comparison — the stored codes are
+    // a mix of cases, so a case-sensitive uniqueness check can hand out a
+    // "unique" code that collides with an existing one when it is looked up.
     const clash = (await db`
-      SELECT 1 FROM users WHERE referral_code = ${code} LIMIT 1
+      SELECT 1 FROM users WHERE LOWER(referral_code) = ${code.toLowerCase()} LIMIT 1
     `) as unknown as unknown[];
     if (clash.length === 0) return code;
   }

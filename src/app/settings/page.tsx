@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { TrustScoreInfo } from "@/components/ui/trust-score-info";
+import { AgentReferralField } from "@/components/billing/agent-referral-field";
 
 interface Tier {
   key: string;
@@ -83,7 +84,10 @@ function SettingsForm() {
   // were the real answer during the moment before the fetch above resolves
   // — that flash was mistakeable for a genuinely verified account losing
   // its status.
-  const [businessLoading, setBusinessLoading] = useState(true);
+  // Derived: only a business account fetches a profile at all, so anyone else
+  // is never "loading" — they simply have nothing to load.
+  const [businessLoaded, setBusinessLoaded] = useState(false);
+  const businessLoading = user?.role === 'business' && !businessLoaded;
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [cancelling, setCancelling] = useState(false);
 
@@ -133,16 +137,24 @@ function SettingsForm() {
   }, []);
 
   useEffect(() => {
-    if (user?.role !== 'business') {
-      setBusinessLoading(false);
-      return;
-    }
-    setBusinessLoading(true);
-    fetch('/api/business/profile', { cache: 'no-store' })
-      .then(res => res.ok ? res.json() : null)
-      .then(data => { if (data?.business) setBusiness(data.business); })
-      .catch(err => console.error('Error fetching business profile:', err))
-      .finally(() => setBusinessLoading(false));
+    // Nothing to fetch for a non-business account, and the flag below is
+    // derived rather than set here — setting state straight from an effect
+    // body causes a second render before the first has painted.
+    if (user?.role !== 'business') return;
+
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/business/profile', { cache: 'no-store' });
+        const data = res.ok ? await res.json() : null;
+        if (active && data?.business) setBusiness(data.business);
+      } catch (err) {
+        console.error('Error fetching business profile:', err);
+      } finally {
+        if (active) setBusinessLoaded(true);
+      }
+    })();
+    return () => { active = false; };
   }, [user?.role]);
 
   const [profileForm, setProfileForm] = useState({
@@ -188,17 +200,21 @@ function SettingsForm() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      setProfileForm(prev => ({
-        ...prev,
-        fullName: prev.fullName || user.fullName || "",
-        email: prev.email || user.email || "",
-        headline: prev.headline || user.headline || "",
-        avatarUrl: prev.avatarUrl || user.avatarUrl || "",
-      }));
-    }
-  }, [user]);
+  // Seed the form from the account once it arrives, without discarding
+  // anything already typed. Done during render rather than in an effect —
+  // React's documented way to adjust state when a prop changes — so the
+  // fields are populated on the first paint instead of flashing empty.
+  const [seededFor, setSeededFor] = useState<string | null>(null);
+  if (user && seededFor !== user.id) {
+    setSeededFor(user.id);
+    setProfileForm(prev => ({
+      ...prev,
+      fullName: prev.fullName || user.fullName || "",
+      email: prev.email || user.email || "",
+      headline: prev.headline || user.headline || "",
+      avatarUrl: prev.avatarUrl || user.avatarUrl || "",
+    }));
+  }
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -727,6 +743,17 @@ function SettingsForm() {
                     </Link>
                   </CardContent>
                 </Card>
+
+                {/* Third and last place a business can credit their advisor.
+                    Someone who signed up on a marketer's tablet and paid later
+                    at home will look for this under billing, not on /pricing. */}
+                {user?.role === 'business' && (
+                  <Card className="border border-gray-150 shadow-sm overflow-hidden bg-white">
+                    <CardContent className="p-6 md:p-8">
+                      <AgentReferralField />
+                    </CardContent>
+                  </Card>
+                )}
 
                 {user?.role === 'business' && business?.package_type && business.package_type !== 'free' && (
                   <Card className="border border-red-100 shadow-sm overflow-hidden bg-white">
