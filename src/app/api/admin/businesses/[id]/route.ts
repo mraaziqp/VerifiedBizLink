@@ -47,12 +47,23 @@ export async function PUT(
         review_notes = COALESCE(${reviewNotes}, review_notes),
         trust_score = COALESCE(${computedTrustScore}, trust_score),
         reviewed_by = COALESCE(${status !== undefined ? session.id : null}, reviewed_by),
-        verified_at = CASE WHEN ${status}::text = 'verified' THEN NOW() WHEN ${status}::text IS NOT NULL THEN NULL ELSE verified_at END,
+        -- COALESCE, so re-approving an already-verified business keeps the
+        -- date it was first verified. Stamping NOW() every time rewrote the
+        -- customer's verification anniversary on any later edit, and the
+        -- monthly "verified this month" analytics counted them again.
+        verified_at = CASE
+          WHEN ${status}::text = 'verified' THEN COALESCE(verified_at, NOW())
+          WHEN ${status}::text IS NOT NULL THEN NULL
+          ELSE verified_at END,
         -- A person has now actually looked at this one. That overwrites a
         -- badge that came from a purchase: reviewed beats paid-for, and this
         -- is the only signal that the documents were really checked.
         badge_source = CASE WHEN ${status}::text = 'verified' THEN 'vetting_review' ELSE badge_source END,
-        documents_reviewed_at = CASE WHEN ${status}::text = 'verified' THEN NOW() ELSE documents_reviewed_at END,
+        -- Rejecting is also a review. Recording it means the decision is
+        -- dated even when the answer was no.
+        documents_reviewed_at = CASE
+          WHEN ${status}::text IN ('verified', 'rejected') THEN NOW()
+          ELSE documents_reviewed_at END,
         package_type = COALESCE(${packageType}, package_type),
         updated_at = NOW()
       WHERE id = ${id}
