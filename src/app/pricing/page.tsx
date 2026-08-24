@@ -10,6 +10,8 @@ import { useToast } from "@/hooks/use-toast";
 
 import { SubpageNav } from "@/components/layout/subpage-nav";
 import { AgentReferralField } from "@/components/billing/agent-referral-field";
+import { VerificationOffer } from "@/components/billing/verification-offer";
+import { startPayfastCheckout } from "@/lib/payfast-checkout";
 
 interface Tier {
   key: string;
@@ -58,44 +60,14 @@ export default function PricingPage() {
       return;
     }
     setCheckoutLoading(tier.key);
-    try {
-      const res = await fetch("/api/payfast/init", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: tier.price,
-          description: `${tier.name} Subscription (R${tier.price}/month)`,
-          purchaseType: `subscription_${tier.key}`,
-        }),
-      });
-      if (!res.ok) {
-        const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || "Failed to start payment");
-      }
-      const { payfastUrl, data, signature } = await res.json();
-
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = payfastUrl;
-      Object.keys(data).forEach((key) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = key;
-        input.value = String(data[key]);
-        form.appendChild(input);
-      });
-      const sigInput = document.createElement("input");
-      sigInput.type = "hidden";
-      sigInput.name = "signature";
-      sigInput.value = signature;
-      form.appendChild(sigInput);
-      document.body.appendChild(form);
-      form.submit();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not connect to payment gateway.";
-      toast({ title: "Payment error", description: message, variant: "destructive" });
-      setCheckoutLoading(null);
-    }
+    const result = await startPayfastCheckout({
+      amount: tier.price,
+      description: `${tier.name} Subscription (R${tier.price}/month)`,
+      purchaseType: `subscription_${tier.key}`,
+    });
+    // Only reached if the checkout could not be started — success navigates.
+    toast({ title: "Payment error", description: result.error, variant: "destructive" });
+    setCheckoutLoading(null);
   };
 
   const ctaAction = (tier: Tier) => {
@@ -133,6 +105,11 @@ export default function PricingPage() {
 
       {/* Pricing Cards */}
       <div className="max-w-6xl mx-auto px-4 pb-16">
+        {/* The once-off badge, above the monthly plans. Someone who only wants
+            to be verified should not have to read four subscription cards to
+            find out they do not need one. */}
+        {user?.role === 'business' && <VerificationOffer className="mb-8" />}
+
         {/* Credit the advisor before paying, not after — this is the last
             moment the sale can still be attributed to whoever earned it. */}
         {user?.role === 'business' && <AgentReferralField className="mb-6 max-w-xl mx-auto" />}

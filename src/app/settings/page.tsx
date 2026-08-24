@@ -19,6 +19,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { TrustScoreInfo } from "@/components/ui/trust-score-info";
 import { AgentReferralField } from "@/components/billing/agent-referral-field";
+import { VerificationOffer } from "@/components/billing/verification-offer";
 
 interface Tier {
   key: string;
@@ -747,6 +748,12 @@ function SettingsForm() {
                 {/* Third and last place a business can credit their advisor.
                     Someone who signed up on a marketer's tablet and paid later
                     at home will look for this under billing, not on /pricing. */}
+                {/* The once-off badge, for anyone who came here looking for a
+                    plan when what they actually want is to be verified. */}
+                {user?.role === 'business' && (
+                  <VerificationOffer variant="compact" />
+                )}
+
                 {user?.role === 'business' && (
                   <Card className="border border-gray-150 shadow-sm overflow-hidden bg-white">
                     <CardContent className="p-6 md:p-8">

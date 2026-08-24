@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { verifyItnSignature, payfastEnv } from '@/lib/payfast';
-import { getTier, AD_CREDIT_PRICE_PER_DAY, AD_BOOST_PRICE, AD_BOOST_DURATION_DAYS } from '@/lib/tiers';
+import { getTier, AD_CREDIT_PRICE_PER_DAY, AD_BOOST_PRICE, AD_BOOST_DURATION_DAYS, VERIFICATION_FEE_RAND } from '@/lib/tiers';
 import { nextBillingDate } from '@/lib/billing';
 import { issueInvoice } from '@/lib/invoices';
 import { appUrlFromRequest } from '@/lib/email';
@@ -315,7 +315,7 @@ export async function POST(request: NextRequest) {
         }
       } else if (purchaseType === 'verification_fee') {
         const paidAmount = parseFloat(payfastData.amount_gross as string);
-        if (Number.isFinite(paidAmount) && paidAmount >= 49 - 0.01) {
+        if (Number.isFinite(paidAmount) && paidAmount >= VERIFICATION_FEE_RAND - 0.01) {
           // status, not just verification_paid. The badge shown across the
           // app reads status, and commission counts a sale only when the
           // business is verified — so setting the flag alone left the
@@ -337,10 +337,10 @@ export async function POST(request: NextRequest) {
           const [biz] = await db`SELECT assisted_by_user_id FROM businesses WHERE user_id = ${userId} LIMIT 1`.catch(() => []);
           if (biz?.assisted_by_user_id) {
             const { logAgentActivity } = await import('@/lib/agents');
-            await logAgentActivity(biz.assisted_by_user_id, 'verification_paid', 'Business paid R49 verification fee', userId).catch(() => {});
+            await logAgentActivity(biz.assisted_by_user_id, 'verification_paid', `Business paid R${VERIFICATION_FEE_RAND} verification fee`, userId).catch(() => {});
           }
         } else {
-          console.error(`Blocked verification fee: paid R${paidAmount}, requires R49`, { userId, paymentRef });
+          console.error(`Blocked verification fee: paid R${paidAmount}, requires R${VERIFICATION_FEE_RAND}`, { userId, paymentRef });
           grantMessage = 'Your payment was received, but the amount did not match the verification fee. Please contact support.';
         }
       }

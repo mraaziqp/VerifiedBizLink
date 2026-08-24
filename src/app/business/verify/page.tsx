@@ -8,6 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
 import { GlassBackground, GlassCard } from '@/components/shared/glass-ui';
 import { AgentReferralField } from '@/components/billing/agent-referral-field';
+import { startPayfastCheckout } from '@/lib/payfast-checkout';
+import { VERIFICATION_FEE_RAND } from '@/lib/tiers';
 import Link from 'next/link';
 
 export default function BusinessVerifyPage() {
@@ -17,6 +19,8 @@ export default function BusinessVerifyPage() {
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const [verificationPaid, setVerificationPaid] = useState(false);
+  // Server-supplied so the page can never quote a price the webhook rejects.
+  const [feeRand, setFeeRand] = useState(VERIFICATION_FEE_RAND);
 
   useEffect(() => {
     if (authLoading) return;
@@ -24,11 +28,14 @@ export default function BusinessVerifyPage() {
       router.replace('/');
       return;
     }
-    // Check verification status
-    fetch('/api/businesses/packages')
+    // /api/businesses/packages does not select verification_paid, so this
+    // check read undefined every time and someone who had already paid was
+    // shown the pay button again. This endpoint reports it properly.
+    fetch('/api/businesses/verification', { cache: 'no-store' })
       .then(res => res.ok ? res.json() : null)
       .then(data => {
-        if (data?.business?.verification_paid) setVerificationPaid(true);
+        if (data?.verificationPaid || data?.verified) setVerificationPaid(true);
+        if (typeof data?.feeRand === 'number') setFeeRand(data.feeRand);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -36,44 +43,14 @@ export default function BusinessVerifyPage() {
 
   const handlePayment = async () => {
     setPaying(true);
-    try {
-      const res = await fetch('/api/payfast/init', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          amount: 49,
-          description: 'VerifiedBizLink Verification Fee',
-          purchaseType: 'verification_fee',
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.payfastUrl) {
-        // Create and submit PayFast form
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = data.payfastUrl;
-        Object.entries(data.data).forEach(([key, value]) => {
-          const input = document.createElement('input');
-          input.type = 'hidden';
-          input.name = key;
-          input.value = String(value);
-          form.appendChild(input);
-        });
-        const sig = document.createElement('input');
-        sig.type = 'hidden';
-        sig.name = 'signature';
-        sig.value = data.signature;
-        form.appendChild(sig);
-        document.body.appendChild(form);
-        form.submit();
-      } else {
-        toast({ title: 'Payment Error', description: data.error || 'Could not start payment', variant: 'destructive' });
-        setPaying(false);
-      }
-    } catch {
-      toast({ title: 'Connection Error', description: 'Could not reach payment server', variant: 'destructive' });
-      setPaying(false);
-    }
+    const result = await startPayfastCheckout({
+      amount: feeRand,
+      description: `VerifiedBizLink Verification Fee (R${feeRand} once-off)`,
+      purchaseType: 'verification_fee',
+    });
+    // Only reached if the checkout could not be started — success navigates.
+    toast({ title: 'Payment error', description: result.error, variant: 'destructive' });
+    setPaying(false);
   };
 
   if (authLoading || loading) {
@@ -116,7 +93,7 @@ export default function BusinessVerifyPage() {
                 <div>
                   <h1 className="text-3xl font-extrabold text-gray-900">Get Verified</h1>
                   <p className="mt-2 text-gray-500 max-w-md mx-auto">
-                    Pay a once-off fee of <span className="font-bold text-gray-900">R49</span> to get the verified badge on your business profile. Build trust with customers instantly.
+                    Pay a once-off fee of <span className="font-bold text-gray-900">R{feeRand}</span> to get the verified badge on your business profile. Build trust with customers instantly.
                   </p>
                 </div>
 
@@ -135,7 +112,7 @@ export default function BusinessVerifyPage() {
                 </div>
 
                 <div className="rounded-2xl border-2 border-yellow-300 bg-yellow-50 p-6">
-                  <p className="text-4xl font-extrabold text-gray-900">R49</p>
+                  <p className="text-4xl font-extrabold text-gray-900">R{feeRand}</p>
                   <p className="text-sm text-gray-500 mt-1">Once-off payment</p>
                 </div>
 
@@ -152,7 +129,7 @@ export default function BusinessVerifyPage() {
                     <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
                     <span className="flex items-center gap-2">
-                      <CreditCard className="h-5 w-5" /> Pay R49 &amp; Get Verified
+                      <CreditCard className="h-5 w-5" /> Pay R{feeRand} &amp; Get Verified
                     </span>
                   )}
                 </Button>

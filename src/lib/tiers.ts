@@ -18,20 +18,20 @@ export interface Tier {
   isPurchasable: boolean;
 }
 
-function mapRow(row: Record<string, any>): Tier {
+function mapRow(row: Record<string, unknown>): Tier {
   return {
-    key: row.key,
-    name: row.name,
-    price: row.price,
-    adLimit: row.ad_limit,
-    monthlyAdCredits: row.monthly_ad_credits,
+    key: String(row.key),
+    name: String(row.name),
+    price: Number(row.price),
+    adLimit: Number(row.ad_limit),
+    monthlyAdCredits: Number(row.monthly_ad_credits),
     features: Array.isArray(row.features)
-      ? row.features
-      : JSON.parse(row.features || '[]'),
-    note: row.note ?? null,
-    sortOrder: row.sort_order,
-    isActive: row.is_active,
-    isPurchasable: row.is_purchasable,
+      ? (row.features as string[])
+      : JSON.parse((row.features as string) || '[]'),
+    note: (row.note as string | null) ?? null,
+    sortOrder: Number(row.sort_order),
+    isActive: row.is_active === true,
+    isPurchasable: row.is_purchasable === true,
   };
 }
 
@@ -67,15 +67,27 @@ export const AD_CREDIT_PRICE_PER_DAY = 10;
 export const AD_BOOST_PRICE = 100;
 export const AD_BOOST_DURATION_DAYS = 7;
 
+/**
+ * The once-off verification fee, in Rand.
+ *
+ * One number, read by the offer UI, the checkout guard and the webhook that
+ * grants the badge. It was written as a literal 49 in each of those places,
+ * which is three chances for a price change to grant a badge nobody paid the
+ * new price for.
+ */
+export const VERIFICATION_FEE_RAND = 49;
+
 // A business on an active premium_half trial should get the trial's ad
 // allowance even though package_type itself stays 'free' (the trial doesn't
 // mutate package_type — it just temporarily elevates what's effective, and
 // naturally lapses once trial_ends_at passes without needing a cron job).
-export function getEffectivePackage(biz: Record<string, any>): string {
-  if (biz.trial_package && biz.trial_ends_at && new Date(biz.trial_ends_at) > new Date()) {
-    return biz.trial_package;
+export function getEffectivePackage(biz: Record<string, unknown>): string {
+  const trialPackage = biz.trial_package as string | null | undefined;
+  const trialEndsAt = biz.trial_ends_at as string | Date | null | undefined;
+  if (trialPackage && trialEndsAt && new Date(trialEndsAt) > new Date()) {
+    return trialPackage;
   }
-  return biz.package_type;
+  return String(biz.package_type ?? 'free');
 }
 
 // Tops up a business's ad-credit balance once per calendar month, up to
