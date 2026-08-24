@@ -119,12 +119,14 @@ export function orderPayfastFields(
 export function signPayfast(
   entries: Iterable<[string, string]>,
   passphrase?: string,
+  options: { includeBlanks?: boolean } = {},
 ): string {
+  const { includeBlanks = false } = options;
   const parts: string[] = [];
   for (const [key, value] of entries) {
     if (key === 'signature') continue;
     const str = String(value ?? '').trim();
-    if (str === '') continue;
+    if (str === '' && !includeBlanks) continue;
     parts.push(`${key}=${payfastEncode(str)}`);
   }
 
@@ -134,4 +136,37 @@ export function signPayfast(
   }
 
   return crypto.createHash('md5').update(dataString).digest('hex');
+}
+
+/**
+ * Verifies the signature on an incoming ITN.
+ *
+ * PayFast is asymmetric here, and getting it backwards is silent. The
+ * checkout form must EXCLUDE blank variables; the ITN validation they
+ * document INCLUDES every posted variable except the signature, empty ones
+ * as "key=". A real notification carries around a dozen empty fields
+ * (custom_str4, custom_int1-5, name_last, token …), so signing it the way
+ * the outgoing form is signed can never match — every genuine payment gets
+ * a 403 and the customer's money sits in PayFast with nothing updated.
+ *
+ * Both variants are computed with the secret passphrase, so accepting
+ * either tolerates PayFast's ambiguity without weakening anything: an
+ * attacker still cannot produce either without the passphrase.
+ */
+export function verifyItnSignature(
+  entries: Iterable<[string, string]>,
+  received: string,
+  passphrase?: string,
+): { valid: boolean; variant: 'with-blanks' | 'without-blanks' | null } {
+  const all = [...entries];
+  const supplied = String(received ?? '').trim().toLowerCase();
+  if (!supplied) return { valid: false, variant: null };
+
+  const withBlanks = signPayfast(all, passphrase, { includeBlanks: true });
+  if (withBlanks === supplied) return { valid: true, variant: 'with-blanks' };
+
+  const withoutBlanks = signPayfast(all, passphrase, { includeBlanks: false });
+  if (withoutBlanks === supplied) return { valid: true, variant: 'without-blanks' };
+
+  return { valid: false, variant: null };
 }

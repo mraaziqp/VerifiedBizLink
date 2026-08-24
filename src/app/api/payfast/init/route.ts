@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 import { orderPayfastFields, signPayfast, payfastEnv, payfastEnvWasDirty } from '@/lib/payfast';
+import { getTier } from '@/lib/tiers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,6 +44,39 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    /**
+     * Refuse a tier the webhook would refuse to grant, BEFORE taking money.
+     *
+     * The webhook checks is_purchasable and blocks the upgrade, but nothing
+     * checked it here — so a tier switched off in Tier Management could still
+     * be paid for, and the customer was charged and then denied the product.
+     * The R10 "Test Tier" is exactly that: active, priced, not purchasable.
+     *
+     * The price is checked here too. PayFast is told the amount by this
+     * request, so without it a tampered client could pay R5 for a R699 plan
+     * and simply never be granted it — a charge with no product, which reads
+     * to the customer as theft rather than a validation failure.
+     */
+    if ((purchaseType || '').startsWith('subscription_')) {
+      const tierKey = String(purchaseType).slice('subscription_'.length);
+      const tier = await getTier(tierKey);
+
+      if (!tier || !tier.isPurchasable) {
+        console.error('Blocked checkout for a tier that is not purchasable', { tierKey, userId: session.id });
+        return NextResponse.json(
+          { error: 'That plan is not available for purchase right now. Please choose another.' },
+          { status: 409 },
+        );
+      }
+      if (!Number.isFinite(amount) || amount + 0.01 < Number(tier.price)) {
+        console.error('Blocked checkout below the tier price', { tierKey, amount, price: tier.price });
+        return NextResponse.json(
+          { error: 'That amount does not match the plan price.' },
+          { status: 400 },
+        );
+      }
+    }
+
     // Verification fee is a one-time payment, not a subscription
     if (purchaseType === 'verification_fee') {
       const [biz] = await db`SELECT verification_paid FROM businesses WHERE user_id = ${session.id} LIMIT 1`;
@@ -54,9 +88,14 @@ export async function POST(request: NextRequest) {
     const paymentRef = `VBL-${Date.now()}-${session.id.substring(0, 8)}`;
     const amountCents = Math.round(amount * 100);
 
+    // purchase_type is stored, not just sent to PayFast in custom_str3. If a
+    // notification is ever lost, this is the only record of what the money was
+    // meant to buy — without it a paid customer cannot be given their tier
+    // afterwards without someone guessing.
     await db`
-      INSERT INTO payments (user_id, amount, status, reference, description, ad_id)
-      VALUES (${session.id}, ${amountCents}, 'pending', ${paymentRef}, ${description}, ${adId || null})
+      INSERT INTO payments (user_id, amount, status, reference, description, ad_id, purchase_type)
+      VALUES (${session.id}, ${amountCents}, 'pending', ${paymentRef}, ${description}, ${adId || null},
+              ${purchaseType || 'ad_credits'})
     `.catch(err => console.log('Payment record creation note:', err.message));
 
     // Payfast API credentials (from environment)

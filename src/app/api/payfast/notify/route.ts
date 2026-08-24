@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { signPayfast, payfastEnv } from '@/lib/payfast';
+import { verifyItnSignature, payfastEnv } from '@/lib/payfast';
 import { getTier, AD_CREDIT_PRICE_PER_DAY, AD_BOOST_PRICE, AD_BOOST_DURATION_DAYS } from '@/lib/tiers';
 import { nextBillingDate } from '@/lib/billing';
 import { issueInvoice } from '@/lib/invoices';
@@ -50,40 +50,69 @@ export async function POST(request: NextRequest) {
       payfastData[key] = value;
     });
 
-    // Verify signature
     const PAYFAST_MERCHANT_ID = payfastEnv('PAYFAST_MERCHANT_ID');
+    const passphrase = payfastEnv('PAYFAST_PASSPHRASE');
+    const itnRef = payfastData.m_payment_id || null;
 
-    // Built from the POST in the order PayFast sent it. Sorting the keys here
-    // compares against a string PayFast never generated, which rejected every
-    // genuine notification with a 403.
-    const expectedSignature = signPayfast(
+    // Record every notification before judging it. Without this, an ITN that
+    // is rejected leaves no trace anywhere and the only visible symptom is a
+    // payment stuck on 'pending' with no way to tell whether PayFast ever
+    // called at all.
+    const logItn = (outcome: string, detail: string | null = null) =>
+      db`
+        INSERT INTO payfast_itn_log (payment_reference, payfast_reference, payment_status, outcome, detail, raw_body)
+        VALUES (${itnRef}, ${payfastData.pf_payment_id || null}, ${payfastData.payment_status || null},
+                ${outcome}, ${detail}, ${rawBody.slice(0, 8000)})
+      `.catch((e) => console.error('ITN log write failed:', e.message));
+
+    const { valid, variant } = verifyItnSignature(
       formData.entries(),
-      payfastEnv('PAYFAST_PASSPHRASE'),
+      payfastData.signature,
+      passphrase,
     );
 
-    const receivedSignature = payfastData.signature as string;
-
-    // Verify signature matches
-    if (receivedSignature !== expectedSignature) {
-      console.error('Invalid Payfast signature');
+    if (!valid) {
+      console.error('PayFast ITN signature did not match', {
+        paymentRef: itnRef,
+        passphraseConfigured: Boolean(passphrase),
+        fieldCount: [...formData.keys()].length,
+      });
+      await logItn('rejected_signature');
       return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
 
-    // Verify merchant ID
     if (payfastData.merchant_id !== PAYFAST_MERCHANT_ID) {
-      console.error('Invalid merchant ID');
+      console.error('PayFast ITN merchant id mismatch', { paymentRef: itnRef });
+      await logItn('rejected_merchant');
       return NextResponse.json({ error: 'Invalid merchant' }, { status: 403 });
     }
 
-    // Confirm this request actually came from PayFast, not just something
-    // that knows the (non-secret) merchant_id and the signature algorithm.
-    if (!(await isGenuineItn(rawBody))) {
-      console.error('PayFast ITN failed server-side validation — treating as spoofed', {
-        paymentRef: payfastData.m_payment_id,
-      });
-      // Still 200: a real ITN we can't validate would otherwise retry
-      // forever, and a forged one deserves no signal either way.
-      return NextResponse.json({ success: true }, { status: 200 });
+    /**
+     * PayFast's server-side confirmation, and what to do when it cannot be
+     * reached.
+     *
+     * Failing closed here used to drop genuine payments in silence: the call
+     * returns 200 either way, so PayFast stops retrying and a customer who
+     * has been charged never gets what they paid for.
+     *
+     * A configured passphrase is a shared secret. A signature that verifies
+     * against it could not have been produced by anyone else, so an
+     * unreachable validator is a network problem, not evidence of forgery,
+     * and the payment is honoured with a loud warning. Without a passphrase
+     * the signature proves nothing — merchant_id is public — so the check
+     * stays mandatory.
+     */
+    const validated = await isGenuineItn(rawBody);
+    if (!validated) {
+      if (!passphrase) {
+        console.error('PayFast ITN failed validation and no passphrase is set — refusing to act', { paymentRef: itnRef });
+        await logItn('rejected_unvalidated_no_passphrase');
+        return NextResponse.json({ success: true }, { status: 200 });
+      }
+      console.warn('PayFast validation call failed, but the signature verified against the passphrase — proceeding', { paymentRef: itnRef });
+      await logItn('accepted_signature_only');
+    } else {
+      await logItn('accepted', `signature variant: ${variant}`);
     }
 
     // Update payment status based on payment_status
