@@ -20,7 +20,7 @@ export async function GET() {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const rows = (await db`
-      SELECT status, verification_paid, verification_paid_at, package_type
+      SELECT status, verification_paid, verification_paid_at, package_type, badge_source
       FROM businesses WHERE user_id = ${session.id} LIMIT 1
     `.catch(() => [])) as unknown as Row[];
 
@@ -29,6 +29,7 @@ export async function GET() {
         hasBusiness: false,
         verified: false,
         verificationPaid: false,
+        onPaidPlan: false,
         canPurchase: false,
         feeRand: VERIFICATION_FEE_RAND,
       });
@@ -37,16 +38,24 @@ export async function GET() {
     const biz = rows[0];
     const verified = biz.status === 'verified';
     const paid = biz.verification_paid === true;
+    const packageType = String(biz.package_type ?? 'free');
+
+    // Every paid plan already includes vetting and the badge, so the once-off
+    // fee is only for businesses staying on Free. Offering it to a subscriber
+    // would be charging twice for one entitlement.
+    const onPaidPlan = packageType !== 'free' && packageType !== '';
 
     return NextResponse.json({
       hasBusiness: true,
       verified,
       verificationPaid: paid,
+      onPaidPlan,
       // Nothing to sell to a business that already carries the badge, however
       // it got there — paying twice for the same thing is not an upsell.
-      canPurchase: !verified && !paid,
+      canPurchase: !verified && !paid && !onPaidPlan,
       status: biz.status ?? null,
-      packageType: biz.package_type ?? 'free',
+      packageType,
+      badgeSource: biz.badge_source ?? null,
       feeRand: VERIFICATION_FEE_RAND,
     });
   } catch (error) {

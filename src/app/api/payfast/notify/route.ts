@@ -266,6 +266,25 @@ export async function POST(request: NextRequest) {
             : 1;
           const nextBilling = nextBillingDate(new Date(), intervalMonths);
 
+          /**
+           * Every paid plan includes vetting and the badge — the R49 once-off
+           * is the same entitlement for someone who does not want a
+           * subscription. So a paid plan grants status = 'verified' here.
+           *
+           * Setting package_type alone left a paying customer on the tier
+           * whose headline feature is "CIPC-verified business badge" without
+           * the badge, because it is status the whole app reads. It also cost
+           * their advisor the commission, which only counts verified sales.
+           *
+           * The free tier never grants it — there is nothing paid for.
+           *
+           * badge_source records that this badge came from a purchase rather
+           * than a document review, because a verified business drops out of
+           * the vetting queue and otherwise nobody could tell afterwards
+           * whether anyone had actually checked it.
+           */
+          const grantsBadge = Number(tier.price) > 0;
+
           const upgraded = (await db`
             UPDATE businesses
             SET package_type = ${tierKey},
@@ -279,12 +298,19 @@ export async function POST(request: NextRequest) {
                 grace_warned_at = NULL,
                 downgraded_from = NULL,
                 downgraded_at = NULL,
+                status = CASE WHEN ${grantsBadge} THEN 'verified' ELSE status END,
+                verified_at = CASE WHEN ${grantsBadge} THEN COALESCE(verified_at, NOW()) ELSE verified_at END,
+                badge_source = CASE
+                  WHEN ${grantsBadge} AND badge_source IS NULL THEN 'subscription'
+                  ELSE badge_source END,
                 updated_at = NOW()
             WHERE user_id = ${userId}
             RETURNING id
           `.catch(err => { console.log('Subscription upgrade note:', err.message); return []; })) as unknown as { id: string }[];
 
-          grantMessage = `Your business has been upgraded to the ${tier.name} plan.`;
+          grantMessage = grantsBadge
+            ? `Your business has been upgraded to the ${tier.name} plan, and your verified badge is now active.`
+            : `Your business has been moved to the ${tier.name} plan.`;
 
           // Receipt: one of the three email types the platform sends.
           await issueInvoice({
@@ -328,6 +354,7 @@ export async function POST(request: NextRequest) {
                 verification_paid_at = NOW(),
                 status = 'verified',
                 verified_at = COALESCE(verified_at, NOW()),
+                badge_source = COALESCE(badge_source, 'verification_fee'),
                 updated_at = NOW()
             WHERE user_id = ${userId}
           `.catch(err => console.log('Verification fee update note:', err.message));

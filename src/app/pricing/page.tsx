@@ -94,8 +94,9 @@ export default function PricingPage() {
           Grow with the plan that fits you
         </h1>
         <p className="text-lg text-gray-500">
-          Paid plans include CIPC-backed business verification, billed monthly. Cancel anytime from Settings
-          → Billing — no long-term contract.
+          Every paid plan includes vetting and the verified badge, billed monthly.
+          Cancel anytime from Settings → Billing — no long-term contract. Not after a
+          subscription? Buy the same vetting and badge once off below.
         </p>
         <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-gray-900 text-white px-4 py-2 text-sm font-semibold">
           <ReceiptText className="h-4 w-4 text-yellow-400" />

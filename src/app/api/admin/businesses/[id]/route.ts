@@ -48,6 +48,11 @@ export async function PUT(
         trust_score = COALESCE(${computedTrustScore}, trust_score),
         reviewed_by = COALESCE(${status !== undefined ? session.id : null}, reviewed_by),
         verified_at = CASE WHEN ${status}::text = 'verified' THEN NOW() WHEN ${status}::text IS NOT NULL THEN NULL ELSE verified_at END,
+        -- A person has now actually looked at this one. That overwrites a
+        -- badge that came from a purchase: reviewed beats paid-for, and this
+        -- is the only signal that the documents were really checked.
+        badge_source = CASE WHEN ${status}::text = 'verified' THEN 'vetting_review' ELSE badge_source END,
+        documents_reviewed_at = CASE WHEN ${status}::text = 'verified' THEN NOW() ELSE documents_reviewed_at END,
         package_type = COALESCE(${packageType}, package_type),
         updated_at = NOW()
       WHERE id = ${id}

@@ -10,15 +10,16 @@ interface Status {
   hasBusiness: boolean;
   verified: boolean;
   verificationPaid: boolean;
+  onPaidPlan: boolean;
   canPurchase: boolean;
   feeRand: number;
 }
 
 const BENEFITS = [
+  'Vetting — CIPC and supporting document review',
   'The gold verified badge on your public profile',
   'Higher placement in search and discovery',
-  'CIPC and supporting document review by our team',
-  'Yours permanently — not a monthly charge',
+  'Yours permanently — no monthly charge',
 ];
 
 /**
@@ -101,9 +102,10 @@ export function VerificationOffer({
         <div className="flex items-center gap-3">
           <ShieldCheck className="h-8 w-8 shrink-0 text-yellow-600" />
           <div>
-            <p className="font-bold text-gray-900">Get the verified badge — R{fee} once-off</p>
+            <p className="font-bold text-gray-900">Vetting &amp; verified badge — R{fee} once-off</p>
             <p className="text-xs text-gray-600">
-              A single payment, not a subscription. Includes document review.
+              The same vetting and badge the paid plans include, without a
+              subscription. Single payment.
             </p>
           </div>
         </div>
@@ -128,11 +130,12 @@ export function VerificationOffer({
           </span>
           <h2 className="mt-3 flex items-center gap-2 text-2xl font-extrabold text-gray-900">
             <ShieldCheck className="h-7 w-7 text-yellow-600" />
-            Just want the verified badge?
+            Don&apos;t want a subscription?
           </h2>
           <p className="mt-2 max-w-xl text-sm text-gray-600">
-            You do not need a monthly plan to be verified. Pay once, get reviewed,
-            and keep the badge — you can stay on the Free plan.
+            Every paid plan below already includes vetting and the verified badge.
+            If you would rather not subscribe, buy the same vetting and badge once
+            off and stay on the Free plan.
           </p>
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             {BENEFITS.map((b) => (
