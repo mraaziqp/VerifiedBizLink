@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  FileText, Loader2, Eye, Download, RefreshCw
+  FileText, Loader2, Eye, Download, RefreshCw, ShieldAlert
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -42,7 +42,35 @@ interface Business {
   review_notes?: string;
   user_id?: string;
   created_at?: string;
+  /** How the badge was granted: subscription, verification_fee, vetting_review. */
+  badge_source?: string | null;
+  documents_reviewed_at?: string | null;
+  package_type?: string | null;
 }
+
+/**
+ * Carrying the verified badge because they paid, with nobody having looked at
+ * the documents yet.
+ *
+ * Every paid plan and the R49 once-off grant the badge on payment, which makes
+ * the business 'verified' and drops it out of every other filter here. These
+ * are the ones still owed the review they paid for.
+ */
+function isPaidUnreviewed(b: Business): boolean {
+  return (
+    b.status === 'verified' &&
+    (b.badge_source === 'subscription' || b.badge_source === 'verification_fee') &&
+    !b.documents_reviewed_at
+  );
+}
+
+type BusinessStatus = Business['status'];
+type DocReviewStatus = 'reviewing' | 'approved' | 'rejected';
+type SortBy = 'newest' | 'oldest' | 'score-high' | 'score-low';
+/** Business statuses plus 'paid_unreviewed', which is a queue, not a status. */
+type StatusFilter = BusinessStatus | 'all' | 'paid_unreviewed';
+
+const DOC_REVIEW_STATUSES: DocReviewStatus[] = ['reviewing', 'approved', 'rejected'];
 
 const STATUS_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   pending: { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' },
@@ -61,23 +89,26 @@ const DOC_STATUS_BADGE: Record<string, string> = {
 export function VettingDeskPro() {
   const { toast } = useToast();
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Derived: the desk is "loading" only until the first fetch has landed.
+  const [loaded, setLoaded] = useState(false);
+  const loading = !loaded;
   const [selectedBusiness, setSelectedBusiness] = useState<Business | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'reviewing' | 'verified' | 'rejected'>('all');
+  // 'paid_unreviewed' is not a business status — it is the queue of businesses
+  // that were given the badge by paying, before anyone checked their documents.
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'score-high' | 'score-low'>('newest');
+  const [sortBy, setSortBy] = useState<SortBy>('newest');
   const [updatingBusinessId, setUpdatingBusinessId] = useState<string | null>(null);
   const [updatingDocId, setUpdatingDocId] = useState<string | null>(null);
   const [selectedDoc, setSelectedDoc] = useState<Document | null>(null);
   const [docGrade, setDocGrade] = useState(0);
-  const [docStatus, setDocStatus] = useState<'reviewing' | 'approved' | 'rejected'>('reviewing');
+  const [docStatus, setDocStatus] = useState<DocReviewStatus>('reviewing');
   const [docNotes, setDocNotes] = useState('');
   const [businessNotes, setBusinessNotes] = useState('');
-  const [newStatus, setNewStatus] = useState<'pending' | 'reviewing' | 'verified' | 'rejected'>('reviewing');
+  const [newStatus, setNewStatus] = useState<BusinessStatus>('reviewing');
 
   const fetchBusinesses = useCallback(async () => {
-    setLoading(true);
     try {
       const res = await fetch('/api/admin/businesses', { cache: 'no-store' });
       if (res.ok) {
@@ -87,17 +118,23 @@ export function VettingDeskPro() {
     } catch {
       toast({ title: 'Failed to load businesses', variant: 'destructive' });
     } finally {
-      setLoading(false);
+      // Marks the first load done. A refresh re-fetches in the background
+      // rather than blanking the desk an admin is reading.
+      setLoaded(true);
     }
   }, [toast]);
 
   useEffect(() => {
-    fetchBusinesses();
+    void (async () => {
+      await fetchBusinesses();
+    })();
   }, [fetchBusinesses]);
 
   const filteredBusinesses = useMemo(() => {
     const list = businesses.filter(b => {
-      if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+      if (statusFilter === 'paid_unreviewed') {
+        if (!isPaidUnreviewed(b)) return false;
+      } else if (statusFilter !== 'all' && b.status !== statusFilter) return false;
       if (searchQuery && !b.company_name.toLowerCase().includes(searchQuery.toLowerCase()) &&
           !b.owner_name.toLowerCase().includes(searchQuery.toLowerCase()) &&
           !b.owner_email.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -187,6 +224,7 @@ export function VettingDeskPro() {
     pending: businesses.filter(b => b.status === 'pending').length,
     reviewing: businesses.filter(b => b.status === 'reviewing').length,
     verified: businesses.filter(b => b.status === 'verified').length,
+    paidUnreviewed: businesses.filter(isPaidUnreviewed).length,
     avgScore: Math.round(businesses.reduce((sum, b) => sum + b.trust_score, 0) / businesses.length) || 0,
   };
 
@@ -196,6 +234,34 @@ export function VettingDeskPro() {
 
   return (
     <div className="space-y-4 sm:space-y-6 p-3 sm:p-6">
+      {/* Paid, but nobody has checked them yet. Above the stats because it is
+          the one queue that represents a promise already taken money for. */}
+      {stats.paidUnreviewed > 0 && (
+        <Card className="border-2 border-amber-300 bg-amber-50">
+          <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <ShieldAlert className="mt-0.5 h-6 w-6 shrink-0 text-amber-600" />
+              <div>
+                <p className="font-bold text-amber-900">
+                  {stats.paidUnreviewed} business{stats.paidUnreviewed === 1 ? '' : 'es'} carrying the badge
+                  without a document review
+                </p>
+                <p className="text-sm text-amber-800">
+                  Paying grants the badge immediately, so these are already showing as
+                  verified to the public. They still owe you the vetting they paid for.
+                </p>
+              </div>
+            </div>
+            <Button
+              onClick={() => setStatusFilter('paid_unreviewed')}
+              className="shrink-0 bg-amber-500 font-bold text-white hover:bg-amber-600"
+            >
+              Review them
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Header Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
@@ -242,7 +308,7 @@ export function VettingDeskPro() {
             <div className="flex gap-2">
               <select
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
+                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
                 className="border rounded px-3 py-2 text-sm"
               >
                 <option value="all">All Status</option>
@@ -250,10 +316,11 @@ export function VettingDeskPro() {
                 <option value="reviewing">Reviewing</option>
                 <option value="verified">Verified</option>
                 <option value="rejected">Rejected</option>
+                <option value="paid_unreviewed">Paid — awaiting document review ({stats.paidUnreviewed})</option>
               </select>
               <select
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
+                onChange={(e) => setSortBy(e.target.value as SortBy)}
                 className="border rounded px-3 py-2 text-sm"
               >
                 <option value="newest">Newest First</option>
@@ -397,7 +464,7 @@ export function VettingDeskPro() {
                             <label className="block text-sm font-medium mb-2">Status</label>
                             <select
                               value={docStatus}
-                              onChange={(e) => setDocStatus(e.target.value as any)}
+                              onChange={(e) => setDocStatus(e.target.value as DocReviewStatus)}
                               className="w-full border rounded px-3 py-2"
                             >
                               <option value="reviewing">Reviewing</option>
@@ -442,7 +509,7 @@ export function VettingDeskPro() {
                           onClick={() => {
                             setSelectedDoc(doc);
                             setDocGrade(doc.grade || 0);
-                            setDocStatus((doc.status as any) || 'reviewing');
+                            setDocStatus(DOC_REVIEW_STATUSES.includes(doc.status as DocReviewStatus) ? (doc.status as DocReviewStatus) : 'reviewing');
                             setDocNotes(doc.review_notes || '');
                           }}
                         >
@@ -489,7 +556,7 @@ export function VettingDeskPro() {
                   <label className="block text-sm font-medium mb-2">Business Status</label>
                   <select
                     value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value as any)}
+                    onChange={(e) => setNewStatus(e.target.value as BusinessStatus)}
                     className="w-full border rounded px-3 py-2"
                   >
                     <option value="pending">Pending</option>
