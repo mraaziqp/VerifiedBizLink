@@ -35,6 +35,8 @@ const PUBLIC_PATHS = [
   '/explore',
   '/pricing',
   '/legal',
+  // Typing a certificate number in by hand. The QR route below covers scans.
+  '/verify',
 ];
 
 // Prefixes that are always public (API auth routes, static assets, etc.)
@@ -59,6 +61,13 @@ const PUBLIC_PREFIXES = [
   '/agent-invite/',
   '/api/auth/agent-invite',
   '/api/referral', // signup page resolves ?ref= codes before anyone signs in
+  // Certificate checks. A certificate is handed to strangers deciding whether
+  // to trust a business — if only account holders could check one, the
+  // document would prove nothing to the people it exists to reassure.
+  // The trailing slash matters: '/verify' alone would also swallow
+  // '/verify-email', which is a different flow with its own rules.
+  '/verify/',
+  '/api/verify/',
   '/_next/',
   '/favicon',
 ];

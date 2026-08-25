@@ -1,106 +1,122 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getSession, isStaff } from '@/lib/auth';
+import { issueCertificate, certificateVerifyUrl, shortCheckCode } from '@/lib/certificates';
+import { renderCertificateSvg } from '@/lib/certificate-svg';
+import { appUrlFromRequest } from '@/lib/email';
 import db from '@/lib/db';
 
+type Row = Record<string, unknown>;
+
+/**
+ * GET /api/certificates/download — the business's own certificate.
+ *
+ * This used to take a company NAME from the query string with no session check
+ * at all, so anybody could fetch a certificate for any verified business by
+ * typing its name. It now serves the certificate belonging to the caller, or
+ * one an admin explicitly asks for by business id.
+ *
+ * Issuing happens here rather than on a separate button: a business that has
+ * never had one gets a live certificate the first time they download, and
+ * everyone else gets the one already on record. Reissuing is deliberate and
+ * costs the old serial its validity, so it is not done on every download.
+ */
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const businessName = searchParams.get('business');
-
-    if (!businessName) {
-      return NextResponse.json({ error: 'Business name required' }, { status: 400 });
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const business = await db`
-      SELECT id, company_name, verified_at
-      FROM businesses
-      WHERE company_name = ${businessName} AND status = 'verified'
-      LIMIT 1
-    `;
+    const requestedBusinessId = request.nextUrl.searchParams.get('businessId');
+    const reissue = request.nextUrl.searchParams.get('reissue') === 'true';
 
-    if (!business || business.length === 0) {
+    let businessId: string;
+    if (requestedBusinessId) {
+      // Only staff may name a business other than their own.
+      if (!isStaff(session)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+      businessId = requestedBusinessId;
+    } else {
+      const owned = (await db`
+        SELECT id FROM businesses WHERE user_id = ${session.id} LIMIT 1
+      `.catch(() => [])) as unknown as Row[];
+      if (owned.length === 0) {
+        return NextResponse.json({ error: 'You do not have a business profile' }, { status: 404 });
+      }
+      businessId = String(owned[0].id);
+    }
+
+    const rows = (await db`
+      SELECT id, company_name, reg_number, status, verified_at
+      FROM businesses WHERE id = ${businessId} LIMIT 1
+    `) as unknown as Row[];
+
+    if (rows.length === 0) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
+    const biz = rows[0];
 
-    const biz = business[0];
-    const verifiedDate = new Date(biz.verified_at).toLocaleDateString('en-ZA', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
+    if (biz.status !== 'verified') {
+      return NextResponse.json(
+        { error: 'A certificate is only issued once your business is verified.' },
+        { status: 409 },
+      );
+    }
+
+    // Reuse the live certificate if there is one, so downloading twice does
+    // not quietly invalidate the copy already hanging on a wall.
+    const existing = (await db`
+      SELECT serial, signature, issued_at, company_name
+      FROM certificates
+      WHERE business_id = ${businessId} AND revoked_at IS NULL
+      LIMIT 1
+    `.catch(() => [])) as unknown as Row[];
+
+    let serial: string;
+    let checkCode: string;
+    let issuedAt: Date;
+
+    // A rename makes the printed name wrong, so the certificate is reissued
+    // rather than served with a name that no longer matches the business.
+    const nameChanged =
+      existing.length > 0 && String(existing[0].company_name) !== String(biz.company_name);
+
+    if (existing.length === 0 || reissue || nameChanged) {
+      const issued = await issueCertificate(businessId, session.id);
+      serial = issued.serial;
+      checkCode = issued.checkCode;
+      issuedAt = new Date(issued.issuedAt);
+    } else {
+      serial = String(existing[0].serial);
+      checkCode = shortCheckCode(String(existing[0].signature));
+      issuedAt = new Date(existing[0].issued_at as string);
+    }
+
+    const baseUrl = appUrlFromRequest(request);
+    const svg = await renderCertificateSvg({
+      companyName: String(biz.company_name ?? ''),
+      regNumber: (biz.reg_number as string) || null,
+      serial,
+      checkCode,
+      issuedAt,
+      verifiedSince: biz.verified_at ? new Date(biz.verified_at as string) : null,
+      verifyUrl: certificateVerifyUrl(baseUrl, serial),
     });
-    const certificateNumber = biz.id.slice(0, 8).toUpperCase();
 
-    const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800">
-  <defs>
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#0f172a;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#1a2340;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#0f172a;stop-opacity:1" />
-    </linearGradient>
-    <pattern id="dots" patternUnits="userSpaceOnUse" width="50" height="50">
-      <circle cx="25" cy="25" r="1" fill="#F5A800" opacity="0.1"/>
-    </pattern>
-  </defs>
-
-  <rect width="1200" height="800" fill="url(#bgGradient)"/>
-  <rect width="1200" height="800" fill="url(#dots)"/>
-
-  <rect x="40" y="40" width="1120" height="720" fill="none" stroke="#F5A800" stroke-width="3" opacity="0.5"/>
-  <rect x="60" y="60" width="1080" height="680" fill="none" stroke="#F5A800" stroke-width="1" opacity="0.3"/>
-
-  <g fill="#F5A800" opacity="0.7">
-    <circle cx="80" cy="80" r="8"/>
-    <circle cx="1120" cy="80" r="8"/>
-    <circle cx="80" cy="720" r="8"/>
-    <circle cx="1120" cy="720" r="8"/>
-  </g>
-
-  <circle cx="600" cy="130" r="60" fill="none" stroke="#F5A800" stroke-width="3" opacity="0.8"/>
-  <circle cx="600" cy="130" r="55" fill="none" stroke="#F5A800" stroke-width="1" opacity="0.5"/>
-  <text x="600" y="140" font-size="60" font-weight="bold" text-anchor="middle" fill="#F5A800" opacity="0.8">✓</text>
-
-  <text x="600" y="250" font-size="48" font-weight="bold" text-anchor="middle" fill="#F5A800">
-    CERTIFICATE OF VERIFICATION
-  </text>
-
-  <text x="600" y="310" font-size="24" text-anchor="middle" fill="#FFFFFF" opacity="0.8">
-    VerifiedBizLink Trust Badge
-  </text>
-
-  <line x1="200" y1="350" x2="1000" y2="350" stroke="#F5A800" stroke-width="2" opacity="0.6"/>
-
-  <text x="600" y="430" font-size="36" font-weight="bold" text-anchor="middle" fill="#FFFFFF">
-    ${biz.company_name}
-  </text>
-
-  <text x="600" y="520" font-size="18" text-anchor="middle" fill="#FFFFFF" opacity="0.9">
-    This business has been verified on the VerifiedBizLink platform
-  </text>
-  <text x="600" y="555" font-size="18" text-anchor="middle" fill="#FFFFFF" opacity="0.9">
-    Verification confirms CIPC and SARS compliance
-  </text>
-
-  <text x="300" y="660" font-size="16" text-anchor="middle" fill="#FFFFFF" opacity="0.7">
-    Date: ${verifiedDate}
-  </text>
-
-  <text x="900" y="660" font-size="16" text-anchor="middle" fill="#FFFFFF" opacity="0.7">
-    Cert #${certificateNumber}
-  </text>
-
-  <text x="600" y="750" font-size="14" text-anchor="middle" fill="#F5A800" opacity="0.8">
-    www.verifiedbizlink.co.za
-  </text>
-</svg>`;
+    const filename = String(biz.company_name ?? 'certificate')
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
 
     return new NextResponse(svg, {
       headers: {
-        'Content-Type': 'image/svg+xml',
-        'Content-Disposition': `attachment; filename="${businessName.replace(/\s+/g, '-')}-certificate.svg"`,
+        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Content-Disposition': `attachment; filename="${filename}-${serial}.svg"`,
+        'Cache-Control': 'no-store',
       },
     });
   } catch (error) {
     console.error('Certificate download error:', error);
-    return NextResponse.json({ error: 'Failed to generate certificate' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to generate the certificate' }, { status: 500 });
   }
 }

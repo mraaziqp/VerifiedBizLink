@@ -74,6 +74,21 @@ export async function PUT(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
+    // A business that loses its badge must lose its certificate with it.
+    // The public check would fail anyway, because it reads the live status —
+    // but withdrawing the certificate explicitly gives whoever is holding a
+    // printed copy a date and a reason instead of a bare refusal.
+    if (status !== undefined && status !== 'verified') {
+      const { revokeCertificatesFor } = await import('@/lib/certificates');
+      const revoked = await revokeCertificatesFor(
+        id,
+        `Business status changed to ${status}`,
+      ).catch(() => 0);
+      if (revoked > 0) {
+        console.log(`Revoked ${revoked} certificate(s) for business ${id} (${status})`);
+      }
+    }
+
     // Log the action
     const actionParts: string[] = [];
     if (status !== undefined) actionParts.push(`status to ${status.toUpperCase()}`);
