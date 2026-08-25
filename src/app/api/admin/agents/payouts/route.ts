@@ -19,8 +19,8 @@ export async function GET(request: NextRequest) {
              p.reference, p.note, p.paid_at, p.recorded_by_name,
              p.status, p.bank_reference, p.statement_amount_cents,
              p.statement_date, p.reconciled_at, p.reconciled_by_name,
-             p.reconciliation_note,
-             u.full_name AS agent_name
+             p.reconciliation_note, p.payout_method, p.notified_agent_at,
+             u.full_name AS agent_name, u.bank_name, u.account_number, u.account_type, u.branch_code, u.account_holder_name
       FROM commission_payouts p
       JOIN users u ON u.id = p.agent_id
       WHERE (${agentId}::uuid IS NULL OR p.agent_id = ${agentId}::uuid)
@@ -52,6 +52,13 @@ export async function GET(request: NextRequest) {
         reconciledAt: r.reconciled_at,
         reconciledBy: r.reconciled_by_name || null,
         reconciliationNote: r.reconciliation_note || '',
+        payoutMethod: (r.payout_method as string) || 'EFT',
+        notifiedAgentAt: r.notified_agent_at || null,
+        bankName: (r.bank_name as string) || '',
+        accountNumber: (r.account_number as string) || '',
+        accountType: (r.account_type as string) || '',
+        branchCode: (r.branch_code as string) || '',
+        accountHolderName: (r.account_holder_name as string) || '',
         // Surfaced rather than hidden: a matched line whose amount differs is
         // exactly the case worth someone's attention.
         varianceCents: statementCents === null ? null : statementCents - amountCents,
@@ -168,7 +175,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { agentId, amountRand, reference, note, periodStart, periodEnd } = await request.json();
+    const { agentId, amountRand, reference, note, periodStart, periodEnd, payoutMethod = 'EFT' } = await request.json();
 
     if (!agentId) {
       return NextResponse.json({ error: 'agentId is required' }, { status: 400 });
@@ -179,7 +186,7 @@ export async function POST(request: NextRequest) {
     }
 
     const agent = (await db`
-      SELECT id, full_name, role FROM users WHERE id = ${agentId} LIMIT 1
+      SELECT id, full_name, email, role FROM users WHERE id = ${agentId} LIMIT 1
     `) as unknown as Row[];
     if (agent.length === 0) {
       return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
@@ -189,18 +196,40 @@ export async function POST(request: NextRequest) {
     await db`
       INSERT INTO commission_payouts (
         agent_id, amount_cents, period_start, period_end,
-        reference, note, recorded_by, recorded_by_name
+        reference, note, recorded_by, recorded_by_name,
+        payout_method, notified_agent_at
       ) VALUES (
         ${agentId}, ${amountCents},
         ${periodStart || null}, ${periodEnd || null},
         ${String(reference || '').slice(0, 120)}, ${String(note || '').slice(0, 500)},
-        ${session!.id}, ${session!.fullName || session!.email}
+        ${session!.id}, ${session!.fullName || session!.email},
+        ${String(payoutMethod || 'EFT')}, NOW()
       )
     `;
 
+    // Notify the sales agent in their in-app notifications
+    const formattedAmount = `R${amount.toFixed(2)}`;
+    const notificationMsg = reference
+      ? `A commission payout of ${formattedAmount} has been processed via ${payoutMethod} (Ref: ${reference}).`
+      : `A commission payout of ${formattedAmount} has been processed via ${payoutMethod}.`;
+
+    await db`
+      INSERT INTO notifications (user_id, type, title, content)
+      VALUES (${agentId}, 'payout_processed', 'Commission Payout Processed', ${notificationMsg})
+    `.catch(() => {});
+
+    await db`
+      INSERT INTO agent_activity_log (agent_id, event_type, description, metadata)
+      VALUES (
+        ${agentId}, 'payout_recorded',
+        ${`Payout of ${formattedAmount} recorded by ${session!.fullName || 'Admin'}`},
+        ${JSON.stringify({ amountCents, reference, payoutMethod, recordedBy: session!.id })}::jsonb
+      )
+    `.catch(() => {});
+
     return NextResponse.json({
       ok: true,
-      message: `Recorded R${amount.toFixed(2)} paid to ${agent[0].full_name}.`,
+      message: `Recorded ${formattedAmount} paid to ${agent[0].full_name} via ${payoutMethod}. Notification sent to agent.`,
     });
   } catch (error) {
     console.error('Payout record error:', error);

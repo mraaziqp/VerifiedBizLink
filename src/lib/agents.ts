@@ -257,6 +257,11 @@ export interface AgentSummary {
   /** Non-null when this agent has a negotiated rate of their own. */
   rateOverride: number | null;
   notes: string;
+  bankName?: string | null;
+  accountNumber?: string | null;
+  accountType?: string | null;
+  branchCode?: string | null;
+  accountHolderName?: string | null;
 }
 
 type Row = Record<string, unknown>;
@@ -296,6 +301,7 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
     SELECT
       u.id, u.full_name, u.email, u.referral_code, u.is_suspended, u.created_at,
       u.commission_rate_override, u.agent_notes,
+      u.bank_name, u.account_number, u.account_type, u.branch_code, u.account_holder_name,
       COUNT(a.agent_id)::int                                              AS signups,
       COUNT(*) FILTER (WHERE a.first_payment_cents > 0)::int              AS sales,
       COUNT(*) FILTER (WHERE a.referral_code IS NOT NULL)::int            AS link_signups,
@@ -306,7 +312,9 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
     LEFT JOIN paid p ON p.agent_id = u.id
     WHERE u.role = 'sales_agent'
     GROUP BY u.id, u.full_name, u.email, u.referral_code, u.is_suspended, u.created_at,
-             u.commission_rate_override, u.agent_notes, p.paid_cents
+             u.commission_rate_override, u.agent_notes,
+             u.bank_name, u.account_number, u.account_type, u.branch_code, u.account_holder_name,
+             p.paid_cents
     ORDER BY u.full_name ASC
   `) as unknown as Row[];
 
@@ -488,6 +496,11 @@ export async function getAgentSummaries(): Promise<AgentSummary[]> {
           ? Number(r.commission_rate_override)
           : null,
       notes: String(r.agent_notes || ''),
+      bankName: (r.bank_name as string) ?? null,
+      accountNumber: (r.account_number as string) ?? null,
+      accountType: (r.account_type as string) ?? null,
+      branchCode: (r.branch_code as string) ?? null,
+      accountHolderName: (r.account_holder_name as string) ?? null,
     };
   });
 }

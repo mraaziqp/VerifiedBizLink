@@ -26,6 +26,7 @@ export async function GET() {
 
     const rows = (await db`
       SELECT id, full_name, email, phone, location, headline, bio,
+             bank_name, account_number, account_type, branch_code, account_holder_name,
              referral_code, commission_rate_override, created_at
       FROM users WHERE id = ${session!.id} LIMIT 1
     `) as unknown as Row[];
@@ -43,6 +44,13 @@ export async function GET() {
         location: u.location ?? '',
         headline: u.headline ?? '',
         bio: u.bio ?? '',
+      },
+      bankingDetails: {
+        bankName: u.bank_name ?? '',
+        accountNumber: u.account_number ?? '',
+        accountType: u.account_type ?? 'Cheque / Current',
+        branchCode: u.branch_code ?? '',
+        accountHolderName: u.account_holder_name ?? '',
       },
       // Read-only context so the agent can see it without being able to edit it.
       readOnly: {
@@ -65,7 +73,10 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { fullName, phone, location, headline, bio } = await request.json();
+    const {
+      fullName, phone, location, headline, bio,
+      bankName, accountNumber, accountType, branchCode, accountHolderName,
+    } = await request.json();
 
     const name = String(fullName ?? '').trim();
     if (name.length < 2) {
@@ -87,6 +98,11 @@ export async function PUT(request: NextRequest) {
           location  = ${String(location ?? '').trim().slice(0, 120) || null},
           headline  = ${String(headline ?? '').trim().slice(0, 160) || null},
           bio       = ${String(bio ?? '').trim().slice(0, 1000) || null},
+          bank_name = ${String(bankName ?? '').trim().slice(0, 80) || null},
+          account_number = ${String(accountNumber ?? '').trim().slice(0, 30) || null},
+          account_type = ${String(accountType ?? '').trim().slice(0, 40) || null},
+          branch_code = ${String(branchCode ?? '').trim().slice(0, 20) || null},
+          account_holder_name = ${String(accountHolderName ?? '').trim().slice(0, 120) || null},
           updated_at = NOW()
       WHERE id = ${session!.id}
     `;
@@ -95,10 +111,10 @@ export async function PUT(request: NextRequest) {
     // so a change here is worth having in the activity trail.
     await db`
       INSERT INTO agent_activity_log (agent_id, event_type, description, metadata)
-      VALUES (${session!.id}, 'profile_updated', 'Updated their contact details', '{}'::jsonb)
+      VALUES (${session!.id}, 'profile_updated', 'Updated contact & banking details', '{}'::jsonb)
     `.catch(() => {});
 
-    return NextResponse.json({ ok: true, message: 'Your details have been updated.' });
+    return NextResponse.json({ ok: true, message: 'Your details and banking information have been saved.' });
   } catch (error) {
     console.error('Agent profile update error:', error);
     return NextResponse.json({ error: 'Could not save your details' }, { status: 500 });

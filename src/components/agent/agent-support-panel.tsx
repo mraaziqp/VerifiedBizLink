@@ -19,7 +19,27 @@ interface Profile {
   location: string;
   headline: string;
   bio: string;
+  bankName: string;
+  accountNumber: string;
+  accountType: string;
+  branchCode: string;
+  accountHolderName: string;
 }
+
+const SA_BANKS = [
+  'Capitec Bank',
+  'FNB (First National Bank)',
+  'Standard Bank',
+  'ABSA Bank',
+  'Nedbank',
+  'TymeBank',
+  'Discovery Bank',
+  'Investec Bank',
+  'African Bank',
+  'Sasfin Bank',
+  'Bidvest Bank',
+  'Other',
+];
 
 interface Issue {
   id: string;
@@ -59,12 +79,8 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 /**
- * The Advisor's own admin: their contact details, and a direct line to the
+ * The Advisor's own admin: their contact details, banking details, and a direct line to the
  * directors.
- *
- * A field marketer standing in a shop needs to raise a problem with a
- * screenshot in under a minute, and needs to see that somebody answered.
- * Both halves live together because both are "my account", not selling.
  */
 export function AgentSupportPanel() {
   const { toast } = useToast();
@@ -98,7 +114,16 @@ export function AgentSupportPanel() {
     (async () => {
       const { p, i } = await load();
       if (!active) return;
-      if (p?.profile) setProfile(p.profile);
+      if (p?.profile) {
+        setProfile({
+          ...p.profile,
+          bankName: p.bankingDetails?.bankName ?? '',
+          accountNumber: p.bankingDetails?.accountNumber ?? '',
+          accountType: p.bankingDetails?.accountType ?? 'Cheque / Current',
+          branchCode: p.bankingDetails?.branchCode ?? '',
+          accountHolderName: p.bankingDetails?.accountHolderName ?? p.profile.fullName ?? '',
+        });
+      }
       if (i?.issues) setIssues(i.issues);
       setLoading(false);
     })();
@@ -116,7 +141,7 @@ export function AgentSupportPanel() {
       });
       const data = await res.json();
       toast({
-        title: res.ok ? 'Details saved' : 'Could not save',
+        title: res.ok ? 'Details & banking saved' : 'Could not save',
         description: data.message || data.error,
         variant: res.ok ? undefined : 'destructive',
       });
@@ -130,8 +155,7 @@ export function AgentSupportPanel() {
   /**
    * Uploads through the normal media route so size limits and storage are
    * handled in one place. If that fails the compressed image is kept as a
-   * data URL rather than losing the evidence — a report with a picture is
-   * worth far more than a tidy URL.
+   * data URL rather than losing the evidence.
    */
   const pickScreenshot = async (file: File) => {
     setUploadingShot(true);
@@ -200,12 +224,12 @@ export function AgentSupportPanel() {
     );
   }
 
-  const field = (k: keyof Profile) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+  const field = (k: keyof Profile) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
     setProfile((p) => (p ? { ...p, [k]: e.target.value } : p));
 
   return (
     <div className="space-y-6">
-      {/* My details */}
+      {/* My contact details */}
       <div className="rounded-2xl border border-gray-200 bg-white/80 p-5 shadow-md sm:p-6">
         <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-gray-900">
           <User className="h-5 w-5 text-amber-600" /> My details
@@ -241,14 +265,92 @@ export function AgentSupportPanel() {
               <Textarea
                 value={profile.bio}
                 onChange={field('bio')}
-                rows={3}
+                rows={2}
                 placeholder="A short introduction businesses may see."
                 className="mt-1 border-gray-200 bg-white"
               />
             </div>
-            <Button onClick={saveProfile} disabled={savingProfile} className="mt-4 gap-2 bg-yellow-500 font-bold text-slate-950 hover:bg-yellow-600">
+          </>
+        )}
+      </div>
+
+      {/* Banking & Payout Details */}
+      <div className="rounded-2xl border-2 border-amber-300 bg-amber-50/40 p-5 shadow-md sm:p-6">
+        <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-gray-900">
+          <CheckCircle2 className="h-5 w-5 text-emerald-600" /> Banking &amp; Payout Details (EFT)
+        </h2>
+        <p className="mb-4 text-sm text-gray-600">
+          Enter your South African bank details so the finance team can pay your earned commissions directly into your bank account.
+        </p>
+
+        {profile && (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label className="text-sm font-semibold text-gray-700">Bank Name</Label>
+                <select
+                  value={profile.bankName}
+                  onChange={field('bankName')}
+                  className="mt-1 h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+                  <option value="">Select your bank…</option>
+                  {SA_BANKS.map((b) => (
+                    <option key={b} value={b}>{b}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label className="text-sm font-semibold text-gray-700">Account Holder Name</Label>
+                <Input
+                  value={profile.accountHolderName}
+                  onChange={field('accountHolderName')}
+                  placeholder="e.g. Katleho Mphutlane"
+                  className="mt-1 border-gray-300 bg-white"
+                />
+              </div>
+
+              <div>
+                <Label className="text-sm font-semibold text-gray-700">Account Number</Label>
+                <Input
+                  value={profile.accountNumber}
+                  onChange={field('accountNumber')}
+                  placeholder="e.g. 1234567890"
+                  className="mt-1 border-gray-300 bg-white font-mono"
+                />
+              </div>
+
+              <div>
+                <Label className="text-sm font-semibold text-gray-700">Account Type</Label>
+                <select
+                  value={profile.accountType}
+                  onChange={field('accountType')}
+                  className="mt-1 h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+                  <option value="Cheque / Current">Cheque / Current Account</option>
+                  <option value="Savings">Savings Account</option>
+                  <option value="Transmission">Transmission Account</option>
+                </select>
+              </div>
+
+              <div>
+                <Label className="text-sm font-semibold text-gray-700">Branch Code</Label>
+                <Input
+                  value={profile.branchCode}
+                  onChange={field('branchCode')}
+                  placeholder="e.g. 250655 (or Universal)"
+                  className="mt-1 border-gray-300 bg-white font-mono"
+                />
+              </div>
+            </div>
+
+            <Button
+              onClick={saveProfile}
+              disabled={savingProfile}
+              className="mt-5 gap-2 bg-yellow-500 font-bold text-slate-950 hover:bg-yellow-600 h-11 px-6 rounded-xl shadow-sm"
+            >
               {savingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Save my details
+              Save Contact &amp; Banking Details
             </Button>
           </>
         )}

@@ -5,10 +5,20 @@ import Link from 'next/link';
 import {
   ArrowLeft, Loader2, UserPlus, Link2, Copy, Check, Wallet, TrendingUp,
   Users, QrCode, Banknote, SlidersHorizontal, Download, Ban, RotateCcw, RefreshCw, X, CheckCheck,
+  Building2, CreditCard, Send, AlertCircle, FileSpreadsheet,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { AdminBackground, AdminCard, AdminPageHeader, StatCard } from '@/components/admin/ui';
 import { ClawbackReviewPanel } from '@/components/admin/clawback-review-panel';
 import { formatRand } from '@/lib/commission';
@@ -31,6 +41,11 @@ interface Agent {
   commissionOwedCents: number;
   link: string | null;
   qrUrl: string | null;
+  bankName?: string | null;
+  accountNumber?: string | null;
+  accountType?: string | null;
+  branchCode?: string | null;
+  accountHolderName?: string | null;
 }
 
 interface PendingInvite {
@@ -67,6 +82,13 @@ interface Payout {
   varianceCents: number | null;
   reconciledBy: string | null;
   reconciliationNote: string;
+  payoutMethod?: string;
+  notifiedAgentAt?: string | null;
+  bankName?: string;
+  accountNumber?: string;
+  accountType?: string;
+  branchCode?: string;
+  accountHolderName?: string;
 }
 
 interface PayoutSummary {
@@ -335,27 +357,54 @@ export default function AdminAgentsPage() {
     }
   };
 
-  const recordPayout = async (agent: Agent) => {
-    const suggested = (agent.commissionOwedCents / 100).toFixed(2);
-    const input = window.prompt(
-      `Record a commission payout for ${agent.fullName}.\n\n` +
-        `Outstanding: ${formatRand(agent.commissionOwedCents)}\n\n` +
-        `Amount paid (in Rand):`,
-      suggested,
-    );
-    if (input === null) return;
-    const reference = window.prompt('Payment reference (optional — e.g. EFT number):', '') ?? '';
+  const [payoutAgent, setPayoutAgent] = useState<Agent | null>(null);
+  const [payoutForm, setPayoutForm] = useState({
+    amountRand: '',
+    reference: '',
+    payoutMethod: 'EFT',
+    note: '',
+  });
+  const [submittingPayout, setSubmittingPayout] = useState(false);
+  const [copiedBankField, setCopiedBankField] = useState<string | null>(null);
 
-    setBusy(true);
+  const openPayoutModal = (agent: Agent) => {
+    setPayoutAgent(agent);
+    setPayoutForm({
+      amountRand: (agent.commissionOwedCents / 100).toFixed(2),
+      reference: `VBL-COMM-${Date.now().toString().slice(-6)}`,
+      payoutMethod: 'EFT',
+      note: '',
+    });
+  };
+
+  const copyToClipboard = (text: string, label: string) => {
+    if (!text) return;
+    navigator.clipboard.writeText(text);
+    setCopiedBankField(label);
+    toast({ title: 'Copied', description: `${label} copied to clipboard` });
+    setTimeout(() => setCopiedBankField(null), 2000);
+  };
+
+  const submitPayout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payoutAgent) return;
+    setSubmittingPayout(true);
     try {
       const res = await fetch('/api/admin/agents/payouts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ agentId: agent.id, amountRand: input, reference }),
+        body: JSON.stringify({
+          agentId: payoutAgent.id,
+          amountRand: payoutForm.amountRand,
+          reference: payoutForm.reference,
+          payoutMethod: payoutForm.payoutMethod,
+          note: payoutForm.note,
+        }),
       });
       const data = await res.json();
       if (res.ok) {
         toast({ title: 'Payout recorded', description: data.message });
+        setPayoutAgent(null);
         apply(await fetchAgents());
         await fetchPayouts().catch(() => {});
       } else {
@@ -364,8 +413,35 @@ export default function AdminAgentsPage() {
     } catch {
       toast({ title: 'Could not record payout', variant: 'destructive' });
     } finally {
-      setBusy(false);
+      setSubmittingPayout(false);
     }
+  };
+
+  const exportPayoutsCsv = () => {
+    if (payouts.length === 0) return;
+    const headers = ['Date', 'Agent Name', 'Amount (R)', 'Method', 'Reference', 'Status', 'Bank Ref', 'Statement Amount (R)', 'Variance (R)', 'Reconciled At', 'Reconciled By', 'Note'];
+    const rows = payouts.map((p) => [
+      new Date(p.paidAt).toISOString().slice(0, 10),
+      `"${(p.agentName || '').replace(/"/g, '""')}"`,
+      (p.amountCents / 100).toFixed(2),
+      p.payoutMethod || 'EFT',
+      `"${(p.reference || '').replace(/"/g, '""')}"`,
+      p.status,
+      `"${(p.bankReference || '').replace(/"/g, '""')}"`,
+      p.statementAmountCents !== null ? (p.statementAmountCents / 100).toFixed(2) : '',
+      p.varianceCents !== null ? (p.varianceCents / 100).toFixed(2) : '',
+      p.reconciledAt ? new Date(p.reconciledAt).toISOString().slice(0, 10) : '',
+      `"${(p.reconciledBy || '').replace(/"/g, '""')}"`,
+      `"${(p.reconciliationNote || '').replace(/"/g, '""')}"`,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `agent-payouts-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const totals = agents.reduce(
@@ -727,10 +803,10 @@ export default function AdminAgentsPage() {
                             size="sm"
                             variant="outline"
                             disabled={busy || a.commissionOwedCents === 0}
-                            onClick={() => recordPayout(a)}
-                            className="gap-1.5 border-gray-300 text-gray-700"
+                            onClick={() => openPayoutModal(a)}
+                            className="gap-1.5 border-amber-300 bg-amber-50 font-semibold text-amber-900 hover:bg-amber-100"
                           >
-                            <Banknote className="h-4 w-4" /> Pay
+                            <Banknote className="h-4 w-4 text-amber-700" /> Pay
                           </Button>
                           <Button
                             size="sm"
@@ -784,24 +860,36 @@ export default function AdminAgentsPage() {
                 Match each recorded payout to a line on your bank statement.
               </p>
             </div>
-            {payoutSummary && payoutSummary.total > 0 && (
-              <div className="flex flex-wrap gap-2 text-xs font-semibold">
-                <span className="rounded-full bg-gray-100 px-2.5 py-1 text-gray-700">
-                  {payoutSummary.recorded} awaiting
-                </span>
-                <span className="rounded-full bg-green-500/15 px-2.5 py-1 text-green-700">
-                  {payoutSummary.reconciled} matched
-                </span>
-                {payoutSummary.disputed > 0 && (
-                  <span className="rounded-full bg-red-500/15 px-2.5 py-1 text-red-700">
-                    {payoutSummary.disputed} disputed
+            <div className="flex flex-wrap items-center gap-2">
+              {payoutSummary && payoutSummary.total > 0 && (
+                <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                  <span className="rounded-full bg-gray-100 px-2.5 py-1 text-gray-700">
+                    {payoutSummary.recorded} awaiting
                   </span>
-                )}
-                <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-700">
-                  {formatRand(payoutSummary.unreconciledCents)} unmatched
-                </span>
-              </div>
-            )}
+                  <span className="rounded-full bg-green-500/15 px-2.5 py-1 text-green-700">
+                    {payoutSummary.reconciled} matched
+                  </span>
+                  {payoutSummary.disputed > 0 && (
+                    <span className="rounded-full bg-red-500/15 px-2.5 py-1 text-red-700">
+                      {payoutSummary.disputed} disputed
+                    </span>
+                  )}
+                  <span className="rounded-full bg-amber-500/15 px-2.5 py-1 text-amber-700">
+                    {formatRand(payoutSummary.unreconciledCents)} unmatched
+                  </span>
+                </div>
+              )}
+              {payouts.length > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={exportPayoutsCsv}
+                  className="gap-1.5 border-gray-300 text-xs text-gray-700"
+                >
+                  <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-600" /> Export CSV
+                </Button>
+              )}
+            </div>
           </div>
 
           {payouts.length === 0 ? (
@@ -816,6 +904,7 @@ export default function AdminAgentsPage() {
                   <tr className="border-y border-gray-200 bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                     <th className="px-5 py-3">Agent</th>
                     <th className="px-5 py-3">Recorded</th>
+                    <th className="px-5 py-3">Method</th>
                     <th className="px-5 py-3">Statement</th>
                     <th className="px-5 py-3">Reference</th>
                     <th className="px-5 py-3">Status</th>
@@ -832,6 +921,11 @@ export default function AdminAgentsPage() {
                         </div>
                       </td>
                       <td className="px-5 py-3 font-semibold text-gray-900">{formatRand(p.amountCents)}</td>
+                      <td className="px-5 py-3">
+                        <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                          {p.payoutMethod || 'EFT'}
+                        </span>
+                      </td>
                       <td className="px-5 py-3">
                         {p.statementAmountCents === null ? (
                           <span className="text-gray-400">—</span>
@@ -894,6 +988,200 @@ export default function AdminAgentsPage() {
           money that really moved. &ldquo;Record&rdquo; logs a payment you have already
           made; it does not transfer any funds.
         </p>
+
+        {/* Payout Dialog Modal with EFT Copy-Assist */}
+        <Dialog open={payoutAgent !== null} onOpenChange={(open) => { if (!open) setPayoutAgent(null); }}>
+          <DialogContent className="sm:max-w-[540px] rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-900">
+                <Banknote className="h-6 w-6 text-amber-600" />
+                Record Commission Payout
+              </DialogTitle>
+              <DialogDescription className="text-slate-600 text-sm">
+                Pay <strong>{payoutAgent?.fullName}</strong> via online banking EFT, then record the reference here to update their ledger balance.
+              </DialogDescription>
+            </DialogHeader>
+
+            {payoutAgent && (
+              <form onSubmit={submitPayout} className="space-y-4 py-2">
+                {/* Outstanding summary */}
+                <div className="flex items-center justify-between rounded-xl bg-amber-50 border border-amber-200 p-3.5">
+                  <div>
+                    <div className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Outstanding Commission</div>
+                    <div className="text-2xl font-black text-amber-950">{formatRand(payoutAgent.commissionOwedCents)}</div>
+                  </div>
+                  <div className="text-right text-xs text-amber-800">
+                    <div>{payoutAgent.email}</div>
+                    <div className="font-mono mt-0.5">Code: {payoutAgent.referralCode || 'None'}</div>
+                  </div>
+                </div>
+
+                {/* Banking details with 1-click copy */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-slate-700 uppercase tracking-wider">
+                    <span className="flex items-center gap-1.5">
+                      <Building2 className="h-3.5 w-3.5 text-slate-500" /> Agent Banking Details (EFT)
+                    </span>
+                    {payoutAgent.bankName && (
+                      <span className="text-emerald-700 bg-emerald-100 font-semibold px-2 py-0.5 rounded text-[11px]">
+                        Details Available
+                      </span>
+                    )}
+                  </div>
+
+                  {payoutAgent.bankName || payoutAgent.accountNumber ? (
+                    <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                      <div className="bg-white p-2 rounded-lg border border-slate-200">
+                        <span className="text-slate-500 block text-[10px] uppercase font-bold">Bank</span>
+                        <div className="font-semibold text-slate-900">{payoutAgent.bankName || '—'}</div>
+                      </div>
+
+                      <div className="bg-white p-2 rounded-lg border border-slate-200 flex items-center justify-between">
+                        <div>
+                          <span className="text-slate-500 block text-[10px] uppercase font-bold">Account Number</span>
+                          <div className="font-mono font-bold text-slate-900">{payoutAgent.accountNumber || '—'}</div>
+                        </div>
+                        {payoutAgent.accountNumber && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0"
+                            onClick={() => copyToClipboard(payoutAgent.accountNumber!, 'Account Number')}
+                          >
+                            {copiedBankField === 'Account Number' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="bg-white p-2 rounded-lg border border-slate-200 flex items-center justify-between">
+                        <div>
+                          <span className="text-slate-500 block text-[10px] uppercase font-bold">Branch Code</span>
+                          <div className="font-mono font-bold text-slate-900">{payoutAgent.branchCode || 'Universal'}</div>
+                        </div>
+                        {payoutAgent.branchCode && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 w-7 p-0"
+                            onClick={() => copyToClipboard(payoutAgent.branchCode!, 'Branch Code')}
+                          >
+                            {copiedBankField === 'Branch Code' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="bg-white p-2 rounded-lg border border-slate-200 flex items-center justify-between">
+                        <div>
+                          <span className="text-slate-500 block text-[10px] uppercase font-bold">Account Holder</span>
+                          <div className="font-semibold text-slate-900 truncate max-w-[120px]">
+                            {payoutAgent.accountHolderName || payoutAgent.fullName}
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 w-7 p-0"
+                          onClick={() => copyToClipboard(payoutAgent.accountHolderName || payoutAgent.fullName, 'Account Holder')}
+                        >
+                          {copiedBankField === 'Account Holder' ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-100/70 border border-amber-200 text-amber-900 text-xs">
+                      <AlertCircle className="h-4 w-4 shrink-0 text-amber-700" />
+                      <span>The agent has not added their banking details yet. They can submit them under their Agent Portal profile tab.</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Form fields */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs font-semibold text-slate-700">Amount Paid (Rand) *</Label>
+                    <div className="relative mt-1">
+                      <span className="absolute left-3 top-2.5 text-sm font-bold text-slate-500">R</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        required
+                        value={payoutForm.amountRand}
+                        onChange={(e) => setPayoutForm({ ...payoutForm, amountRand: e.target.value })}
+                        className="pl-7 font-bold text-slate-900 border-slate-300 bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-xs font-semibold text-slate-700">Payment Method</Label>
+                    <select
+                      value={payoutForm.payoutMethod}
+                      onChange={(e) => setPayoutForm({ ...payoutForm, payoutMethod: e.target.value })}
+                      className="mt-1 h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    >
+                      <option value="EFT">EFT Bank Transfer</option>
+                      <option value="Instant EFT">Instant EFT / Real-Time</option>
+                      <option value="Capitec Pay">Capitec Pay</option>
+                      <option value="Cash">Cash / Branch</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold text-slate-700">Bank / Payment Reference *</Label>
+                  <Input
+                    required
+                    value={payoutForm.reference}
+                    onChange={(e) => setPayoutForm({ ...payoutForm, reference: e.target.value })}
+                    placeholder="e.g. EFT-98213 or VBL-COMM-101"
+                    className="mt-1 border-slate-300 bg-white font-mono text-sm"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-xs font-semibold text-slate-700">Internal Note (Optional)</Label>
+                  <Input
+                    value={payoutForm.note}
+                    onChange={(e) => setPayoutForm({ ...payoutForm, note: e.target.value })}
+                    placeholder="e.g. Commission for May 2026 week 3 sales"
+                    className="mt-1 border-slate-300 bg-white text-sm"
+                  />
+                </div>
+
+                <DialogFooter className="pt-2 sm:justify-between">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setPayoutAgent(null)}
+                    disabled={submittingPayout}
+                    className="border-slate-300 text-slate-700"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={submittingPayout}
+                    className="gap-2 bg-yellow-500 font-bold text-slate-950 hover:bg-yellow-600"
+                  >
+                    {submittingPayout ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" /> Recording…
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-4 w-4" /> Confirm &amp; Record Payout
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </AdminBackground>
   );

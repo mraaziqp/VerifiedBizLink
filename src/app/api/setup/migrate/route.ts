@@ -306,9 +306,18 @@ export async function POST(request: NextRequest) {
     await db`UPDATE tiers SET is_purchasable = false, is_active = false WHERE key = 'free'`;
     await db`UPDATE tiers SET is_purchasable = false, is_active = false WHERE key = 'premium_half'`;
 
+    // --- v13: Sales Agent Banking Details & Enhanced Commission Payouts ---
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS bank_name TEXT`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS account_number TEXT`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS account_type TEXT`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS branch_code TEXT`;
+    await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS account_holder_name TEXT`;
+    await db`ALTER TABLE commission_payouts ADD COLUMN IF NOT EXISTS payout_method TEXT DEFAULT 'EFT'`;
+    await db`ALTER TABLE commission_payouts ADD COLUMN IF NOT EXISTS notified_agent_at TIMESTAMPTZ`;
+
     return NextResponse.json({
       success: true,
-      message: 'Migration v12 applied: R99 Verified, R299 Standard, R699 Premium monthly tiers + R49 once-off badge configured.',
+      message: 'Migration v13 applied: Sales agent banking details and enhanced payout columns configured.',
     });
   } catch (error) {
     console.error('Migration error:', error);
