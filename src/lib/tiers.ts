@@ -20,22 +20,21 @@ export interface Tier {
 
 function mapRow(row: Record<string, unknown>): Tier {
   const key = String(row.key);
-  const isLegacyFree = key === 'free' && (Number(row.price) === 0 || row.name === 'Free');
+  const isFree = key === 'free';
+  const isVerified = key === 'verified';
   return {
     key,
-    name: isLegacyFree ? 'Starter (Once-Off)' : String(row.name),
-    price: isLegacyFree ? 49 : Number(row.price),
+    name: isVerified ? 'Verified Business' : isFree ? 'Free Profile' : String(row.name),
+    price: isVerified ? (Number(row.price) > 0 ? Number(row.price) : 99) : Number(row.price),
     adLimit: Number(row.ad_limit),
     monthlyAdCredits: Number(row.monthly_ad_credits),
     features: Array.isArray(row.features)
       ? (row.features as string[])
       : JSON.parse((row.features as string) || '[]'),
-    note: isLegacyFree
-      ? 'Once-off verification · No monthly subscription'
-      : ((row.note as string | null) ?? null),
-    sortOrder: Number(row.sort_order),
-    isActive: key === 'verified' || key === 'premium_half' ? false : row.is_active === true,
-    isPurchasable: key === 'verified' || key === 'premium_half' ? false : row.is_purchasable === true,
+    note: (row.note as string | null) ?? (isVerified ? 'Essential verification & monthly tools' : null),
+    sortOrder: isVerified ? 1 : key === 'standard' ? 2 : key === 'premium' ? 3 : Number(row.sort_order),
+    isActive: key === 'premium_half' ? false : row.is_active === true,
+    isPurchasable: key === 'free' || key === 'premium_half' ? false : true,
   };
 }
 

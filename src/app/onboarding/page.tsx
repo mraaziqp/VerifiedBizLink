@@ -107,11 +107,11 @@ const WESTERN_CAPE_REGIONS = [
 // Presentation metadata per tier key — prices and features come live from
 // /api/tiers (admin-managed), this just controls how each card looks.
 const PACKAGE_STYLES: Record<string, { color: string; activeColor: string; badge: string | null; badgeColor: string }> = {
-  free: { color: "border-gray-200 bg-gray-50", activeColor: "border-yellow-400 bg-yellow-50", badge: "Once-Off", badgeColor: "bg-yellow-400 text-gray-900" },
+  verified: { color: "border-gray-200 bg-gray-50", activeColor: "border-yellow-400 bg-yellow-50", badge: "Verified", badgeColor: "bg-yellow-400 text-gray-900" },
   standard: { color: "border-blue-200 bg-blue-50", activeColor: "border-blue-500 bg-blue-100", badge: "Popular", badgeColor: "bg-blue-500 text-white" },
   premium: { color: "border-amber-200 bg-amber-50", activeColor: "border-yellow-400 bg-yellow-100", badge: "Best Value", badgeColor: "bg-yellow-500 text-gray-900" },
 };
-const PACKAGE_ORDER = ["free", "standard", "premium"];
+const PACKAGE_ORDER = ["verified", "standard", "premium"];
 
 interface ApiTier {
   key: string;
@@ -144,7 +144,7 @@ export default function OnboardingPage() {
   const [selectedProvince, setSelectedProvince] = useState("Western Cape");
   const [selectedArea, setSelectedArea] = useState("");
   const [locationView, setLocationView] = useState<"western_cape" | "all_provinces">("western_cape");
-  const [selectedPackage, setSelectedPackage] = useState("free");
+  const [selectedPackage, setSelectedPackage] = useState("verified");
   const [saving, setSaving] = useState(false);
   const [packages, setPackages] = useState<ApiTier[]>(
     PACKAGE_ORDER.map((key) => ({ key, name: key, price: 0, features: [] }))
@@ -568,14 +568,13 @@ export default function OnboardingPage() {
                 <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <div>
                     <Badge className="bg-purple-100 text-purple-700 border-purple-200 font-bold mb-2">Packages</Badge>
-                    <h2 className="text-2xl font-extrabold text-gray-900">Choose your plan</h2>
-                    <p className="text-gray-500 mt-1 text-sm">Start with our once-off verified starter plan or choose a monthly growth tier.</p>
+                    <h2 className="text-2xl font-extrabold text-gray-900">Choose your monthly plan</h2>
+                    <p className="text-gray-500 mt-1 text-sm">Choose a monthly growth subscription, or complete onboarding to get verified for R49 once-off.</p>
                   </div>
                   <div className="space-y-3">
                     {packages.map((pkg) => {
                       const active = selectedPackage === pkg.key;
-                      const style = PACKAGE_STYLES[pkg.key] || PACKAGE_STYLES.free;
-                      const isOnceOff = pkg.key === "free" || pkg.price === 49;
+                      const style = PACKAGE_STYLES[pkg.key] || PACKAGE_STYLES.verified;
                       return (
                         <button key={pkg.key} onClick={() => setSelectedPackage(pkg.key)}
                           className={cn("w-full p-4 rounded-2xl border-2 text-left transition-all",
@@ -591,7 +590,7 @@ export default function OnboardingPage() {
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-gray-700">
-                                {isOnceOff ? "R49 once-off" : pkg.price ? `R${pkg.price}/mo` : "Free"}
+                                {pkg.price ? `R${pkg.price}/mo` : "R99/mo"}
                               </span>
                               {active && <CheckCircle2 className="h-5 w-5 text-green-500" />}
                             </div>
@@ -607,7 +606,7 @@ export default function OnboardingPage() {
                       );
                     })}
                   </div>
-                  <p className="text-xs text-gray-400 text-center">Starter is a once-off R49 verification fee. Growth plans are billed monthly — cancel anytime.</p>
+                  <p className="text-xs text-gray-400 text-center">Monthly plans billed via PayFast — cancel anytime. Once-off R49 verification is also available on your dashboard.</p>
                 </div>
               )}
               {step === 3 && (

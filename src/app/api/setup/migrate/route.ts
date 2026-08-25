@@ -287,26 +287,28 @@ export async function POST(request: NextRequest) {
     await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS subscription_status TEXT`;
     await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS last_billed_at TIMESTAMPTZ`;
 
-    // --- v12: Clean tier model - Free profile with R49 once-off verification ---
+    // --- v12: Tiers - R49 once-off verification badge + R99 Verified, R299 Standard, R699 Premium monthly tiers ---
     await db`
-      UPDATE tiers SET
-        name = 'Starter (Once-Off)',
-        price = 49,
-        note = 'Once-off verification · No monthly subscription',
-        features = '["Official CIPC & business vetting","Gold Verified Badge on profile","Priority placement in search & discovery","Public company profile & directory listing","Customer reviews & direct inquiries","1 post per day","Once-off payment — no subscription"]',
+      INSERT INTO tiers (key, name, price, ad_limit, monthly_ad_credits, features, note, sort_order, is_purchasable, is_active)
+      VALUES
+        ('verified', 'Verified Business', 99, 0, 0, '["CIPC & ID document verification","Official Verified Trust Badge","Customer reviews & ratings","Trust Score calculation","Priority search placement","Email support"]', 'Essential verification & monthly tools', 1, true, true)
+      ON CONFLICT (key) DO UPDATE SET
+        name = EXCLUDED.name,
+        price = 99,
+        note = EXCLUDED.note,
+        features = EXCLUDED.features,
         sort_order = 1,
         is_purchasable = true,
         is_active = true
-      WHERE key = 'free'
     `;
-    await db`UPDATE tiers SET is_active = false, is_purchasable = false WHERE key = 'verified'`;
-    await db`UPDATE tiers SET sort_order = 2, price = 299 WHERE key = 'standard'`;
-    await db`UPDATE tiers SET sort_order = 3, price = 699 WHERE key = 'premium'`;
-    await db`UPDATE tiers SET is_active = false, is_purchasable = false WHERE key = 'premium_half'`;
+    await db`UPDATE tiers SET sort_order = 2, price = 299, is_active = true, is_purchasable = true WHERE key = 'standard'`;
+    await db`UPDATE tiers SET sort_order = 3, price = 699, is_active = true, is_purchasable = true WHERE key = 'premium'`;
+    await db`UPDATE tiers SET is_purchasable = false, is_active = false WHERE key = 'free'`;
+    await db`UPDATE tiers SET is_purchasable = false, is_active = false WHERE key = 'premium_half'`;
 
     return NextResponse.json({
       success: true,
-      message: 'Migration v12 applied: Starter once-off verification tier (R49) and subscription tiers updated.',
+      message: 'Migration v12 applied: R99 Verified, R299 Standard, R699 Premium monthly tiers + R49 once-off badge configured.',
     });
   } catch (error) {
     console.error('Migration error:', error);

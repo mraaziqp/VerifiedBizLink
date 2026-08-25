@@ -1,4 +1,4 @@
-export type TierName = 'free' | 'standard' | 'premium' | 'enterprise';
+export type TierName = 'free' | 'verified' | 'standard' | 'premium' | 'enterprise';
 
 export interface TierFeatures {
   name: TierName;
@@ -28,10 +28,10 @@ export interface TierFeatures {
 export const TIER_FEATURES: Record<TierName, TierFeatures> = {
   free: {
     name: 'free',
-    displayName: 'Starter (Once-Off)',
-    monthlyPrice: 4900, // R49 once-off in cents
-    annualPrice: 4900,
-    description: 'Business profile with once-off CIPC verification & badge',
+    displayName: 'Free Profile',
+    monthlyPrice: 0,
+    annualPrice: 0,
+    description: 'Basic business listing (Get verified for R49 once-off)',
     features: {
       listings: 1,
       ads: 0,
@@ -48,12 +48,42 @@ export const TIER_FEATURES: Record<TierName, TierFeatures> = {
     },
     adExposureMultiplier: 0.5,
     benefits: [
-      'Full business directory listing',
-      'CIPC & Identity document vetting',
-      'Verified Trust Badge (Permanent)',
-      'Customer reviews & direct inquiries',
+      'Basic business profile',
+      'Eligible for R49 once-off verified badge',
       '1 post per day',
-      'Once-off payment — no subscription',
+      'Direct customer inquiries',
+    ],
+    highlighted: false,
+  },
+
+  verified: {
+    name: 'verified',
+    displayName: 'Verified Business',
+    monthlyPrice: 9900, // R99.00 in cents
+    annualPrice: 99000, // R990.00 in cents
+    description: 'Essential verification & monthly tools',
+    features: {
+      listings: 2,
+      ads: 0,
+      adImpressionsPerMonth: 2000,
+      storageGB: 5,
+      analytics: 'basic',
+      supportLevel: 'email',
+      customDomain: false,
+      apiAccess: false,
+      geofencing: false,
+      advancedTargeting: false,
+      fraudDetection: false,
+      whitelabelOption: false,
+    },
+    adExposureMultiplier: 0.8,
+    benefits: [
+      'CIPC & ID document verification',
+      'Official Gold Verified Trust Badge',
+      'Customer reviews & Trust Score',
+      'Priority discovery in search',
+      'Up to 2 business listings',
+      'Email priority support',
     ],
     highlighted: false,
   },

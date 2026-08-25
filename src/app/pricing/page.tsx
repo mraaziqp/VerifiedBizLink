@@ -29,30 +29,29 @@ const TIER_ICON: Record<string, LucideIcon> = {
 
 const DEFAULT_TIERS: Tier[] = [
   {
-    key: "free",
-    name: "Starter (Once-Off)",
-    price: 49,
+    key: "verified",
+    name: "Verified Business",
+    price: 99,
     features: [
-      "Official CIPC & business vetting",
-      "Gold Verified Badge on profile",
-      "Priority placement in search & discovery",
-      "Public company profile & directory listing",
-      "Customer reviews & direct inquiries",
-      "1 post per day",
-      "Once-off payment — no subscription",
+      "CIPC & ID document verification",
+      "Official Verified Trust Badge",
+      "Customer reviews & Trust Score",
+      "Priority discovery in search",
+      "Up to 2 business listings",
+      "Email priority support",
     ],
-    note: "Once-off verification · No monthly subscription",
+    note: "Essential verification & monthly tools",
   },
   {
     key: "standard",
     name: "Standard",
     price: 299,
     features: [
-      "Everything in Starter / Verified",
+      "Everything in Verified Business",
       "1 active ad per month (14 days boost)",
       "Priority discovery listing",
       "Unlimited connections & posts",
-      "Basic analytics dashboard",
+      "Advanced analytics dashboard",
       "10GB file storage",
       "Email priority support",
     ],
@@ -85,13 +84,15 @@ export default function PricingPage() {
   const [currentTier, setCurrentTier] = useState<string | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [onceOffLoading, setOnceOffLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/tiers")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.tiers && data.tiers.length > 0) {
-          setTiers(data.tiers);
+          const purchasable = data.tiers.filter((t: Tier) => t.key !== "free");
+          if (purchasable.length > 0) setTiers(purchasable);
         }
       })
       .catch(() => setTiers(DEFAULT_TIERS))
@@ -116,21 +117,34 @@ export default function PricingPage() {
   const handleCheckout = async (tier: Tier) => {
     if (!user) { router.push("/signup"); return; }
     if (user.role !== "business") {
-      toast({ title: "Business account required", description: "Only business accounts can choose a plan.", variant: "destructive" });
+      toast({ title: "Business account required", description: "Only business accounts can choose a subscription plan.", variant: "destructive" });
       return;
     }
     setCheckoutLoading(tier.key);
-    const isOnceOff = tier.key === "free" || tier.price === 49;
     const result = await startPayfastCheckout({
-      amount: tier.price || 49,
-      description: isOnceOff
-        ? `VerifiedBizLink Verification Fee (R${tier.price || 49} once-off)`
-        : `${tier.name} Subscription (R${tier.price}/month)`,
-      purchaseType: isOnceOff ? 'verification_fee' : `subscription_${tier.key}`,
+      amount: tier.price,
+      description: `${tier.name} Subscription (R${tier.price}/month)`,
+      purchaseType: `subscription_${tier.key}`,
     });
-    // Only reached if the checkout could not be started — success navigates.
+    // Only reached if checkout could not be started
     toast({ title: "Payment error", description: result.error, variant: "destructive" });
     setCheckoutLoading(null);
+  };
+
+  const handleOnceOffVerification = async () => {
+    if (!user) { router.push("/signup"); return; }
+    if (user.role !== "business") {
+      toast({ title: "Business account required", description: "Only business accounts can get verified.", variant: "destructive" });
+      return;
+    }
+    setOnceOffLoading(true);
+    const result = await startPayfastCheckout({
+      amount: 49,
+      description: "VerifiedBizLink Verification Fee (R49 once-off)",
+      purchaseType: "verification_fee",
+    });
+    toast({ title: "Payment error", description: result.error, variant: "destructive" });
+    setOnceOffLoading(false);
   };
 
   const ctaAction = (tier: Tier) => {
@@ -140,19 +154,8 @@ export default function PricingPage() {
 
   const ctaLabel = (tier: Tier) => {
     if (!user) return "Get Started";
-    if (tier.key === "free") {
-      if (isVerified) return "Active & Verified";
-      return "Get Verified (R49 Once-Off)";
-    }
     if (currentTier === tier.key) return "Current Plan";
-    return "Upgrade Now";
-  };
-
-  const isButtonDisabled = (tier: Tier) => {
-    if (!user) return false;
-    if (tier.key === "free" && isVerified) return true;
-    if (tier.key !== "free" && currentTier === tier.key) return true;
-    return checkoutLoading !== null;
+    return `Upgrade to ${tier.name}`;
   };
 
   return (
@@ -160,7 +163,7 @@ export default function PricingPage() {
       {/* Top Navigation & Back Button */}
       <SubpageNav title="Pricing & Plans" />
 
-      <div className="text-center pt-10 pb-16 px-4 max-w-3xl mx-auto">
+      <div className="text-center pt-10 pb-12 px-4 max-w-3xl mx-auto">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-400 bg-yellow-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-yellow-700 mb-6">
           Simple, transparent pricing
         </span>
@@ -168,23 +171,81 @@ export default function PricingPage() {
           Grow with the plan that fits you
         </h1>
         <p className="text-lg text-gray-500">
-          Start with our once-off verified starter plan or supercharge your business reach with our monthly growth tiers.
-          Cancel subscriptions anytime from Settings → Billing — no long-term contracts.
+          Get verified with our affordable R49 once-off badge, or subscribe to a monthly growth plan with extra listings, ad boosts, and priority discovery.
         </p>
         <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-gray-900 text-white px-4 py-2 text-sm font-semibold">
           <ReceiptText className="h-4 w-4 text-yellow-400" />
-          Secure checkout via PayFast · Once-off &amp; monthly plans available.
+          Secure checkout via PayFast · Cancel monthly subscriptions anytime.
         </div>
       </div>
 
-      {/* Pricing Cards */}
-      <div className="max-w-6xl mx-auto px-4 pb-16">
-        {/* Credit the advisor before paying, not after — this is the last
-            moment the sale can still be attributed to whoever earned it. */}
-        {user?.role === 'business' && <AgentReferralField className="mb-6 max-w-xl mx-auto" />}
+      {/* Main Content Area */}
+      <div className="max-w-6xl mx-auto px-4 pb-16 space-y-10">
+        {/* Once-Off R49 Verification Card */}
+        <div className="rounded-3xl border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 via-amber-50/70 to-white p-6 sm:p-8 shadow-md">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            <div className="space-y-3 max-w-2xl">
+              <span className="inline-block rounded-full bg-yellow-400 px-3 py-1 text-[11px] font-extrabold tracking-wide text-slate-950">
+                ONCE-OFF · NOT A SUBSCRIPTION
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 flex items-center gap-2.5">
+                <ShieldCheck className="h-7 w-7 text-yellow-600 shrink-0" />
+                Vetting &amp; Verified Badge — R49 Once-Off
+              </h2>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Don&apos;t want a monthly subscription? Pay a single, once-off fee of <span className="font-bold text-gray-900">R49</span> to submit your CIPC &amp; director ID for official review and activate your permanent Gold Verified Badge.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-2.5 pt-2">
+                {[
+                  "CIPC and ID document vetting",
+                  "Permanent Gold Verified Badge",
+                  "Higher placement in search & discovery",
+                  "No recurring monthly fees",
+                ].map((item) => (
+                  <div key={item} className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+                    <CheckCircle2 className="h-4 w-4 text-yellow-600 shrink-0" />
+                    <span>{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
 
+            <div className="shrink-0 w-full lg:w-60 bg-white rounded-2xl border border-yellow-200 p-6 text-center shadow-sm">
+              <p className="text-4xl font-black text-gray-900">R49</p>
+              <p className="text-xs font-bold text-gray-500 mt-1 uppercase tracking-wider">Once-off payment</p>
+              <Button
+                onClick={handleOnceOffVerification}
+                disabled={isVerified || onceOffLoading}
+                className="w-full mt-4 h-12 bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold rounded-xl text-sm shadow-md shadow-yellow-400/20"
+              >
+                {onceOffLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin mx-auto" />
+                ) : isVerified ? (
+                  "Badge Active"
+                ) : (
+                  "Get Verified for R49"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Credit the advisor before paying */}
+        {user?.role === 'business' && <AgentReferralField className="max-w-xl mx-auto" />}
+
+        {/* Monthly Subscription Tiers Heading */}
+        <div className="text-center pt-4">
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+            Monthly Growth Subscriptions
+          </h2>
+          <p className="text-sm text-gray-500 mt-1.5">
+            Full-featured monthly plans with ad boosts, expanded listings, and advanced analytics.
+          </p>
+        </div>
+
+        {/* Monthly Subscription Cards */}
         {loading ? (
-          <div className="flex justify-center py-24">
+          <div className="flex justify-center py-20">
             <Loader2 className="h-8 w-8 text-yellow-500 animate-spin" />
           </div>
         ) : (
@@ -195,7 +256,6 @@ export default function PricingPage() {
               const Icon = TIER_ICON[tier.key] || Building2;
               const action = ctaAction(tier);
               const isLoadingThis = checkoutLoading === tier.key;
-              const isOnceOff = tier.key === "free" || tier.price === 49;
               return (
                 <div
                   key={tier.key}
@@ -212,7 +272,7 @@ export default function PricingPage() {
                   )}
                   {isCurrent && (
                     <span className="absolute top-4 right-4 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1">
-                      {isOnceOff && isVerified ? "Verified" : "Your Plan"}
+                      Your Plan
                     </span>
                   )}
 
@@ -222,23 +282,12 @@ export default function PricingPage() {
 
                   <h3 className="text-xl font-bold text-gray-900 mb-1">{tier.name}</h3>
                   <p className="text-sm text-gray-500 mb-5 min-h-[2.5rem]">
-                    {tier.note || (isOnceOff ? "Vetting & lifetime verified badge" : "Build trust and grow your reach")}
+                    {tier.note || (tier.key === "verified" ? "Essential verification & monthly tools" : "Build trust and grow your reach")}
                   </p>
 
                   <div className="mb-6">
-                    {isOnceOff ? (
-                      <>
-                        <span className="text-4xl font-extrabold text-gray-900">R{tier.price || 49}</span>
-                        <span className="text-sm text-gray-500 ml-1 font-medium">once-off</span>
-                      </>
-                    ) : tier.price < 0 ? (
-                      <span className="text-3xl font-extrabold text-gray-900">Custom</span>
-                    ) : (
-                      <>
-                        <span className="text-4xl font-extrabold text-gray-900">R{tier.price}</span>
-                        <span className="text-sm text-gray-500 ml-1">/month</span>
-                      </>
-                    )}
+                    <span className="text-4xl font-extrabold text-gray-900">R{tier.price}</span>
+                    <span className="text-sm text-gray-500 ml-1 font-medium">/month</span>
                   </div>
 
                   <ul className="space-y-2.5 flex-1 mb-6">
@@ -253,7 +302,7 @@ export default function PricingPage() {
                   {action.href ? (
                     <Link href={action.href}>
                       <Button
-                        disabled={isButtonDisabled(tier)}
+                        disabled={isCurrent}
                         className={`w-full font-bold h-11 rounded-xl ${
                           highlighted
                             ? "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
@@ -266,7 +315,7 @@ export default function PricingPage() {
                   ) : (
                     <Button
                       onClick={action.onClick}
-                      disabled={isButtonDisabled(tier)}
+                      disabled={isCurrent || checkoutLoading !== null}
                       className={`w-full font-bold h-11 rounded-xl ${
                         highlighted
                           ? "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
