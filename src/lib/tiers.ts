@@ -19,19 +19,23 @@ export interface Tier {
 }
 
 function mapRow(row: Record<string, unknown>): Tier {
+  const key = String(row.key);
+  const isLegacyFree = key === 'free' && (Number(row.price) === 0 || row.name === 'Free');
   return {
-    key: String(row.key),
-    name: String(row.name),
-    price: Number(row.price),
+    key,
+    name: isLegacyFree ? 'Starter (Once-Off)' : String(row.name),
+    price: isLegacyFree ? 49 : Number(row.price),
     adLimit: Number(row.ad_limit),
     monthlyAdCredits: Number(row.monthly_ad_credits),
     features: Array.isArray(row.features)
       ? (row.features as string[])
       : JSON.parse((row.features as string) || '[]'),
-    note: (row.note as string | null) ?? null,
+    note: isLegacyFree
+      ? 'Once-off verification · No monthly subscription'
+      : ((row.note as string | null) ?? null),
     sortOrder: Number(row.sort_order),
-    isActive: row.is_active === true,
-    isPurchasable: row.is_purchasable === true,
+    isActive: key === 'verified' || key === 'premium_half' ? false : row.is_active === true,
+    isPurchasable: key === 'verified' || key === 'premium_half' ? false : row.is_purchasable === true,
   };
 }
 

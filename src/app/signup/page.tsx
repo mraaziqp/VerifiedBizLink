@@ -125,7 +125,7 @@ export default function SignupPage() {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          fullName: formData.fullName.trim(),
+          fullName: role === "business" ? (formData.companyName.trim() || "Business Owner") : formData.fullName.trim(),
           role,
           companyName: formData.companyName,
           regNumber: formData.regNumber,
@@ -263,19 +263,21 @@ export default function SignupPage() {
             </div>
 
             <form className="space-y-4" onSubmit={handleSignup} suppressHydrationWarning>
-              {/* Account holder's own name */}
-              <div className="space-y-1.5" suppressHydrationWarning>
-                <Label htmlFor="full-name" className="text-sm font-semibold text-gray-700">Your Full Name</Label>
-                <Input
-                  id="full-name"
-                  required
-                  autoComplete="name"
-                  placeholder="Jane Dlamini"
-                  className="h-11 rounded-xl border-gray-200 bg-white"
-                  value={formData.fullName}
-                  onChange={(e) => update("fullName", e.target.value)}
-                />
-              </div>
+              {/* Account holder's own name - only for Customer accounts */}
+              {role === "customer" && (
+                <div className="space-y-1.5" suppressHydrationWarning>
+                  <Label htmlFor="full-name" className="text-sm font-semibold text-gray-700">Your Full Name</Label>
+                  <Input
+                    id="full-name"
+                    required
+                    autoComplete="name"
+                    placeholder="Jane Dlamini"
+                    className="h-11 rounded-xl border-gray-200 bg-white"
+                    value={formData.fullName}
+                    onChange={(e) => update("fullName", e.target.value)}
+                  />
+                </div>
+              )}
 
               {/* Business fields */}
               {role === "business" && (
@@ -551,9 +553,12 @@ export default function SignupPage() {
               <div className="flex items-start gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500">
                 <Lock className="h-3.5 w-3.5 mt-0.5 text-slate-400 shrink-0" />
                 <span>
-                  We collect only your <strong>name & email</strong>
-                  {role === "business" && <>, <strong>company name & CIPC reg number</strong></>}. Passwords
-                  are bcrypt-hashed. POPI Act compliant.
+                  {role === "customer" ? (
+                    <>We collect only your <strong>name &amp; email</strong>.</>
+                  ) : (
+                    <>We collect only your <strong>company name, email &amp; CIPC reg number</strong>.</>
+                  )}{" "}
+                  Passwords are bcrypt-hashed. POPI Act compliant.
                 </span>
               </div>
 

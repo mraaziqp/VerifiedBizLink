@@ -56,7 +56,11 @@ export async function POST(request: NextRequest) {
   try {
     const { email, password, fullName, dateOfBirth, role, companyName, regNumber, website, socialLinks, industry, assistedSignup, assistedBy, assistedByUserId, referralCode } = await request.json();
 
-    if (!email || !password || !fullName) {
+    const effectiveFullName = role === 'business'
+      ? (companyName?.trim() || fullName?.trim() || 'Business Owner')
+      : (fullName?.trim() || '');
+
+    if (!email || !password || !effectiveFullName) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -103,7 +107,7 @@ export async function POST(request: NextRequest) {
       VALUES (
         ${normalizedEmail},
         ${passwordHash},
-        ${fullName},
+        ${effectiveFullName},
         ${userRole},
         ${headline},
         ${''},
