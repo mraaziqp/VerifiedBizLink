@@ -348,7 +348,7 @@ export async function POST(request: NextRequest) {
           // customer paying R49 for a badge that never appeared and the
           // advisor earning nothing, while this very message told them both
           // it had worked.
-          await db`
+          const updated = (await db`
             UPDATE businesses
             SET verification_paid = TRUE,
                 verification_paid_at = NOW(),
@@ -357,11 +357,28 @@ export async function POST(request: NextRequest) {
                 badge_source = COALESCE(badge_source, 'verification_fee'),
                 updated_at = NOW()
             WHERE user_id = ${userId}
-          `.catch(err => console.log('Verification fee update note:', err.message));
+            RETURNING id, assisted_by_user_id
+          `.catch(err => { console.log('Verification fee update note:', err.message); return []; })) as unknown as { id: string; assisted_by_user_id: string | null }[];
+
+          const biz = updated[0];
           grantMessage = 'Your business has been verified! The verified badge is now active on your profile.';
 
+          // Issue invoice and send email receipt
+          await issueInvoice({
+            userId,
+            businessId: biz?.id ?? null,
+            tierKey: 'verification_fee',
+            tierName: 'Verification Fee (Once-Off)',
+            description: 'CIPC & ID Document Vetting + Gold Verified Badge (Once-Off)',
+            amountCents: Math.round(paidAmount * 100),
+            renewalPriceCents: 0,
+            intervalMonths: 0,
+            intervalLabel: 'Once-off',
+            paymentReference: paymentRef,
+            baseUrl: appUrlFromRequest(request),
+          }).catch(err => console.log('Verification fee invoice note:', err.message));
+
           // Log for attributed agent
-          const [biz] = await db`SELECT assisted_by_user_id FROM businesses WHERE user_id = ${userId} LIMIT 1`.catch(() => []);
           if (biz?.assisted_by_user_id) {
             const { logAgentActivity } = await import('@/lib/agents');
             await logAgentActivity(biz.assisted_by_user_id, 'verification_paid', `Business paid R${VERIFICATION_FEE_RAND} verification fee`, userId).catch(() => {});
