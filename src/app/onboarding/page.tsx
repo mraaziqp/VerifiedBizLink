@@ -107,9 +107,9 @@ const WESTERN_CAPE_REGIONS = [
 // Presentation metadata per tier key — prices and features come live from
 // /api/tiers (admin-managed), this just controls how each card looks.
 const PACKAGE_STYLES: Record<string, { color: string; activeColor: string; badge: string | null; badgeColor: string }> = {
-  free: { color: "border-gray-200 bg-gray-50", activeColor: "border-gray-400 bg-gray-100", badge: null, badgeColor: "" },
-  standard: { color: "border-blue-200 bg-blue-50", activeColor: "border-blue-500 bg-blue-100", badge: "Popular", badgeColor: "bg-blue-500" },
-  premium: { color: "border-yellow-200 bg-yellow-50", activeColor: "border-yellow-400 bg-yellow-100", badge: "Best Value", badgeColor: "bg-yellow-500" },
+  free: { color: "border-gray-200 bg-gray-50", activeColor: "border-yellow-400 bg-yellow-50", badge: "Once-Off", badgeColor: "bg-yellow-400 text-gray-900" },
+  standard: { color: "border-blue-200 bg-blue-50", activeColor: "border-blue-500 bg-blue-100", badge: "Popular", badgeColor: "bg-blue-500 text-white" },
+  premium: { color: "border-amber-200 bg-amber-50", activeColor: "border-yellow-400 bg-yellow-100", badge: "Best Value", badgeColor: "bg-yellow-500 text-gray-900" },
 };
 const PACKAGE_ORDER = ["free", "standard", "premium"];
 
@@ -569,12 +569,13 @@ export default function OnboardingPage() {
                   <div>
                     <Badge className="bg-purple-100 text-purple-700 border-purple-200 font-bold mb-2">Packages</Badge>
                     <h2 className="text-2xl font-extrabold text-gray-900">Choose your plan</h2>
-                    <p className="text-gray-500 mt-1 text-sm">Start on Free and upgrade whenever you&apos;re ready — you can change plan at any time.</p>
+                    <p className="text-gray-500 mt-1 text-sm">Start with our once-off verified starter plan or choose a monthly growth tier.</p>
                   </div>
                   <div className="space-y-3">
                     {packages.map((pkg) => {
                       const active = selectedPackage === pkg.key;
                       const style = PACKAGE_STYLES[pkg.key] || PACKAGE_STYLES.free;
+                      const isOnceOff = pkg.key === "free" || pkg.price === 49;
                       return (
                         <button key={pkg.key} onClick={() => setSelectedPackage(pkg.key)}
                           className={cn("w-full p-4 rounded-2xl border-2 text-left transition-all",
@@ -583,13 +584,15 @@ export default function OnboardingPage() {
                             <div className="flex items-center gap-2">
                               <span className="font-extrabold text-gray-900">{pkg.name}</span>
                               {style.badge && (
-                                <span className={cn("text-xs text-white font-bold px-2 py-0.5 rounded-full", style.badgeColor)}>
+                                <span className={cn("text-xs font-bold px-2 py-0.5 rounded-full", style.badgeColor)}>
                                   {style.badge}
                                 </span>
                               )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <span className="font-bold text-gray-700">{pkg.price ? `R${pkg.price}/mo` : "Free"}</span>
+                              <span className="font-bold text-gray-700">
+                                {isOnceOff ? "R49 once-off" : pkg.price ? `R${pkg.price}/mo` : "Free"}
+                              </span>
                               {active && <CheckCircle2 className="h-5 w-5 text-green-500" />}
                             </div>
                           </div>
@@ -604,7 +607,7 @@ export default function OnboardingPage() {
                       );
                     })}
                   </div>
-                  <p className="text-xs text-gray-400 text-center">No credit card required for Free plan. Paid plans billed monthly — cancel anytime.</p>
+                  <p className="text-xs text-gray-400 text-center">Starter is a once-off R49 verification fee. Growth plans are billed monthly — cancel anytime.</p>
                 </div>
               )}
               {step === 3 && (

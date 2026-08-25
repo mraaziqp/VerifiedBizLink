@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 
 import { SubpageNav } from "@/components/layout/subpage-nav";
 import { AgentReferralField } from "@/components/billing/agent-referral-field";
-import { VerificationOffer } from "@/components/billing/verification-offer";
 import { startPayfastCheckout } from "@/lib/payfast-checkout";
 
 interface Tier {
@@ -28,20 +27,74 @@ const TIER_ICON: Record<string, LucideIcon> = {
   premium: Crown,
 };
 
+const DEFAULT_TIERS: Tier[] = [
+  {
+    key: "free",
+    name: "Starter (Once-Off)",
+    price: 49,
+    features: [
+      "Official CIPC & business vetting",
+      "Gold Verified Badge on profile",
+      "Priority placement in search & discovery",
+      "Public company profile & directory listing",
+      "Customer reviews & direct inquiries",
+      "1 post per day",
+      "Once-off payment — no subscription",
+    ],
+    note: "Once-off verification · No monthly subscription",
+  },
+  {
+    key: "standard",
+    name: "Standard",
+    price: 299,
+    features: [
+      "Everything in Starter / Verified",
+      "1 active ad per month (14 days boost)",
+      "Priority discovery listing",
+      "Unlimited connections & posts",
+      "Basic analytics dashboard",
+      "10GB file storage",
+      "Email priority support",
+    ],
+    note: "For growing businesses",
+  },
+  {
+    key: "premium",
+    name: "Premium",
+    price: 699,
+    features: [
+      "Everything in Standard",
+      "Gold Verified badge (fast-tracked 24h)",
+      "Boosted ad placement (5 active ads)",
+      "Full analytics dashboard & lead reports",
+      "AI content assistant (unlimited)",
+      "100GB file storage",
+      "Phone & email priority support",
+      "Dedicated account manager",
+    ],
+    note: "For serious enterprises",
+  },
+];
+
 export default function PricingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const [tiers, setTiers] = useState<Tier[]>([]);
+  const [tiers, setTiers] = useState<Tier[]>(DEFAULT_TIERS);
   const [loading, setLoading] = useState(true);
   const [currentTier, setCurrentTier] = useState<string | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/tiers")
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => setTiers(data?.tiers || []))
-      .catch(() => setTiers([]))
+      .then((data) => {
+        if (data?.tiers && data.tiers.length > 0) {
+          setTiers(data.tiers);
+        }
+      })
+      .catch(() => setTiers(DEFAULT_TIERS))
       .finally(() => setLoading(false));
   }, []);
 
@@ -49,21 +102,31 @@ export default function PricingPage() {
     if (user?.role !== "business") return;
     fetch("/api/business/profile", { cache: "no-store" })
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => { if (data?.business) setCurrentTier(data.business.package_type || "free"); })
+      .then((data) => {
+        if (data?.business) {
+          setCurrentTier(data.business.package_type || "free");
+          if (data.business.status === "verified" || data.business.verification_paid) {
+            setIsVerified(true);
+          }
+        }
+      })
       .catch(() => {});
   }, [user?.role]);
 
   const handleCheckout = async (tier: Tier) => {
     if (!user) { router.push("/signup"); return; }
     if (user.role !== "business") {
-      toast({ title: "Business account required", description: "Only business accounts can subscribe to a plan.", variant: "destructive" });
+      toast({ title: "Business account required", description: "Only business accounts can choose a plan.", variant: "destructive" });
       return;
     }
     setCheckoutLoading(tier.key);
+    const isOnceOff = tier.key === "free" || tier.price === 49;
     const result = await startPayfastCheckout({
-      amount: tier.price,
-      description: `${tier.name} Subscription (R${tier.price}/month)`,
-      purchaseType: `subscription_${tier.key}`,
+      amount: tier.price || 49,
+      description: isOnceOff
+        ? `VerifiedBizLink Verification Fee (R${tier.price || 49} once-off)`
+        : `${tier.name} Subscription (R${tier.price}/month)`,
+      purchaseType: isOnceOff ? 'verification_fee' : `subscription_${tier.key}`,
     });
     // Only reached if the checkout could not be started — success navigates.
     toast({ title: "Payment error", description: result.error, variant: "destructive" });
@@ -71,14 +134,25 @@ export default function PricingPage() {
   };
 
   const ctaAction = (tier: Tier) => {
-    if (tier.key === "free") return { href: user ? "/business/dashboard" : "/signup" };
+    if (!user) return { href: "/signup" };
     return { onClick: () => handleCheckout(tier) };
   };
 
   const ctaLabel = (tier: Tier) => {
+    if (!user) return "Get Started";
+    if (tier.key === "free") {
+      if (isVerified) return "Active & Verified";
+      return "Get Verified (R49 Once-Off)";
+    }
     if (currentTier === tier.key) return "Current Plan";
-    if (tier.key === "free") return "Get Started";
     return "Upgrade Now";
+  };
+
+  const isButtonDisabled = (tier: Tier) => {
+    if (!user) return false;
+    if (tier.key === "free" && isVerified) return true;
+    if (tier.key !== "free" && currentTier === tier.key) return true;
+    return checkoutLoading !== null;
   };
 
   return (
@@ -94,23 +168,17 @@ export default function PricingPage() {
           Grow with the plan that fits you
         </h1>
         <p className="text-lg text-gray-500">
-          Every paid plan includes vetting and the verified badge, billed monthly.
-          Cancel anytime from Settings → Billing — no long-term contract. Not after a
-          subscription? Buy the same vetting and badge once off below.
+          Start with our once-off verified starter plan or supercharge your business reach with our monthly growth tiers.
+          Cancel subscriptions anytime from Settings → Billing — no long-term contracts.
         </p>
         <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-gray-900 text-white px-4 py-2 text-sm font-semibold">
           <ReceiptText className="h-4 w-4 text-yellow-400" />
-          Billed monthly via PayFast — cancel anytime, no long-term contract.
+          Secure checkout via PayFast · Once-off &amp; monthly plans available.
         </div>
       </div>
 
       {/* Pricing Cards */}
       <div className="max-w-6xl mx-auto px-4 pb-16">
-        {/* The once-off badge, above the monthly plans. Someone who only wants
-            to be verified should not have to read four subscription cards to
-            find out they do not need one. */}
-        {user?.role === 'business' && <VerificationOffer className="mb-8" />}
-
         {/* Credit the advisor before paying, not after — this is the last
             moment the sale can still be attributed to whoever earned it. */}
         {user?.role === 'business' && <AgentReferralField className="mb-6 max-w-xl mx-auto" />}
@@ -120,13 +188,14 @@ export default function PricingPage() {
             <Loader2 className="h-8 w-8 text-yellow-500 animate-spin" />
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch max-w-5xl mx-auto">
             {tiers.map((tier) => {
               const highlighted = tier.key === "standard";
               const isCurrent = currentTier === tier.key;
               const Icon = TIER_ICON[tier.key] || Building2;
               const action = ctaAction(tier);
               const isLoadingThis = checkoutLoading === tier.key;
+              const isOnceOff = tier.key === "free" || tier.price === 49;
               return (
                 <div
                   key={tier.key}
@@ -143,7 +212,7 @@ export default function PricingPage() {
                   )}
                   {isCurrent && (
                     <span className="absolute top-4 right-4 rounded-full bg-green-100 text-green-700 text-[10px] font-bold uppercase tracking-wide px-2.5 py-1">
-                      Your Plan
+                      {isOnceOff && isVerified ? "Verified" : "Your Plan"}
                     </span>
                   )}
 
@@ -153,12 +222,15 @@ export default function PricingPage() {
 
                   <h3 className="text-xl font-bold text-gray-900 mb-1">{tier.name}</h3>
                   <p className="text-sm text-gray-500 mb-5 min-h-[2.5rem]">
-                    {tier.note || (tier.key === "free" ? "Perfect for getting started" : "Build trust and grow your reach")}
+                    {tier.note || (isOnceOff ? "Vetting & lifetime verified badge" : "Build trust and grow your reach")}
                   </p>
 
                   <div className="mb-6">
-                    {tier.key === "free" ? (
-                      <span className="text-3xl font-extrabold text-gray-900">Free</span>
+                    {isOnceOff ? (
+                      <>
+                        <span className="text-4xl font-extrabold text-gray-900">R{tier.price || 49}</span>
+                        <span className="text-sm text-gray-500 ml-1 font-medium">once-off</span>
+                      </>
                     ) : tier.price < 0 ? (
                       <span className="text-3xl font-extrabold text-gray-900">Custom</span>
                     ) : (
@@ -181,7 +253,7 @@ export default function PricingPage() {
                   {action.href ? (
                     <Link href={action.href}>
                       <Button
-                        disabled={isCurrent}
+                        disabled={isButtonDisabled(tier)}
                         className={`w-full font-bold h-11 rounded-xl ${
                           highlighted
                             ? "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
@@ -194,7 +266,7 @@ export default function PricingPage() {
                   ) : (
                     <Button
                       onClick={action.onClick}
-                      disabled={isCurrent || checkoutLoading !== null}
+                      disabled={isButtonDisabled(tier)}
                       className={`w-full font-bold h-11 rounded-xl ${
                         highlighted
                           ? "bg-yellow-400 text-gray-900 hover:bg-yellow-300"

@@ -28,17 +28,17 @@ export interface TierFeatures {
 export const TIER_FEATURES: Record<TierName, TierFeatures> = {
   free: {
     name: 'free',
-    displayName: 'Free',
-    monthlyPrice: 0,
-    annualPrice: 0,
-    description: 'Perfect for getting started',
+    displayName: 'Starter (Once-Off)',
+    monthlyPrice: 4900, // R49 once-off in cents
+    annualPrice: 4900,
+    description: 'Business profile with once-off CIPC verification & badge',
     features: {
       listings: 1,
       ads: 0,
       adImpressionsPerMonth: 0,
       storageGB: 1,
       analytics: 'basic',
-      supportLevel: 'none',
+      supportLevel: 'email',
       customDomain: false,
       apiAccess: false,
       geofencing: false,
@@ -48,11 +48,12 @@ export const TIER_FEATURES: Record<TierName, TierFeatures> = {
     },
     adExposureMultiplier: 0.5,
     benefits: [
-      'One business listing',
-      'Basic profile information',
-      'View profile analytics',
-      'Email support',
-      'Community access',
+      'Full business directory listing',
+      'CIPC & Identity document vetting',
+      'Verified Trust Badge (Permanent)',
+      'Customer reviews & direct inquiries',
+      '1 post per day',
+      'Once-off payment — no subscription',
     ],
     highlighted: false,
   },
@@ -60,12 +61,12 @@ export const TIER_FEATURES: Record<TierName, TierFeatures> = {
   standard: {
     name: 'standard',
     displayName: 'Standard',
-    monthlyPrice: 4999, // R49.99 in cents
-    annualPrice: 49990, // R499.90 in cents (discount)
+    monthlyPrice: 29900, // R299.00 in cents
+    annualPrice: 299000, // R2990.00 in cents (discount)
     description: 'For growing businesses',
     features: {
       listings: 5,
-      ads: 5,
+      ads: 1,
       adImpressionsPerMonth: 10000,
       storageGB: 10,
       analytics: 'advanced',
@@ -79,14 +80,13 @@ export const TIER_FEATURES: Record<TierName, TierFeatures> = {
     },
     adExposureMultiplier: 1.0,
     benefits: [
-      'Up to 5 business listings',
-      'Create & manage ads (limit 5)',
-      'Geo-targeted promotions',
-      'Advanced analytics dashboard',
-      ' 10GB file storage',
+      'Everything in Free / Verified',
+      '1 active ad per month (14 days boost)',
+      'Priority discovery listing',
+      'Unlimited connections & posts',
+      'Basic analytics dashboard',
+      '10GB file storage',
       'Email priority support',
-      'Fraud detection for ads',
-      'Basic API access',
     ],
     highlighted: true,
   },
@@ -94,12 +94,12 @@ export const TIER_FEATURES: Record<TierName, TierFeatures> = {
   premium: {
     name: 'premium',
     displayName: 'Premium',
-    monthlyPrice: 9999, // R99.99 in cents
-    annualPrice: 99990, // R999.90 in cents (discount)
+    monthlyPrice: 69900, // R699.00 in cents
+    annualPrice: 699000, // R6990.00 in cents (discount)
     description: 'For serious enterprises',
     features: {
       listings: 20,
-      ads: 'unlimited',
+      ads: 5,
       adImpressionsPerMonth: 'unlimited',
       storageGB: 100,
       analytics: 'advanced',
@@ -113,18 +113,14 @@ export const TIER_FEATURES: Record<TierName, TierFeatures> = {
     },
     adExposureMultiplier: 1.5,
     benefits: [
-      'Unlimited business listings',
-      'Unlimited ads & campaigns',
-      'Unlimited ad impressions',
-      'Advanced geo-targeting',
-      'Custom domain support',
+      'Everything in Standard',
+      'Gold Verified badge (fast-tracked 24h)',
+      'Boosted ad placement (5 active ads)',
+      'Full analytics dashboard & lead reports',
+      'AI content assistant (unlimited)',
       '100GB file storage',
-      'Enterprise analytics',
-      'Phone & email 24/7 support',
-      'Full API access',
-      'Advanced fraud detection',
-      'Priority ad placement',
-      'Marketing consultation',
+      'Phone & email priority support',
+      'Dedicated account manager',
     ],
     highlighted: false,
   },

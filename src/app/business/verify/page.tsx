@@ -134,7 +134,7 @@ export default function BusinessVerifyPage() {
                   )}
                 </Button>
 
-                <p className="text-xs text-gray-400">Secure payment via PayFast. You can continue using the free tier without verification.</p>
+                <p className="text-xs text-gray-400">Secure payment via PayFast. Once-off fee to verify your profile and activate the badge.</p>
               </>
             )}
           </div>

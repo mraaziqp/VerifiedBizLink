@@ -287,9 +287,26 @@ export async function POST(request: NextRequest) {
     await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS subscription_status TEXT`;
     await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS last_billed_at TIMESTAMPTZ`;
 
+    // --- v12: Clean tier model - Free profile with R49 once-off verification ---
+    await db`
+      UPDATE tiers SET
+        name = 'Starter (Once-Off)',
+        price = 49,
+        note = 'Once-off verification · No monthly subscription',
+        features = '["Official CIPC & business vetting","Gold Verified Badge on profile","Priority placement in search & discovery","Public company profile & directory listing","Customer reviews & direct inquiries","1 post per day","Once-off payment — no subscription"]',
+        sort_order = 1,
+        is_purchasable = true,
+        is_active = true
+      WHERE key = 'free'
+    `;
+    await db`UPDATE tiers SET is_active = false, is_purchasable = false WHERE key = 'verified'`;
+    await db`UPDATE tiers SET sort_order = 2, price = 299 WHERE key = 'standard'`;
+    await db`UPDATE tiers SET sort_order = 3, price = 699 WHERE key = 'premium'`;
+    await db`UPDATE tiers SET is_active = false, is_purchasable = false WHERE key = 'premium_half'`;
+
     return NextResponse.json({
       success: true,
-      message: 'Migration v11 applied: TOTP 2FA columns, user_sessions table, recurring-billing columns.',
+      message: 'Migration v12 applied: Starter once-off verification tier (R49) and subscription tiers updated.',
     });
   } catch (error) {
     console.error('Migration error:', error);
