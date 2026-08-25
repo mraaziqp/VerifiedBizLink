@@ -80,6 +80,7 @@ interface Payout {
   bankReference: string;
   statementAmountCents: number | null;
   varianceCents: number | null;
+  reconciledAt: string | null;
   reconciledBy: string | null;
   reconciliationNote: string;
   payoutMethod?: string;
