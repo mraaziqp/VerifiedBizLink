@@ -79,6 +79,18 @@ interface Lead {
   created_at: string;
 }
 
+interface AgentPayout {
+  id: string;
+  amountCents: number;
+  reference: string;
+  payoutMethod: string;
+  status: string;
+  paidAt: string;
+  note: string;
+  bankReference: string;
+  reconciledAt: string | null;
+}
+
 interface ActivityEvent {
   id: string;
   event_type: string;
@@ -118,6 +130,7 @@ export default function AgentPortalPage() {
   // Core Data
   const [totals, setTotals] = useState<Totals | null>(null);
   const [signups, setSignups] = useState<Signup[]>([]);
+  const [payoutHistory, setPayoutHistory] = useState<AgentPayout[]>([]);
   const [referral, setReferral] = useState<Referral | null>(null);
   const [currentWeeklyTier, setCurrentWeeklyTier] = useState<{ weeklySales: number; tierName: string; ratePercent: number }>({
     weeklySales: 0,
@@ -175,6 +188,7 @@ export default function AgentPortalPage() {
         const data = await res.json();
         setTotals(data.totals);
         setSignups(data.signups || []);
+        setPayoutHistory(data.payoutHistory || data.payouts?.history || []);
         setReferral(data.referral ?? null);
         if (data.currentWeeklyTier) setCurrentWeeklyTier(data.currentWeeklyTier);
         if (data.scheme) setScheme(data.scheme);
@@ -637,6 +651,72 @@ export default function AgentPortalPage() {
                             ) : (
                               <span className="text-slate-300">—</span>
                             )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Card>
+
+            {/* Payouts & EFT Remittance History */}
+            <Card className="border border-slate-200 bg-white shadow-xs rounded-2xl overflow-hidden">
+              <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                    <Wallet className="h-4.5 w-4.5 text-emerald-600" />
+                    Commission Payouts &amp; Bank Remittances
+                  </h3>
+                  <p className="text-xs text-slate-500">Official record of EFT payouts transferred to your bank account</p>
+                </div>
+                <Badge variant="outline" className="text-xs font-bold bg-emerald-50 text-emerald-800 border-emerald-200">
+                  Total Paid: {formatRand(paidCents)}
+                </Badge>
+              </div>
+
+              {payoutHistory.length === 0 ? (
+                <div className="p-10 text-center text-slate-400 space-y-1">
+                  <p className="text-sm font-semibold text-slate-600">No payout records yet.</p>
+                  <p className="text-xs text-slate-400">When the finance team disburses your commission via EFT, records will appear here.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="px-5 py-3.5">Payment Date</th>
+                        <th className="px-5 py-3.5">Amount Transferred</th>
+                        <th className="px-5 py-3.5">Method</th>
+                        <th className="px-5 py-3.5">Bank Reference</th>
+                        <th className="px-5 py-3.5">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {payoutHistory.map((p) => (
+                        <tr key={p.id} className="hover:bg-emerald-50/20 transition-colors">
+                          <td className="px-5 py-4 text-xs font-medium text-slate-700">
+                            {when(p.paidAt)}
+                          </td>
+                          <td className="px-5 py-4 font-black text-slate-900">
+                            {formatRand(p.amountCents)}
+                          </td>
+                          <td className="px-5 py-4 text-xs font-semibold text-slate-700">
+                            <span className="rounded bg-slate-100 px-2 py-0.5">{p.payoutMethod || 'EFT'}</span>
+                          </td>
+                          <td className="px-5 py-4 font-mono text-xs text-slate-600">
+                            {p.bankReference || p.reference || '—'}
+                          </td>
+                          <td className="px-5 py-4">
+                            <span className={`inline-block text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
+                              p.status === 'reconciled'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : p.status === 'disputed'
+                                  ? 'bg-red-50 text-red-700 border-red-200'
+                                  : 'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                              {p.status === 'reconciled' ? 'Verified (Matched)' : p.status}
+                            </span>
                           </td>
                         </tr>
                       ))}

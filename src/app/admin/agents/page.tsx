@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, Loader2, UserPlus, Link2, Copy, Check, Wallet, TrendingUp,
   Users, QrCode, Banknote, SlidersHorizontal, Download, Ban, RotateCcw, RefreshCw, X, CheckCheck,
-  Building2, CreditCard, Send, AlertCircle, FileSpreadsheet,
+  Building2, CreditCard, Send, AlertCircle, FileSpreadsheet, Search, Printer, Receipt,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -121,7 +121,21 @@ export default function AdminAgentsPage() {
   const [history, setHistory] = useState<SettingsChange[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
   const [payoutSummary, setPayoutSummary] = useState<PayoutSummary | null>(null);
+  const [payoutSearch, setPayoutSearch] = useState('');
+  const [payoutStatusFilter, setPayoutStatusFilter] = useState<'all' | 'recorded' | 'reconciled' | 'disputed'>('all');
+  const [selectedRemittancePayout, setSelectedRemittancePayout] = useState<Payout | null>(null);
   const { toast } = useToast();
+
+  const filteredPayouts = payouts.filter((p) => {
+    if (payoutStatusFilter !== 'all' && p.status !== payoutStatusFilter) return false;
+    if (payoutSearch.trim()) {
+      const q = payoutSearch.toLowerCase();
+      const matchName = (p.agentName || '').toLowerCase().includes(q);
+      const matchRef = (p.reference || '').toLowerCase().includes(q) || (p.bankReference || '').toLowerCase().includes(q);
+      if (!matchName && !matchRef) return false;
+    }
+    return true;
+  });
 
   const fetchAgents = useCallback(async () => {
     const res = await fetch('/api/admin/agents', { cache: 'no-store' });
@@ -892,10 +906,45 @@ export default function AdminAgentsPage() {
             </div>
           </div>
 
+          {/* Search & Status Filter Controls */}
+          {payouts.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 sm:px-6">
+              <div className="relative w-full sm:w-72">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                  value={payoutSearch}
+                  onChange={(e) => setPayoutSearch(e.target.value)}
+                  placeholder="Filter by agent or reference…"
+                  className="pl-9 h-9 text-xs border-gray-200 bg-white"
+                />
+              </div>
+
+              <div className="flex items-center gap-1 text-xs">
+                {(['all', 'recorded', 'reconciled', 'disputed'] as const).map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => setPayoutStatusFilter(st)}
+                    className={`px-3 py-1 rounded-lg font-semibold capitalize transition-all ${
+                      payoutStatusFilter === st
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {payouts.length === 0 ? (
             <div className="p-8 text-center text-sm text-gray-500">
               No payouts recorded yet. Use &ldquo;Pay&rdquo; on an agent above once you have
               paid them, then match it here against your statement.
+            </div>
+          ) : filteredPayouts.length === 0 ? (
+            <div className="p-8 text-center text-sm text-gray-500">
+              No payouts matching your search/filter criteria.
             </div>
           ) : (
             <div className="mt-4 overflow-x-auto">
@@ -912,7 +961,7 @@ export default function AdminAgentsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {payouts.map((p) => (
+                  {filteredPayouts.map((p) => (
                     <tr key={p.id} className="text-gray-600 transition-colors hover:bg-gray-50">
                       <td className="px-5 py-3">
                         <div className="font-medium text-gray-900">{p.agentName}</div>
@@ -961,16 +1010,27 @@ export default function AdminAgentsPage() {
                         )}
                       </td>
                       <td className="px-5 py-3">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={busy}
-                          onClick={() => reconcile(p)}
-                          className="gap-1.5 border-gray-300 text-gray-700"
-                        >
-                          <CheckCheck className="h-4 w-4" />
-                          {p.status === 'recorded' ? 'Match' : 'Re-check'}
-                        </Button>
+                        <div className="flex items-center gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() => reconcile(p)}
+                            className="gap-1.5 border-gray-300 text-gray-700 text-xs"
+                          >
+                            <CheckCheck className="h-3.5 w-3.5" />
+                            {p.status === 'recorded' ? 'Match' : 'Re-check'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            title="View Remittance Advice / Receipt"
+                            onClick={() => setSelectedRemittancePayout(p)}
+                            className="h-8 w-8 p-0 text-slate-500 hover:text-slate-900"
+                          >
+                            <Receipt className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1179,6 +1239,109 @@ export default function AdminAgentsPage() {
                   </Button>
                 </DialogFooter>
               </form>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Remittance Advice / Receipt Modal */}
+        <Dialog open={selectedRemittancePayout !== null} onOpenChange={(open) => { if (!open) setSelectedRemittancePayout(null); }}>
+          <DialogContent className="sm:max-w-[500px] rounded-2xl p-6">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
+                <Receipt className="h-5 w-5 text-amber-600" />
+                Commission Remittance Advice
+              </DialogTitle>
+              <DialogDescription className="text-slate-500 text-xs">
+                Official payment receipt &amp; remittance record for commission disbursement.
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedRemittancePayout && (
+              <div className="space-y-4 py-2 text-xs">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400">Recipient</span>
+                      <div className="font-bold text-sm text-slate-900">{selectedRemittancePayout.agentName}</div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-slate-400">Date Paid</span>
+                      <div className="font-semibold text-slate-800">{new Date(selectedRemittancePayout.paidAt).toLocaleDateString('en-ZA', { dateStyle: 'medium' })}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400">Amount Transferred</span>
+                      <div className="text-lg font-black text-emerald-700">{formatRand(selectedRemittancePayout.amountCents)}</div>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400">Payment Method</span>
+                      <div className="font-semibold text-slate-800">{selectedRemittancePayout.payoutMethod || 'EFT Bank Transfer'}</div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 border-t border-slate-200 pt-2">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400">Reference</span>
+                      <div className="font-mono font-semibold text-slate-800">{selectedRemittancePayout.reference || '—'}</div>
+                    </div>
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400">Bank Reference</span>
+                      <div className="font-mono font-semibold text-slate-800">{selectedRemittancePayout.bankReference || '—'}</div>
+                    </div>
+                  </div>
+
+                  {selectedRemittancePayout.bankName && (
+                    <div className="border-t border-slate-200 pt-2 grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400">Bank &amp; Account</span>
+                        <div className="text-slate-800 font-medium">{selectedRemittancePayout.bankName} · {selectedRemittancePayout.accountNumber ? `••••${selectedRemittancePayout.accountNumber.slice(-4)}` : ''}</div>
+                      </div>
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-slate-400">Branch Code</span>
+                        <div className="font-mono text-slate-800">{selectedRemittancePayout.branchCode || 'Universal'}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-2">
+                    <div>
+                      <span className="text-[10px] uppercase font-bold text-slate-400">Status</span>
+                      <span className={`ml-2 inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${
+                        selectedRemittancePayout.status === 'reconciled'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : selectedRemittancePayout.status === 'disputed'
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-amber-100 text-amber-800'
+                      }`}>
+                        {selectedRemittancePayout.status}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Disbursed by {selectedRemittancePayout.recordedBy}
+                    </div>
+                  </div>
+                </div>
+
+                <DialogFooter className="pt-2 sm:justify-between">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setSelectedRemittancePayout(null)}
+                    className="border-slate-300 text-slate-700 text-xs"
+                  >
+                    Close
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="gap-1.5 bg-slate-900 text-white hover:bg-slate-800 text-xs"
+                  >
+                    <Printer className="h-3.5 w-3.5" /> Print Remittance
+                  </Button>
+                </DialogFooter>
+              </div>
             )}
           </DialogContent>
         </Dialog>

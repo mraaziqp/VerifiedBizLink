@@ -41,6 +41,20 @@ const SA_BANKS = [
   'Other',
 ];
 
+const SA_BANK_BRANCH_CODES: Record<string, string> = {
+  'Capitec Bank': '470010',
+  'FNB (First National Bank)': '250655',
+  'Standard Bank': '051001',
+  'ABSA Bank': '632005',
+  'Nedbank': '198765',
+  'TymeBank': '678910',
+  'Discovery Bank': '679000',
+  'Investec Bank': '580105',
+  'African Bank': '430000',
+  'Sasfin Bank': '683000',
+  'Bidvest Bank': '462005',
+};
+
 interface Issue {
   id: string;
   category: string;
@@ -290,7 +304,15 @@ export function AgentSupportPanel() {
                 <Label className="text-sm font-semibold text-gray-700">Bank Name</Label>
                 <select
                   value={profile.bankName}
-                  onChange={field('bankName')}
+                  onChange={(e) => {
+                    const selected = e.target.value;
+                    const autoBranch = SA_BANK_BRANCH_CODES[selected] || '';
+                    setProfile((p) => (p ? {
+                      ...p,
+                      bankName: selected,
+                      branchCode: autoBranch || p.branchCode,
+                    } : p));
+                  }}
                   className="mt-1 h-10 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 >
                   <option value="">Select your bank…</option>

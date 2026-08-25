@@ -114,6 +114,27 @@ export async function GET(request: NextRequest) {
     `.catch(() => [{ paid: 0 }])) as unknown as Row[];
     const paidCents = Number(paidRows[0]?.paid) || 0;
 
+    const payoutRecords = (await db`
+      SELECT id, amount_cents, reference, payout_method, status, paid_at, note,
+             bank_reference, reconciled_at
+      FROM commission_payouts
+      WHERE agent_id = ${agentId}
+      ORDER BY paid_at DESC
+      LIMIT 50
+    `.catch(() => [])) as unknown as Row[];
+
+    const payoutHistory = payoutRecords.map((p) => ({
+      id: p.id,
+      amountCents: Number(p.amount_cents) || 0,
+      reference: p.reference || '',
+      payoutMethod: (p.payout_method as string) || 'EFT',
+      status: (p.status as string) || 'recorded',
+      paidAt: p.paid_at,
+      note: p.note || '',
+      bankReference: p.bank_reference || '',
+      reconciledAt: p.reconciled_at || null,
+    }));
+
     return NextResponse.json({
       agentId,
       policy: {
@@ -138,6 +159,7 @@ export async function GET(request: NextRequest) {
       payouts: {
         paidCents,
         retentionMonthlyCents,
+        history: payoutHistory,
       },
       totals: {
         signups: signups.length,
@@ -150,6 +172,7 @@ export async function GET(request: NextRequest) {
         retentionMonthlyCents,
       },
       signups,
+      payoutHistory,
     });
   } catch (error) {
     console.error('Agent dashboard error:', error);
