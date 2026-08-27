@@ -157,13 +157,13 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 md:py-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
 
-          {/* Left sidebar — desktop only */}
-          <aside className="hidden md:block md:col-span-3 sticky top-6">
+          {/* Left sidebar — desktop & tablet */}
+          <aside className="hidden md:block md:col-span-4 lg:col-span-3 sticky top-4 md:top-6 z-20">
             <SidebarLeft />
           </aside>
 
           {/* Main feed column */}
-          <main className="md:col-span-6 space-y-4">
+          <main className="md:col-span-8 lg:col-span-6 space-y-4">
             {/* Verification Hero */}
             <VerificationHero />
 
@@ -347,7 +347,7 @@ export default function Home() {
           </main>
 
           {/* Right column — desktop only */}
-          <aside className="hidden md:flex md:col-span-3 flex-col gap-4 sticky top-6">
+          <aside className="hidden lg:flex lg:col-span-3 flex-col gap-4 sticky top-4 lg:top-6 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain pr-1.5 pb-8 custom-scrollbar z-20">
             <FeaturedBusinesses
               businesses={filteredBusinesses.slice(0, 3)}
               loading={loading}
@@ -360,8 +360,8 @@ export default function Home() {
 
         </div>
 
-        {/* Mobile-only: discovery + news below feed */}
-        <div className="md:hidden mt-4 space-y-4">
+        {/* Mobile & Tablet: discovery + news below feed */}
+        <div className="lg:hidden mt-4 space-y-4">
           <FeaturedBusinesses
             businesses={filteredBusinesses.slice(0, 3)}
             loading={loading}

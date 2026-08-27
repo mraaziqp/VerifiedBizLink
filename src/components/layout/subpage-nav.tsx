@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Home, Building2, Compass } from "lucide-react";
+import { ArrowLeft, Home, Building2, Compass, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VBLLogo } from "@/components/ui/vbl-logo";
 import { useAuth } from "@/contexts/auth-context";
+import { useMobileMenu } from "@/contexts/mobile-menu-context";
 
 interface SubpageNavProps {
   title?: string;
@@ -15,6 +16,7 @@ interface SubpageNavProps {
 export function SubpageNav({ title, backHref }: SubpageNavProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const { setOpen } = useMobileMenu();
 
   const handleBack = () => {
     if (backHref) {
@@ -39,6 +41,15 @@ export function SubpageNav({ title, backHref }: SubpageNavProps) {
             <ArrowLeft className="h-4 w-4 text-gray-700" />
             <span>Back</span>
           </Button>
+
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Open navigation menu"
+            className="p-2 hover:bg-gray-100 rounded-xl transition-colors lg:hidden"
+          >
+            <Menu className="h-5 w-5 text-gray-700" />
+          </button>
 
           <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
             <VBLLogo variant="icon" size="sm" iconSize={32} theme="dark" />

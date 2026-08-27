@@ -226,11 +226,11 @@ export default function VettingPage() {
       <SubpageNav title="Vetting Hub" />
       <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-          <aside className="hidden md:block md:col-span-3 sticky top-6">
+          <aside className="hidden md:block md:col-span-4 lg:col-span-3 sticky top-4 md:top-6 z-20">
             <SidebarLeft />
           </aside>
 
-          <main className="md:col-span-9 space-y-6">
+          <main className="md:col-span-8 lg:col-span-9 space-y-6">
             {/* Header */}
             <div className="bg-primary/10 border border-primary/20 rounded-2xl p-5 md:p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div className="flex items-center gap-4">

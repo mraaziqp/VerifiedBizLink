@@ -62,12 +62,12 @@ export default function ContactPage() {
     <div className="min-h-screen bg-gray-50">
       <SubpageNav title="Contact Support" />
       <div className="max-w-7xl mx-auto px-4 lg:px-6 py-12 overflow-x-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <aside className="hidden lg:block lg:col-span-3 sticky top-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+          <aside className="hidden md:block md:col-span-4 lg:col-span-3 sticky top-4 md:top-6 z-20">
             <SidebarLeft />
           </aside>
 
-          <main className="lg:col-span-9 space-y-8 min-w-0">
+          <main className="md:col-span-8 lg:col-span-9 space-y-8 min-w-0">
             <div className="max-w-2xl">
               <h1 className="text-4xl font-bold text-gray-900 mb-2">Get in Touch</h1>
               <p className="text-gray-600">

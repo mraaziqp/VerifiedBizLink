@@ -51,7 +51,11 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 
-export function SidebarLeft() {
+interface SidebarLeftProps {
+  className?: string;
+}
+
+export function SidebarLeft({ className }: SidebarLeftProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout } = useAuth();
@@ -134,7 +138,7 @@ export function SidebarLeft() {
   const canManageBusiness = user && (user.role === 'business' || isAdmin);
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className={cn("flex flex-col gap-4 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain pr-1.5 pb-8 custom-scrollbar", className)}>
       {/* Brand Header & Logo — clean framing, zero cut-off */}
       <div className="flex items-center justify-between px-3 py-2.5 bg-white/90 rounded-2xl border border-slate-200/90 shadow-xs">
         <VBLLogo variant="full" size="sm" iconSize={36} theme="dark" />
