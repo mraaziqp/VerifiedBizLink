@@ -20,44 +20,27 @@ interface Ad {
 const DISMISS_KEY = "vbl_ad_dismissed_at";
 const AD_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
 
-// Fallback sample ad when no ads are loaded from server
-const SAMPLE_ADS: Ad[] = [
-  {
-    id: "sample-1",
-    title: "Expand Your Business Network",
-    description: "Connect with 500+ verified South African businesses. Get your Gold Verification badge and unlock premium trade opportunities.",
-    business_name: "VerifiedBizLink",
-    cta_text: "Get Verified",
-    cta_url: "/vetting",
-    badge: "Trusted Partner",
-    is_boosted: true,
-  },
-  {
-    id: "sample-2",
-    title: "Is Your Business POPIA Compliant?",
-    description: "Ensure your business meets all POPIA Act requirements. Our legal team is ready to guide you through the compliance process.",
-    business_name: "VBL Legal",
-    cta_text: "Learn More",
-    cta_url: "/contact",
-    badge: "Compliance",
-    is_boosted: false,
-  },
-  {
-    id: "sample-3",
-    title: "Grow Your Business with Verified Ads",
-    description: "Advertise your verified business to thousands of professionals. Boost your visibility and drive more leads.",
-    business_name: "VBL Ads",
-    cta_text: "Advertise Now",
-    cta_url: "/settings",
-    badge: "Featured",
-    is_boosted: true,
-  },
-];
+/**
+ * This slot shows real, paid placements only.
+ *
+ * It used to fall back to three invented ads — "VBL Legal", "VBL Ads",
+ * a "Trusted Partner" badge and a "Boosted" flag — shown under a Sponsored
+ * label although nobody had bought them, from businesses that do not exist,
+ * claiming "500+ verified South African businesses" when there are four.
+ *
+ * On a platform whose product is verification, that is the one thing the slot
+ * must never do. It also hid whether advertising worked at all: a fabricated
+ * ad looks exactly like a working one, so nobody could tell the system had
+ * never served a real placement.
+ *
+ * With no ads to show, the slot shows nothing.
+ */
+const AD_PLACEMENT = "top_banner";
 
 export function AdBanner() {
   const { user } = useAuth();
   const [visible, setVisible] = useState(false);
-  const [ads, setAds] = useState<Ad[]>(SAMPLE_ADS);
+  const [ads, setAds] = useState<Ad[]>([]);
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
   const [adsEnabled, setAdsEnabled] = useState(true);
 
@@ -87,23 +70,25 @@ export function AdBanner() {
         // If API fails, default to showing ads
       }
 
-      // Check cooldown
-      if (checkShouldShow()) {
-        // Small delay so page renders first
-        setTimeout(() => setVisible(true), 1500);
-      }
-
-      // Try to load live ads
+      // Load the ads bought for THIS placement. An ad paid for as a feed or
+      // spotlight slot must not surface here — that is the advertiser being
+      // given something other than what they paid for.
+      let loaded: Ad[] = [];
       try {
-        const res = await fetch("/api/ads/targeted");
+        const res = await fetch(`/api/ads/targeted?placement=${AD_PLACEMENT}`, { cache: "no-store" });
         if (res.ok) {
           const data = await res.json();
-          if (data.ads && data.ads.length > 0) {
-            setAds(data.ads);
-          }
+          if (Array.isArray(data.ads)) loaded = data.ads;
         }
       } catch {
-        // Use sample ads as fallback
+        // An advertising failure must never break the page around it.
+      }
+
+      setAds(loaded);
+
+      // Nothing paid for this slot, so nothing appears in it.
+      if (loaded.length > 0 && checkShouldShow()) {
+        setTimeout(() => setVisible(true), 1500); // let the page render first
       }
     };
 
@@ -113,6 +98,7 @@ export function AdBanner() {
   // Poll to re-show after cooldown
   useEffect(() => {
     if (!user || !["user", "business"].includes(user.role) || !adsEnabled) return;
+    if (ads.length === 0) return; // nothing to rotate through
     const interval = setInterval(() => {
       if (!visible && checkShouldShow()) {
         setCurrentAdIndex((i) => (i + 1) % ads.length);
@@ -126,7 +112,7 @@ export function AdBanner() {
   useEffect(() => {
     if (!visible) return;
     const ad = ads[currentAdIndex] || ads[0];
-    if (ad && !ad.id.startsWith("sample-")) {
+    if (ad) {
       fetch(`/api/ads/${ad.id}/track`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -143,7 +129,6 @@ export function AdBanner() {
   };
 
   const trackAd = (adId: string, type: "impression" | "click") => {
-    if (adId.startsWith("sample-")) return; // fallback ads aren't real DB rows
     fetch(`/api/ads/${adId}/track`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -152,7 +137,10 @@ export function AdBanner() {
     }).catch(() => {});
   };
 
+  // ads.length is the guard that matters: with nothing sold for this slot,
+  // the component renders nothing at all rather than inventing filler.
   if (!user || !["user", "business"].includes(user.role) || !visible || !adsEnabled) return null;
+  if (ads.length === 0) return null;
 
   const ad = ads[currentAdIndex] || ads[0];
 

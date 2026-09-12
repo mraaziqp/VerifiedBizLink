@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 import { ShieldCheck, Users, TrendingUp } from "lucide-react";
 import { SidebarLeft } from "@/components/layout/sidebar-left";
 import { HomeHeader } from "@/components/layout/home-header";
@@ -26,7 +28,16 @@ const EMPTY_OVERVIEW: HomeOverviewResponse = {
 
 export default function Home() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+
+  // The home feed is for signed-in members only. Middleware turns away a
+  // visitor with no cookie, but a cookie from a revoked or expired session
+  // still carries a valid signature and gets through — this catches that case
+  // client-side instead of showing them a guest version of the page.
+  useEffect(() => {
+    if (!authLoading && !user) router.replace("/login");
+  }, [authLoading, user, router]);
   const [homeData, setHomeData] = useState<HomeOverviewResponse>(EMPTY_OVERVIEW);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
@@ -99,7 +110,9 @@ export default function Home() {
     // and a preferences DB write — per user, per minute. Someone's city
     // doesn't change that often, and the header already exposes a manual
     // refresh button for the case where it does.
-    refreshLocation();
+    void (async () => {
+      await refreshLocation();
+    })();
   }, []);
 
   const filteredBusinesses = useMemo(() => {
@@ -132,6 +145,16 @@ export default function Home() {
       setConnectingId(null);
     }
   };
+
+  // Nothing of the feed renders until we know who is looking. Rendering first
+  // and redirecting after would flash the page at a signed-out visitor.
+  if (authLoading || !user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <Loader2 className="h-7 w-7 animate-spin text-yellow-500" aria-label="Loading" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 relative isolate">

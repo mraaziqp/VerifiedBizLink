@@ -1,12 +1,37 @@
-import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { getSession, sessionCookieOptions } from '@/lib/auth';
 import db from '@/lib/db';
 
-export async function GET() {
+/**
+ * A 401 that also deletes the cookie.
+ *
+ * Middleware only checks the JWT signature; getSession also requires the
+ * session row to exist and not be revoked. A cookie from a signed-out or
+ * cleaned-up session therefore passes middleware but fails here — and nothing
+ * ever removed it, so the browser stayed stuck: every page let through, every
+ * page finding no user, the home page rendering a "Guest User" view to someone
+ * who is not signed in. Clearing it here means the very next navigation has no
+ * cookie and middleware sends them to /login.
+ *
+ * The domain must match the one the cookie was set with, or the browser treats
+ * the deletion as a different cookie and keeps the real one.
+ */
+function unauthorised(request: NextRequest) {
+  const response = NextResponse.json({ user: null }, { status: 401 });
+  if (request.cookies.get('vbl_session')?.value) {
+    response.cookies.set('vbl_session', '', {
+      ...sessionCookieOptions(request.headers.get('host')),
+      maxAge: 0,
+    });
+  }
+  return response;
+}
+
+export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session) {
-      return NextResponse.json({ user: null }, { status: 401 });
+      return unauthorised(request);
     }
 
     // Query the live user record from database so avatar updates and
@@ -19,7 +44,7 @@ export async function GET() {
     `.catch(() => []);
 
     if (!rows.length || rows[0].is_suspended) {
-      return NextResponse.json({ user: null }, { status: 401 });
+      return unauthorised(request);
     }
 
     const u = rows[0];

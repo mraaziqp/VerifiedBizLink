@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 import { getAdLimit, getEffectivePackage, ensureMonthlyAdCredits } from '@/lib/tiers';
+import { getAdSettings, isAdSlot, type AdSlot } from '@/lib/ads';
 
 const MIN_DURATION_DAYS = 1;
 const MAX_DURATION_DAYS = 90;
 
-const SLOT_RATES: Record<string, number> = {
-  feed_inline: 5,
-  top_banner: 10,
-  sidebar_spotlight: 15,
-};
+// Rates come from ad_settings via getAdSettings, so the price the admin sets
+// is the price actually charged. They used to be hardcoded here while the
+// admin screen edited ad_settings, which meant changing a price in the admin
+// UI changed what was displayed and charged the old amount.
 
 import { isStaff } from '@/lib/roles';
 
@@ -98,8 +98,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Choose a duration between ${MIN_DURATION_DAYS} and ${MAX_DURATION_DAYS} days` }, { status: 400 });
   }
 
-  const slot = slotPlacement && SLOT_RATES[slotPlacement] ? slotPlacement : 'feed_inline';
-  const costPerDay = SLOT_RATES[slot] || 5;
+  const adSettings = await getAdSettings();
+  if (!adSettings.enabled) {
+    return NextResponse.json(
+      { error: 'Advertising is switched off at the moment. Your credits are safe — try again later.' },
+      { status: 503 },
+    );
+  }
+
+  const slot: AdSlot = isAdSlot(slotPlacement) ? slotPlacement : 'feed_inline';
+  const costPerDay = adSettings.rates[slot];
   const totalCost = duration * costPerDay;
 
   await ensureMonthlyAdCredits(biz.id);

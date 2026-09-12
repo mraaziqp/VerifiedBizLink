@@ -1,19 +1,11 @@
-const CACHE_NAME = 'verifiedbizlink-v4';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/favicon.ico',
-  '/_next/static/',
-];
+// v5: the install step no longer stores '/'. The home page is a signed-in
+// member's personalised feed, so keeping a copy in the cache meant that HTML
+// outlived the session it was rendered for. Bumping the name makes activate()
+// delete the old cache that still holds it.
+const CACHE_NAME = 'verifiedbizlink-v5';
 
-// Install event - cache core assets
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Installing and caching core assets');
-      return cache.addAll(['/']);
-    })
-  );
+// Install event - nothing is pre-cached; static assets are cached as fetched.
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
