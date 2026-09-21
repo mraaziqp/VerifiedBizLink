@@ -29,7 +29,34 @@ export async function GET(request: NextRequest) {
       LIMIT ${limit} OFFSET ${offset}
     `;
 
-    return NextResponse.json({ posts });
+    /**
+     * Media is referenced, never inlined.
+     *
+     * Images and avatars saved as base64 data: URIs live in the row itself, so
+     * returning them as-is put the whole feed in one response — 6.08 MB for
+     * twenty posts, past Lambda's ~6 MB ceiling. The query succeeded and the
+     * response could not be delivered, so the route 500'd and the feed showed
+     * "no posts yet" as though everything had been deleted. Replacing each
+     * blob with a URL keeps this response in the kilobytes no matter how many
+     * posts exist, and lets the browser cache the images.
+     *
+     * Media already hosted elsewhere (Firebase, Supabase) is passed straight
+     * through — it costs nothing here and the client can fetch it directly.
+     */
+    const asUrl = (value: unknown, endpoint: string): string | null => {
+      const raw = value == null ? '' : String(value);
+      if (!raw) return null;
+      return raw.startsWith('data:') ? endpoint : raw;
+    };
+
+    const lean = (posts as unknown as Record<string, unknown>[]).map((p) => ({
+      ...p,
+      image_url: asUrl(p.image_url, `/api/posts/${p.id}/image`),
+      video_url: asUrl(p.video_url, `/api/posts/${p.id}/image?kind=video`),
+      author_avatar: asUrl(p.author_avatar, `/api/users/${p.user_id}/avatar`),
+    }));
+
+    return NextResponse.json({ posts: lean });
   } catch (error) {
     console.error('Posts GET error:', error);
     return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 });

@@ -55,3 +55,7 @@ scratch/
 
 # QA mass-load run records (contain generated account emails)
 runs/
+
+# Content backups from scripts/backup-content.mjs — contain user data and
+# base64 media; keep them off the repo.
+backups/
