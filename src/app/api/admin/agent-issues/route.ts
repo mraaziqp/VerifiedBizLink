@@ -109,12 +109,12 @@ export async function PATCH(request: NextRequest) {
     // Tell the agent in-app that someone has come back to them.
     if (response || status) {
       await db`
-        INSERT INTO notifications (user_id, title, content, link)
+        INSERT INTO notifications (user_id, type, title, content)
         VALUES (
           ${rows[0].agent_id},
+          'agent_issue_update',
           'Update on your report',
-          ${`"${String(rows[0].subject).slice(0, 80)}" — ${status ? `now ${String(status).replace('_', ' ')}` : 'the team has replied'}`},
-          '/agent'
+          ${`"${String(rows[0].subject).slice(0, 80)}" — ${status ? `now ${String(status).replace('_', ' ')}` : 'the team has replied'}`}
         )
       `.catch(() => {});
     }

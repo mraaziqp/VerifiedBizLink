@@ -123,12 +123,12 @@ export async function GET(request: NextRequest) {
     // off the mail channel to stay inside the 100k/month limit.
     for (const row of [...expired, ...lapsed]) {
       await db`
-        INSERT INTO notifications (user_id, title, content, link)
+        INSERT INTO notifications (user_id, type, title, content)
         VALUES (
           ${row.user_id},
+          'subscription_ended',
           'Your account moved to the Free tier',
-          ${'Your ' + String(row.downgraded_from || 'paid') + ' subscription has ended. Your business is still listed and nothing has been deleted — resubscribe any time to restore premium features.'},
-          '/settings'
+          ${'Your ' + String(row.downgraded_from || 'paid') + ' subscription has ended. Your business is still listed and nothing has been deleted — resubscribe any time to restore premium features.'}
         )
       `.catch((e) => console.error('Downgrade notification failed:', e));
     }

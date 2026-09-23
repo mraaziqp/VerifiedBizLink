@@ -117,12 +117,12 @@ export async function POST(request: NextRequest) {
     ).catch(() => {});
 
     await db`
-      INSERT INTO notifications (user_id, title, content, link)
+      INSERT INTO notifications (user_id, type, title, content)
       VALUES (
         ${agent.id},
+        'referral_applied',
         'A business used your referral code',
-        ${`${business.company_name} added your code at checkout. Their payment will count towards your commission.`},
-        '/agent'
+        ${`${business.company_name} added your code at checkout. Their payment will count towards your commission.`}
       )
     `.catch(() => {});
 

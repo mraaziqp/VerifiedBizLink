@@ -145,10 +145,9 @@ export async function reversePaymentAndRaiseClawback(
 
   // Flagged for a human, not applied silently.
   await db`
-    INSERT INTO notifications (user_id, title, content, link)
-    SELECT id, 'Commission clawback needs review',
-           ${`R${(commission / 100).toFixed(2)} earned by ${attribution[0].agent_name ?? 'an advisor'} on a payment that was ${reason}`},
-           '/admin/agents'
+    INSERT INTO notifications (user_id, type, title, content)
+    SELECT id, 'clawback_review', 'Commission clawback needs review',
+           ${`R${(commission / 100).toFixed(2)} earned by ${attribution[0].agent_name ?? 'an advisor'} on a payment that was ${reason}`}
     FROM users WHERE role = 'admin'
   `.catch((e) => console.error('Clawback notification failed:', e));
 

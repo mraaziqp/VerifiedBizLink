@@ -151,14 +151,14 @@ export async function PATCH(request: NextRequest) {
     // The Advisor is told either way — §16 gives them a right to query a
     // calculation, which they cannot exercise if they never learn of it.
     await db`
-      INSERT INTO notifications (user_id, title, content, link)
+      INSERT INTO notifications (user_id, type, title, content)
       VALUES (
         ${rows[0].agent_id},
+        'clawback_decision',
         ${status === 'waived' ? 'Commission adjustment waived' : 'Commission adjustment applied'},
         ${status === 'waived'
           ? `A reversed payment was reviewed and R${(cents / 100).toFixed(2)} of commission has been left with you.`
-          : `A payment was reversed, so R${(cents / 100).toFixed(2)} of commission has been adjusted. Contact the team if you believe this is wrong.`},
-        '/agent'
+          : `A payment was reversed, so R${(cents / 100).toFixed(2)} of commission has been adjusted. Contact the team if you believe this is wrong.`}
       )
     `.catch(() => {});
 

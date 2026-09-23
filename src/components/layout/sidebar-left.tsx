@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell,
-  MapPin, Building2, Zap, Megaphone, CheckCheck, Trash2, X, Sparkles
+  MapPin, Building2, Zap, Megaphone, CheckCheck, Trash2, X, Briefcase
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -43,6 +43,7 @@ const navigation = [
   { name: "Home", href: "/", icon: Home },
   { name: "My Network", href: "/network", icon: Users },
   { name: "Explore", href: "/explore", icon: MapPin },
+  { name: "Jobs", href: "/jobs", icon: Briefcase },
   { name: "My Business", href: "/business/dashboard", icon: Building2 },
   { name: "Ad Manager", href: "/business/ads", icon: Megaphone },
   { name: "Vetting Hub", href: "/vetting", icon: ShieldCheck },
@@ -62,7 +63,11 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
   const [businessVerified, setBusinessVerified] = useState(false);
-  const [verificationLoading, setVerificationLoading] = useState(true);
+  // Derived rather than stored: only these roles ever have a business profile
+  // to check, so everyone else is not "loading" — there is nothing to load.
+  const [verificationChecked, setVerificationChecked] = useState(false);
+  const canHaveBusiness = !!user && ['business', 'admin', 'banker', 'lawyer'].includes(user.role);
+  const verificationLoading = canHaveBusiness && !verificationChecked;
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -78,12 +83,7 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
   }, [user]);
 
   useEffect(() => {
-    if (!user || !['business', 'admin', 'banker', 'lawyer'].includes(user.role)) {
-      setBusinessVerified(false);
-      setVerificationLoading(false);
-      return;
-    }
-    setVerificationLoading(true);
+    if (!canHaveBusiness) return;
     const controller = new AbortController();
     fetch('/api/business/profile', { signal: controller.signal })
       .then((r) => (r.ok ? r.json() : null))
@@ -95,10 +95,10 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
         if (!controller.signal.aborted) setBusinessVerified(false);
       })
       .finally(() => {
-        if (!controller.signal.aborted) setVerificationLoading(false);
+        if (!controller.signal.aborted) setVerificationChecked(true);
       });
     return () => controller.abort();
-  }, [user]);
+  }, [canHaveBusiness]);
 
   useEffect(() => {
     const controller = new AbortController();

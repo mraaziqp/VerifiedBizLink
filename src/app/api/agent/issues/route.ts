@@ -109,11 +109,10 @@ export async function POST(request: NextRequest) {
     // Admins are told in-app. A blocking report is the one case worth
     // interrupting someone for, so it is flagged as such in the notice.
     await db`
-      INSERT INTO notifications (user_id, title, content, link)
-      SELECT id,
+      INSERT INTO notifications (user_id, type, title, content)
+      SELECT id, 'agent_issue',
              ${pri === 'blocking' ? 'BLOCKING issue reported by an agent' : 'Agent reported an issue'},
-             ${`${session!.fullName || 'An agent'}: ${subj.slice(0, 140)}`},
-             '/admin/agent-issues'
+             ${`${session!.fullName || 'An agent'}: ${subj.slice(0, 140)}`}
       FROM users WHERE role = 'admin'
     `.catch((e) => console.error('Agent issue notification failed:', e));
 

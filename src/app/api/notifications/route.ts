@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 
+/**
+ * Where the bell sends someone, by notification type.
+ *
+ * This is the only place a destination is decided — the table has no `link`
+ * column. Nine inserts across the app were written as if it did, and because
+ * every one of them is wrapped in .catch() they failed in silence: advisors
+ * were never told a clawback had been decided, admins never heard about
+ * reported issues or reversed payments, and nobody noticed. Any new
+ * notification type must be added here, or it lands on /network.
+ */
 const TYPE_LINK: Record<string, string> = {
   connection_accepted: '/network',
   connection_request: '/network',
@@ -9,6 +19,19 @@ const TYPE_LINK: Record<string, string> = {
   vetting_update: '/business/dashboard',
   new_review: '/business/dashboard',
   document_graded: '/business/documents',
+
+  // Advisor programme
+  agent_issue: '/admin/agent-issues',
+  agent_issue_update: '/agent',
+  clawback_review: '/admin/agents',
+  clawback_decision: '/agent',
+  referral_applied: '/agent',
+  payment_reversed: '/admin/payments',
+  subscription_ended: '/settings/billing',
+
+  // Verified Talent
+  job_application: '/business/jobs',
+  application_update: '/jobs/applications',
 };
 
 // GET  /api/notifications — list unread notifications safely

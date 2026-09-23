@@ -92,6 +92,12 @@ const VERIFIED_ONLY_PREFIXES = [
   '/api/business/',
   '/api/businesses',
   '/api/media/upload',
+  // Applying for a role and publishing a vacancy both put a real person in
+  // front of a stranger. An account that has not proved it owns its own email
+  // address should not be doing either on a platform whose product is trust.
+  '/api/jobs',
+  '/api/talent',
+  '/api/applications',
 ];
 const MUTATING_METHODS = ['POST', 'PUT', 'PATCH', 'DELETE'];
 

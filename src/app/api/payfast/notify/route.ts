@@ -146,10 +146,9 @@ export async function POST(request: NextRequest) {
       // the same as a fraudulent account, and an admin deciding the clawback
       // is the right person to decide the account too.
       await db`
-        INSERT INTO notifications (user_id, title, content, link)
-        SELECT id, 'Payment reversed by PayFast',
-               ${`${paymentRef} came back as ${normalizedStatus.toLowerCase()}. The account still holds its plan — review it.`},
-               '/admin/payments'
+        INSERT INTO notifications (user_id, type, title, content)
+        SELECT id, 'payment_reversed', 'Payment reversed by PayFast',
+               ${`${paymentRef} came back as ${normalizedStatus.toLowerCase()}. The account still holds its plan — review it.`}
         FROM users WHERE role = 'admin'
       `.catch((err) => console.log('Reversal notification note:', err.message));
 
