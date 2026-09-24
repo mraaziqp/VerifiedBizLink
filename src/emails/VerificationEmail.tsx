@@ -2,7 +2,7 @@ import { Html, Head, Preview, Body, Container, Section, Text, Button, Hr, Link }
 import * as React from 'react';
 import {
   main, shell, body, brandBar, brandWordmark, brandWordmarkAccent, brandTagline,
-  h1, text, button, stepCard, stepTitle, stepBody, hr, muted, link, footerBar, footer,
+  h1, text, button, stepTitle, stepBody, hr, muted, link, footerBar, footer,
 } from './styles';
 
 interface VerificationEmailProps {

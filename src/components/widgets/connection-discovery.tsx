@@ -26,15 +26,13 @@ export function ConnectionDiscovery() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(user));
   const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
   const [connectingId, setConnectingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+    if (!user) return;
+    setLoading(true);
     fetch('/api/connections/suggestions')
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {

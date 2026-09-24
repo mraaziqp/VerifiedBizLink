@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell,
-  MapPin, Building2, Zap, Megaphone, CheckCheck, Trash2, X, Briefcase
+  MapPin, Building2, Zap, Megaphone, CheckCheck, Trash2, X, Briefcase, QrCode
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -47,6 +47,7 @@ const navigation = [
   { name: "My Business", href: "/business/dashboard", icon: Building2 },
   { name: "Ad Manager", href: "/business/ads", icon: Megaphone },
   { name: "Vetting Hub", href: "/vetting", icon: ShieldCheck },
+  { name: "Verify Certificate", href: "/verify", icon: QrCode },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Pricing & Plans", href: "/pricing", icon: Zap },
   { name: "Settings", href: "/settings", icon: Settings },

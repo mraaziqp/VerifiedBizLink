@@ -315,9 +315,34 @@ export async function POST(request: NextRequest) {
     await db`ALTER TABLE commission_payouts ADD COLUMN IF NOT EXISTS payout_method TEXT DEFAULT 'EFT'`;
     await db`ALTER TABLE commission_payouts ADD COLUMN IF NOT EXISTS notified_agent_at TIMESTAMPTZ`;
 
+    // --- v14: Issued certificates table & verification tracking ---
+    await db`
+      CREATE TABLE IF NOT EXISTS certificates (
+        id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        serial          TEXT NOT NULL UNIQUE,
+        business_id     UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+        company_name    TEXT NOT NULL,
+        reg_number      TEXT,
+        badge_source    TEXT,
+        signature       TEXT NOT NULL,
+        issued_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        issued_by       UUID,
+        revoked_at      TIMESTAMPTZ,
+        revoke_reason   TEXT,
+        verify_count    INTEGER NOT NULL DEFAULT 0,
+        last_verified_at TIMESTAMPTZ
+      )
+    `;
+    await db`CREATE INDEX IF NOT EXISTS certificates_business_idx ON certificates (business_id)`;
+    await db`CREATE INDEX IF NOT EXISTS certificates_serial_idx ON certificates (serial)`;
+    await db`
+      CREATE UNIQUE INDEX IF NOT EXISTS certificates_one_active_idx
+      ON certificates (business_id) WHERE revoked_at IS NULL
+    `;
+
     return NextResponse.json({
       success: true,
-      message: 'Migration v13 applied: Sales agent banking details and enhanced payout columns configured.',
+      message: 'Migration v14 applied: Certificates table, banking details, and all system migrations configured.',
     });
   } catch (error) {
     console.error('Migration error:', error);

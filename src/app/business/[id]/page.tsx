@@ -48,6 +48,8 @@ interface BusinessProfile {
   tagline?: string | null;
   highlights?: string[];
   verifiedAt: string | null;
+  certificateSerial?: string | null;
+  certificateCheckCode?: string | null;
   createdAt: string;
   userId: string;
   ownerName: string;
@@ -460,7 +462,10 @@ export default function BusinessProfilePage() {
                   <Certificate
                     businessName={business.companyName}
                     verifiedDate={format(new Date(business.verifiedAt), "d MMMM yyyy")}
-                    certificateNumber={business.id.slice(0, 8).toUpperCase()}
+                    certificateNumber={business.certificateSerial || business.id.slice(0, 8).toUpperCase()}
+                    businessId={business.id}
+                    serial={business.certificateSerial || undefined}
+                    checkCode={business.certificateCheckCode || undefined}
                   />
                 </CardContent>
               </Card>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   X, Home, Users, MapPin, ShieldCheck, BarChart3,
-  Settings, Shield, LogOut, Building2, Megaphone, Zap,
+  Settings, Shield, LogOut, Building2, Megaphone, Zap, QrCode
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useMobileMenu } from "@/contexts/mobile-menu-context";
@@ -25,6 +25,8 @@ const MENU_ITEMS = [
   { name: "Home", href: "/", icon: Home },
   { name: "My Network", href: "/network", icon: Users },
   { name: "Explore", href: "/explore", icon: MapPin },
+  { name: "Vetting Hub", href: "/vetting", icon: ShieldCheck },
+  { name: "Verify Certificate", href: "/verify", icon: QrCode },
   { name: "Pricing & Plans", href: "/pricing", icon: Zap },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: Settings },

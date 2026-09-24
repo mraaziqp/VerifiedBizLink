@@ -293,7 +293,7 @@ export function VideoUploader({
               </Button>
             )}
 
-            {isUploading && uploadTaskRef.current && (
+            {isUploading && (
               <Button
                 onClick={togglePause}
                 className={`flex-1 font-extrabold h-11 rounded-xl shadow-sm text-sm flex items-center justify-center gap-2 transition-all ${

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
+import { shortCheckCode } from '@/lib/certificates';
 
 // GET /api/businesses/[id] — public business profile
 export async function GET(
@@ -57,6 +58,13 @@ export async function GET(
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
+    const [cert] = (await db`
+      SELECT serial, signature
+      FROM certificates
+      WHERE business_id = ${biz.id} AND revoked_at IS NULL
+      LIMIT 1
+    `.catch(() => [])) as unknown as Record<string, unknown>[];
+
     return NextResponse.json({
       business: {
         id: biz.id,
@@ -75,6 +83,8 @@ export async function GET(
         tagline: biz.tagline,
         highlights: biz.highlights || [],
         verifiedAt: biz.verified_at,
+        certificateSerial: cert ? String(cert.serial) : null,
+        certificateCheckCode: cert?.signature ? shortCheckCode(String(cert.signature)) : null,
         createdAt: biz.created_at,
         userId: biz.user_id,
         ownerName: biz.owner_name,

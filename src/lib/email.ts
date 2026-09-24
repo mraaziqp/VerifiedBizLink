@@ -14,7 +14,7 @@ import { AgentInviteEmail } from '@/emails/AgentInviteEmail';
 // If AWS Amplify has SMTP_HOST set to smtp.titan.email, we automatically override it to smtpout.secureserver.net.
 const rawHost = process.env.SMTP_HOST;
 const SMTP_HOST = (!rawHost || rawHost.includes('titan')) ? 'smtpout.secureserver.net' : rawHost;
-const SMTP_PORT = Number(process.env.SMTP_PORT || 465);
+const _SMTP_PORT = Number(process.env.SMTP_PORT || 465);
 const FROM_EMAIL = process.env.TITAN_EMAIL_ADDRESS || process.env.SMTP_USER || 'info@verifiedbizlink.co.za';
 const FROM_PASS = process.env.TITAN_EMAIL_PASSWORD || process.env.SMTP_PASS || process.env.SMTP_PASSWORD || 'Verified@123!@';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.verifiedbizlink.co.za';

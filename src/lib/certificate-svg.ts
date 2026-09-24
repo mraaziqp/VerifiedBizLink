@@ -1,4 +1,21 @@
 import QRCode from 'qrcode';
+import fs from 'node:fs';
+import path from 'node:path';
+
+let cachedLogoBase64: string | null = null;
+function getLogoWatermark(): string {
+  if (cachedLogoBase64 !== null) return cachedLogoBase64;
+  try {
+    const filePath = path.join(process.cwd(), 'public', 'vbl-logo-cert.png');
+    if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath);
+      cachedLogoBase64 = `data:image/png;base64,${data.toString('base64')}`;
+      return cachedLogoBase64;
+    }
+  } catch {}
+  cachedLogoBase64 = '';
+  return '';
+}
 
 /**
  * Renders the certificate itself.
@@ -68,6 +85,8 @@ export async function renderCertificateSvg(f: CertificateFields): Promise<string
   const issued = f.issuedAt.toLocaleDateString('en-ZA', ZA_DATE);
   const since = f.verifiedSince ? f.verifiedSince.toLocaleDateString('en-ZA', ZA_DATE) : issued;
 
+  const watermark = getLogoWatermark();
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 850" width="1200" height="850" role="img" aria-label="Certificate of verification for ${name}">
   <defs>
@@ -87,6 +106,7 @@ export async function renderCertificateSvg(f: CertificateFields): Promise<string
 
   <rect width="1200" height="850" fill="url(#bg)"/>
   <rect width="1200" height="850" fill="url(#dots)"/>
+  ${watermark ? `<image href="${watermark}" x="375" y="175" width="450" height="450" opacity="0.12"/>` : ''}
   <rect x="40" y="40" width="1120" height="770" fill="none" stroke="#F5A800" stroke-width="3" opacity="0.5"/>
   <rect x="58" y="58" width="1084" height="734" fill="none" stroke="#F5A800" stroke-width="1" opacity="0.3"/>
   <g fill="#F5A800" opacity="0.7">

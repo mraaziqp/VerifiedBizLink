@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Sparkles, Download, Share2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -16,22 +15,14 @@ export function ApprovalCelebrationModal({
   businessName,
   onClose,
 }: ApprovalCelebrationModalProps) {
-  const [particles, setParticles] = useState<Array<{ id: number; left: number; delay: number }>>([]);
-
-  useEffect(() => {
-    if (isOpen) {
-      setParticles(
-        Array.from({ length: 20 }, (_, i) => ({
-          id: i,
-          left: Math.random() * 100,
-          delay: Math.random() * 0.5,
-        }))
-      );
-    }
-  }, [isOpen]);
+  const particles = Array.from({ length: 20 }, (_, i) => ({
+    id: i,
+    left: (i * 17) % 100,
+    delay: (i * 0.04) % 0.5,
+  }));
 
   const handleDownloadCertificate = () => {
-    window.location.href = `/api/certificates/download?business=${encodeURIComponent(businessName)}`;
+    window.location.href = '/api/certificates/download';
     setTimeout(onClose, 500);
   };
 

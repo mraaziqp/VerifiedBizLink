@@ -32,8 +32,11 @@ export async function GET(request: NextRequest) {
 
     let businessId: string;
     if (requestedBusinessId) {
-      // Only staff may name a business other than their own.
-      if (!isStaff(session)) {
+      const owned = (await db`
+        SELECT id FROM businesses WHERE user_id = ${session.id} AND id = ${requestedBusinessId} LIMIT 1
+      `.catch(() => [])) as unknown as Row[];
+      const isOwner = owned.length > 0;
+      if (!isStaff(session) && !isOwner) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
       businessId = requestedBusinessId;
