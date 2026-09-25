@@ -7,11 +7,19 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { GlassBackground, GlassCard, GlassPageHeader } from '@/components/shared/glass-ui';
 
+interface MyReview {
+  id: string;
+  businessName: string;
+  rating: number;
+  content: string;
+  created_at: string;
+}
+
 export default function ReviewsPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<MyReview[]>([]);
 
   useEffect(() => {
     if (authLoading) return;

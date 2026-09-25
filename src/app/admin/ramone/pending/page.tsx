@@ -31,10 +31,6 @@ export default function RamonePendingPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchPendingBusinesses();
-  }, []);
-
   const fetchPendingBusinesses = async () => {
     try {
       setLoading(true);
@@ -49,6 +45,10 @@ export default function RamonePendingPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchPendingBusinesses();
+  }, []);
 
   const handleApprove = async (businessId: string) => {
     setApprovingId(businessId);

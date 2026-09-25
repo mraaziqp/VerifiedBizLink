@@ -24,9 +24,22 @@ export default defineConfig([{
         "@typescript-eslint/no-explicit-any": "warn",
         "@typescript-eslint/no-require-imports": "warn",
         "@typescript-eslint/no-this-alias": "warn",
-        "react-hooks/set-state-in-effect": "warn",
+        // Off deliberately. Every remaining hit is one of two correct patterns:
+        // fetch-on-mount (auth check, feed, dashboards: state is set when the
+        // request settles), or reading browser-only state — localStorage,
+        // sessionStorage, matchMedia — which must happen after mount or the
+        // server and client render different HTML and hydration fails.
+        // Derived state that genuinely belonged in render (the Explore filter)
+        // was moved to useMemo instead of being silenced here.
+        "react-hooks/set-state-in-effect": "off",
         "react-hooks/purity": "warn",
         "react-hooks/immutability": "warn",
+        // Every <img> left in src/ renders a user upload, a data: URI (vetting
+        // documents) or a blob: preview. next/image cannot optimise data:/blob:
+        // sources, and for uploads it throws at runtime on any host missing
+        // from images.remotePatterns — a broken page is worse than an
+        // unoptimised image. Feed images use loading="lazy" instead.
+        "@next/next/no-img-element": "off",
     },
     ignores: [
         "node_modules/**",

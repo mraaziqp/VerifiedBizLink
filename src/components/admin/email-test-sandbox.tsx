@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import {
-  Mail, Send, CheckCircle2, Loader2, AlertCircle, Sparkles,
+  Mail, Send, CheckCircle2, Loader2, Sparkles,
   KeyRound, UserPlus, Receipt, ShieldAlert, Clock, UserCheck, Flame
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -14,7 +15,7 @@ interface EmailTypeOption {
   id: string;
   title: string;
   description: string;
-  icon: any;
+  icon: LucideIcon;
   color: string;
 }
 

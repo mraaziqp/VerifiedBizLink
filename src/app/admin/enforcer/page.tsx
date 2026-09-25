@@ -20,15 +20,24 @@ interface Report {
   reporter_name?: string;
 }
 interface Log { id: string; action: string; admin_name: string; target_name?: string; created_at: string; }
+interface EnforcerStats {
+  openReports?: number;
+  pendingBusinesses?: number;
+  verifiedBusinesses?: number;
+  totalBusinesses?: number;
+}
+interface ComplianceStatus {
+  policies?: { popia?: boolean; gdpr?: boolean; ccpa?: boolean };
+}
 
 export default function EnforcerDashboard() {
   const { user, loading: authLoading, logout } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<"reports" | "compliance" | "activity">("reports");
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<EnforcerStats | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
-  const [compliance, setCompliance] = useState<any>(null);
+  const [compliance, setCompliance] = useState<ComplianceStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Don't redirect off a still-null `user` while the auth check itself is

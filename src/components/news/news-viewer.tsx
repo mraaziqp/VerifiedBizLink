@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   X,
@@ -62,18 +62,12 @@ export function NewsViewer({ isOpen, onClose, newsItem }: NewsViewerProps) {
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchAllNews();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
     if (newsItem) {
       setSelectedNews(newsItem);
     }
   }, [newsItem]);
 
-  const fetchAllNews = async () => {
+  const fetchAllNews = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/news?limit=24');
@@ -81,8 +75,8 @@ export function NewsViewer({ isOpen, onClose, newsItem }: NewsViewerProps) {
         const data = await response.json();
         setAllNews(data.news || []);
         setLive(!!data.live);
-        if (!selectedNews && data.news.length > 0) {
-          setSelectedNews(data.news[0]);
+        if (data.news?.length > 0) {
+          setSelectedNews((current) => current ?? data.news[0]);
         }
       }
     } catch (error) {
@@ -90,7 +84,13 @@ export function NewsViewer({ isOpen, onClose, newsItem }: NewsViewerProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchAllNews();
+    }
+  }, [isOpen, fetchAllNews]);
 
   if (!isOpen) return null;
 

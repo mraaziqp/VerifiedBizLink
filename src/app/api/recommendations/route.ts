@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
-import db from '@/lib/db';
+import db, { type DbRow } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -27,12 +27,12 @@ export async function GET(request: NextRequest) {
       AND status = 'accepted'
     `;
 
-    const connectedUserIds = connections.flatMap((c: any) => [
+    const connectedUserIds = connections.flatMap((c) => [
       c.requester_id === session.id ? c.receiver_id : c.requester_id,
     ]);
 
     // Recommend based on industry match (if user has a business)
-    let recommendations = [];
+    let recommendations: DbRow[] = [];
 
     if (userBusiness[0]) {
       // Find businesses in similar industry
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
 
     // Get owner info for recommendations
     const recommendationsWithOwners = await Promise.all(
-      recommendations.map(async (b: any) => {
+      recommendations.map(async (b) => {
         const owner = await db`
           SELECT full_name, headline
           FROM users

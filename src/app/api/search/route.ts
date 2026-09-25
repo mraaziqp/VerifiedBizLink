@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import db from '@/lib/db';
+import db, { type DbRow } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     const searchTerm = `%${query}%`;
 
-    const results: any = { businesses: [], users: [] };
+    const results: { businesses: DbRow[]; users: DbRow[] } = { businesses: [], users: [] };
 
     // Search businesses
     if (type === 'all' || type === 'business') {
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     // Filter by industry if specified
     if (industry) {
       results.businesses = results.businesses.filter(
-        (b: any) => b.industry?.toLowerCase().includes(industry.toLowerCase())
+        (b) => b.industry?.toLowerCase().includes(industry.toLowerCase())
       );
     }
 

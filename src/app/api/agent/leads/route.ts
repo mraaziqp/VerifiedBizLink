@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 import { AGENT_PORTAL_ROLES, hasRole } from '@/lib/roles';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getSession();
     if (!session || !hasRole(session.role, AGENT_PORTAL_ROLES)) {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     `;
 
     return NextResponse.json({ leads });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Agent leads GET error:', error);
     return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });
   }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     `;
 
     return NextResponse.json({ lead }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Agent leads POST error:', error);
     return NextResponse.json({ error: 'Failed to create lead' }, { status: 500 });
   }
@@ -78,7 +78,7 @@ export async function PUT(request: NextRequest) {
     `;
 
     return NextResponse.json({ lead });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Agent leads PUT error:', error);
     return NextResponse.json({ error: 'Failed to update lead' }, { status: 500 });
   }

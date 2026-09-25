@@ -83,6 +83,21 @@ export async function POST(request: NextRequest) {
       WHERE id = ${businessId}
     `;
 
+    // Credit adjustments are money-adjacent, so record who changed what and
+    // why. The reason was being collected from the admin and then dropped.
+    const note = typeof reason === 'string' && reason.trim() ? ` — ${reason.trim().slice(0, 200)}` : '';
+    await db`
+      INSERT INTO audit_logs (admin_id, admin_name, action, target_type, target_id, target_name)
+      VALUES (
+        ${session.id},
+        ${session.fullName},
+        ${`Adjusted ad credits ${currentCredits} → ${newCredits}${note}`},
+        'business',
+        ${businessId},
+        ${biz.company_name}
+      )
+    `.catch((err) => console.error('Audit log write failed:', err)); // non-fatal
+
     return NextResponse.json({
       success: true,
       message: `Updated credits for ${biz.company_name}: ${currentCredits} ➔ ${newCredits}`,

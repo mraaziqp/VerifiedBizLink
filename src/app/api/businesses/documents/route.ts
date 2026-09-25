@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     // the Vetting Hub before formally creating/submitting their profile.
     if (biz.length === 0) {
       const fallbackName =
-        (session as any).fullName || session.email?.split('@')[0] || 'My Business';
+        session.fullName || session.email?.split('@')[0] || 'My Business';
       biz = await db`
         INSERT INTO businesses (user_id, name, company_name, status)
         VALUES (${session.id}, ${fallbackName}, ${fallbackName}, 'pending')

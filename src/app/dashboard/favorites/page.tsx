@@ -12,7 +12,8 @@ export default function FavoritesPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [favorites, setFavorites] = useState<any[]>([]);
+  // No favourites endpoint yet — the list is always empty until one exists.
+  const [favorites] = useState<unknown[]>([]);
 
   useEffect(() => {
     if (authLoading) return;

@@ -17,10 +17,6 @@ export default function BusinessSettingsPage() {
     address: '',
   });
 
-  useEffect(() => {
-    loadBusinessData();
-  }, []);
-
   const loadBusinessData = async () => {
     try {
       setIsLoading(true);
@@ -45,6 +41,10 @@ export default function BusinessSettingsPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadBusinessData();
+  }, []);
 
   const handleSave = async () => {
     try {

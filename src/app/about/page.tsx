@@ -48,10 +48,10 @@ export default async function AboutPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-12">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-12">
           {stats.map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
-              <p className="text-2xl font-bold text-yellow-500">{stat.value}</p>
+            <div key={stat.label} className="min-w-0 rounded-xl border border-white/10 bg-white/5 p-3 sm:p-4 text-center">
+              <p className="text-lg sm:text-2xl font-bold text-yellow-500 break-words">{stat.value}</p>
               <p className="text-xs text-gray-400 mt-1">{stat.label}</p>
             </div>
           ))}

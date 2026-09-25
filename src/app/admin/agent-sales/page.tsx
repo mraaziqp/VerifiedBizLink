@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Loader2, Trophy, Users, TrendingUp, Search, ShieldCheck, ChevronDown, ChevronUp, DollarSign } from 'lucide-react';
+import { ArrowLeft, Loader2, Trophy, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
 import { AdminBackground, AdminCard, AdminPageHeader, SectionTitle } from '@/components/admin/ui';
 

@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft, Save, Loader2, Facebook, Instagram, Linkedin, Youtube, MessageCircle, X, Plus } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { GlassBackground, glassInteractive } from '@/components/shared/glass-ui';
 import { ImageUploader } from '@/components/media/image-uploader';
 import { BUSINESS_CATEGORIES } from '@/lib/categories';
 
-const SOCIAL_PLATFORMS: { key: string; label: string; placeholder: string; icon: any }[] = [
+const SOCIAL_PLATFORMS: { key: string; label: string; placeholder: string; icon: LucideIcon }[] = [
   { key: 'facebook', label: 'Facebook', placeholder: 'https://facebook.com/yourbusiness', icon: Facebook },
   { key: 'instagram', label: 'Instagram', placeholder: 'https://instagram.com/yourbusiness', icon: Instagram },
   { key: 'linkedin', label: 'LinkedIn', placeholder: 'https://linkedin.com/company/yourbusiness', icon: Linkedin },

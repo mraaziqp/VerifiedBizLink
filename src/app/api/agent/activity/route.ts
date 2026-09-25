@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     `;
 
     return NextResponse.json({ events });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Agent activity GET error:', error);
     return NextResponse.json({ error: 'Failed to fetch agent activity' }, { status: 500 });
   }

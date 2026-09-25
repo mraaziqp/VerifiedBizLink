@@ -3,7 +3,7 @@ import { getSession } from '@/lib/auth';
 import { AGENT_PORTAL_ROLES, ROLES, hasRole } from '@/lib/roles';
 import {
   commissionCents, getWeeklyTierRate, OFFICIAL_WEEKLY_TIERS,
-  MONTHLY_RETENTION_RATE, calculateRetentionCommission
+  MONTHLY_RETENTION_RATE
 } from '@/lib/commission';
 import { referralLink, referralQrUrl } from '@/lib/agents';
 import { getCommissionSettings } from '@/lib/settings';

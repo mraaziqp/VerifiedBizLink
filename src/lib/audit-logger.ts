@@ -8,8 +8,8 @@ export async function logAction(
   action: string,
   resourceType: string,
   resourceId?: string,
-  oldValue?: any,
-  newValue?: any,
+  oldValue?: unknown,
+  newValue?: unknown,
   details?: string
 ) {
   try {
@@ -40,7 +40,7 @@ export async function logError(
   userId: string,
   action: string,
   resourceType: string,
-  error: any,
+  error: unknown,
   details?: string
 ) {
   try {

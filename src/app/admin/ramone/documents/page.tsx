@@ -32,10 +32,6 @@ export default function RamoneDocumentsPage() {
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchDocuments();
-  }, []);
-
   const fetchDocuments = async () => {
     try {
       setLoading(true);
@@ -50,6 +46,10 @@ export default function RamoneDocumentsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchDocuments();
+  }, []);
 
   const handleGradeDocument = async () => {
     if (!selectedDoc) return;
@@ -147,7 +147,8 @@ export default function RamoneDocumentsPage() {
                       onClick={() => {
                         setSelectedDoc(doc);
                         setGrade(doc.grade || 0);
-                        setStatus((doc.status as any) || 'reviewing');
+                        // 'uploaded' has no option in the decision dropdown; it means "not yet reviewed".
+                        setStatus(!doc.status || doc.status === 'uploaded' ? 'reviewing' : doc.status);
                         setNotes(doc.review_notes || '');
                       }}
                     >
@@ -221,7 +222,7 @@ export default function RamoneDocumentsPage() {
                   <label className="block text-sm font-medium text-gray-600 mb-2">Decision</label>
                   <select
                     value={status}
-                    onChange={(e) => setStatus(e.target.value as any)}
+                    onChange={(e) => setStatus(e.target.value as typeof status)}
                     className="w-full bg-white border border-gray-300 rounded px-3 py-2 text-gray-900"
                   >
                     <option value="reviewing">Still Reviewing</option>

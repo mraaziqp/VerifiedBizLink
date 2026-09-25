@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, Search, Loader2, Mail, ShieldCheck, Ban, RotateCcw,
-  Trash2, Building2, User, Users, Briefcase, Shield, CheckCircle2, UserCheck
+  Trash2, Building2, User, Users, Briefcase, Shield, CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

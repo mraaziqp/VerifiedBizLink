@@ -1249,7 +1249,6 @@ export default function AgentPortalPage() {
 
               {referral?.qrUrl && (
                 <div className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50/60">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={referral.qrUrl} alt="Referral QR" className="h-18 w-18 rounded-lg bg-white p-1 border border-slate-200 shrink-0 shadow-xs" />
                   <div className="space-y-1">
                     <p className="text-xs font-bold text-slate-900">Advisor Direct QR Code</p>

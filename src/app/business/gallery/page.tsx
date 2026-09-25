@@ -3,9 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import {
-  ArrowLeft, Loader2, Trash2, Image as ImageIcon, Camera, Eye,
-  Download, Copy, Check, ChevronLeft, ChevronRight, X, Sparkles,
-  Layers, Tag, Info, Video, Film, Play
+  ArrowLeft, Loader2, Trash2, Image as ImageIcon, Camera, Download, Copy, Check, ChevronLeft, ChevronRight, X, Sparkles,
+  Video, Film, Play
 } from 'lucide-react';
 import Link from 'next/link';
 import { ImageUploader } from '@/components/media/image-uploader';
@@ -76,17 +75,6 @@ export default function BusinessGalleryPage() {
   }, [fetchGallery]);
 
   // Keyboard navigation for lightbox
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (lightboxIndex === null) return;
-      if (e.key === 'Escape') setLightboxIndex(null);
-      if (e.key === 'ArrowRight') handleNextLightbox();
-      if (e.key === 'ArrowLeft') handlePrevLightbox();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [lightboxIndex, items.length]);
-
   const handleMediaUpload = async (url: string, title?: string) => {
     try {
       const isVid = isVideoUrl(url);
@@ -152,22 +140,37 @@ export default function BusinessGalleryPage() {
     }
   };
 
-  const handleNextLightbox = () => {
-    if (lightboxIndex === null || filteredItems.length === 0) return;
-    setLightboxIndex((lightboxIndex + 1) % filteredItems.length);
-  };
-
-  const handlePrevLightbox = () => {
-    if (lightboxIndex === null || filteredItems.length === 0) return;
-    setLightboxIndex((lightboxIndex - 1 + filteredItems.length) % filteredItems.length);
-  };
-
   const filteredItems = items.filter((item) => {
     const isVid = isVideoUrl(item.image_url);
     if (selectedCategory === 'Videos') return isVid;
     if (selectedCategory === 'Photos') return !isVid;
     return true;
   });
+  const lightboxCount = filteredItems.length;
+
+  const handleNextLightbox = () => {
+    if (lightboxCount === 0) return;
+    setLightboxIndex((i) => (i === null ? i : (i + 1) % lightboxCount));
+  };
+
+  const handlePrevLightbox = () => {
+    if (lightboxCount === 0) return;
+    setLightboxIndex((i) => (i === null ? i : (i - 1 + lightboxCount) % lightboxCount));
+  };
+
+  // Keyed on the FILTERED count: it used to depend on items.length, so after
+  // switching to Photos or Videos the arrow keys wrapped around using the
+  // unfiltered total and could land on an index with nothing to show.
+  useEffect(() => {
+    if (lightboxIndex === null || lightboxCount === 0) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'ArrowRight') setLightboxIndex((i) => (i === null ? i : (i + 1) % lightboxCount));
+      if (e.key === 'ArrowLeft') setLightboxIndex((i) => (i === null ? i : (i - 1 + lightboxCount) % lightboxCount));
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxIndex, lightboxCount]);
 
   return (
     <GlassBackground>
@@ -313,9 +316,10 @@ export default function BusinessGalleryPage() {
                       ) : (
                         <img
                           src={item.image_url}
+                          loading="lazy"
+                          decoding="async"
                           alt={item.title || 'Business photo'}
                           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          loading="lazy"
                         />
                       )}
 

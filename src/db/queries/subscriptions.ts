@@ -1,4 +1,4 @@
-import { and, lt, or, eq, sql } from 'drizzle-orm';
+import { and, lt, or, eq } from 'drizzle-orm';
 import { db } from '../index';
 import { subscriptions, users } from '../schema';
 

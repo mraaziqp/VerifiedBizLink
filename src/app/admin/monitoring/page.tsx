@@ -9,26 +9,42 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
+interface LogEntry {
+  id: string;
+  log_level: string;
+  app_name: string;
+  message: string;
+  status_code?: number | null;
+  response_time_ms?: number | null;
+  created_at: string;
+}
+
+interface Alert {
+  id: string;
+  severity: string;
+  title: string;
+  description: string;
+  app_name: string;
+  created_at: string;
+  status: string;
+  log_samples?: { message: string }[];
+  agent_suggested_fix?: string | null;
+}
+
+interface ApiKey {
+  id: string;
+  name: string;
+  app_name: string;
+  active: boolean;
+  last_used_at?: string | null;
+}
+
 export default function MonitoringDashboard() {
   const [activeTab, setActiveTab] = useState('alerts');
-  const [logs, setLogs] = useState<any[]>([]);
-  const [alerts, setAlerts] = useState<any[]>([]);
-  const [apiKeys, setApiKeys] = useState<any[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetchAlerts();
-    fetchLogs();
-    fetchApiKeys();
-
-    // Refresh alerts every 10 seconds
-    const interval = setInterval(() => {
-      fetchAlerts();
-      fetchLogs();
-    }, 10000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   const fetchLogs = async () => {
     try {
@@ -65,6 +81,20 @@ export default function MonitoringDashboard() {
       console.error('Error fetching API keys:', error);
     }
   };
+
+  useEffect(() => {
+    fetchAlerts();
+    fetchLogs();
+    fetchApiKeys();
+
+    // Refresh alerts every 10 seconds
+    const interval = setInterval(() => {
+      fetchAlerts();
+      fetchLogs();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const generateNewKey = async () => {
     setLoading(true);
@@ -198,7 +228,7 @@ export default function MonitoringDashboard() {
                   {alert.log_samples && alert.log_samples.length > 0 && (
                     <div className="bg-gray-100 p-3 rounded text-xs space-y-1">
                       <p className="font-semibold">Recent logs:</p>
-                      {alert.log_samples.slice(0, 3).map((log: any, idx: number) => (
+                      {alert.log_samples.slice(0, 3).map((log, idx) => (
                         <p key={idx} className="text-gray-700">
                           {log.message}
                         </p>

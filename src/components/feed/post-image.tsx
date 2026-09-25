@@ -34,6 +34,7 @@ export function PostImage({ url, className = "" }: { url: string; className?: st
       <img
         src={url}
         alt="Post attachment"
+        decoding="async"
         loading="lazy"
         className="max-h-[500px] w-full object-cover group-hover:scale-[1.01] transition-transform duration-200"
         onError={(e) => {
