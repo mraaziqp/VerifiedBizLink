@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { cleanSkills } from '@/lib/talent';
 import db from '@/lib/db';
+import { cvIdFromUrl } from '@/lib/talent-cv-store';
 
 type Row = Record<string, unknown>;
 
@@ -36,13 +37,18 @@ export async function GET() {
         profile: {
           headline: '', summary: '', location: '', skills: [],
           workHistory: [], education: [], portfolioLinks: [],
-          cvUrl: null, videoIntroUrl: null,
+          cvUrl: null, cvFileName: null, videoIntroUrl: null,
           isPublished: false, openToWork: true,
         },
       });
     }
 
     const p = rows[0];
+    const cvId = cvIdFromUrl(p.cv_url);
+    const [cv] = cvId
+      ? ((await db`SELECT file_name FROM talent_cvs WHERE id = ${cvId} LIMIT 1`.catch(() => [])) as unknown as Row[])
+      : [];
+
     return NextResponse.json({
       exists: true,
       profile: {
@@ -55,6 +61,7 @@ export async function GET() {
         education: p.education ?? [],
         portfolioLinks: p.portfolio_links ?? [],
         cvUrl: p.cv_url ?? null,
+        cvFileName: cv ? String(cv.file_name) : null,
         videoIntroUrl: p.video_intro_url ?? null,
         isPublished: p.is_published === true,
         openToWork: p.open_to_work === true,

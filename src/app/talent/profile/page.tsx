@@ -12,6 +12,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { SubpageNav } from '@/components/layout/subpage-nav';
 import { TagInput } from '@/components/ui/tag-input';
+import { CvScanner, type ApplyMode, type CvSuggestions } from '@/components/talent/cv-scanner';
+import { cleanSkills } from '@/lib/talent';
 
 interface WorkItem { title: string; company: string; period: string; description: string }
 interface EducationItem { qualification: string; institution: string; year: string }
@@ -24,6 +26,8 @@ interface Profile {
   workHistory: WorkItem[];
   education: EducationItem[];
   portfolioLinks: string[];
+  cvUrl: string | null;
+  cvFileName: string | null;
   videoIntroUrl: string | null;
   isPublished: boolean;
   openToWork: boolean;
@@ -32,7 +36,7 @@ interface Profile {
 const EMPTY: Profile = {
   headline: '', summary: '', location: '', skills: [],
   workHistory: [], education: [], portfolioLinks: [],
-  videoIntroUrl: null, isPublished: false, openToWork: true,
+  cvUrl: null, cvFileName: null, videoIntroUrl: null, isPublished: false, openToWork: true,
 };
 
 export default function TalentProfilePage() {
@@ -63,6 +67,29 @@ export default function TalentProfilePage() {
 
   const set = <K extends keyof Profile>(key: K, value: Profile[K]) =>
     setProfile((p) => ({ ...p, [key]: value }));
+
+  const key = (...parts: string[]) => parts.join('|').toLowerCase().replace(/\s+/g, ' ').trim();
+
+  // "fill" never overwrites what the person typed; "replace" takes the CV's
+  // text fields. Both only ADD skills, roles and education — nothing the
+  // person entered is dropped, and duplicates are skipped.
+  const applyCv = (s: CvSuggestions, mode: ApplyMode) => {
+    setProfile((p) => {
+      const pick = (current: string, found: string) => (mode === 'replace' ? found || current : current || found);
+      const roles = new Set(p.workHistory.map((w) => key(w.title, w.company)));
+      const schools = new Set(p.education.map((e) => key(e.qualification, e.institution)));
+      return {
+        ...p,
+        headline: pick(p.headline, s.headline),
+        location: pick(p.location, s.location),
+        summary: pick(p.summary, s.summary),
+        skills: cleanSkills([...p.skills, ...s.skills]),
+        workHistory: [...p.workHistory, ...s.workHistory.filter((w) => !roles.has(key(w.title, w.company)))],
+        education: [...p.education, ...s.education.filter((e) => !schools.has(key(e.qualification, e.institution)))],
+      };
+    });
+    toast({ title: 'Added from your CV', description: 'Check the details below, then press Save profile.' });
+  };
 
   const save = async (publish?: boolean) => {
     const next = publish === undefined ? profile : { ...profile, isPublished: publish };
@@ -131,6 +158,14 @@ export default function TalentProfilePage() {
             {profile.isPublished ? 'Make private' : 'Publish profile'}
           </Button>
         </div>
+
+        <CvScanner
+          cvUrl={profile.cvUrl}
+          cvFileName={profile.cvFileName}
+          onUploaded={(cvUrl, cvFileName) => setProfile((p) => ({ ...p, cvUrl, cvFileName }))}
+          onRemoved={() => setProfile((p) => ({ ...p, cvUrl: null, cvFileName: null }))}
+          onApply={applyCv}
+        />
 
         {/* Basics */}
         <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
