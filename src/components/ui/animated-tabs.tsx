@@ -21,6 +21,7 @@ export interface AnimatedTabsProps<T extends string = string> {
   tabsListClassName?: string;
   variant?: 'pill' | 'underline' | 'segmented';
   size?: 'sm' | 'md' | 'lg';
+  layoutId?: string;
 }
 
 /**
@@ -37,7 +38,11 @@ export function AnimatedTabs<T extends string = string>({
   tabsListClassName,
   variant = 'pill',
   size = 'md',
+  layoutId,
 }: AnimatedTabsProps<T>) {
+  const generatedId = React.useId();
+  const activeLayoutId = layoutId || `tab-indicator-${generatedId}`;
+
   const [internalActiveTab, setInternalActiveTab] = useState<T>(
     defaultTab || tabs[0]?.id
   );
@@ -54,9 +59,9 @@ export function AnimatedTabs<T extends string = string>({
   const activeContent = tabs.find((t) => t.id === activeTabId)?.content;
 
   const sizeClasses = {
-    sm: 'text-xs px-3 py-1.5 gap-1.5',
-    md: 'text-sm px-4 py-2 gap-2',
-    lg: 'text-base px-5 py-2.5 gap-2.5',
+    sm: 'text-xs px-3 py-1.5 min-h-[36px] gap-1.5',
+    md: 'text-sm px-4 py-2 min-h-[44px] gap-2',
+    lg: 'text-base px-5 py-2.5 min-h-[48px] gap-2.5',
   }[size];
 
   return (
@@ -81,7 +86,7 @@ export function AnimatedTabs<T extends string = string>({
               type="button"
               onClick={() => handleTabChange(tab.id)}
               className={cn(
-                'relative flex items-center justify-center font-bold transition-colors select-none rounded-xl shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900',
+                'relative flex items-center justify-center font-bold transition-colors select-none rounded-xl shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 cursor-pointer',
                 sizeClasses,
                 isActive
                   ? 'text-slate-900'
@@ -91,7 +96,7 @@ export function AnimatedTabs<T extends string = string>({
               {/* Sliding active indicator via Framer Motion */}
               {isActive && (
                 <motion.div
-                  layoutId="active-tab-indicator"
+                  layoutId={activeLayoutId}
                   transition={{ type: 'spring', stiffness: 450, damping: 35 }}
                   className={cn(
                     'absolute inset-0 rounded-xl shadow-xs z-0',

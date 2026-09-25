@@ -85,7 +85,7 @@ export default function ProfilePage() {
     return (
       <GlassBackground>
         <div className="min-h-screen flex items-center justify-center">
-          <Loader2 className="h-8 w-8 text-yellow-400 animate-spin" />
+          <Loader2 className="h-8 w-8 text-slate-900 animate-spin" />
         </div>
       </GlassBackground>
     );

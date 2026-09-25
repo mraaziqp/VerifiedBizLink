@@ -236,7 +236,7 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
                   href="/jobs?tab=post"
                   className={cn(
                     "flex items-center gap-2.5 pl-9 pr-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150",
-                    isPostJobActive || pathname.includes("tab=post")
+                    isPostJobActive
                       ? "text-slate-900 bg-amber-50 font-bold border-l-2 border-amber-500"
                       : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
                   )}

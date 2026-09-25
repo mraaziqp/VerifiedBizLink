@@ -243,7 +243,8 @@ export function MediaUploader({
               <button
                 type="button"
                 onClick={clearSelection}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                className="h-11 w-11 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 cursor-pointer transition-colors"
+                aria-label="Remove uploaded file"
               >
                 <X className="h-4 w-4" />
               </button>

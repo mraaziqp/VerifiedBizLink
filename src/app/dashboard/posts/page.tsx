@@ -152,7 +152,7 @@ export default function PostsPage() {
 
             {loading ? (
               <div className="flex justify-center py-12">
-                <Loader2 className="h-8 w-8 text-yellow-400 animate-spin" />
+                <Loader2 className="h-8 w-8 text-slate-900 animate-spin" />
               </div>
             ) : posts.length === 0 ? (
               <Card className="bg-white border-gray-200">

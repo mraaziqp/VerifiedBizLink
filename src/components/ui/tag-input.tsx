@@ -92,10 +92,10 @@ export function TagInput({
                   e.stopPropagation();
                   removeTag(idx);
                 }}
-                className="text-slate-400 hover:text-white transition-colors p-0.5 rounded-full hover:bg-slate-800"
+                className="text-slate-400 hover:text-white transition-colors p-1 rounded-full hover:bg-slate-800 cursor-pointer"
                 aria-label={`Remove ${tag}`}
               >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5" />
               </button>
             </motion.span>
           ))}

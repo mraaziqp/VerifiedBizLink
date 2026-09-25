@@ -248,7 +248,7 @@ export default function BusinessPostsPage() {
         {/* Posts List */}
         {fetching ? (
           <div className="flex justify-center py-16">
-            <Loader2 className="h-8 w-8 text-yellow-400 animate-spin" />
+            <Loader2 className="h-8 w-8 text-slate-900 animate-spin" />
           </div>
         ) : posts.length === 0 ? (
           <Card className="bg-white/80 backdrop-blur-xl border-gray-200 text-center py-16">

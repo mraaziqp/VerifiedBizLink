@@ -528,7 +528,7 @@ export default function BusinessProfilePage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             title={key}
-                            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition-colors"
+                            className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition-colors cursor-pointer"
                           >
                             <Icon className="h-4 w-4" />
                           </a>

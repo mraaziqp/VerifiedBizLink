@@ -164,7 +164,7 @@ export function MobileMenuDrawer() {
                         href="/jobs?tab=post"
                         onClick={() => setOpen(false)}
                         className={`flex items-center gap-2 pl-9 pr-3.5 py-2 text-xs font-semibold rounded-lg transition-all ${
-                          pathname.includes("tab=post")
+                          pathname === "/jobs/post" || pathname === "/business/jobs"
                             ? "bg-amber-400/20 text-amber-300 font-bold"
                             : "text-white/70 hover:text-white hover:bg-white/5"
                         }`}

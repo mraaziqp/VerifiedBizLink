@@ -70,6 +70,15 @@ function JobsContent() {
   const initialTab = searchParams.get('tab') === 'post' ? 'post' : 'find';
   const [activeTab, setActiveTab] = useState<'find' | 'post'>(initialTab);
 
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'post') {
+      setActiveTab('post');
+    } else if (tabParam === 'find') {
+      setActiveTab('find');
+    }
+  }, [searchParams]);
+
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [hasProfile, setHasProfile] = useState(true);

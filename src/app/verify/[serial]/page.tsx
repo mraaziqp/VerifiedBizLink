@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
+import { ShieldCheck, ShieldAlert, XCircle, AlertTriangle, ArrowRight, ExternalLink, RefreshCw, CheckCircle2, Building2 } from 'lucide-react';
 import { verifySerial, type VerificationOutcome } from '@/lib/certificates';
+import { VBLLogo } from '@/components/ui/vbl-logo';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,46 +30,65 @@ export async function generateMetadata({
   };
 }
 
-const STYLE: Record<VerificationOutcome, {
-  border: string; glow: string; chip: string; iconBg: string; heading: string; badgeText: string;
-}> = {
+interface OutcomeVisuals {
+  border: string;
+  glow: string;
+  chip: string;
+  dotColor: string;
+  iconBg: string;
+  accentBar: string;
+  heading: string;
+  badgeText: string;
+}
+
+const STYLE: Record<VerificationOutcome, OutcomeVisuals> = {
   valid: {
-    border: 'border-emerald-500/40 bg-slate-900/90',
-    glow: 'from-emerald-500/20 via-emerald-500/5 to-transparent',
-    chip: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
-    iconBg: 'bg-emerald-500 text-slate-950 shadow-emerald-500/30 ring-emerald-500/20',
+    border: 'border-emerald-200 bg-white',
+    glow: 'bg-emerald-100/50',
+    chip: 'bg-emerald-50 border-emerald-300 text-emerald-800',
+    dotColor: 'bg-emerald-600',
+    iconBg: 'bg-emerald-600 text-white shadow-emerald-600/20 ring-emerald-100',
+    accentBar: 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600',
     heading: 'Genuine Verified Certificate',
     badgeText: 'Cryptographically Verified & Active',
   },
   not_found: {
-    border: 'border-red-500/40 bg-slate-900/90',
-    glow: 'from-red-500/20 via-red-500/5 to-transparent',
-    chip: 'bg-red-500/10 border-red-500/30 text-red-400',
-    iconBg: 'bg-red-500 text-white shadow-red-500/30 ring-red-500/20',
+    border: 'border-rose-200 bg-white',
+    glow: 'bg-rose-100/50',
+    chip: 'bg-rose-50 border-rose-300 text-rose-800',
+    dotColor: 'bg-rose-600',
+    iconBg: 'bg-rose-600 text-white shadow-rose-600/20 ring-rose-100',
+    accentBar: 'bg-gradient-to-r from-rose-500 to-red-600',
     heading: 'Certificate Not Found',
     badgeText: 'Unrecognized Document',
   },
   tampered: {
-    border: 'border-red-500/40 bg-slate-900/90',
-    glow: 'from-red-500/20 via-red-500/5 to-transparent',
-    chip: 'bg-red-500/10 border-red-500/30 text-red-400',
-    iconBg: 'bg-red-500 text-white shadow-red-500/30 ring-red-500/20',
+    border: 'border-red-200 bg-white',
+    glow: 'bg-red-100/50',
+    chip: 'bg-red-50 border-red-300 text-red-800',
+    dotColor: 'bg-red-600',
+    iconBg: 'bg-red-600 text-white shadow-red-600/20 ring-red-100',
+    accentBar: 'bg-gradient-to-r from-red-600 to-rose-700',
     heading: 'Integrity Check Failed',
     badgeText: 'Forged or Altered Document',
   },
   revoked: {
-    border: 'border-amber-500/40 bg-slate-900/90',
-    glow: 'from-amber-500/20 via-amber-500/5 to-transparent',
-    chip: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-    iconBg: 'bg-amber-500 text-slate-950 shadow-amber-500/30 ring-amber-500/20',
+    border: 'border-amber-200 bg-white',
+    glow: 'bg-amber-100/50',
+    chip: 'bg-amber-50 border-amber-300 text-amber-900',
+    dotColor: 'bg-amber-600',
+    iconBg: 'bg-amber-600 text-white shadow-amber-600/20 ring-amber-100',
+    accentBar: 'bg-gradient-to-r from-amber-500 to-orange-600',
     heading: 'Certificate Withdrawn',
     badgeText: 'Revoked by Platform',
   },
   no_longer_verified: {
-    border: 'border-amber-500/40 bg-slate-900/90',
-    glow: 'from-amber-500/20 via-amber-500/5 to-transparent',
-    chip: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
-    iconBg: 'bg-amber-500 text-slate-950 shadow-amber-500/30 ring-amber-500/20',
+    border: 'border-amber-200 bg-white',
+    glow: 'bg-amber-100/50',
+    chip: 'bg-amber-50 border-amber-300 text-amber-900',
+    dotColor: 'bg-amber-600',
+    iconBg: 'bg-amber-600 text-white shadow-amber-600/20 ring-amber-100',
+    accentBar: 'bg-gradient-to-r from-amber-500 to-slate-700',
     heading: 'Business No Longer Verified',
     badgeText: 'Verification Inactive',
   },
@@ -85,83 +106,90 @@ export default async function VerifyCertificatePage({
   const good = result.outcome === 'valid';
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 px-4 py-8 sm:py-12 relative overflow-hidden flex flex-col justify-between">
-      {/* Dynamic ambient backlight according to outcome */}
-      <div className={`absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[34rem] h-[34rem] rounded-full blur-3xl pointer-events-none bg-gradient-to-b ${style.glow} animate-pulse-glow`} />
+    <div className="min-h-screen bg-slate-50 text-slate-900 px-4 py-8 sm:py-12 relative overflow-hidden flex flex-col justify-between">
+      {/* Dynamic ambient backlight */}
+      <div className={`absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[34rem] h-[34rem] rounded-full blur-3xl pointer-events-none ${style.glow}`} />
+      <div className="absolute bottom-10 right-10 w-72 h-72 bg-slate-200/50 rounded-full blur-3xl pointer-events-none" />
 
       <div className="mx-auto max-w-2xl w-full relative z-10">
         {/* Brand Header */}
         <div className="mb-6 flex flex-col items-center text-center">
           <Link href="/" className="inline-block transition-transform hover:scale-105 duration-200">
-            <span className="text-2xl font-black tracking-tight text-white">
-              Verified<span className="text-amber-400">BizLink</span>
-            </span>
+            <VBLLogo variant="full" size="md" iconSize={42} theme="dark" />
           </Link>
-          <span className="text-xs text-slate-400 font-mono mt-1">Official Registry Ledger Check</span>
+          <span className="text-xs text-slate-500 font-mono mt-2 tracking-wide uppercase font-semibold">
+            Official Registry Ledger Verification
+          </span>
         </div>
 
         {/* Verification Verdict Card */}
-        <div className={`rounded-3xl border ${style.border} backdrop-blur-xl p-6 sm:p-9 shadow-2xl shadow-black/80 relative overflow-hidden transition-all duration-300`}>
+        <div className={`rounded-3xl border ${style.border} p-6 sm:p-9 shadow-xl relative overflow-hidden transition-all duration-300`}>
           {/* Top accent bar */}
-          <div className={`absolute top-0 left-0 right-0 h-1.5 ${good ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500' : 'bg-gradient-to-r from-amber-500 to-red-500'}`} />
+          <div className={`absolute top-0 left-0 right-0 h-1.5 ${style.accentBar}`} />
 
           <div className="flex flex-col items-center text-center">
             {/* Animated Status Shield */}
             <div className="relative animate-float">
               <div className={`flex h-20 w-20 items-center justify-center rounded-2xl ${style.iconBg} shadow-xl ring-4 transition-all duration-300`}>
                 {good ? (
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                       strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <ShieldCheck className="h-10 w-10 text-white stroke-[2.5]" />
+                ) : result.outcome === 'not_found' ? (
+                  <XCircle className="h-10 w-10 text-white stroke-[2.5]" />
                 ) : (
-                  <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                  <ShieldAlert className="h-10 w-10 text-white stroke-[2.5]" />
                 )}
               </div>
             </div>
 
             {/* Status Pill Badge */}
-            <div className={`mt-5 inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold ${style.chip}`}>
-              <span className={`h-2 w-2 rounded-full ${good ? 'bg-emerald-400 animate-ping' : 'bg-amber-400'}`} />
+            <div className={`mt-5 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-bold ${style.chip}`}>
+              <span className={`h-2 w-2 rounded-full ${style.dotColor} ${good ? 'animate-ping' : ''}`} />
               {style.badgeText}
             </div>
 
-            <h1 className="mt-3 text-2xl sm:text-3xl font-black text-white tracking-tight">{style.heading}</h1>
-            <p className="mt-2 max-w-md text-sm text-slate-300 leading-relaxed">{result.message}</p>
+            <h1 className="mt-3 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+              {style.heading}
+            </h1>
+            <p className="mt-2 max-w-md text-sm text-slate-600 leading-relaxed font-medium">
+              {result.message}
+            </p>
 
             {result.companyName && (
-              <div className="mt-6 p-4 rounded-2xl bg-slate-950/70 border border-slate-800 w-full max-w-lg">
-                <p className="text-xl sm:text-2xl font-black text-white tracking-tight">{result.companyName}</p>
+              <div className="mt-6 p-5 rounded-2xl bg-slate-50 border border-slate-200/90 w-full max-w-lg shadow-inner">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Building2 className="h-5 w-5 text-slate-700" />
+                  <p className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    {result.companyName}
+                  </p>
+                </div>
                 {result.regNumber && (
-                  <p className="text-xs text-amber-400 font-mono mt-1 font-semibold">CIPC Reg: {result.regNumber}</p>
+                  <p className="text-xs text-slate-700 font-mono font-bold mt-1 tracking-wide">
+                    CIPC Registration: <span className="text-slate-900 font-extrabold">{result.regNumber}</span>
+                  </p>
                 )}
               </div>
             )}
           </div>
 
           {result.companyName && (
-            <dl className="mt-6 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-slate-800 bg-slate-800 sm:grid-cols-2">
-              <div className="bg-slate-900/90 p-4">
-                <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Certificate Serial</dt>
-                <dd className="mt-1 font-mono text-sm font-bold text-amber-300">{result.serial}</dd>
+            <dl className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Certificate Serial</dt>
+                <dd className="mt-1 font-mono text-sm font-bold text-slate-900 break-all select-all">{result.serial}</dd>
               </div>
-              <div className="bg-slate-900/90 p-4">
-                <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Check Code (Security Code)</dt>
-                <dd className="mt-1 font-mono text-sm font-bold text-slate-200">{result.checkCode ?? '—'}</dd>
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Security Check Code</dt>
+                <dd className="mt-1 font-mono text-sm font-bold text-slate-900 select-all">{result.checkCode ?? '—'}</dd>
               </div>
-              <div className="bg-slate-900/90 p-4">
-                <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Issued On</dt>
-                <dd className="mt-1 text-sm font-medium text-slate-200">{za(result.issuedAt)}</dd>
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Issued On</dt>
+                <dd className="mt-1 text-sm font-semibold text-slate-800">{za(result.issuedAt)}</dd>
               </div>
-              <div className="bg-slate-900/90 p-4">
-                <dt className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              <div className="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   {good ? 'Verified Since' : 'Current Status'}
                 </dt>
-                <dd className={`mt-1 text-sm font-bold ${good ? 'text-emerald-400' : 'text-amber-400'}`}>
+                <dd className={`mt-1 text-sm font-bold ${good ? 'text-emerald-700' : 'text-amber-800'}`}>
                   {good ? za(result.verifiedSince) : (result.currentStatus ?? 'Unknown')}
                 </dd>
               </div>
@@ -170,15 +198,18 @@ export default async function VerifyCertificatePage({
 
           {/* Cryptographic assurance disclaimer */}
           {result.checkCode && (
-            <div className="mt-4 rounded-xl bg-slate-950/60 border border-slate-800/80 p-3.5 text-center text-xs text-slate-400 leading-relaxed">
-              <span className="font-semibold text-slate-300">Cross-Reference Check:</span> Compare the certificate serial (<span className="text-amber-300 font-mono font-bold">{result.serial}</span>) and check code (<span className="text-slate-200 font-mono font-bold">{result.checkCode}</span>) above against the physical/PDF certificate. Both must match exactly.
+            <div className="mt-4 rounded-xl bg-slate-50 border border-slate-200 p-4 text-center text-xs text-slate-600 leading-relaxed">
+              <span className="font-bold text-slate-800">Cross-Reference Verification:</span> Compare the certificate serial (<span className="bg-white px-2 py-0.5 rounded border border-slate-300 font-mono font-bold text-slate-900">{result.serial}</span>) and check code (<span className="bg-white px-2 py-0.5 rounded border border-slate-300 font-mono font-bold text-slate-900">{result.checkCode}</span>) above against the physical or PDF certificate. Both credentials must match precisely.
             </div>
           )}
 
           {result.revokedAt && (
-            <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-sm text-amber-200">
-              <span className="font-bold text-amber-300">Revocation Notice:</span> Withdrawn on {za(result.revokedAt)}
-              {result.revokeReason ? ` — ${result.revokeReason}` : ''}.
+            <div className="mt-4 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 flex items-start gap-2.5">
+              <AlertTriangle className="h-5 w-5 text-amber-700 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-amber-900">Revocation Notice:</span> Withdrawn on {za(result.revokedAt)}
+                {result.revokeReason ? ` — ${result.revokeReason}` : ''}.
+              </div>
             </div>
           )}
 
@@ -187,29 +218,31 @@ export default async function VerifyCertificatePage({
             {good && result.businessId && (
               <Link
                 href={`/business/${result.businessId}`}
-                className="flex-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 px-6 font-bold text-slate-950 hover:from-amber-300 hover:to-amber-400 transition-all duration-200 shadow-md shadow-amber-400/20"
+                className="flex-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 font-bold text-white hover:bg-slate-800 transition-all duration-200 shadow-md cursor-pointer text-sm"
               >
                 <span>View Verified Business Profile</span>
+                <ArrowRight className="h-4 w-4" />
               </Link>
             )}
 
             <Link
               href="/verify"
-              className="flex-1 flex h-12 items-center justify-center rounded-xl border border-slate-700 bg-slate-800/80 px-6 font-semibold text-slate-200 hover:bg-slate-700 hover:text-white transition-all text-sm"
+              className="flex-1 flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all text-sm cursor-pointer shadow-xs"
             >
-              Check A Different Certificate
+              <RefreshCw className="h-4 w-4" />
+              <span>Check A Different Certificate</span>
             </Link>
           </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-slate-400 leading-relaxed">
+        <p className="mt-6 text-center text-xs text-slate-500 leading-relaxed max-w-lg mx-auto">
           This cryptographic lookup executes against the live database ledger.
-          A document that was genuine when printed will automatically show as no longer verified if compliance expires or revokes.
+          A document that was genuine when printed will automatically show as no longer verified if compliance expires or is revoked.
         </p>
       </div>
 
       <div className="text-center text-[11px] text-slate-400 relative z-10 mt-6">
-        VerifiedBizLink &copy; {new Date().getFullYear()} &bull; Trust &amp; Compliance Services
+        VerifiedBizLink &copy; {new Date().getFullYear()} &bull; Trust &amp; Compliance Services &bull; Republic of South Africa
       </div>
     </div>
   );

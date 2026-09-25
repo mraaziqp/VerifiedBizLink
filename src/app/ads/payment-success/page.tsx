@@ -60,18 +60,18 @@ function PaymentSuccessContent() {
         <CardContent className="p-8 text-center space-y-6">
           <div className="flex justify-center">
             <div className={
-              outcome === 'completed' ? 'bg-green-500/20 p-4 rounded-full'
-              : outcome === 'failed' ? 'bg-red-500/20 p-4 rounded-full'
-              : 'bg-yellow-500/20 p-4 rounded-full'
+              outcome === 'completed' ? 'bg-green-100 p-4 rounded-full'
+              : outcome === 'failed' ? 'bg-red-100 p-4 rounded-full'
+              : 'bg-amber-100 p-4 rounded-full'
             }>
               {outcome === 'checking' ? (
-                <Loader2 className="h-12 w-12 text-yellow-400 animate-spin" />
+                <Loader2 className="h-12 w-12 text-amber-600 animate-spin" />
               ) : outcome === 'completed' ? (
-                <CheckCircle2 className="h-12 w-12 text-green-400" />
+                <CheckCircle2 className="h-12 w-12 text-green-600" />
               ) : outcome === 'failed' ? (
-                <Clock className="h-12 w-12 text-red-400" />
+                <Clock className="h-12 w-12 text-red-600" />
               ) : (
-                <Clock className="h-12 w-12 text-yellow-400" />
+                <Clock className="h-12 w-12 text-amber-600" />
               )}
             </div>
           </div>

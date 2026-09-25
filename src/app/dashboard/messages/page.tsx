@@ -301,7 +301,8 @@ function DashboardMessagesContent() {
                   <button
                     type="button"
                     onClick={() => setSelectedUser(null)}
-                    className="md:hidden p-1.5 rounded-lg hover:bg-slate-100 text-slate-600"
+                    className="md:hidden h-11 w-11 flex items-center justify-center rounded-xl hover:bg-slate-100 active:scale-95 text-slate-700 transition-all shrink-0 cursor-pointer"
+                    aria-label="Back to conversations"
                   >
                     <ArrowLeft className="h-5 w-5" />
                   </button>
