@@ -219,7 +219,7 @@ export default function BusinessProfilePage() {
               {/* Avatar */}
               <Avatar className="h-20 w-20 border-4 border-background shadow-xl">
                 <AvatarImage src={business.avatarUrl || undefined} alt={business.companyName} />
-                <AvatarFallback className="text-2xl font-black bg-primary/10 text-primary">
+                <AvatarFallback className="text-2xl font-black bg-slate-100 text-slate-900">
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -240,7 +240,7 @@ export default function BusinessProfilePage() {
                     <Button
                       onClick={handleConnect}
                       disabled={connecting}
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold gap-2"
+                      className="bg-slate-900 text-white hover:bg-slate-800 font-bold gap-2"
                     >
                       {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Users className="h-4 w-4" />}
                       Connect
@@ -250,7 +250,7 @@ export default function BusinessProfilePage() {
                 )}
                 {!user && (
                   <Link href="/login">
-                    <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold">
+                    <Button className="bg-slate-900 text-white hover:bg-slate-800 font-bold">
                       Sign in to Connect
                     </Button>
                   </Link>
@@ -261,7 +261,7 @@ export default function BusinessProfilePage() {
             {/* Name & meta */}
             <div className="mt-4 space-y-1.5">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-2xl font-black text-foreground">{business.companyName}</h1>
+                <h1 className="text-2xl font-black text-slate-900">{business.companyName}</h1>
                 {isVerified && <GoldCheckmark />}
                 <Badge className={`text-xs font-bold border ${statusCfg.color}`}>
                   {statusCfg.label}
@@ -269,15 +269,15 @@ export default function BusinessProfilePage() {
               </div>
 
               {business.tagline && (
-                <p className="text-primary text-sm font-semibold">{business.tagline}</p>
+                <p className="text-slate-700 text-sm font-semibold">{business.tagline}</p>
               )}
 
               {business.headline && (
-                <p className="text-foreground/70 text-sm">{business.headline}</p>
+                <p className="text-slate-600 text-sm">{business.headline}</p>
               )}
 
               {business.industry && (
-                <p className="text-xs font-semibold text-primary uppercase tracking-widest">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">
                   {business.industry}
                 </p>
               )}
@@ -484,23 +484,23 @@ export default function BusinessProfilePage() {
                       href={business.website.startsWith("http") ? business.website : `https://${business.website}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-primary hover:underline font-medium"
+                      className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline font-semibold"
                     >
-                      <Globe className="h-4 w-4 shrink-0" />
+                      <Globe className="h-4 w-4 shrink-0 text-slate-500" />
                       <span className="truncate">{business.website.replace(/^https?:\/\//, "")}</span>
                     </a>
                   )}
 
                   {business.phone && (
-                    <div className="flex items-center gap-2 text-sm text-foreground/75">
-                      <Phone className="h-4 w-4 shrink-0 text-primary" />
+                    <div className="flex items-center gap-2 text-sm text-slate-700 font-medium">
+                      <Phone className="h-4 w-4 shrink-0 text-slate-500" />
                       <span>{business.phone}</span>
                     </div>
                   )}
 
                   {(business.address || business.location) && (
-                    <div className="flex items-start gap-2 text-sm text-foreground/75">
-                      <MapPin className="h-4 w-4 shrink-0 text-primary mt-0.5" />
+                    <div className="flex items-start gap-2 text-sm text-slate-700 font-medium">
+                      <MapPin className="h-4 w-4 shrink-0 text-slate-500 mt-0.5" />
                       <span>{business.address || business.location}</span>
                     </div>
                   )}
@@ -528,7 +528,7 @@ export default function BusinessProfilePage() {
                             target="_blank"
                             rel="noopener noreferrer"
                             title={key}
-                            className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 transition-colors"
                           >
                             <Icon className="h-4 w-4" />
                           </a>

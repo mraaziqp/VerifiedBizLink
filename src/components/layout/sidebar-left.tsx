@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell,
-  MapPin, Building2, Zap, Megaphone, CheckCheck, Trash2, X, Briefcase, QrCode
+  MapPin, Building2, Zap, Megaphone, CheckCheck, Trash2, X, Briefcase, QrCode, PlusCircle
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -209,23 +209,46 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
             return null;
           }
           const isActive = pathname === item.href;
+          const isJobs = item.name === "Jobs";
+          const isPostJobActive = pathname === "/jobs/post" || pathname === "/business/jobs";
+
           return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 group font-semibold text-sm",
-                isActive
-                  ? "bg-amber-400 text-slate-950 font-bold shadow-xs shadow-amber-400/20"
-                  : "text-slate-600 hover:bg-amber-50/70 hover:text-amber-950"
+            <div key={item.name} className="flex flex-col gap-0.5">
+              <Link
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 group font-semibold text-sm",
+                  isActive
+                    ? "bg-slate-900 text-white font-bold shadow-xs"
+                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+                )}
+              >
+                <item.icon className={cn(
+                  "h-4.5 w-4.5",
+                  isActive ? "text-amber-400" : "text-slate-400 group-hover:text-slate-700"
+                )} />
+                <span>{item.name}</span>
+              </Link>
+
+              {/* Nested Post a Job route: conditionally rendered for verified business accounts */}
+              {isJobs && businessVerified && (
+                <Link
+                  href="/jobs?tab=post"
+                  className={cn(
+                    "flex items-center gap-2.5 pl-9 pr-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150",
+                    isPostJobActive || pathname.includes("tab=post")
+                      ? "text-slate-900 bg-amber-50 font-bold border-l-2 border-amber-500"
+                      : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                  )}
+                >
+                  <PlusCircle className="h-3.5 w-3.5 text-amber-600" />
+                  <span>Post a Job</span>
+                  <span className="ml-auto text-[9px] uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold">
+                    Biz
+                  </span>
+                </Link>
               )}
-            >
-              <item.icon className={cn(
-                "h-4.5 w-4.5",
-                isActive ? "text-slate-950" : "text-slate-400 group-hover:text-amber-600"
-              )} />
-              <span>{item.name}</span>
-            </Link>
+            </div>
           );
         })}
 

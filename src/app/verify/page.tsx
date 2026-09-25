@@ -3,21 +3,29 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ShieldCheck, Search, QrCode, Sparkles, ArrowRight, ShieldAlert, CheckCircle2, Lock } from 'lucide-react';
+import {
+  ShieldCheck, Search, QrCode, Sparkles, ArrowRight, ShieldAlert,
+  CheckCircle2, Lock, FileCheck, Building2
+} from 'lucide-react';
 import { VBLLogo } from '@/components/ui/vbl-logo';
+import { sanitizeCertificateString } from '@/db/queries/certificates';
 
 /**
- * Certificate verification portal with high-end security visuals & animations.
+ * Certificate Verification Portal
+ * Light Theme Edition: High-contrast, elegant slate-50 background,
+ * clean typography, accessible cards, and zero low-contrast text.
  */
 export default function VerifyLookupPage() {
   const router = useRouter();
   const [code, setCode] = useState('');
-  const [isHovering, setIsHovering] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   const go = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleaned = code.trim().toUpperCase().replace(/\s+/g, '');
-    if (cleaned) router.push(`/verify/${encodeURIComponent(cleaned)}`);
+    const cleaned = sanitizeCertificateString(code);
+    if (cleaned) {
+      router.push(`/verify/${encodeURIComponent(cleaned)}`);
+    }
   };
 
   const handleFormat = (val: string) => {
@@ -34,46 +42,38 @@ export default function VerifyLookupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between px-4 py-8 sm:py-12 relative overflow-hidden">
-      {/* Background ambient lighting & floating orbs */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[36rem] h-[36rem] bg-amber-500/10 rounded-full blur-3xl pointer-events-none animate-pulse-glow" />
-      <div className="absolute bottom-10 right-10 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between px-4 py-8 sm:py-12 relative overflow-hidden">
+      {/* Background ambient lighting */}
+      <div className="absolute top-0 right-1/4 w-[36rem] h-[36rem] bg-slate-200/50 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 left-10 w-80 h-80 bg-emerald-100/40 rounded-full blur-3xl pointer-events-none" />
 
       <div className="mx-auto max-w-xl w-full relative z-10">
         {/* Brand Header */}
         <div className="mb-8 flex flex-col items-center text-center">
           <Link href="/" className="inline-block transition-transform hover:scale-105 duration-200">
-            <VBLLogo variant="full" size="md" iconSize={44} theme="light" />
+            <VBLLogo variant="full" size="md" iconSize={44} theme="dark" />
           </Link>
-          <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 text-xs font-bold text-amber-400">
-            <Sparkles className="h-3 w-3" />
+          <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-200/80 border border-slate-300 text-xs font-bold text-slate-800">
+            <Sparkles className="h-3 w-3 text-amber-600" />
             Official Public Verification Gateway
           </div>
         </div>
 
         {/* Main Verification Card */}
-        <div 
-          className="rounded-3xl border border-amber-400/30 bg-slate-900/90 backdrop-blur-xl p-6 sm:p-9 shadow-2xl shadow-black/80 relative group overflow-hidden transition-all duration-300 hover:border-amber-400/50"
-          onMouseEnter={() => setIsHovering(true)}
-          onMouseLeave={() => setIsHovering(false)}
-        >
-          {/* Animated Scanning Beam effect */}
-          <div 
-            className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent transition-opacity duration-500 ${
-              isHovering ? 'opacity-100 animate-shimmer' : 'opacity-40'
-            }`} 
-          />
+        <div className="rounded-3xl border border-slate-200/90 bg-white p-6 sm:p-9 shadow-xl relative overflow-hidden">
+          {/* Top highlight bar */}
+          <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-slate-900 via-amber-500 to-slate-900" />
 
           <div className="text-center">
-            {/* Glowing Shield Icon */}
-            <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-amber-500 shadow-lg shadow-amber-400/20 animate-float">
-              <ShieldCheck className="h-9 w-9 text-slate-950" />
+            {/* Shield Icon */}
+            <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-md animate-float">
+              <ShieldCheck className="h-9 w-9 text-emerald-400" />
             </div>
 
-            <h1 className="mt-5 text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <h1 className="mt-5 text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
               Verify a Business Certificate
             </h1>
-            <p className="mt-2 text-sm text-slate-300 max-w-md mx-auto leading-relaxed">
+            <p className="mt-2 text-sm text-slate-600 max-w-md mx-auto leading-relaxed">
               Every genuine VerifiedBizLink certificate is backed by an immutable cryptographic signature.
               Check live CIPC registration &amp; SARS compliance status in real-time.
             </p>
@@ -82,8 +82,8 @@ export default function VerifyLookupPage() {
           <form onSubmit={go} className="mt-8 space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label htmlFor="serial" className="text-xs font-bold uppercase tracking-wider text-amber-400">
-                  Certificate Number
+                <label htmlFor="serial" className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                  Certificate Serial Number
                 </label>
                 <span className="text-[11px] text-slate-400 font-mono">Format: VBL-YYYY-XXXX-XXXX</span>
               </div>
@@ -92,11 +92,13 @@ export default function VerifyLookupPage() {
                   id="serial"
                   value={code}
                   onChange={(e) => handleFormat(e.target.value)}
+                  onFocus={() => setIsFocused(true)}
+                  onBlur={() => setIsFocused(false)}
                   placeholder="VBL-2026-XXXX-XXXX"
                   autoComplete="off"
                   autoCapitalize="characters"
                   spellCheck={false}
-                  className="h-14 w-full rounded-2xl border-2 border-slate-700 bg-slate-950/80 px-4 text-center font-mono text-lg sm:text-xl font-bold uppercase tracking-wider text-amber-300 placeholder:text-slate-600 outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10 transition-all shadow-inner"
+                  className="h-14 w-full rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 text-center font-mono text-lg sm:text-xl font-bold uppercase tracking-wider text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-900/5 transition-all shadow-inner"
                 />
               </div>
             </div>
@@ -104,7 +106,7 @@ export default function VerifyLookupPage() {
             <button
               type="submit"
               disabled={!code.trim()}
-              className="group relative flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 py-3.5 font-black text-slate-950 transition-all duration-200 hover:from-amber-300 hover:to-amber-400 hover:shadow-lg hover:shadow-amber-400/25 active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              className="group relative flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 py-3.5 font-bold text-white transition-all duration-200 hover:bg-slate-800 hover:shadow-lg active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
               <Search className="h-5 w-5 transition-transform group-hover:scale-110" />
               <span>Verify Authenticity</span>
@@ -112,43 +114,43 @@ export default function VerifyLookupPage() {
             </button>
           </form>
 
-          {/* QR code information box */}
-          <div className="mt-7 flex items-start gap-3.5 rounded-2xl bg-slate-950/60 border border-slate-800 p-4">
-            <div className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-amber-400 shrink-0">
+          {/* QR code info box */}
+          <div className="mt-7 flex items-start gap-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 p-4">
+            <div className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-900 shrink-0 shadow-2xs">
               <QrCode className="h-5 w-5" />
             </div>
-            <div className="text-xs text-slate-300 space-y-1">
-              <p className="font-bold text-white flex items-center gap-1.5">
-                Instant QR Verification
+            <div className="text-xs text-slate-600 space-y-1">
+              <p className="font-bold text-slate-900">
+                Instant Mobile QR Verification
               </p>
-              <p className="text-slate-400 leading-relaxed">
-                Scan the QR code on any printed or digital VerifiedBizLink certificate with any smartphone camera.
-                No app installation or account required.
+              <p className="leading-relaxed">
+                Scan the QR code on any printed or digital VerifiedBizLink certificate with your smartphone camera.
+                Direct anti-tamper lookup without installing any apps.
               </p>
             </div>
           </div>
 
           {/* Security Assurance Badges */}
-          <div className="mt-6 pt-5 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-center text-[10px] text-slate-400">
+          <div className="mt-6 pt-5 border-t border-slate-100 grid grid-cols-3 gap-2 text-center text-[10px] text-slate-500 font-semibold">
             <div className="flex flex-col items-center gap-1">
-              <Lock className="h-3.5 w-3.5 text-amber-400" />
+              <Lock className="h-4 w-4 text-slate-700" />
               <span>HMAC-SHA256 Signed</span>
             </div>
             <div className="flex flex-col items-center gap-1">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
               <span>CIPC &amp; SARS Verified</span>
             </div>
             <div className="flex flex-col items-center gap-1">
-              <ShieldAlert className="h-3.5 w-3.5 text-amber-400" />
-              <span>Anti-Tamper Live Sync</span>
+              <ShieldAlert className="h-4 w-4 text-slate-700" />
+              <span>Anti-Tamper Sync</span>
             </div>
           </div>
         </div>
 
         {/* Footer info */}
-        <p className="mt-8 text-center text-xs text-slate-400">
+        <p className="mt-8 text-center text-xs text-slate-500">
           Suspect an altered or counterfeit certificate?{' '}
-          <Link href="/contact" className="font-bold text-amber-400 hover:text-amber-300 underline underline-offset-4">
+          <Link href="/contact" className="font-bold text-slate-900 hover:underline underline-offset-4">
             Report fraud to compliance
           </Link>
           .

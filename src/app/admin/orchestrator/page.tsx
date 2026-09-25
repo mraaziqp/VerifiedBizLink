@@ -127,7 +127,7 @@ export default function OrchestratorDashboard() {
         </Link>
         <Link href="/admin/settings">
           <Button variant="outline" size="sm"
-            className="gap-2 border-yellow-500/30 text-yellow-600 hover:border-yellow-500/50 hover:bg-yellow-500/10">
+            className="gap-2 border-slate-300 text-slate-700 hover:border-slate-400 hover:bg-slate-100">
             <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Settings</span>
           </Button>
         </Link>

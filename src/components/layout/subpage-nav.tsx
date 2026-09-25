@@ -54,7 +54,7 @@ export function SubpageNav({ title, backHref }: SubpageNavProps) {
           <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-80">
             <VBLLogo variant="icon" size="sm" iconSize={32} theme="dark" />
             <span className="font-extrabold text-base text-gray-900 tracking-tight hidden sm:inline-block">
-              Verified<span className="text-yellow-500">BizLink</span>
+              Verified<span className="text-amber-600 font-black">BizLink</span>
             </span>
           </Link>
         </div>

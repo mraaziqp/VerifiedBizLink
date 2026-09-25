@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { SubpageNav } from '@/components/layout/subpage-nav';
+import { TagInput } from '@/components/ui/tag-input';
 
 interface WorkItem { title: string; company: string; period: string; description: string }
 interface EducationItem { qualification: string; institution: string; year: string }
@@ -186,50 +187,27 @@ export default function TalentProfilePage() {
         </section>
 
         {/* Skills drive matching, so they get their own explanation. */}
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
-          <h2 className="text-lg font-bold text-gray-900">Skills</h2>
-          <p className="mt-1 text-sm text-gray-600">
-            These decide which roles are matched to you, so list the ones you would
-            actually want to be hired for.
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-lg font-bold text-gray-900">Skills &amp; Specialties</h2>
+            <span className="text-xs font-semibold text-slate-500">{profile.skills.length} skills added</span>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            These decide which roles and verified businesses are matched to you. Type a skill and press <strong>Enter</strong> to create a badge.
           </p>
 
-          <div className="mt-3 flex gap-2">
-            <Input
-              value={skillDraft}
-              onChange={(e) => setSkillDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addSkill(); } }}
-              placeholder="Add a skill and press Enter"
-              className="border-gray-200 bg-white"
-            />
-            <Button type="button" onClick={addSkill} variant="outline" className="shrink-0 gap-1.5 border-gray-300">
-              <Plus className="h-4 w-4" /> Add
-            </Button>
-          </div>
-
-          {profile.skills.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {profile.skills.map((s) => (
-                <span key={s} className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-sm text-gray-800">
-                  {s}
-                  <button
-                    type="button"
-                    onClick={() => set('skills', profile.skills.filter((x) => x !== s))}
-                    className="text-gray-400 hover:text-red-600"
-                    aria-label={`Remove ${s}`}
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
+          <TagInput
+            tags={profile.skills}
+            onChange={(nextSkills) => set('skills', nextSkills)}
+            placeholder="Type a skill (e.g. Commercial Wiring, Financial Auditing, Python) and press Enter..."
+          />
         </section>
 
         {/* Work history */}
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 shadow-xs">
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-              <Briefcase className="h-5 w-5 text-yellow-600" /> Work history
+              <Briefcase className="h-5 w-5 text-slate-700" /> Work history
             </h2>
             <Button
               type="button"

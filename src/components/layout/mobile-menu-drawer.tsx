@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   X, Home, Users, MapPin, ShieldCheck, BarChart3,
-  Settings, Shield, LogOut, Building2, Megaphone, Zap, QrCode
+  Settings, Shield, LogOut, Building2, Megaphone, Zap, QrCode, Briefcase, PlusCircle
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useMobileMenu } from "@/contexts/mobile-menu-context";
@@ -25,6 +25,7 @@ const MENU_ITEMS = [
   { name: "Home", href: "/", icon: Home },
   { name: "My Network", href: "/network", icon: Users },
   { name: "Explore", href: "/explore", icon: MapPin },
+  { name: "Jobs", href: "/jobs", icon: Briefcase },
   { name: "Vetting Hub", href: "/vetting", icon: ShieldCheck },
   { name: "Verify Certificate", href: "/verify", icon: QrCode },
   { name: "Pricing & Plans", href: "/pricing", icon: Zap },
@@ -142,20 +143,40 @@ export function MobileMenuDrawer() {
             <nav className="flex-1 overflow-y-auto overscroll-contain p-3 space-y-1 custom-scrollbar">
               {MENU_ITEMS.map((item) => {
                 const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+                const isJobs = item.name === "Jobs";
                 return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${
-                      active
-                        ? "bg-amber-400 text-slate-950 font-bold shadow-sm shadow-amber-400/20"
-                        : "text-white/80 hover:bg-white/10 hover:text-white"
-                    }`}
-                  >
-                    <item.icon size={18} className={active ? "text-slate-950" : "text-amber-400/80"} />
-                    {item.name}
-                  </Link>
+                  <div key={item.name} className="flex flex-col gap-0.5">
+                    <Link
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${
+                        active
+                          ? "bg-amber-400 text-slate-950 font-bold shadow-sm shadow-amber-400/20"
+                          : "text-white/80 hover:bg-white/10 hover:text-white"
+                      }`}
+                    >
+                      <item.icon size={18} className={active ? "text-slate-950" : "text-amber-400/80"} />
+                      {item.name}
+                    </Link>
+
+                    {isJobs && (isBusiness || businessVerified) && (
+                      <Link
+                        href="/jobs?tab=post"
+                        onClick={() => setOpen(false)}
+                        className={`flex items-center gap-2 pl-9 pr-3.5 py-2 text-xs font-semibold rounded-lg transition-all ${
+                          pathname.includes("tab=post")
+                            ? "bg-amber-400/20 text-amber-300 font-bold"
+                            : "text-white/70 hover:text-white hover:bg-white/5"
+                        }`}
+                      >
+                        <PlusCircle size={14} className="text-amber-400" />
+                        <span>Post a Job</span>
+                        <span className="ml-auto text-[9px] uppercase px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 font-bold">
+                          Biz
+                        </span>
+                      </Link>
+                    )}
+                  </div>
                 );
               })}
 
