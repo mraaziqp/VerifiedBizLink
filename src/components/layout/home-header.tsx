@@ -124,29 +124,32 @@ export function HomeHeader() {
 
   return (
     <div className="safe-area-pt sticky top-0 z-30 bg-slate-950 border-b border-slate-800">
-      <div className="px-4 py-4 flex items-center justify-between">
+      <div className="px-3 sm:px-4 py-3 flex items-center justify-between gap-2">
         {/* Menu Button */}
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open menu"
-          className="p-2.5 hover:bg-primary/10 active:bg-primary/20 rounded-lg transition-all duration-200 group"
+          className="shrink-0 p-2.5 hover:bg-amber-400/10 active:bg-amber-400/20 rounded-lg transition-all duration-200 group"
         >
-          <Menu size={24} className="text-primary group-hover:scale-110 transition-transform" />
+          {/* amber, not text-primary: primary is slate-900, which on this
+              near-black bar made both header icons invisible. */}
+          <Menu size={24} className="text-amber-400 group-hover:scale-110 transition-transform" />
         </button>
 
         {/* Logo & Title */}
-        <div className="flex-1 flex justify-center">
-          <VBLLogo variant="full" size="lg" theme="light" />
+        <div className="min-w-0 flex-1 flex justify-center overflow-hidden">
+          <VBLLogo variant="full" size="md" theme="light" />
         </div>
 
         {/* Notification Button */}
         <button
           type="button"
           onClick={openNotifications}
-          className="p-2.5 hover:bg-primary/10 active:bg-primary/20 rounded-lg transition-all duration-200 relative group"
+          aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+          className="shrink-0 p-2.5 hover:bg-amber-400/10 active:bg-amber-400/20 rounded-lg transition-all duration-200 relative group"
         >
-          <Bell size={24} className="text-primary group-hover:scale-110 transition-transform" />
+          <Bell size={24} className="text-amber-400 group-hover:scale-110 transition-transform" />
           {unreadCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 bg-destructive text-[10px] font-bold text-white rounded-full shadow-lg shadow-destructive/50 flex items-center justify-center">
               {bellText}

@@ -31,6 +31,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Each upload is an AI call; cap them so one account cannot run up the bill.
+    await ensureTalentCvTable();
+    const [recent] = await db`
+      SELECT COUNT(*)::int AS n FROM talent_cvs
+      WHERE user_id = ${session.id} AND created_at > NOW() - INTERVAL '1 hour'
+    `;
+    if (Number(recent?.n ?? 0) >= 10) {
+      return NextResponse.json(
+        { error: 'You have uploaded 10 CVs in the last hour. Please wait a little before trying again.' },
+        { status: 429 },
+      );
+    }
+
     const buf = Buffer.from(await file.arrayBuffer());
     const kind = detectCvKind(buf);
     if (!kind) {
@@ -42,7 +55,6 @@ export async function POST(request: NextRequest) {
 
     const fileName = String(file.name || `cv.${kind}`).replace(/[^\w.\- ()]+/g, '_').slice(0, 120);
 
-    await ensureTalentCvTable();
     const [row] = await db`
       INSERT INTO talent_cvs (user_id, file_name, mime_type, size_bytes, data_base64)
       VALUES (${session.id}, ${fileName}, ${CV_MIME[kind]}, ${buf.length}, ${buf.toString('base64')})

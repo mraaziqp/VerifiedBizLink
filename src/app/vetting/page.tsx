@@ -510,7 +510,7 @@ export default function VettingPage() {
                     <div className="space-y-3">
                       {["Unlock Trade Networks","Higher Placement in Search","Instant Trust with Partners","Exclusive Verified Groups"].map((item, i) => (
                         <div key={i} className="flex items-start gap-2 text-sm text-gray-300">
-                          <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                          <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
                           <span className="font-medium">{item}</span>
                         </div>
                       ))}

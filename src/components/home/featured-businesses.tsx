@@ -86,7 +86,7 @@ export function FeaturedBusinesses({
               </div>
             </div>
 
-            <div className="text-xs text-slate-600 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2 line-clamp-1 italic">
+            <div className="text-xs text-slate-600 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2 truncate italic">
               &quot;{business.headline || business.companyName || "Trusted verified business"}&quot;
             </div>
 

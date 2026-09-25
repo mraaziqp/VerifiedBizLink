@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  FileText, Upload, Camera, Loader2, ScanLine, Sparkles, Check, X, ExternalLink, Trash2,
+  FileText, Upload, Camera, Loader2, ScanLine, Sparkles, Check, X, ExternalLink, Trash2, Plus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -52,16 +52,70 @@ async function shrinkImage(file: File): Promise<File> {
   }
 }
 
+const MAX_PAGES = 4;
+
+/**
+ * Stacks photographed pages into one tall JPEG, so a multi-page paper CV is
+ * one upload and one read. Each page is scaled to a common width (≤1600px,
+ * plenty for text); quality steps down until the result fits the limit.
+ */
+async function stitchPages(files: File[]): Promise<File> {
+  const bitmaps = await Promise.all(files.map((f) => createImageBitmap(f)));
+  const width = Math.min(1600, Math.max(...bitmaps.map((b) => b.width)));
+  const heights = bitmaps.map((b) => Math.round(b.height * (width / b.width)));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = heights.reduce((a, h) => a + h, 0);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas unavailable');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  let y = 0;
+  bitmaps.forEach((b, i) => { ctx.drawImage(b, 0, y, width, heights[i]); y += heights[i]; });
+  for (const quality of [0.82, 0.7, 0.55, 0.4]) {
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+    if (blob && blob.size <= MAX_BYTES) return new File([blob], `scanned-cv-${files.length}-pages.jpg`, { type: 'image/jpeg' });
+  }
+  throw new Error('Scanned pages are too large');
+}
+
 export function CvScanner({ cvUrl, cvFileName, onUploaded, onRemoved, onApply }: CvScannerProps) {
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<'upload' | 'remove' | null>(null);
   const [suggestions, setSuggestions] = useState<CvSuggestions | null>(null);
+  const [pages, setPages] = useState<{ file: File; url: string }[]>([]);
 
-  const upload = async (picked: File | undefined) => {
+  // Thumbnails are object URLs; release them when the tray changes or unmounts.
+  useEffect(() => () => pages.forEach((p) => URL.revokeObjectURL(p.url)), [pages]);
+
+  const addPages = (list: FileList | null) => {
+    const picked = Array.from(list ?? []).filter((f) => f.type.startsWith('image/'));
+    if (picked.length === 0) return;
+    setPages((prev) => {
+      const next = [...prev.map((p) => ({ file: p.file, url: URL.createObjectURL(p.file) }))];
+      for (const f of picked) if (next.length < MAX_PAGES) next.push({ file: f, url: URL.createObjectURL(f) });
+      return next;
+    });
+  };
+
+  const scanPages = async () => {
+    if (pages.length === 0) return;
+    setBusy('upload');
+    try {
+      const file = pages.length === 1 ? await shrinkImage(pages[0].file) : await stitchPages(pages.map((p) => p.file));
+      setPages([]);
+      await upload(file, true);
+    } catch {
+      setBusy(null);
+      toast({ title: 'Could not prepare the scan', description: 'Try fewer pages, or upload a PDF instead.', variant: 'destructive' });
+    }
+  };
+
+  const upload = async (picked: File | undefined, prepared = false) => {
     if (!picked) return;
-    const file = await shrinkImage(picked);
+    const file = prepared ? picked : await shrinkImage(picked);
     if (file.size > MAX_BYTES) {
       toast({
         title: 'File too large',
@@ -185,12 +239,53 @@ export function CvScanner({ cvUrl, cvFileName, onUploaded, onRemoved, onApply }:
           className="h-11 gap-2 border-amber-300 bg-white font-bold text-amber-900 hover:bg-amber-50"
         >
           <Camera className="h-4 w-4 text-amber-600" />
-          Scan paper CV
+          {pages.length ? 'Add another page' : 'Scan paper CV'}
         </Button>
       </div>
       <p className="mt-2 text-xs text-gray-500">
-        PDF, Word (.docx) or a photo · up to 4MB. For a multi-page paper CV, scan the first page or upload a PDF.
+        PDF, Word (.docx) or photos · up to 4MB. Scanning a paper CV? Photograph each page (up to {MAX_PAGES}) in good light.
       </p>
+
+      {pages.length > 0 && busy !== 'upload' && (
+        <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-xs font-semibold text-slate-700">
+            {pages.length} page{pages.length === 1 ? '' : 's'} ready to scan
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {pages.map((p, i) => (
+              <div key={p.url} className="relative h-20 w-16 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">
+                <img src={p.url} alt={`Page ${i + 1}`} className="h-full w-full object-cover" />
+                <span className="absolute bottom-0.5 left-0.5 rounded bg-slate-900/80 px-1 text-[10px] font-bold text-white">{i + 1}</span>
+                <button
+                  type="button"
+                  onClick={() => setPages((prev) => prev.filter((_, x) => x !== i).map((q) => ({ file: q.file, url: URL.createObjectURL(q.file) })))}
+                  aria-label={`Remove page ${i + 1}`}
+                  className="absolute right-0.5 top-0.5 rounded-full bg-white/90 p-0.5 text-slate-600 hover:text-red-600"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+            {pages.length < MAX_PAGES && (
+              <button
+                type="button"
+                onClick={() => cameraRef.current?.click()}
+                className="flex h-20 w-16 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-slate-300 text-[10px] font-semibold text-slate-500 hover:border-amber-400 hover:text-amber-700"
+              >
+                <Plus className="h-4 w-4" /> Page
+              </button>
+            )}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <Button type="button" onClick={scanPages} className="h-10 flex-1 gap-1.5 bg-amber-400 font-bold text-slate-900 hover:bg-amber-300">
+              <ScanLine className="h-4 w-4" /> Scan {pages.length} page{pages.length === 1 ? '' : 's'}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setPages([])} className="h-10 border-gray-300">
+              Clear
+            </Button>
+          </div>
+        </div>
+      )}
 
       <input
         ref={fileRef}
@@ -205,8 +300,9 @@ export function CvScanner({ cvUrl, cvFileName, onUploaded, onRemoved, onApply }:
         type="file"
         accept="image/*"
         capture="environment"
+        multiple
         className="hidden"
-        onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = ''; }}
+        onChange={(e) => { addPages(e.target.files); e.target.value = ''; }}
       />
 
       {busy === 'upload' && (

@@ -203,16 +203,14 @@ function MessagesPageInner() {
     <GlassBackground>
       {/* Header */}
       <div className="safe-area-pt bg-white/80 backdrop-blur-xl border-b border-gray-200 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <button className={`p-2 hover:bg-gray-100 rounded-lg ${glassInteractive}`}>
-                  <ArrowLeft className="h-5 w-5 text-gray-900" />
-                </button>
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2 sm:gap-4">
+              <Link href="/" aria-label="Back to home" className={`shrink-0 p-2 hover:bg-gray-100 rounded-lg ${glassInteractive}`}>
+                <ArrowLeft className="h-5 w-5 text-gray-900" />
               </Link>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
                   <MessageCircle className="h-6 w-6 text-yellow-500" />
                   Messages
                 </h1>
@@ -221,12 +219,12 @@ function MessagesPageInner() {
                 </p>
               </div>
             </div>
-            <Link href="/explore">
-              <Button className={`gap-2 bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-bold ${glassInteractive}`}>
+            <Button asChild className={`shrink-0 gap-2 bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-bold px-3 sm:px-4 ${glassInteractive}`}>
+              <Link href="/explore" aria-label="Find a business">
                 <Plus className="h-4 w-4" />
-                Find a Business
-              </Button>
-            </Link>
+                <span className="hidden min-[420px]:inline">Find a Business</span>
+              </Link>
+            </Button>
           </div>
         </div>
       </div>

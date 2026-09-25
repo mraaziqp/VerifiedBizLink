@@ -162,7 +162,7 @@ export function ChatWidget() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-gray-900 text-white shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-primary rounded-full flex items-center justify-center">
+              <div className="w-9 h-9 bg-amber-400 rounded-full flex items-center justify-center">
                 <Sparkles className="h-4 w-4 text-gray-900" />
               </div>
               <div>
@@ -195,7 +195,7 @@ export function ChatWidget() {
               <div key={msg.id} className={`flex gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 self-end ${
-                    msg.role === "bot" ? "bg-gray-900" : "bg-primary"
+                    msg.role === "bot" ? "bg-gray-900" : "bg-amber-400"
                   }`}
                 >
                   {msg.role === "bot" ? (

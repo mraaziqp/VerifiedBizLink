@@ -113,12 +113,15 @@ export function VBLLogo({
 
   const textColor = theme === "dark" ? "text-gray-900" : "text-white";
   const subColor = theme === "dark" ? "text-gray-500" : "text-white/60";
+  // Brand gold, not text-primary: primary is slate-900, which made "Biz"
+  // vanish on dark headers and turned it grey on light ones.
+  const bizColor = theme === "dark" ? "text-amber-600" : "text-amber-400";
 
   if (variant === "text") {
     return (
       <div className={cn("inline-flex flex-col", className)}>
         <span className={cn("font-extrabold tracking-tight leading-none", textSizes[size], textColor)}>
-          Verified<span className="text-primary">Biz</span>Link
+          Verified<span className={bizColor}>Biz</span>Link
         </span>
         <span className={cn("font-semibold tracking-widest uppercase leading-none mt-0.5", subTextSizes[size], subColor)}>
           Trusted Network
@@ -132,7 +135,7 @@ export function VBLLogo({
       {Icon}
       <div className="flex flex-col">
         <span className={cn("font-extrabold tracking-tight leading-none", textSizes[size], textColor)}>
-          Verified<span className="text-primary">Biz</span>Link
+          Verified<span className={bizColor}>Biz</span>Link
         </span>
         <span className={cn("font-semibold tracking-widest uppercase leading-none mt-0.5", subTextSizes[size], subColor)}>
           Trusted Network
