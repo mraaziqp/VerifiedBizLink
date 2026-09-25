@@ -333,7 +333,7 @@ export default function VettingPage() {
                     </div>
                     <div className="flex justify-end">
                       <Button type="submit" disabled={isSavingProfile}
-                        className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold px-8 h-11 rounded-xl gap-2">
+                        className="bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold px-8 h-11 rounded-xl gap-2">
                         {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                         Save Business Profile
                       </Button>
@@ -516,7 +516,7 @@ export default function VettingPage() {
                       ))}
                     </div>
                     <Link href="/contact" className="block">
-                      <Button className="w-full rounded-xl bg-primary text-gray-900 hover:bg-yellow-400 font-bold shadow-lg shadow-primary/20">
+                      <Button className="w-full rounded-xl bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold shadow-lg shadow-primary/20">
                         Learn More
                       </Button>
                     </Link>

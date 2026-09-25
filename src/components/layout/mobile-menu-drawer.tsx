@@ -171,7 +171,7 @@ export function MobileMenuDrawer() {
                       >
                         <PlusCircle size={14} className="text-amber-400" />
                         <span>Post a Job</span>
-                        <span className="ml-auto text-[9px] uppercase px-1.5 py-0.2 rounded bg-amber-400/20 text-amber-300 font-bold">
+                        <span className="ml-auto text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold">
                           Biz
                         </span>
                       </Link>

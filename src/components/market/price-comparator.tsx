@@ -39,7 +39,7 @@ export function PriceComparator({ prices }: PriceComparatorProps) {
               onClick={() => toggleSelection(price.symbol)}
               className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
                 selected.includes(price.symbol)
-                  ? 'bg-primary text-gray-900'
+                  ? 'bg-amber-400 text-slate-900'
                   : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
               }`}
             >

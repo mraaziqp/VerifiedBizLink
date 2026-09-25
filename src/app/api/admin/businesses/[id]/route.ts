@@ -103,7 +103,7 @@ export async function PUT(
         ${id},
         ${updated[0].company_name}
       )
-    `;
+    `.catch((err) => console.error('Audit log write failed:', err)); // non-fatal: the update itself succeeded
 
     // Notify the business owner of a status change
     if (status !== undefined) {

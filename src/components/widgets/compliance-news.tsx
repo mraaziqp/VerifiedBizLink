@@ -156,12 +156,12 @@ export function ComplianceNews() {
 
       <Card className="shadow-sm border-none overflow-hidden bg-gradient-to-br from-gray-900 to-gray-800 text-white">
         <CardContent className="p-5 space-y-3">
-          <div className="bg-primary/20 w-fit p-2.5 rounded-xl border border-primary/30">
-            <Zap className="h-5 w-5 text-primary fill-primary" />
+          <div className="bg-amber-400/15 w-fit p-2.5 rounded-xl border border-amber-400/30">
+            <Zap className="h-5 w-5 text-amber-400 fill-amber-400" />
           </div>
           <h3 className="text-sm font-bold leading-tight">Elevate Your Business Status</h3>
           <p className="text-xs text-gray-300 font-medium leading-relaxed">Get the Verified Badge and appear higher in partner search results.</p>
-          <Button className="w-full bg-primary text-gray-900 hover:bg-yellow-300 font-bold rounded-xl h-10 text-sm" asChild>
+          <Button className="w-full bg-amber-400 text-slate-900 hover:bg-yellow-300 font-bold rounded-xl h-10 text-sm" asChild>
             <Link href="/vetting">Start Vetting</Link>
           </Button>
         </CardContent>

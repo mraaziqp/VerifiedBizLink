@@ -94,10 +94,14 @@ export default function Home() {
   useEffect(() => {
     let active = true;
     fetch("/api/home/overview").catch(() => null).then(async (r) => {
-      if (!r?.ok || !active) return;
-      const data = await r.json().catch(() => EMPTY_OVERVIEW);
       if (!active) return;
-      setHomeData({ stats: data.stats || EMPTY_OVERVIEW.stats, categories: data.categories || [], businesses: data.businesses || [] });
+      // A failed request still ends the loading state; otherwise the
+      // "Loading trending businesses..." card spun forever.
+      if (r?.ok) {
+        const data = await r.json().catch(() => EMPTY_OVERVIEW);
+        if (!active) return;
+        setHomeData({ stats: data.stats || EMPTY_OVERVIEW.stats, categories: data.categories || [], businesses: data.businesses || [] });
+      }
       setLoading(false);
     });
     return () => { active = false; };

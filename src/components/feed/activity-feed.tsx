@@ -379,7 +379,7 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
                     <Button
                       size="sm"
                       onClick={() => handleEditPost(post.id)}
-                      className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl"
+                      className="bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold rounded-xl"
                     >
                       Save Changes
                     </Button>
@@ -501,7 +501,7 @@ export function ActivityFeed({ refreshTrigger = 0 }: { refreshTrigger?: number }
                       />
                       <Button
                         size="icon"
-                        className="h-9 w-9 rounded-xl bg-primary text-gray-900 hover:bg-yellow-400 shrink-0 self-end"
+                        className="h-9 w-9 rounded-xl bg-amber-400 text-slate-900 hover:bg-yellow-400 shrink-0 self-end"
                         onClick={() => handleSubmitComment(post.id)}
                         disabled={!commentText.trim() || submittingComment}
                       >

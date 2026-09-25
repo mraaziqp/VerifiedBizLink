@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ShieldCheck, Search, QrCode, Sparkles, ArrowRight, ShieldAlert,
-  CheckCircle2, Lock, FileCheck, Building2
+  CheckCircle2, Lock, Loader2
 } from 'lucide-react';
 import { VBLLogo } from '@/components/ui/vbl-logo';
-import { sanitizeCertificateString } from '@/db/queries/certificates';
+import { extractSerial, formatSerialInput } from '@/lib/certificate-serial';
 
 /**
  * Certificate Verification Portal
@@ -18,26 +18,34 @@ import { sanitizeCertificateString } from '@/db/queries/certificates';
 export default function VerifyLookupPage() {
   const router = useRouter();
   const [code, setCode] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const go = (e: React.FormEvent) => {
     e.preventDefault();
-    const cleaned = sanitizeCertificateString(code);
-    if (cleaned) {
-      router.push(`/verify/${encodeURIComponent(cleaned)}`);
+    const serial = extractSerial(code);
+    if (!serial) {
+      setError('That is not a complete certificate number. It looks like VBL-2026-XXXX-XXXX.');
+      return;
     }
+    setError(null);
+    setSubmitting(true);
+    router.push(`/verify/${encodeURIComponent(serial)}`);
   };
 
-  const handleFormat = (val: string) => {
-    const raw = val.toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (raw.length <= 3) {
-      setCode(raw);
-    } else if (raw.length <= 7) {
-      setCode(`${raw.slice(0, 3)}-${raw.slice(3)}`);
-    } else if (raw.length <= 11) {
-      setCode(`${raw.slice(0, 3)}-${raw.slice(3, 7)}-${raw.slice(7)}`);
-    } else {
-      setCode(`${raw.slice(0, 3)}-${raw.slice(3, 7)}-${raw.slice(7, 11)}-${raw.slice(11, 15)}`);
+  const handleChange = (val: string) => {
+    setError(null);
+    setCode(formatSerialInput(val));
+  };
+
+  // A pasted QR link or a serial copied with surrounding text would otherwise
+  // be flattened by the input mask into garbage.
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const serial = extractSerial(e.clipboardData.getData('text'));
+    if (serial) {
+      e.preventDefault();
+      setError(null);
+      setCode(serial);
     }
   };
 
@@ -85,15 +93,17 @@ export default function VerifyLookupPage() {
                 <label htmlFor="serial" className="text-xs font-bold uppercase tracking-wider text-slate-700">
                   Certificate Serial Number
                 </label>
-                <span className="text-[11px] text-slate-400 font-mono">Format: VBL-YYYY-XXXX-XXXX</span>
+                <span className="hidden sm:inline text-[11px] text-slate-400 font-mono">Format: VBL-YYYY-XXXX-XXXX</span>
               </div>
               <div className="relative">
                 <input
                   id="serial"
                   value={code}
-                  onChange={(e) => handleFormat(e.target.value)}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
+                  onChange={(e) => handleChange(e.target.value)}
+                  onPaste={handlePaste}
+                  inputMode="text"
+                  aria-invalid={!!error}
+                  aria-describedby={error ? 'serial-error' : undefined}
                   placeholder="VBL-2026-XXXX-XXXX"
                   autoComplete="off"
                   autoCapitalize="characters"
@@ -101,15 +111,24 @@ export default function VerifyLookupPage() {
                   className="h-14 w-full rounded-2xl border-2 border-slate-200 bg-slate-50 px-4 text-center font-mono text-lg sm:text-xl font-bold uppercase tracking-wider text-slate-900 placeholder:text-slate-400 outline-none focus:border-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-900/5 transition-all shadow-inner"
                 />
               </div>
+              {error && (
+                <p id="serial-error" role="alert" className="mt-2 text-xs font-semibold text-rose-700">
+                  {error}
+                </p>
+              )}
             </div>
 
             <button
               type="submit"
-              disabled={!code.trim()}
-              className="group relative flex h-13 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 py-3.5 font-bold text-white transition-all duration-200 hover:bg-slate-800 hover:shadow-lg active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+              disabled={!code.trim() || submitting}
+              className="group relative flex min-h-13 w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 py-3.5 font-bold text-white transition-all duration-200 hover:bg-slate-800 hover:shadow-lg active:scale-98 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              <Search className="h-5 w-5 transition-transform group-hover:scale-110" />
-              <span>Verify Authenticity</span>
+              {submitting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Search className="h-5 w-5 transition-transform group-hover:scale-110" />
+              )}
+              <span>{submitting ? 'Checking registry…' : 'Verify Authenticity'}</span>
               <ArrowRight className="h-4 w-4 ml-1 opacity-70 group-hover:translate-x-1 transition-transform" />
             </button>
           </form>

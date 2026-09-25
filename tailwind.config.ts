@@ -15,7 +15,26 @@ export default {
         headline: ['Inter', 'sans-serif'],
         code: ['monospace'],
       },
+      // Utilities the components already use that only exist in Tailwind v4.
+      // On v3 they compiled to nothing, so shadows, icon sizes and button
+      // heights silently fell back to defaults across the app.
+      spacing: {
+        '4.5': '1.125rem',
+        '13': '3.25rem',
+        '18': '4.5rem',
+        '22': '5.5rem',
+      },
+      boxShadow: {
+        '2xs': '0 1px rgb(0 0 0 / 0.05)',
+        xs: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+      },
+      scale: {
+        '98': '.98',
+      },
       colors: {
+        slate: {
+          850: '#172033',
+        },
         'bg-primary': 'var(--bg-primary)',
         'text-primary': 'var(--text-primary)',
         background: 'hsl(var(--background))',

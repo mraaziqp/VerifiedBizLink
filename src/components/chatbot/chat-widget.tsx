@@ -145,7 +145,7 @@ export function ChatWidget() {
           <div className="relative">
             <MessageSquare className="h-6 w-6" />
             {unread > 0 && (
-              <div className="absolute -top-2 -right-2 w-5 h-5 bg-primary text-gray-900 text-xs font-extrabold rounded-full flex items-center justify-center">
+              <div className="absolute -top-2 -right-2 w-5 h-5 bg-amber-400 text-slate-900 text-xs font-extrabold rounded-full flex items-center justify-center">
                 {unread > 9 ? "9+" : unread}
               </div>
             )}

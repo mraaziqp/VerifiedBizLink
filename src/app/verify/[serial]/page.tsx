@@ -1,7 +1,8 @@
+import { cache } from 'react';
 import Link from 'next/link';
 import type { Metadata } from 'next';
-import { ShieldCheck, ShieldAlert, XCircle, AlertTriangle, ArrowRight, ExternalLink, RefreshCw, CheckCircle2, Building2 } from 'lucide-react';
-import { verifySerial, type VerificationOutcome } from '@/lib/certificates';
+import { ShieldCheck, ShieldAlert, XCircle, AlertTriangle, ArrowRight, RefreshCw, Building2 } from 'lucide-react';
+import { verifySerial, type VerificationOutcome, type VerificationResult } from '@/lib/certificates';
 import { VBLLogo } from '@/components/ui/vbl-logo';
 
 export const dynamic = 'force-dynamic';
@@ -15,11 +16,24 @@ export const dynamic = 'force-dynamic';
  * log in: a certificate that only its owner can check is not a certificate.
  */
 
+/**
+ * One lookup per request. generateMetadata and the page both need the result;
+ * without this each ran its own query, and a scan was counted once per page
+ * view instead of once per check.
+ */
+const checkCertificate = cache(
+  (serial: string): Promise<VerificationResult | null> =>
+    verifySerial(serial, { countScan: true }).catch((error) => {
+      console.error('Certificate page lookup failed:', error);
+      return null;
+    }),
+);
+
 export async function generateMetadata({
   params,
 }: { params: Promise<{ serial: string }> }): Promise<Metadata> {
   const { serial } = await params;
-  const result = await verifySerial(serial).catch(() => null);
+  const result = await checkCertificate(serial);
   const name = result?.companyName;
   return {
     title: result?.outcome === 'valid' && name
@@ -101,7 +115,8 @@ export default async function VerifyCertificatePage({
   params,
 }: { params: Promise<{ serial: string }> }) {
   const { serial } = await params;
-  const result = await verifySerial(serial, { countScan: true });
+  const result = await checkCertificate(serial);
+  if (!result) return <RegistryUnavailable serial={serial} />;
   const style = STYLE[result.outcome];
   const good = result.outcome === 'valid';
 
@@ -218,7 +233,7 @@ export default async function VerifyCertificatePage({
             {good && result.businessId && (
               <Link
                 href={`/business/${result.businessId}`}
-                className="flex-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 font-bold text-white hover:bg-slate-800 transition-all duration-200 shadow-md cursor-pointer text-sm"
+                className="sm:flex-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 font-bold text-white hover:bg-slate-800 transition-all duration-200 shadow-md cursor-pointer text-sm"
               >
                 <span>View Verified Business Profile</span>
                 <ArrowRight className="h-4 w-4" />
@@ -227,7 +242,7 @@ export default async function VerifyCertificatePage({
 
             <Link
               href="/verify"
-              className="flex-1 flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all text-sm cursor-pointer shadow-xs"
+              className="sm:flex-1 flex h-12 items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-6 font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all text-sm cursor-pointer shadow-xs"
             >
               <RefreshCw className="h-4 w-4" />
               <span>Check A Different Certificate</span>
@@ -243,6 +258,51 @@ export default async function VerifyCertificatePage({
 
       <div className="text-center text-[11px] text-slate-400 relative z-10 mt-6">
         VerifiedBizLink &copy; {new Date().getFullYear()} &bull; Trust &amp; Compliance Services &bull; Republic of South Africa
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The lookup itself failed (database unreachable). Said plainly, because the
+ * alternative — reporting "not found" — tells the person holding a genuine
+ * certificate that it is a forgery.
+ */
+function RegistryUnavailable({ serial }: { serial: string }) {
+  const href = `/verify/${encodeURIComponent(serial)}`;
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 px-4 py-8 sm:py-12 flex flex-col items-center justify-center">
+      <div className="mx-auto max-w-md w-full">
+        <div className="mb-6 flex justify-center">
+          <Link href="/" className="inline-block">
+            <VBLLogo variant="full" size="md" iconSize={42} theme="dark" />
+          </Link>
+        </div>
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xl text-center">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-900 text-amber-400">
+            <AlertTriangle className="h-8 w-8" />
+          </div>
+          <h1 className="mt-5 text-xl sm:text-2xl font-black tracking-tight">We couldn&apos;t reach the registry</h1>
+          <p className="mt-2 text-sm text-slate-600 leading-relaxed">
+            This is a problem on our side, not with the certificate. Nothing about{' '}
+            <span className="font-mono font-bold text-slate-900 whitespace-nowrap">{serial}</span> has been decided — please try again in a moment.
+          </p>
+          <div className="mt-6 flex flex-col sm:flex-row gap-3">
+            <a
+              href={href}
+              className="sm:flex-1 flex h-12 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 text-sm font-bold text-white hover:bg-slate-800 transition-colors"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Try again
+            </a>
+            <Link
+              href="/verify"
+              className="sm:flex-1 flex h-12 items-center justify-center rounded-xl border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+            >
+              Enter a different number
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, isStaff } from '@/lib/auth';
-import { issueCertificate, certificateVerifyUrl, shortCheckCode } from '@/lib/certificates';
+import { issueCertificate, certificateVerifyUrl, shortCheckCode, ensureCertificatesTable } from '@/lib/certificates';
 import { renderCertificateSvg } from '@/lib/certificate-svg';
 import { appUrlFromRequest } from '@/lib/email';
 import db from '@/lib/db';
@@ -67,14 +67,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    await ensureCertificatesTable();
+
     // Reuse the live certificate if there is one, so downloading twice does
-    // not quietly invalidate the copy already hanging on a wall.
+    // not quietly invalidate the copy already hanging on a wall. A failed read
+    // must not be mistaken for "none yet" — that would reissue and revoke it.
     const existing = (await db`
       SELECT serial, signature, issued_at, company_name
       FROM certificates
       WHERE business_id = ${businessId} AND revoked_at IS NULL
       LIMIT 1
-    `.catch(() => [])) as unknown as Row[];
+    `) as unknown as Row[];
 
     let serial: string;
     let checkCode: string;
