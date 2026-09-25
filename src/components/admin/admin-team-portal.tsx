@@ -56,6 +56,15 @@ const TOOL_LINKS: Record<string, string> = {
   'Compliance Tracker': '/admin/compliance',
 };
 
+/** Row from GET /api/admin/users. */
+interface ApiUser {
+  id: string;
+  full_name?: string | null;
+  email: string;
+  role: string;
+  created_at: string;
+}
+
 export function AdminTeamPortal() {
   const router = useRouter();
   const [team, setTeam] = useState<AdminMember[]>([]);
@@ -70,8 +79,8 @@ export function AdminTeamPortal() {
         const res = await fetch('/api/admin/users');
         const data = await res.json();
         const staff: AdminMember[] = (data.users || [])
-          .filter((u: any) => ['admin', 'banker', 'lawyer'].includes(u.role))
-          .map((u: any) => ({
+          .filter((u: ApiUser) => ['admin', 'banker', 'lawyer'].includes(u.role))
+          .map((u: ApiUser) => ({
             id: u.id,
             name: u.full_name || u.email,
             email: u.email,

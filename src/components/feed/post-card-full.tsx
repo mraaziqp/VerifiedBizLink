@@ -156,6 +156,8 @@ export function PostCardFull({
         {imageUrl && !videoUrl && (
           <img
             src={imageUrl}
+            loading="lazy"
+            decoding="async"
             alt="Post"
             className="w-full rounded-xl mb-4 max-h-96 object-cover"
           />
@@ -283,6 +285,8 @@ export function PostCardFull({
                   {comment.image_url && (
                     <img
                       src={comment.image_url}
+                      loading="lazy"
+                      decoding="async"
                       alt="Comment"
                       className="mt-2 rounded max-w-xs max-h-32 object-cover"
                     />

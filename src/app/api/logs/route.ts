@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, isStaff } from '@/lib/auth';
-import db from '@/lib/db';
+import db, { type DbRow } from '@/lib/db';
 
 /**
  * Comprehensive audit logging system
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(request.nextUrl.searchParams.get('offset') || '0');
 
     // Fetch logs using template literals
-    let logs: any[] = [];
+    let logs: DbRow[] = [];
 
     if (userId && action && resourceType) {
       logs = await db`

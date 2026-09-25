@@ -540,7 +540,7 @@ function SettingsForm() {
                         <Button
                           type="submit"
                           disabled={isSaving}
-                          className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold px-8 h-11 rounded-xl"
+                          className="bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold px-8 h-11 rounded-xl"
                         >
                           {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                           Save Changes
@@ -592,7 +592,7 @@ function SettingsForm() {
                       <Button
                         type="submit"
                         disabled={isSaving}
-                        className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold px-8 h-11 rounded-xl"
+                        className="bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold px-8 h-11 rounded-xl"
                       >
                         {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                         Update Password
@@ -643,7 +643,7 @@ function SettingsForm() {
                       <Button
                         onClick={handleSaveNotifications}
                         disabled={isSaving}
-                        className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold px-8 h-11 rounded-xl"
+                        className="bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold px-8 h-11 rounded-xl"
                       >
                         {isSaving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                         Save Preferences

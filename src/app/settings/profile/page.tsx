@@ -20,10 +20,6 @@ export default function ProfileSettingsPage() {
     bio: '',
   });
 
-  useEffect(() => {
-    loadProfileData();
-  }, []);
-
   const loadProfileData = async () => {
     try {
       setIsLoading(true);
@@ -45,6 +41,10 @@ export default function ProfileSettingsPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadProfileData();
+  }, []);
 
   const handleSave = async () => {
     try {

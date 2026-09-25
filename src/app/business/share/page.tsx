@@ -103,7 +103,6 @@ export default function BusinessSharePage() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">QR Code</label>
                   <div className="w-32 h-32 rounded-lg overflow-hidden border border-gray-200">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(profileUrl)}`}
                       alt="QR code linking to your public business profile"

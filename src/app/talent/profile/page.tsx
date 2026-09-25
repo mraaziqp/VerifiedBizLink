@@ -40,7 +40,6 @@ export default function TalentProfilePage() {
   const [profile, setProfile] = useState<Profile>(EMPTY);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [skillDraft, setSkillDraft] = useState('');
 
   const load = useCallback(async () => {
     try {
@@ -64,16 +63,6 @@ export default function TalentProfilePage() {
 
   const set = <K extends keyof Profile>(key: K, value: Profile[K]) =>
     setProfile((p) => ({ ...p, [key]: value }));
-
-  const addSkill = () => {
-    const value = skillDraft.trim();
-    if (!value) return;
-    // Case-insensitive de-dupe, so "React" and "react" are not both added.
-    if (!profile.skills.some((s) => s.toLowerCase() === value.toLowerCase())) {
-      set('skills', [...profile.skills, value]);
-    }
-    setSkillDraft('');
-  };
 
   const save = async (publish?: boolean) => {
     const next = publish === undefined ? profile : { ...profile, isPublished: publish };

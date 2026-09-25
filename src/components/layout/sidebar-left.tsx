@@ -243,7 +243,7 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
                 >
                   <PlusCircle className="h-3.5 w-3.5 text-amber-600" />
                   <span>Post a Job</span>
-                  <span className="ml-auto text-[9px] uppercase tracking-wider px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 font-bold">
+                  <span className="ml-auto text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">
                     Biz
                   </span>
                 </Link>

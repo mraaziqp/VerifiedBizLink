@@ -3,18 +3,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft, Plus, Zap, Trash2, Pause, Play, Loader2, Sparkles, Eye,
-  MousePointerClick, Pencil, Coins, Megaphone, LayoutGrid, Image as ImageIcon,
-  CheckCircle2, Clock, HelpCircle, ExternalLink
+  ArrowLeft, Plus, Trash2, Pause, Play, Loader2, Coins, Megaphone
 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { GlassBackground } from '@/components/shared/glass-ui';
-import { ImageUploader } from '@/components/media/image-uploader';
 
 interface Ad {
   id: string;
@@ -54,9 +51,6 @@ const CREDIT_PACKS = [
 export default function BusinessAdsPage() {
   const { toast } = useToast();
   const [ads, setAds] = useState<Ad[]>([]);
-  const [limit, setLimit] = useState(0);
-  const [active, setActive] = useState(0);
-  const [packageType, setPackageType] = useState('free');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -82,9 +76,6 @@ export default function BusinessAdsPage() {
       if (res.ok) {
         const data = await res.json();
         setAds(data.ads || []);
-        setLimit(data.limit || 0);
-        setActive(data.active || 0);
-        setPackageType(data.packageType || 'free');
         setAdCredits(data.adCredits || 0);
       }
     } catch {

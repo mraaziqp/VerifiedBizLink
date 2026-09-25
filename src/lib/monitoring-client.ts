@@ -15,8 +15,21 @@ interface LogOptions {
   responseTimeMs?: number;
   errorCode?: string;
   errorStack?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
+
+// Minimal structural types, so this file does not depend on @types/express.
+interface ExpressLikeRequest {
+  method: string;
+  path: string;
+  user?: { id?: string };
+  startTime?: number;
+}
+interface ExpressLikeResponse {
+  statusCode: number;
+  send: (body?: unknown) => unknown;
+}
+type ExpressNext = (err?: unknown) => void;
 
 export class MonitoringClient {
   private apiKey: string;
@@ -154,7 +167,7 @@ export class MonitoringClient {
     return this.sendLog('ERROR', error.message, {
       ...context,
       errorStack: error.stack,
-      errorCode: (error as any).code
+      errorCode: (error as Error & { code?: string }).code
     });
   }
 
@@ -162,28 +175,23 @@ export class MonitoringClient {
    * Middleware for Express.js
    */
   expressMiddleware() {
-    const self = this;
-    return (req: any, res: any, next: any) => {
+    const logRequest = this.logRequest.bind(this);
+    return (req: ExpressLikeRequest, res: ExpressLikeResponse, next: ExpressNext) => {
       const startTime = Date.now();
+      // Read by expressErrorHandler, which previously got undefined here and
+      // reported NaN response times.
+      req.startTime = startTime;
 
       // Capture the original send function
       const originalSend = res.send;
 
-      res.send = async function (this: any, data: any) {
+      // Synchronous on purpose. This used to be async and await the log call
+      // first, which held every response until monitoring answered and made
+      // res.send() return a Promise instead of the response Express expects.
+      res.send = function (this: unknown, data?: unknown) {
         const responseTime = Date.now() - startTime;
-        const statusCode = res.statusCode;
-        const method = req.method;
-        const endpoint = req.path;
-        const userId = req.user?.id;
-
-        // Send to monitoring
-        try {
-          await self.logRequest(endpoint, method, statusCode, responseTime, userId);
-        } catch (error) {
-          console.error('Failed to log request:', error);
-        }
-
-        // Call original send
+        logRequest(req.path, req.method, res.statusCode, responseTime, req.user?.id)
+          .catch((error) => console.error('Failed to log request:', error));
         return originalSend.call(this, data);
       };
 
@@ -195,12 +203,11 @@ export class MonitoringClient {
    * Error handler for Express.js
    */
   expressErrorHandler() {
-    const self = this;
-    return async (err: Error, req: any, res: any, next: any) => {
-      const responseTime = Date.now() - req.startTime;
+    return async (err: Error, req: ExpressLikeRequest, _res: ExpressLikeResponse, next: ExpressNext) => {
+      const responseTime = req.startTime ? Date.now() - req.startTime : undefined;
 
       try {
-        await self.logException(err, {
+        await this.logException(err, {
           endpoint: req.path,
           method: req.method,
           statusCode: 500,

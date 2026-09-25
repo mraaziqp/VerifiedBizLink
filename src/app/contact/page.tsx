@@ -134,7 +134,7 @@ export default function ContactPage() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold px-8 h-11 rounded-xl gap-2 w-full md:w-auto"
+                  className="bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold px-8 h-11 rounded-xl gap-2 w-full md:w-auto"
                 >
                   {loading ? (
                     <>

@@ -7,6 +7,7 @@ import { Download, CheckCircle2, ShieldCheck, QrCode, Copy, Check, ExternalLink,
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { extractSerial } from "@/lib/certificate-serial";
 
 interface CertificateProps {
   businessName: string;
@@ -29,12 +30,23 @@ export function Certificate({
   const [downloading, setDownloading] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
 
-  const displaySerial = serial || certificateNumber;
-  const isVblSerial = displaySerial.startsWith("VBL-");
+  // Filled in after a download: the first download is what issues a
+  // certificate, so the serial on screen must switch from "not issued" to the
+  // real one without a page reload — otherwise the number shown here would
+  // not match the one printed on the file.
+  const [issuedSerial, setIssuedSerial] = useState<string | null>(null);
+
+  const liveSerial = issuedSerial || extractSerial(serial || certificateNumber || "");
+  const isVblSerial = Boolean(liveSerial);
+  // Never show a made-up number in the serial slot: someone would type it
+  // into /verify and be told the certificate does not exist.
+  const displaySerial = liveSerial || "Issued on first download";
+  // A download can reissue; the old check code would then be wrong.
+  const liveCheckCode = issuedSerial && issuedSerial !== extractSerial(serial || "") ? undefined : checkCode;
 
   const handleCopyCode = () => {
-    if (!checkCode && !displaySerial) return;
-    navigator.clipboard.writeText(checkCode ? `${displaySerial} (Code: ${checkCode})` : displaySerial);
+    if (!liveSerial) return;
+    navigator.clipboard.writeText(liveCheckCode ? `${liveSerial} (Code: ${liveCheckCode})` : liveSerial).catch(() => {});
     setCopiedCode(true);
     toast({
       title: "Certificate Details Copied",
@@ -59,6 +71,8 @@ export function Certificate({
         const cd = res.headers.get("content-disposition");
         const match = cd && cd.match(/filename="?([^"]+)"?/);
         a.download = match ? match[1] : `${businessName.replace(/\s+/g, "-")}-certificate.svg`;
+        const downloadedSerial = match ? extractSerial(match[1]) : null;
+        if (downloadedSerial) setIssuedSerial(downloadedSerial);
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -99,14 +113,14 @@ export function Certificate({
             </h3>
           </div>
         </div>
-        {checkCode && (
+        {liveCheckCode && (
           <button
             onClick={handleCopyCode}
             className="text-[11px] font-mono text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors px-2 py-1 rounded-md hover:bg-muted"
             title="Click to copy check code"
           >
             {copiedCode ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
-            <span>Code: {checkCode}</span>
+            <span>Code: {liveCheckCode}</span>
           </button>
         )}
       </div>
@@ -171,9 +185,9 @@ export function Certificate({
                 <span className="bg-slate-800/80 px-2.5 py-1 rounded-md border border-slate-700/80 text-amber-300 font-bold">
                   {displaySerial}
                 </span>
-                {checkCode && (
+                {liveCheckCode && (
                   <span className="bg-slate-800/80 px-2 py-1 rounded-md border border-slate-700/80 text-slate-300">
-                    {checkCode}
+                    {liveCheckCode}
                   </span>
                 )}
               </div>

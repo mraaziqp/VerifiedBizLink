@@ -46,10 +46,6 @@ export default function SmartMatchFeed({ searchQuery = "" }: { searchQuery?: str
     }
   };
 
-  useEffect(() => {
-    fetchRecommendations();
-  }, []);
-
   const fetchRecommendations = async () => {
     try {
       setLoading(true);
@@ -64,6 +60,10 @@ export default function SmartMatchFeed({ searchQuery = "" }: { searchQuery?: str
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchRecommendations();
+  }, []);
 
   if (loading) {
     return (

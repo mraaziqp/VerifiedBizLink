@@ -164,7 +164,7 @@ function VerifyEmailContent() {
                 className="text-center rounded-xl"
               />
               <Button
-                className="w-full bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl"
+                className="w-full bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold rounded-xl"
                 onClick={handleResendWithEmail}
                 disabled={resending || !emailInput.trim()}
               >
@@ -173,7 +173,7 @@ function VerifyEmailContent() {
             </div>
           ) : !resent ? (
             <Button
-              className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl"
+              className="bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold rounded-xl"
               onClick={handleResend}
               disabled={resending}
             >

@@ -251,7 +251,6 @@ export default function AgentIssuesPage() {
                 <div className="mt-3 flex flex-wrap items-center gap-3">
                   {i.screenshotUrl && (
                     <a href={i.screenshotUrl} target="_blank" rel="noopener noreferrer">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={i.screenshotUrl}
                         alt="Screenshot from the advisor"

@@ -4,7 +4,6 @@ import React, { useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { Star, Download, ShieldCheck, Check, Loader2, Quote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { VBLLogo } from '@/components/ui/vbl-logo';
 import { cn } from '@/lib/utils';
 

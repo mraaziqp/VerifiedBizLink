@@ -3,17 +3,17 @@
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft, Loader2, Sparkles, Megaphone, Play, Pause, Trash2, Clock,
-  Search, ShieldCheck, Eye, MousePointerClick, Settings, Coins, Plus,
-  CheckCircle2, AlertCircle, RefreshCw, LayoutGrid, Calendar, Sliders, ExternalLink
+  ArrowLeft, Loader2, Megaphone, Play, Pause, Trash2, Clock,
+  Search, Coins, Plus,
+  Calendar, Sliders
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/auth-context';
-import { AdminBackground, AdminCard, AdminPageHeader, SectionTitle } from '@/components/admin/ui';
+import { AdminBackground, AdminCard, AdminPageHeader } from '@/components/admin/ui';
 import {
   Dialog,
   DialogContent,
@@ -21,7 +21,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 
@@ -311,17 +310,17 @@ export default function AdminAdsManagerPage() {
 
         {/* Tab Navigation */}
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
-          {[
+          {([
             { id: 'campaigns', label: `All Campaigns (${ads.length})`, icon: Megaphone },
             { id: 'placements', label: 'Placement Rules & Limits', icon: Sliders },
             { id: 'credits', label: `Business Credit Ledger (${businesses.length})`, icon: Coins },
-          ].map((t) => {
+          ] as const).map((t) => {
             const Icon = t.icon;
             const isCurrent = activeTab === t.id;
             return (
               <button
                 key={t.id}
-                onClick={() => setActiveTab(t.id as any)}
+                onClick={() => setActiveTab(t.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                   isCurrent
                     ? 'bg-amber-400 text-slate-950 shadow-xs'

@@ -122,7 +122,7 @@ export function AnimatedTabs<T extends string = string>({
                 {tab.badge !== undefined && (
                   <span
                     className={cn(
-                      'ml-1 text-[10px] font-extrabold px-1.5 py-0.2 rounded-full',
+                      'ml-1 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full',
                       isActive
                         ? 'bg-slate-900 text-white'
                         : 'bg-slate-200 text-slate-700'

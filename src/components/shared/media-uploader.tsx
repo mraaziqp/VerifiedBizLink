@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useRef, DragEvent, ChangeEvent } from 'react';
-import { UploadCloud, FileVideo, Image as ImageIcon, AlertCircle, CheckCircle2, Loader2, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { FileVideo, Image as ImageIcon, AlertCircle, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface MediaUploaderProps {
@@ -17,7 +16,6 @@ export interface MediaUploaderProps {
 
 const ALLOWED_VIDEO_MIMES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/ogg', 'video/x-matroska'];
 const ALLOWED_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const MAX_BYTES = 5 * 1024 * 1024; // Strict 5MB limit
 
 /**
  * Bulletproof MediaUploader dropzone component.

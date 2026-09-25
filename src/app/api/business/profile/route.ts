@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
       reviews: (reviews[0] as unknown as { n: number }).n,
       verified: biz.status === 'verified',
       ads_active: (activeAds[0] as unknown as { n: number }).n,
-      ads_limit: await getAdLimit(getEffectivePackage(biz as any)),
+      ads_limit: await getAdLimit(getEffectivePackage(biz)),
       profile_completion: Math.round(
         (biz.company_name ? 15 : 0) +
         (biz.description ? 15 : 0) +

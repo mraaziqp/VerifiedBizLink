@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense } from 'react';
+import { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -84,13 +84,32 @@ export default function ExplorePage() {
   );
 }
 
+/** Great-circle distance in km (haversine). */
+const calculateDistance = (
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number => {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 function ExploreContent() {
   const searchParams = useSearchParams();
   const industryParam = searchParams.get('industry') || searchParams.get('category');
   const queryParam = searchParams.get('query');
 
   const [businesses, setBusinesses] = useState<Business[]>([]);
-  const [filteredBusinesses, setFilteredBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(() =>
     typeof navigator !== 'undefined' && !navigator.geolocation ? { lat: -26.2023, lng: 28.0436 } : null
@@ -152,27 +171,11 @@ function ExploreContent() {
     fetchBusinesses();
   }, []);
 
-  const calculateDistance = (
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number
-  ): number => {
-    const R = 6371;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
 
-  // Calculate distance and filter businesses
-  useEffect(() => {
+  // Calculate distance and filter businesses. Derived during render rather
+  // than copied into state from an effect, which cost a second render on
+  // every keystroke in the search box.
+  const filteredBusinesses = useMemo(() => {
     let filtered = businesses.filter((b) => {
       if (selectedIndustry !== 'all' && b.industry.toLowerCase() !== selectedIndustry.toLowerCase()) return false;
       if (searchQuery && !matchesQuery(b.company_name, searchQuery)) {
@@ -210,7 +213,7 @@ function ExploreContent() {
       return a.distance - b.distance;
     });
 
-    setFilteredBusinesses(filtered);
+    return filtered;
   }, [businesses, userLocation, searchQuery, selectedIndustry, radius]);
 
   const handleNavigate = (business: Business) => {

@@ -193,7 +193,7 @@ export function AdBanner() {
         <div className="flex items-center gap-2 mt-3">
           <Button
             size="sm"
-            className="bg-primary text-gray-900 hover:bg-yellow-400 font-bold rounded-xl text-xs h-8 gap-1 flex-1"
+            className="bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold rounded-xl text-xs h-8 gap-1 flex-1"
             onClick={() => {
               trackAd(ad.id, "click");
               window.location.href = ad.cta_url;

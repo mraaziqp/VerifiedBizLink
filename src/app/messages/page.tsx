@@ -340,7 +340,7 @@ function MessagesPageInner() {
                           : 'bg-gray-100 border border-gray-200 backdrop-blur-sm text-gray-900'
                       } ${msg.image_url ? '!p-1.5' : ''}`}>
                         {msg.image_url && (
-                          <img src={msg.image_url} alt="Shared photo" className="rounded-md max-w-full max-h-60 object-cover" />
+                          <img src={msg.image_url} loading="lazy" decoding="async" alt="Shared photo" className="rounded-md max-w-full max-h-60 object-cover" />
                         )}
                         {msg.content && (
                           <p className={`text-sm whitespace-pre-wrap break-words ${msg.image_url ? 'px-1.5 pt-1.5' : ''}`}>{msg.content}</p>

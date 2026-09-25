@@ -11,7 +11,14 @@ function getDb() {
   return _sql;
 }
 
-// Tagged template literal helper — always returns Record<string, any>[]
-export default function db(strings: TemplateStringsArray, ...values: any[]): Promise<Record<string, any>[]> {
-  return getDb()(strings, ...values) as unknown as Promise<Record<string, any>[]>;
+/**
+ * A row from a raw SQL query. Deliberately loose: the tagged-template queries
+ * across the app select ad-hoc column sets, and callers narrow what they read.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- see above
+export type DbRow = Record<string, any>;
+
+// Tagged template literal helper — always returns DbRow[]
+export default function db(strings: TemplateStringsArray, ...values: unknown[]): Promise<DbRow[]> {
+  return getDb()(strings, ...values) as unknown as Promise<DbRow[]>;
 }

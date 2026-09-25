@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, Loader2, UserPlus, Link2, Copy, Check, Wallet, TrendingUp,
   Users, QrCode, Banknote, SlidersHorizontal, Download, Ban, RotateCcw, RefreshCw, X, CheckCheck,
-  Building2, CreditCard, Send, AlertCircle, FileSpreadsheet, Search, Printer, Receipt,
+  Building2, Send, AlertCircle, FileSpreadsheet, Search, Printer, Receipt,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -770,7 +770,6 @@ export default function AdminAgentsPage() {
                           <span className="text-xs text-gray-400">no code</span>
                         )}
                         {showQr === a.id && a.qrUrl && (
-                          /* eslint-disable-next-line @next/next/no-img-element */
                           <img src={a.qrUrl} alt={`QR code for ${a.fullName}`} className="mt-2 h-32 w-32 rounded-lg border border-gray-200 bg-white p-1" />
                         )}
                       </td>

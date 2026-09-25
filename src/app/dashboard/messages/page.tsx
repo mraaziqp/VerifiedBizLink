@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Search, Send, MessageSquare, ShieldCheck, CheckCheck, Loader2,
-  Users, User, Phone, Video, MoreVertical, ArrowLeft
+  Users, ArrowLeft
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,23 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+
+/** Shape of an item from GET /api/connections; fields vary by endpoint version. */
+interface ApiConnection {
+  id?: string;
+  userId?: string;
+  fullName?: string;
+  name?: string;
+  email?: string;
+  avatarUrl?: string;
+  role?: string;
+  companyName?: string;
+  isVerified?: boolean;
+  status?: string;
+  lastMessage?: string;
+  lastMessageTime?: string;
+  unreadCount?: number;
+}
 
 interface ConnectionUser {
   id: string;
@@ -68,8 +85,8 @@ function DashboardMessagesContent() {
         const res = await fetch('/api/connections');
         if (res.ok) {
           const data = await res.json();
-          const items: ConnectionUser[] = (data.connections || []).map((c: any) => ({
-            id: c.userId || c.id,
+          const items: ConnectionUser[] = (data.connections || []).map((c: ApiConnection) => ({
+            id: (c.userId || c.id) as string,
             fullName: c.fullName || c.name || 'Member',
             email: c.email || '',
             avatarUrl: c.avatarUrl,
@@ -87,8 +104,10 @@ function DashboardMessagesContent() {
             if (initialWith) {
               const matched = items.find((x) => x.id === initialWith);
               if (matched) setSelectedUser(matched);
-            } else if (items.length > 0 && !selectedUser) {
-              setSelectedUser(items[0]);
+            } else if (items.length > 0) {
+              // Functional update: keep whoever is already open, without
+              // making this load depend on (and re-run for) the selection.
+              setSelectedUser((current) => current ?? items[0]);
             }
           }
         }

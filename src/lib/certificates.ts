@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import db from '@/lib/db';
+import { extractSerial, SERIAL_PATTERN } from '@/lib/certificate-serial';
 
 /**
  * Verification certificates that can be checked rather than believed.
@@ -49,11 +50,59 @@ export function generateSerial(now = new Date()): string {
   return `VBL-${now.getFullYear()}-${block(4)}-${block(4)}`;
 }
 
-/** Accepts the serial in any case and with or without its dashes. */
+/** Accepts the serial in any case, with or without its dashes, or as a pasted verify link. */
 export function normaliseSerial(input: string): string {
-  const bare = String(input ?? '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const m = bare.match(/^VBL(\d{4})([A-Z0-9]{4})([A-Z0-9]{4})$/);
-  return m ? `VBL-${m[1]}-${m[2]}-${m[3]}` : String(input ?? '').trim().toUpperCase();
+  return extractSerial(input) ?? String(input ?? '').trim().toUpperCase();
+}
+
+/** Postgres "relation does not exist": the certificates table was never migrated. */
+function isMissingTable(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  return e?.code === '42P01' || /relation "?certificates"? does not exist/i.test(String(e?.message ?? ''));
+}
+
+let schemaReady: Promise<void> | null = null;
+
+/**
+ * Creates the certificates table if a deployment never ran migration v14.
+ *
+ * Without it the first download on such a deployment failed with a bare 500,
+ * which is the worst possible place to discover a missing migration. Mirrors
+ * the definition in /api/setup/migrate; every statement is IF NOT EXISTS, and
+ * it runs once per server instance.
+ */
+export function ensureCertificatesTable(): Promise<void> {
+  if (!schemaReady) {
+    schemaReady = (async () => {
+      await db`
+        CREATE TABLE IF NOT EXISTS certificates (
+          id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          serial          TEXT NOT NULL UNIQUE,
+          business_id     UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
+          company_name    TEXT NOT NULL,
+          reg_number      TEXT,
+          badge_source    TEXT,
+          signature       TEXT NOT NULL,
+          issued_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          issued_by       UUID,
+          revoked_at      TIMESTAMPTZ,
+          revoke_reason   TEXT,
+          verify_count    INTEGER NOT NULL DEFAULT 0,
+          last_verified_at TIMESTAMPTZ
+        )
+      `;
+      await db`CREATE INDEX IF NOT EXISTS certificates_business_idx ON certificates (business_id)`;
+      await db`
+        CREATE UNIQUE INDEX IF NOT EXISTS certificates_one_active_idx
+        ON certificates (business_id) WHERE revoked_at IS NULL
+      `;
+    })().catch((error) => {
+      // Let the next request try again instead of caching the failure.
+      schemaReady = null;
+      throw error;
+    });
+  }
+  return schemaReady;
 }
 
 export interface CertificatePayload {
@@ -172,19 +221,30 @@ function result(outcome: VerificationOutcome, serial: string, extra: Partial<Ver
  */
 export async function verifySerial(input: string, { countScan = false } = {}): Promise<VerificationResult> {
   const serial = normaliseSerial(input);
-  if (!/^VBL-\d{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(serial)) {
+  if (!SERIAL_PATTERN.test(serial)) {
     return result('not_found', serial);
   }
 
-  const rows = (await db`
-    SELECT c.serial, c.business_id, c.company_name, c.reg_number, c.signature,
-           c.issued_at, c.revoked_at, c.revoke_reason,
-           b.status AS current_status, b.verified_at, b.company_name AS current_name
-    FROM certificates c
-    JOIN businesses b ON b.id = c.business_id
-    WHERE c.serial = ${serial}
-    LIMIT 1
-  `.catch(() => [])) as unknown as Row[];
+  // A failed query must NOT read as "not found". That told whoever was
+  // holding a genuine certificate that it had never been issued — i.e. that it
+  // was fake — whenever the database had a blip. Callers turn a throw into
+  // "the check is unavailable, try again". Only a missing table is a true
+  // "nothing has ever been issued".
+  let rows: Row[];
+  try {
+    rows = (await db`
+      SELECT c.serial, c.business_id, c.company_name, c.reg_number, c.signature,
+             c.issued_at, c.revoked_at, c.revoke_reason,
+             b.status AS current_status, b.verified_at, b.company_name AS current_name
+      FROM certificates c
+      JOIN businesses b ON b.id = c.business_id
+      WHERE c.serial = ${serial}
+      LIMIT 1
+    `) as unknown as Row[];
+  } catch (error) {
+    if (isMissingTable(error)) return result('not_found', serial);
+    throw error;
+  }
 
   if (rows.length === 0) return result('not_found', serial);
   const c = rows[0];
@@ -258,9 +318,13 @@ export async function issueCertificate(
     throw new Error('Only a verified business can be issued a certificate');
   }
 
+  await ensureCertificatesTable();
+
+  // Not swallowed: treating a failed read as "no live certificate" would skip
+  // the revoke below and leave the old serial valid alongside the new one.
   const [existing] = (await db`
     SELECT serial FROM certificates WHERE business_id = ${businessId} AND revoked_at IS NULL LIMIT 1
-  `.catch(() => [])) as unknown as Row[];
+  `) as unknown as Row[];
 
   if (existing) {
     await db`

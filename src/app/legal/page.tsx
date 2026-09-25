@@ -1,6 +1,5 @@
 import { SubpageNav } from "@/components/layout/subpage-nav";
 import { CheckCircle2, ShieldCheck, Lock, FileCheck, HelpCircle } from "lucide-react";
-import Link from "next/link";
 
 export default function LegalPage() {
   return (

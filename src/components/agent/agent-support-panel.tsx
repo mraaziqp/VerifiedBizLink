@@ -457,7 +457,6 @@ export function AgentSupportPanel() {
 
           {screenshot && (
             <div className="flex items-center gap-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={screenshot} alt="Attached screenshot" className="h-14 w-14 rounded-lg border border-gray-200 object-cover" />
               <button type="button" onClick={() => setScreenshot(null)} className="text-gray-400 hover:text-red-600">
                 <X className="h-4 w-4" />

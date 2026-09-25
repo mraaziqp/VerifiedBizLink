@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/auth-context';
@@ -11,6 +12,15 @@ import MessagesWidget from '@/components/chat/chat-widget';
 import { EmailVerificationBanner } from '@/components/ui/email-verification-banner';
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register';
 import { PwaInstallPrompt } from '@/components/pwa/install-prompt';
+
+// Self-hosted by Next at build time: no render-blocking request to Google
+// Fonts on every page load, and no layout shift while the font swaps in.
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   title: 'VerifiedBizLink | Connecting You to Trusted Businesses',
@@ -43,12 +53,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-      </head>
+    <html lang="en" className={inter.variable}>
       <body className="font-body antialiased bg-background text-foreground overflow-x-hidden">
         <AuthProvider>
           <MobileMenuProvider>

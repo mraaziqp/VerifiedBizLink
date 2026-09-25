@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
   Briefcase, Search, MapPin, Loader2, ShieldCheck, Sparkles,
-  ArrowRight, FileText, Clock, PlusCircle, CheckCircle2, AlertCircle, Building2,
+  ArrowRight, FileText, Clock, PlusCircle, Building2,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,6 @@ import { SubpageNav } from '@/components/layout/subpage-nav';
 import { AnimatedTabs, type TabItem } from '@/components/ui/animated-tabs';
 import { TagInput } from '@/components/ui/tag-input';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/contexts/auth-context';
 import {
   EMPLOYMENT_TYPE_LABELS, LOCATION_TYPE_LABELS, formatSalaryRange,
   type EmploymentType, type LocationType,
@@ -65,7 +64,6 @@ const when = (iso: string) => {
 };
 
 function JobsContent() {
-  const { user } = useAuth();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') === 'post' ? 'post' : 'find';
   const [activeTab, setActiveTab] = useState<'find' | 'post'>(initialTab);

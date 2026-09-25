@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     `;
 
     return NextResponse.json({ report }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Submit report error:', error);
     return NextResponse.json({ error: 'Failed to submit report' }, { status: 500 });
   }
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
 
     const reports = await query;
     return NextResponse.json({ reports });
-  } catch (error: any) {
+  } catch (error) {
     console.error('List reports error:', error);
     return NextResponse.json({ error: 'Failed to list reports' }, { status: 500 });
   }

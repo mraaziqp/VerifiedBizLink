@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare updates
-    const updates: Record<string, any> = { updated_at: new Date() };
+    const updates: Record<string, unknown> = { updated_at: new Date() };
 
     // Update email if provided
     if (newEmail && newEmail !== session.email) {

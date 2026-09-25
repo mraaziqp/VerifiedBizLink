@@ -27,6 +27,16 @@ interface Conversation {
   unread_count: number;
 }
 
+/** A hit from GET /api/messages/search. */
+interface SearchResult {
+  id: string;
+  email: string;
+  full_name?: string | null;
+  company_name?: string | null;
+  role?: string | null;
+  business_id?: string | null;
+}
+
 export default function ChatWidget() {
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
@@ -40,7 +50,7 @@ export default function ChatWidget() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +77,7 @@ export default function ChatWidget() {
     return () => clearTimeout(timer);
   }, [searchQuery, activeTab]);
 
-  const startChatWith = (u: any) => {
+  const startChatWith = (u: SearchResult) => {
     setSelectedConversation({
       participant_id: u.id,
       participant_name: u.company_name || u.full_name || u.email,
@@ -425,6 +435,8 @@ export default function ChatWidget() {
                       {msg.image_url && (
                         <img
                           src={msg.image_url}
+                          loading="lazy"
+                          decoding="async"
                           alt="Shared photo"
                           className="rounded-lg max-w-full max-h-52 object-cover"
                         />

@@ -21,10 +21,6 @@ export default function AdminUserManagement() {
   const [editData, setEditData] = useState({ username: "", email: "" });
   const [newAdmin, setNewAdmin] = useState({ email: "", username: "", role: "admin" });
 
-  useEffect(() => {
-    fetchAdmins();
-  }, []);
-
   const fetchAdmins = async () => {
     try {
       const res = await fetch("/api/admin/users");
@@ -38,6 +34,10 @@ export default function AdminUserManagement() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchAdmins();
+  }, []);
 
   const handleEdit = async (id: string) => {
     try {
@@ -134,7 +134,7 @@ export default function AdminUserManagement() {
                 <label className="text-sm font-medium text-gray-300 block mb-2">Role</label>
                 <select
                   value={newAdmin.role}
-                  onChange={(e) => setNewAdmin({ ...newAdmin, role: e.target.value as any })}
+                  onChange={(e) => setNewAdmin({ ...newAdmin, role: e.target.value })}
                   className="w-full bg-gray-800 border border-gray-700 text-white rounded px-3 py-2"
                 >
                   <option value="admin">Admin</option>

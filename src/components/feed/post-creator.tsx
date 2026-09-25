@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Sparkles, Link as LinkIcon, Paperclip, Send, Loader2, X, Video, Film, CheckCircle2, Image as ImageIcon } from "lucide-react";
+import { Sparkles, Link as LinkIcon, Paperclip, Send, Loader2, X, Video, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";

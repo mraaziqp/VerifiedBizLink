@@ -122,7 +122,7 @@ export default function NetworkPage() {
                       All ({accepted.length})
                     </TabsTrigger>
                     <TabsTrigger value="pending" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none font-bold px-0">
-                      Pending {incomingPending.length > 0 && <span className="ml-1.5 bg-primary text-gray-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{incomingPending.length}</span>}
+                      Pending {incomingPending.length > 0 && <span className="ml-1.5 bg-amber-400 text-slate-900 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{incomingPending.length}</span>}
                     </TabsTrigger>
                     <TabsTrigger value="sent" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none font-bold px-0">
                       Sent ({outgoingPending.length})
@@ -203,7 +203,7 @@ export default function NetworkPage() {
                                 <>
                                   <Button
                                     size="sm"
-                                    className="bg-primary text-gray-900 hover:bg-yellow-400 rounded-xl font-bold gap-1"
+                                    className="bg-amber-400 text-slate-900 hover:bg-yellow-400 rounded-xl font-bold gap-1"
                                     onClick={() => handleAccept(conn.id, conn.connected_user_id, conn.full_name)}
                                     disabled={actioning === conn.id}
                                   >

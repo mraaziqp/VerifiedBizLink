@@ -27,10 +27,6 @@ export default function RamoneVerifiedPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'score-high' | 'score-low'>('newest');
 
-  useEffect(() => {
-    fetchVerifiedBusinesses();
-  }, []);
-
   const fetchVerifiedBusinesses = async () => {
     try {
       setLoading(true);
@@ -45,6 +41,10 @@ export default function RamoneVerifiedPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchVerifiedBusinesses();
+  }, []);
 
   const filteredBusinesses = businesses.filter(b =>
     b.company_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -143,7 +143,7 @@ export default function RamoneVerifiedPage() {
           />
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
             className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900 focus:border-blue-500 focus:outline-none"
           >
             <option value="newest">Newest First</option>

@@ -301,7 +301,6 @@ export default function SecuritySettingsPage() {
               <div className="space-y-4">
                 <p className="text-gray-600 text-sm">Scan this QR code with your authenticator app (Google Authenticator, Authy, 1Password, etc.):</p>
                 <div className="flex justify-center">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={qrCodeUrl} alt="2FA setup QR code" width={200} height={200} className="rounded-lg border border-gray-200" />
                 </div>
                 <label className="block text-sm font-medium text-gray-600">Then enter the 6-digit code it shows:</label>
