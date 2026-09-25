@@ -217,11 +217,14 @@ export default function AdminAdsManagerPage() {
           reason: grantReason,
         }),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        const data = await res.json();
         toast({ title: data.message });
         setSelectedBizForCredit(null);
         loadBusinesses();
+      } else {
+        // Used to fail silently: the dialog just sat there.
+        toast({ title: 'Could not update credits', description: data.error, variant: 'destructive' });
       }
     } catch {
       toast({ title: 'Failed to update credits', variant: 'destructive' });

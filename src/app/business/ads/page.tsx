@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  ArrowLeft, Plus, Trash2, Pause, Play, Loader2, Coins, Megaphone
+  ArrowLeft, Plus, Trash2, Pause, Play, Loader2, Coins, Megaphone, History,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,6 +34,19 @@ interface Ad {
   status?: string;
 }
 
+interface CreditPack { id: string; credits: number; price: number; label: string }
+interface CreditTx { id: string; delta: number; balanceAfter: number; kind: string; note: string | null; createdAt: string }
+
+const TX_LABELS: Record<string, string> = {
+  purchase: 'Purchase',
+  monthly_allowance: 'Monthly allowance',
+  admin_adjustment: 'Adjustment',
+  ad_spend: 'Ad campaign',
+  refund: 'Refund',
+};
+
+// Display defaults only. The server sends the live prices and packs; these
+// are what shows for the split second before that response arrives.
 const SLOT_OPTIONS = [
   { id: 'feed_inline', label: 'In-Feed Sponsored Post', cost: 5, desc: 'Displayed directly between timeline posts on the main feed.' },
   { id: 'top_banner', label: 'Top Header Featured Banner', cost: 10, desc: 'High-impact banner pinned at the top of Explore & Marketplace.' },
@@ -42,10 +55,10 @@ const SLOT_OPTIONS = [
 
 const DURATION_PRESETS = [3, 7, 14, 30];
 
-const CREDIT_PACKS = [
-  { credits: 50, price: 49, bonus: 'Starter Pack' },
-  { credits: 150, price: 129, bonus: 'Most Popular (Save 15%)' },
-  { credits: 400, price: 299, bonus: 'Best Value (Save 25%)' },
+const DEFAULT_PACKS: CreditPack[] = [
+  { id: 'starter', credits: 50, price: 49, label: 'Starter Pack' },
+  { id: 'popular', credits: 150, price: 129, label: 'Most Popular (Save 15%)' },
+  { id: 'value', credits: 400, price: 299, label: 'Best Value (Save 25%)' },
 ];
 
 export default function BusinessAdsPage() {
@@ -68,7 +81,12 @@ export default function BusinessAdsPage() {
   });
 
   const [adCredits, setAdCredits] = useState(0);
-  const [buyingCredits, setBuyingCredits] = useState<number | null>(null);
+  const [buyingCredits, setBuyingCredits] = useState<string | null>(null);
+  const [rates, setRates] = useState<Record<string, number> | null>(null);
+  const [packs, setPacks] = useState<CreditPack[]>(DEFAULT_PACKS);
+  const [history, setHistory] = useState<CreditTx[]>([]);
+  const [hasBusiness, setHasBusiness] = useState(true);
+  const slotOptions = SLOT_OPTIONS.map((o) => ({ ...o, cost: rates?.[o.id] ?? o.cost }));
 
   const fetchAds = useCallback(async () => {
     try {
@@ -76,7 +94,11 @@ export default function BusinessAdsPage() {
       if (res.ok) {
         const data = await res.json();
         setAds(data.ads || []);
-        setAdCredits(data.adCredits || 0);
+        setAdCredits(Number(data.adCredits) || 0);
+        if (data.rates) setRates(data.rates);
+        if (Array.isArray(data.packs) && data.packs.length) setPacks(data.packs);
+        setHistory(Array.isArray(data.history) ? data.history : []);
+        setHasBusiness(data.hasBusiness !== false);
       }
     } catch {
       /* keep previous state */
@@ -89,7 +111,7 @@ export default function BusinessAdsPage() {
     fetchAds();
   }, [fetchAds]);
 
-  const selectedSlot = SLOT_OPTIONS.find((s) => s.id === formData.slotPlacement) || SLOT_OPTIONS[0];
+  const selectedSlot = slotOptions.find((s) => s.id === formData.slotPlacement) || slotOptions[0];
   const totalRequiredCredits = formData.durationDays * selectedSlot.cost;
   const hasEnoughCredits = adCredits >= totalRequiredCredits;
 
@@ -152,6 +174,9 @@ export default function BusinessAdsPage() {
       if (res.ok) {
         toast({ title: currentlyActive ? 'Campaign paused' : 'Campaign activated' });
         fetchAds();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast({ title: 'Could not update campaign', description: data.error, variant: 'destructive' });
       }
     } catch {
       toast({ title: 'Could not toggle ad', variant: 'destructive' });
@@ -161,7 +186,7 @@ export default function BusinessAdsPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this ad?')) return;
+    if (!confirm('Delete this ad? Credits already spent on it are not refunded.')) return;
     setDeletingId(id);
     try {
       const res = await fetch(`/api/business/ads/${id}`, { method: 'DELETE' });
@@ -176,15 +201,17 @@ export default function BusinessAdsPage() {
     }
   };
 
-  const handleBuyCredits = async (amountRands: number) => {
-    setBuyingCredits(amountRands);
+  const handleBuyCredits = async (pack: CreditPack) => {
+    setBuyingCredits(pack.id);
     try {
       const res = await fetch('/api/payfast/init', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // The server prices the pack; amount is only a fallback for old servers.
         body: JSON.stringify({
-          amount: amountRands,
-          description: `VerifiedBizLink Ad Credits (${amountRands} ZAR)`,
+          packId: pack.id,
+          amount: pack.price,
+          description: `${pack.credits} Ad Credits`,
           purchaseType: 'ad_credits_topup',
         }),
       });
@@ -257,28 +284,28 @@ export default function BusinessAdsPage() {
               <Coins className="h-4.5 w-4.5 text-amber-500" />
               Top Up Ad Credits (Instant Activation via PayFast)
             </h3>
-            <span className="text-xs text-slate-500 font-medium">1 Credit ≈ R1 Ad Spend</span>
+            <span className="text-xs text-slate-500 font-medium">Credits are added as soon as PayFast confirms payment</span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {CREDIT_PACKS.map((pack) => (
+            {packs.map((pack) => (
               <div
-                key={pack.credits}
+                key={pack.id}
                 className="rounded-xl border border-slate-200 p-4 bg-slate-50/50 flex flex-col justify-between space-y-3 hover:border-amber-400 transition-all"
               >
                 <div>
                   <Badge variant="outline" className="text-[10px] font-extrabold text-amber-900 border-amber-300 bg-amber-50">
-                    {pack.bonus}
+                    {pack.label}
                   </Badge>
                   <p className="text-2xl font-black text-slate-900 mt-2">{pack.credits} Credits</p>
                   <p className="text-xs text-slate-500">Total: R{pack.price}</p>
                 </div>
                 <Button
-                  onClick={() => handleBuyCredits(pack.price)}
+                  onClick={() => handleBuyCredits(pack)}
                   disabled={buyingCredits !== null}
                   className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl shadow-xs"
                 >
-                  {buyingCredits === pack.price ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
+                  {buyingCredits === pack.id ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : null}
                   Buy {pack.credits} Credits
                 </Button>
               </div>
@@ -286,12 +313,51 @@ export default function BusinessAdsPage() {
           </div>
         </div>
 
+        {!loading && !hasBusiness && (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+            You need a business profile before you can buy credits or run ads.{' '}
+            <Link href="/onboarding" className="font-bold underline underline-offset-2">Create your business profile</Link>
+          </div>
+        )}
+
+        {/* Credit history: every purchase, allowance, spend and refund, newest first. */}
+        {history.length > 0 && (
+          <details className="group rounded-2xl border border-slate-200 bg-white shadow-xs">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 sm:p-5">
+              <span className="flex items-center gap-2 text-sm font-extrabold text-slate-900">
+                <History className="h-4 w-4 text-slate-500" /> Credit history
+              </span>
+              <span className="text-xs font-semibold text-slate-500 group-open:hidden">Show</span>
+              <span className="hidden text-xs font-semibold text-slate-500 group-open:inline">Hide</span>
+            </summary>
+            <ul className="divide-y divide-slate-100 border-t border-slate-100">
+              {history.map((tx) => (
+                <li key={tx.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-slate-900">{TX_LABELS[tx.kind] ?? tx.kind}</p>
+                    <p className="truncate text-xs text-slate-500">
+                      {new Date(tx.createdAt).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      {tx.note ? ` · ${tx.note}` : ''}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className={`text-sm font-black ${tx.delta > 0 ? 'text-emerald-600' : 'text-slate-900'}`}>
+                      {tx.delta > 0 ? '+' : ''}{tx.delta}
+                    </p>
+                    <p className="text-[11px] text-slate-400">Balance {tx.balanceAfter}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+
         {/* Campaign Creation / List Action */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 min-[480px]:flex-row min-[480px]:items-center min-[480px]:justify-between">
           <h2 className="text-lg font-black text-slate-900">Your Active &amp; Past Campaigns</h2>
           <Button
             onClick={() => setShowCreateForm(!showCreateForm)}
-            className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold gap-2 rounded-xl shadow-xs"
+            className="w-full min-[480px]:w-auto bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold gap-2 rounded-xl shadow-xs"
           >
             {showCreateForm ? 'Cancel Campaign' : <><Plus className="h-4 w-4" /> Create New Sponsored Ad</>}
           </Button>
@@ -310,7 +376,7 @@ export default function BusinessAdsPage() {
               <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-700">Choose Placement Slot *</label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {SLOT_OPTIONS.map((opt) => {
+                  {slotOptions.map((opt) => {
                     const isSelected = formData.slotPlacement === opt.id;
                     return (
                       <div

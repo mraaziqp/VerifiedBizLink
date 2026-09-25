@@ -6,6 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/auth-context";
 
+
+/**
+ * Only http(s) links and our own paths. Ads saved before server-side link
+ * validation existed could hold anything, and assigning a javascript: URL to
+ * window.location runs it — React's own URL guard does not cover that path.
+ */
+function safeAdHref(raw: string | null | undefined): string | null {
+  const value = String(raw ?? '').trim();
+  if (!value) return null;
+  if (value.startsWith('/') && !value.startsWith('//')) return value;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 interface Ad {
   id: string;
   title: string;
@@ -196,7 +214,8 @@ export function AdBanner() {
             className="bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold rounded-xl text-xs h-8 gap-1 flex-1"
             onClick={() => {
               trackAd(ad.id, "click");
-              window.location.href = ad.cta_url;
+              const href = safeAdHref(ad.cta_url);
+              if (href) window.location.href = href;
               handleDismiss();
             }}
           >
@@ -208,7 +227,7 @@ export function AdBanner() {
             className="text-xs h-8 text-gray-400 hover:text-gray-600 rounded-xl"
             asChild
           >
-            <a href={ad.cta_url} target="_blank" rel="noopener noreferrer" onClick={() => trackAd(ad.id, "click")}>
+            <a href={safeAdHref(ad.cta_url) ?? '#'} target="_blank" rel="noopener noreferrer" onClick={() => trackAd(ad.id, "click")}>
               <ExternalLink className="h-3 w-3" />
             </a>
           </Button>

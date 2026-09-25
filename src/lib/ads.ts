@@ -91,3 +91,40 @@ export const AD_SLOT_LABELS: Record<AdSlot, string> = {
   top_banner: 'Top banner',
   sidebar_spotlight: 'Sidebar spotlight',
 };
+
+export const AD_TEXT_LIMITS = { title: 80, description: 300, ctaText: 30, badge: 24 } as const;
+
+/**
+ * Where an ad's button may send people: our own pages ("/explore") or an
+ * http(s) site. Anything else — javascript:, data:, protocol-relative "//"
+ * — is refused. Ads are shown to every visitor, so an unchecked link here is
+ * a link we are vouching for.
+ */
+export function cleanAdLink(raw: unknown): string | null {
+  const value = String(raw ?? '').trim();
+  if (!value) return '';
+  if (value.startsWith('/') && !value.startsWith('//')) return value.slice(0, 500);
+  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(value) ? value : `https://${value}`;
+  try {
+    const url = new URL(withScheme);
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return null;
+    if (!url.hostname.includes('.')) return null;
+    return url.toString().slice(0, 500);
+  } catch {
+    return null;
+  }
+}
+
+/** Ad images: an uploaded file URL, one of our paths, or an inline image. */
+export function cleanAdImage(raw: unknown): string | null {
+  const value = String(raw ?? '').trim();
+  if (!value) return '';
+  if (/^data:image\/(png|jpe?g|webp|gif);base64,/i.test(value)) return value;
+  if (value.startsWith('/') && !value.startsWith('//')) return value;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' ? value : null;
+  } catch {
+    return null;
+  }
+}

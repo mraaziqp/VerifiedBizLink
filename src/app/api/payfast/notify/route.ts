@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { verifyItnSignature, payfastEnv } from '@/lib/payfast';
-import { getTier, AD_CREDIT_PRICE_PER_DAY, AD_BOOST_PRICE, AD_BOOST_DURATION_DAYS, VERIFICATION_FEE_RAND } from '@/lib/tiers';
+import { getTier, AD_BOOST_PRICE, AD_BOOST_DURATION_DAYS, VERIFICATION_FEE_RAND } from '@/lib/tiers';
+import { changeCredits, findCreditPack, packForAmount } from '@/lib/ad-credits';
 import { nextBillingDate } from '@/lib/billing';
 import { issueInvoice } from '@/lib/invoices';
 import { appUrlFromRequest } from '@/lib/email';
@@ -330,13 +331,33 @@ export async function POST(request: NextRequest) {
         }
       } else if (purchaseType === 'ad_credits_topup') {
         const paidAmount = parseFloat(payfastData.amount_gross as string);
-        const creditDays = Number.isFinite(paidAmount) ? Math.floor(paidAmount / AD_CREDIT_PRICE_PER_DAY) : 0;
-        if (creditDays > 0) {
-          await db`
-            UPDATE businesses SET ad_credits = ad_credits + ${creditDays}, updated_at = NOW()
-            WHERE user_id = ${userId}
-          `.catch(err => console.log('Ad credit top-up note:', err.message));
-          grantMessage = `${creditDays} ad-day credit${creditDays === 1 ? '' : 's'} added to your account.`;
+        // The pack id travels in custom_str4. Checkouts started before packs
+        // had ids are matched by the amount paid, which is unique per pack.
+        const pack = findCreditPack(payfastData.custom_str4) ?? (Number.isFinite(paidAmount) ? packForAmount(paidAmount) : null);
+        const [biz] = await db`SELECT id FROM businesses WHERE user_id = ${userId} LIMIT 1`;
+
+        if (!pack || !Number.isFinite(paidAmount) || paidAmount + 0.01 < pack.price) {
+          console.error('Credit top-up not granted: amount does not match a pack', { paidAmount, pack: pack?.id, paymentRef });
+          grantMessage = 'Your payment was received, but it did not match a credit pack. Please contact support.';
+        } else if (!biz) {
+          console.error('Credit top-up not granted: no business for user', { userId, paymentRef });
+          grantMessage = 'Your payment was received, but no business profile was found. Please contact support.';
+        } else {
+          // Keyed on the payment, so PayFast re-sending this notification
+          // (which it does whenever the first reply is slow) cannot add the
+          // credits a second time.
+          const result = await changeCredits({
+            businessId: String(biz.id),
+            delta: pack.credits,
+            kind: 'purchase',
+            note: `Bought ${pack.credits} credits (${pack.label}) — R${pack.price}`,
+            reference: `payfast:${paymentRef}`,
+          });
+          if (!result.applied && result.reason === 'duplicate') {
+            // Already granted by an earlier copy of this notification.
+            return NextResponse.json({ success: true }, { status: 200 });
+          }
+          grantMessage = `${pack.credits} ad credits added to your account.`;
         }
       } else if (purchaseType === 'verification_fee') {
         const paidAmount = parseFloat(payfastData.amount_gross as string);

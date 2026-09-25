@@ -60,13 +60,9 @@ export async function getAdLimit(packageKey: string): Promise<number> {
   return tier?.adLimit ?? 0;
 }
 
-// Price (in Rand) per extra ad-day of credit when a business tops up beyond
-// their tier's monthly allowance.
-export const AD_CREDIT_PRICE_PER_DAY = 10;
-
 // One-off ad boost: price in Rand and how long the boost lasts once paid.
 // Mirrored client-side in src/app/business/ads/page.tsx (BOOST_PRICE) — keep
-// both in sync, same convention as AD_CREDIT_PRICE_PER_DAY above.
+// both in sync. (Credit packs live in lib/ad-credits.ts.)
 export const AD_BOOST_PRICE = 100;
 export const AD_BOOST_DURATION_DAYS = 7;
 
@@ -93,27 +89,6 @@ export function getEffectivePackage(biz: Record<string, unknown>): string {
   return String(biz.package_type ?? 'free');
 }
 
-// Tops up a business's ad-credit balance once per calendar month, up to
-// (additively) the effective tier's monthly allowance. Atomic single
-// UPDATE — safe under concurrent requests since Postgres serializes
-// concurrent UPDATEs on the same row, and the WHERE guard only matches
-// once per month per business.
-export async function ensureMonthlyAdCredits(businessId: string): Promise<void> {
-  await db`
-    UPDATE businesses b
-    SET ad_credits = b.ad_credits + COALESCE((
-          SELECT monthly_ad_credits FROM tiers
-          WHERE key = CASE
-            WHEN b.trial_package IS NOT NULL AND b.trial_ends_at IS NOT NULL AND b.trial_ends_at > NOW()
-            THEN b.trial_package
-            ELSE b.package_type
-          END
-        ), 0),
-        credits_last_topped_up_at = NOW()
-    WHERE b.id = ${businessId}
-      AND (
-        b.credits_last_topped_up_at IS NULL
-        OR date_trunc('month', b.credits_last_topped_up_at) < date_trunc('month', NOW())
-      )
-  `;
-}
+// Moved to lib/ad-credits so the monthly allowance is written to the credit
+// ledger like every other credit change. Re-exported for existing imports.
+export { ensureMonthlyAdCredits } from '@/lib/ad-credits';
