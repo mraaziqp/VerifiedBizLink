@@ -89,33 +89,61 @@ export default function AdminMobileAppPage() {
       <div className="mx-auto max-w-4xl space-y-6 px-4 py-8">
         {loading ? (
           <AdminCard className="flex items-center gap-3 p-6 text-slate-600"><Loader2 className="h-5 w-5 animate-spin" /> Loading builds…</AdminCard>
-        ) : !result?.ok ? (
-          <AdminCard className="space-y-4 p-6">
-            <h2 className="text-lg font-black text-slate-900">
-              {result?.reason === 'no_bucket' ? 'No builds published yet' : result?.reason === 'not_configured' ? 'Storage not configured' : 'Could not load builds'}
-            </h2>
-            <p className="text-sm text-slate-700">{result?.message}</p>
-            <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-700">
-              <li>
-                On GitHub, open <a className="font-semibold text-slate-900 underline" href={`${REPO}/settings/secrets/actions`} target="_blank" rel="noreferrer">Settings → Secrets and variables → Actions</a> and add two repository secrets:
-                <code className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs">SUPABASE_URL</code> (same value as <code className="rounded bg-slate-100 px-1 text-xs">NEXT_PUBLIC_SUPABASE_URL</code> in Amplify) and
-                <code className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs">SUPABASE_SERVICE_ROLE_KEY</code>.
-              </li>
-              <li>
-                Open <a className="font-semibold text-slate-900 underline" href={`${REPO}/actions/workflows/android-build.yml`} target="_blank" rel="noreferrer">Actions → Build Android App (APK)</a>, click <b>Run workflow</b> on <b>main</b>, and wait about 5 minutes.
-              </li>
-              <li>Come back here and press <b>Refresh</b>.</li>
-            </ol>
-            <Button onClick={load} variant="outline" className="gap-2 rounded-xl"><RefreshCw className="h-4 w-4" /> Refresh</Button>
-          </AdminCard>
-        ) : !latest ? (
-          <AdminCard className="space-y-3 p-6">
-            <h2 className="text-lg font-black text-slate-900">No builds yet</h2>
-            <p className="text-sm text-slate-700">
-              Run <a className="font-semibold underline" href={`${REPO}/actions/workflows/android-build.yml`} target="_blank" rel="noreferrer">Build Android App (APK)</a> on GitHub, then refresh.
-            </p>
-            <Button onClick={load} variant="outline" className="gap-2 rounded-xl"><RefreshCw className="h-4 w-4" /> Refresh</Button>
-          </AdminCard>
+        ) : !result?.ok || !latest ? (
+          <>
+            {!result?.ok && (
+              <AdminCard className="space-y-4 p-6">
+                <h2 className="text-lg font-black text-slate-900">
+                  {result?.reason === 'no_bucket' ? 'No builds published yet'
+                    : result?.reason === 'not_configured' ? 'Storage not configured'
+                    : result?.reason === 'unreachable' ? "Can't reach your Supabase storage"
+                    : 'Could not load builds'}
+                </h2>
+                <p className="text-sm text-slate-700">{result?.message}</p>
+                {result?.reason === 'unreachable' ? (
+                  <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-700">
+                    <li>Open <a className="font-semibold text-slate-900 underline" href="https://supabase.com/dashboard/projects" target="_blank" rel="noreferrer">your Supabase dashboard</a>. If the project says <b>Paused</b>, click <b>Restore project</b> and wait a few minutes. (This also fixes profile pictures stored in Supabase.)</li>
+                    <li>If it isn&apos;t paused, check that <code className="rounded bg-slate-100 px-1 text-xs">NEXT_PUBLIC_SUPABASE_URL</code> in Amplify matches the project&apos;s URL (Project Settings → API), then redeploy.</li>
+                    <li>Come back here and press <b>Refresh</b>. Until then, use the GitHub download below.</li>
+                  </ol>
+                ) : (
+                  <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-700">
+                    <li>
+                      On GitHub, open <a className="font-semibold text-slate-900 underline" href={`${REPO}/settings/secrets/actions`} target="_blank" rel="noreferrer">Settings → Secrets and variables → Actions</a> and add two repository secrets:
+                      <code className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs">SUPABASE_URL</code> (same value as <code className="rounded bg-slate-100 px-1 text-xs">NEXT_PUBLIC_SUPABASE_URL</code> in Amplify) and
+                      <code className="mx-1 rounded bg-slate-100 px-1.5 py-0.5 text-xs">SUPABASE_SERVICE_ROLE_KEY</code>.
+                    </li>
+                    <li>
+                      Open <a className="font-semibold text-slate-900 underline" href={`${REPO}/actions/workflows/android-build.yml`} target="_blank" rel="noreferrer">Actions → Build Android App (APK)</a>, click <b>Run workflow</b> on <b>main</b>, and wait about 5 minutes.
+                    </li>
+                    <li>Come back here and press <b>Refresh</b>.</li>
+                  </ol>
+                )}
+                <Button onClick={load} variant="outline" className="gap-2 rounded-xl"><RefreshCw className="h-4 w-4" /> Refresh</Button>
+              </AdminCard>
+            )}
+            {result?.ok && !latest && (
+              <AdminCard className="space-y-3 p-6">
+                <h2 className="text-lg font-black text-slate-900">No builds yet</h2>
+                <p className="text-sm text-slate-700">
+                  Run <a className="font-semibold underline" href={`${REPO}/actions/workflows/android-build.yml`} target="_blank" rel="noreferrer">Build Android App (APK)</a> on GitHub, then refresh.
+                </p>
+                <Button onClick={load} variant="outline" className="gap-2 rounded-xl"><RefreshCw className="h-4 w-4" /> Refresh</Button>
+              </AdminCard>
+            )}
+            {/* Always works: every CI build keeps its APK as a GitHub artifact for 30 days. */}
+            <AdminCard className="space-y-3 p-6">
+              <h3 className="font-black text-slate-900">Download the latest build from GitHub instead</h3>
+              <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-700">
+                <li>Sign in to GitHub, then open the <a className="font-semibold text-slate-900 underline" href={`${REPO}/actions/workflows/android-build.yml?query=branch%3Amain+is%3Asuccess`} target="_blank" rel="noreferrer">latest successful Android builds</a> and click the top one.</li>
+                <li>Scroll to <b>Artifacts</b> and click <b>VerifiedBizLink-APK-…</b> — it downloads as a .zip.</li>
+                <li>Open the zip on your phone (the Files app can extract it) and tap the <b>.apk</b> inside to install. Allow &ldquo;install unknown apps&rdquo; if Android asks.</li>
+              </ol>
+              <Button asChild className="h-11 gap-2 rounded-xl bg-slate-900 font-bold text-white hover:bg-slate-800">
+                <a href={`${REPO}/actions/workflows/android-build.yml?query=branch%3Amain+is%3Asuccess`} target="_blank" rel="noreferrer"><Download className="h-4 w-4" /> Open builds on GitHub</a>
+              </Button>
+            </AdminCard>
+          </>
         ) : (
           <>
             <AdminCard className="space-y-5 p-6">

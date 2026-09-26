@@ -24,7 +24,7 @@ export interface AppBuild {
 
 export type BuildsResult =
   | { ok: true; builds: AppBuild[] }
-  | { ok: false; reason: 'not_configured' | 'no_bucket' | 'error'; message: string };
+  | { ok: false; reason: 'not_configured' | 'no_bucket' | 'unreachable' | 'error'; message: string };
 
 export function isBuildName(name: unknown): name is string {
   return typeof name === 'string' && NAME_RX.test(name);
@@ -34,15 +34,32 @@ export async function listBuilds(): Promise<BuildsResult> {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     return { ok: false, reason: 'not_configured', message: 'Supabase storage is not configured on this deployment.' };
   }
-  const { data, error } = await getSupabaseAdmin()
-    .storage.from(BUCKET)
-    .list(FOLDER, { limit: 50, sortBy: { column: 'created_at', order: 'desc' } });
-  if (error) {
-    const missing = /not found/i.test(error.message);
+  let data: { name: string; created_at?: string | null; metadata?: unknown }[] | null = null;
+  let errorMessage: string | null = null;
+  try {
+    const res = await getSupabaseAdmin()
+      .storage.from(BUCKET)
+      .list(FOLDER, { limit: 50, sortBy: { column: 'created_at', order: 'desc' } });
+    data = res.data;
+    errorMessage = res.error?.message ?? null;
+  } catch (err) {
+    errorMessage = err instanceof Error ? err.message : String(err);
+  }
+  if (errorMessage) {
+    // "fetch failed" / connection errors: the server can't reach Supabase at
+    // all — usually a paused free-tier project or a wrong project URL.
+    if (/fetch failed|ENOTFOUND|ECONNREFUSED|ETIMEDOUT|network|getaddrinfo|socket/i.test(errorMessage)) {
+      return {
+        ok: false,
+        reason: 'unreachable',
+        message: 'The server could not connect to your Supabase project. It is most likely paused (free projects pause after about a week without activity) — restore it in the Supabase dashboard, or check NEXT_PUBLIC_SUPABASE_URL in Amplify.',
+      };
+    }
+    const missing = /not found/i.test(errorMessage);
     return {
       ok: false,
       reason: missing ? 'no_bucket' : 'error',
-      message: missing ? 'No builds have been published yet.' : error.message,
+      message: missing ? 'No builds have been published yet.' : errorMessage,
     };
   }
   const builds: AppBuild[] = [];
