@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, MessageSquare } from "lucide-react";
+import { Loader2, MessageSquare, ImageDown } from "lucide-react";
 import { StarRating } from "@/components/ui/star-rating";
 import { ReviewCard, ReviewData } from "./review-card";
 import { ReviewForm } from "./review-form";
+import { ExportReviewCard } from "./export-review-card";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +14,9 @@ interface ReviewsListProps {
   businessName: string;
   /** If false, hides the Write Review button (e.g. business owner viewing own profile) */
   canReview?: boolean;
+  /** Business owner viewing their own profile: offer "share as image" per review. */
+  canExport?: boolean;
+  businessVerified?: boolean;
   compact?: boolean;
   className?: string;
 }
@@ -27,9 +31,12 @@ export function ReviewsList({
   businessId,
   businessName,
   canReview = true,
+  canExport = false,
+  businessVerified = false,
   compact = false,
   className,
 }: ReviewsListProps) {
+  const [exportingId, setExportingId] = useState<string | null>(null);
   const [reviews, setReviews] = useState<ReviewData[]>([]);
   const [stats, setStats] = useState<ReviewStats>({ average: 0, count: 0, distribution: {} });
   const [loading, setLoading] = useState(true);
@@ -140,11 +147,35 @@ export function ReviewsList({
       {!loading && reviews.length > 0 && (
         <div className={cn("space-y-3", compact && "space-y-2")}>
           {reviews.map((review) => (
-            <ReviewCard
-              key={review.id}
-              review={review}
-              compact={compact}
-            />
+            <div key={review.id}>
+              <ReviewCard review={review} compact={compact} />
+              {canExport && (
+                <div className="mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setExportingId(exportingId === review.id ? null : review.id)}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                  >
+                    <ImageDown className="h-3.5 w-3.5" />
+                    {exportingId === review.id ? "Hide image" : "Share as image"}
+                  </button>
+                  {exportingId === review.id && (
+                    <ExportReviewCard
+                      className="mt-2"
+                      review={{
+                        id: review.id,
+                        authorName: review.reviewerName,
+                        rating: review.rating,
+                        reviewText: [review.title, review.body].filter(Boolean).join(" — "),
+                        createdAt: review.createdAt,
+                        businessName,
+                        businessVerified,
+                      }}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}

@@ -96,7 +96,7 @@ export default function ProfilePage() {
       <div className="pb-20">
         {/* Navigation */}
         <div className="safe-area-pt bg-white/80 border-b border-gray-200 sticky top-0 z-40 p-4 backdrop-blur-xl">
-          <Link href="/dashboard" className="flex items-center gap-2 text-yellow-600 hover:text-yellow-700">
+          <Link href="/dashboard" className="flex items-center gap-2 text-yellow-700 hover:text-yellow-800">
             <ArrowLeft className="h-4 w-4" />
             Back to Dashboard
           </Link>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Storage } from '@google-cloud/storage';
+import { MEDIA_MAX_BYTES, sniffMedia } from '@/lib/media-sniff';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,11 +11,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Validate file size (max 15MB for images/media)
-    if (file.size > 15 * 1024 * 1024) {
+    // 5MB: the hosting platform rejects request bodies over ~6MB with a bare
+    // 413/500 before this code runs, so a larger limit here only moved the
+    // failure somewhere with no useful message. Large videos go straight to
+    // storage through VideoUploader instead of through this route.
+    if (file.size > MEDIA_MAX_BYTES) {
       return NextResponse.json(
-        { error: 'File size exceeds 15MB limit' },
-        { status: 400 }
+        { error: `That file is ${(file.size / (1024 * 1024)).toFixed(1)}MB. The limit is 5MB.` },
+        { status: 413 }
       );
     }
 
@@ -28,6 +32,13 @@ export async function POST(request: NextRequest) {
         { error: 'Invalid file type. Allowed: JPEG, PNG, WebP, GIF, MP4, WebM' },
         { status: 400 }
       );
+    }
+
+    // The bytes must match an allowed type; File.type alone is client-controlled.
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const sniffed = sniffMedia(buffer);
+    if (!sniffed || !allowedTypes.includes(sniffed.mime)) {
+      return NextResponse.json({ error: 'That file is not a supported image or video.' }, { status: 400 });
     }
 
     // Try Google Cloud / Firebase Storage first
@@ -46,16 +57,13 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        const ext = file.name.split('.').pop() || 'bin';
+        const ext = sniffed.ext;
         const destination = `media/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
         const bucket = storage.bucket(bucketName);
         const gcsFile = bucket.file(destination);
 
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
         await gcsFile.save(buffer, {
-          contentType: file.type,
+          contentType: sniffed.mime,
           resumable: false,
           metadata: {
             cacheControl: 'public, max-age=31536000',
@@ -67,7 +75,7 @@ export async function POST(request: NextRequest) {
           success: true,
           url: publicUrl,
           fileName: file.name,
-          type: file.type,
+          type: sniffed.mime,
           size: file.size,
           method: 'gcs',
         });
@@ -77,16 +85,13 @@ export async function POST(request: NextRequest) {
     }
 
     // High-performance fallback: Data URL
-    const fileBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(fileBuffer);
-    const base64 = buffer.toString('base64');
-    const dataUrl = `data:${file.type};base64,${base64}`;
+    const dataUrl = `data:${sniffed.mime};base64,${buffer.toString('base64')}`;
 
     return NextResponse.json({
       success: true,
       url: dataUrl,
       fileName: file.name,
-      type: file.type,
+      type: sniffed.mime,
       size: file.size,
       method: 'dataurl',
     }, { status: 200 });

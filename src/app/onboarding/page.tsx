@@ -262,7 +262,7 @@ export default function OnboardingPage() {
                 <div className="space-y-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <div className="flex justify-center">
                     <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center">
-                      <User className="h-10 w-10 text-yellow-600" />
+                      <User className="h-10 w-10 text-yellow-700" />
                     </div>
                   </div>
                   <div>
@@ -273,7 +273,7 @@ export default function OnboardingPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-left">
                     {[
-                      { icon: Star, label: "Personalised Feed", color: "text-yellow-600 bg-yellow-50" },
+                      { icon: Star, label: "Personalised Feed", color: "text-yellow-700 bg-yellow-50" },
                       { icon: Users, label: "Verified Network", color: "text-blue-600 bg-blue-50" },
                       { icon: Briefcase, label: "Relevant Businesses", color: "text-green-600 bg-green-50" },
                       { icon: MapPin, label: "Local Discovery", color: "text-purple-600 bg-purple-50" },
@@ -495,7 +495,7 @@ export default function OnboardingPage() {
                   </div>
                   <p className="text-xs text-gray-400 text-center">
                     Read our full{" "}
-                    <Link href="/privacy" target="_blank" className="text-yellow-600 font-bold hover:underline">Privacy Policy</Link>
+                    <Link href="/privacy" target="_blank" className="text-yellow-700 font-bold hover:underline">Privacy Policy</Link>
                   </p>
                 </div>
               )}
@@ -518,7 +518,7 @@ export default function OnboardingPage() {
                     ].map((item, i) => (
                       <Link key={i} href={item.href} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border hover:bg-gray-100 transition-colors group">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-yellow-100 rounded-xl"><item.icon className="h-4 w-4 text-yellow-600" /></div>
+                          <div className="p-2 bg-yellow-100 rounded-xl"><item.icon className="h-4 w-4 text-yellow-700" /></div>
                           <span className="font-bold text-gray-800 text-sm">{item.label}</span>
                         </div>
                         <ChevronRight className="h-4 w-4 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
@@ -551,7 +551,7 @@ export default function OnboardingPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3 text-left">
                     {[
-                      { icon: Award, label: "Get Gold Verified", color: "text-yellow-600 bg-yellow-50" },
+                      { icon: Award, label: "Get Gold Verified", color: "text-yellow-700 bg-yellow-50" },
                       { icon: TrendingUp, label: "Grow Your Network", color: "text-blue-600 bg-blue-50" },
                       { icon: Zap, label: "Get Discovered", color: "text-green-600 bg-green-50" },
                       { icon: Package, label: "Choose a Package", color: "text-purple-600 bg-purple-50" },
@@ -679,7 +679,7 @@ export default function OnboardingPage() {
                 <div className="space-y-6 text-center animate-in fade-in slide-in-from-bottom-4 duration-300">
                   <div className="flex justify-center">
                     <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center">
-                      <Award className="h-10 w-10 text-yellow-600" />
+                      <Award className="h-10 w-10 text-yellow-700" />
                     </div>
                   </div>
                   <div>
@@ -696,7 +696,7 @@ export default function OnboardingPage() {
                     ].map((item, i) => (
                       <Link key={i} href={item.href} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border hover:bg-gray-100 transition-colors group">
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-yellow-100 rounded-xl"><item.icon className="h-4 w-4 text-yellow-600" /></div>
+                          <div className="p-2 bg-yellow-100 rounded-xl"><item.icon className="h-4 w-4 text-yellow-700" /></div>
                           <span className="font-bold text-gray-800 text-sm">{item.label}</span>
                         </div>
                         <ChevronRight className="h-4 w-4 text-gray-400 group-hover:translate-x-0.5 transition-transform" />

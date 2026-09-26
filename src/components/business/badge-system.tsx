@@ -48,7 +48,7 @@ const BADGES: Record<BadgeType, BadgeInfo> = {
     label: 'Rising Star',
     description: 'Rapidly gaining connections',
     icon: <Star className="h-4 w-4" />,
-    color: 'text-yellow-600',
+    color: 'text-yellow-700',
     bgColor: 'bg-yellow-50',
     level: 3,
     requirement: '50+ connections in 30 days'
@@ -158,7 +158,7 @@ export function BadgeGrid({ earnedBadges }: BadgeGridProps) {
                     </p>
                     {isEarned && (
                       <div className="mt-3">
-                        <span className="inline-block bg-green-500 text-white text-xs font-bold px-2 py-1 rounded">
+                        <span className="inline-block bg-green-700 text-white text-xs font-bold px-2 py-1 rounded">
                           ✓ Earned
                         </span>
                       </div>
@@ -183,7 +183,7 @@ export function TrustScoreDisplay({ score, verified }: TrustScoreDisplayProps) {
   const getScoreColor = (s: number) => {
     if (s >= 90) return 'text-green-600';
     if (s >= 70) return 'text-blue-600';
-    if (s >= 50) return 'text-yellow-600';
+    if (s >= 50) return 'text-yellow-700';
     return 'text-red-600';
   };
 

@@ -476,7 +476,7 @@ export default function AdminAgentsPage() {
         subtitle="Referral links, performance and commission payouts"
       >
         <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10">
+          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
           </Button>
         </Link>
@@ -493,7 +493,7 @@ export default function AdminAgentsPage() {
         {/* Commission scheme — changeable on the fly, no deploy needed */}
         <AdminCard>
           <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-gray-900">
-            <SlidersHorizontal className="h-5 w-5 text-amber-600" /> Commission scheme
+            <SlidersHorizontal className="h-5 w-5 text-amber-700" /> Commission scheme
           </h2>
           <p className="mb-4 text-sm text-gray-500">
             Applies to every agent who does not have their own negotiated rate.
@@ -619,7 +619,7 @@ export default function AdminAgentsPage() {
         {/* Hire a marketer */}
         <AdminCard>
           <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-gray-900">
-            <UserPlus className="h-5 w-5 text-amber-600" /> Invite a new marketer
+            <UserPlus className="h-5 w-5 text-amber-700" /> Invite a new marketer
           </h2>
           <p className="mb-4 text-sm text-gray-500">
             Creates a one-time link. They set their own password, and their referral
@@ -694,7 +694,7 @@ export default function AdminAgentsPage() {
         <AdminCard className="overflow-hidden p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-0 sm:p-6 sm:pb-0">
             <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-              <Link2 className="h-5 w-5 text-amber-600" /> Agents &amp; referral links
+              <Link2 className="h-5 w-5 text-amber-700" /> Agents &amp; referral links
             </h2>
             <Button
               variant="outline"
@@ -753,7 +753,7 @@ export default function AdminAgentsPage() {
                               type="button"
                               title="Copy referral link"
                               onClick={() => a.link && copy(a.link, a.id)}
-                              className="text-gray-400 transition-colors hover:text-amber-600"
+                              className="text-gray-400 transition-colors hover:text-amber-700"
                             >
                               {copied === a.id ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
                             </button>
@@ -761,7 +761,7 @@ export default function AdminAgentsPage() {
                               type="button"
                               title="Show QR code"
                               onClick={() => setShowQr(showQr === a.id ? null : a.id)}
-                              className="text-gray-400 transition-colors hover:text-amber-600"
+                              className="text-gray-400 transition-colors hover:text-amber-700"
                             >
                               <QrCode className="h-4 w-4" />
                             </button>
@@ -868,7 +868,7 @@ export default function AdminAgentsPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-0 sm:p-6 sm:pb-0">
             <div>
               <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-                <Banknote className="h-5 w-5 text-amber-600" /> Payouts &amp; bank reconciliation
+                <Banknote className="h-5 w-5 text-amber-700" /> Payouts &amp; bank reconciliation
               </h2>
               <p className="mt-1 text-sm text-gray-500">
                 Match each recorded payout to a line on your bank statement.
@@ -1054,7 +1054,7 @@ export default function AdminAgentsPage() {
           <DialogContent className="sm:max-w-[540px] rounded-2xl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-xl font-bold text-slate-900">
-                <Banknote className="h-6 w-6 text-amber-600" />
+                <Banknote className="h-6 w-6 text-amber-700" />
                 Record Commission Payout
               </DialogTitle>
               <DialogDescription className="text-slate-600 text-sm">
@@ -1248,7 +1248,7 @@ export default function AdminAgentsPage() {
           <DialogContent className="sm:max-w-[500px] rounded-2xl p-6">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-lg font-bold text-slate-900">
-                <Receipt className="h-5 w-5 text-amber-600" />
+                <Receipt className="h-5 w-5 text-amber-700" />
                 Commission Remittance Advice
               </DialogTitle>
               <DialogDescription className="text-slate-500 text-xs">

@@ -220,7 +220,7 @@ export default function BusinessPostsPage() {
                 rows={5}
               />
               <p className="text-xs text-gray-400 mt-2">
-                Tip: to attach an image, post from the <Link href="/" className="text-yellow-600 hover:underline">Home feed</Link> composer.
+                Tip: to attach an image, post from the <Link href="/" className="text-yellow-700 hover:underline">Home feed</Link> composer.
               </p>
               <div className="flex justify-end gap-3 mt-4">
                 <Button

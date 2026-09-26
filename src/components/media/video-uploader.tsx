@@ -240,7 +240,7 @@ export function VideoUploader({
           className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-amber-300 hover:border-amber-500 rounded-2xl cursor-pointer bg-amber-50/40 hover:bg-amber-50/70 transition-all group"
         >
           <div className="h-13 w-13 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-            <Film className="h-6 w-6 text-amber-600" />
+            <Film className="h-6 w-6 text-amber-700" />
           </div>
           <p className="text-sm font-extrabold text-slate-900">Click or drag video to upload</p>
           <p className="text-xs text-slate-500 mt-1 font-medium">MP4, WebM or MOV (Up to {maxSizeMB}MB)</p>
@@ -261,7 +261,7 @@ export function VideoUploader({
           {isUploading && (
             <div className="space-y-2 bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-amber-600 font-extrabold">{progress}% uploaded</span>
+                <span className="text-amber-700 font-extrabold">{progress}% uploaded</span>
                 <span className="text-slate-600 font-bold">{isPaused ? 'Paused' : 'Streaming to Cloud Storage...'}</span>
               </div>
               <Progress value={progress} className="h-2.5 bg-slate-200" />

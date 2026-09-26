@@ -78,7 +78,7 @@ function ResetPasswordForm() {
             </div>
             <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">Invalid reset link</h2>
             <p className="text-gray-500">This link is missing its token. Please request a new password reset.</p>
-            <Link href="/forgot-password" className="inline-block font-bold text-yellow-600 hover:text-yellow-700 hover:underline pt-2">
+            <Link href="/forgot-password" className="inline-block font-bold text-yellow-700 hover:text-yellow-800 hover:underline pt-2">
               Request a new link
             </Link>
           </div>
@@ -148,7 +148,7 @@ function ResetPasswordForm() {
               </Button>
             </form>
             <p className="text-center text-sm text-gray-500 pt-6">
-              <Link href="/login" className="font-bold text-yellow-600 hover:text-yellow-700 hover:underline">
+              <Link href="/login" className="font-bold text-yellow-700 hover:text-yellow-800 hover:underline">
                 Back to sign in
               </Link>
             </p>

@@ -170,7 +170,7 @@ export default function TalentProfilePage() {
         {/* Basics */}
         <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
           <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
-            <UserRound className="h-5 w-5 text-yellow-600" /> About you
+            <UserRound className="h-5 w-5 text-yellow-700" /> About you
           </h2>
 
           <div className="space-y-4">
@@ -309,7 +309,7 @@ export default function TalentProfilePage() {
         <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
           <div className="flex items-center justify-between">
             <h2 className="flex items-center gap-2 text-lg font-bold text-gray-900">
-              <GraduationCap className="h-5 w-5 text-yellow-600" /> Education
+              <GraduationCap className="h-5 w-5 text-yellow-700" /> Education
             </h2>
             <Button
               type="button"

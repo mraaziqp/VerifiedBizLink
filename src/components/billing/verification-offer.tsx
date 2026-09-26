@@ -100,7 +100,7 @@ export function VerificationOffer({
     return (
       <div className={`flex flex-col gap-3 rounded-2xl border-2 border-yellow-300 bg-yellow-50/70 p-5 sm:flex-row sm:items-center sm:justify-between ${className}`}>
         <div className="flex items-center gap-3">
-          <ShieldCheck className="h-8 w-8 shrink-0 text-yellow-600" />
+          <ShieldCheck className="h-8 w-8 shrink-0 text-yellow-700" />
           <div>
             <p className="font-bold text-gray-900">Vetting &amp; verified badge — R{fee} once-off</p>
             <p className="text-xs text-gray-600">
@@ -129,7 +129,7 @@ export function VerificationOffer({
             ONCE-OFF · NOT A SUBSCRIPTION
           </span>
           <h2 className="mt-3 flex items-center gap-2 text-2xl font-extrabold text-gray-900">
-            <ShieldCheck className="h-7 w-7 text-yellow-600" />
+            <ShieldCheck className="h-7 w-7 text-yellow-700" />
             Don&apos;t want a subscription?
           </h2>
           <p className="mt-2 max-w-xl text-sm text-gray-600">
@@ -140,7 +140,7 @@ export function VerificationOffer({
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             {BENEFITS.map((b) => (
               <li key={b} className="flex items-start gap-2 text-sm text-gray-700">
-                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-yellow-600" />
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-yellow-700" />
                 {b}
               </li>
             ))}

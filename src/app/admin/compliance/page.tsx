@@ -54,7 +54,7 @@ export default function AdminCompliancePage() {
     <AdminBackground>
       <AdminPageHeader title="Compliance Management" subtitle="Data protection & platform compliance status">
         <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10">
+          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
           </Button>
         </Link>
@@ -63,7 +63,7 @@ export default function AdminCompliancePage() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:py-12 space-y-6">
         <AdminCard className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Shield className="h-6 w-6 text-amber-400" />
+            <Shield className="h-6 w-6 text-amber-700" />
             <div>
               <p className="font-semibold text-white">Overall Compliance</p>
               <p className="text-sm text-gray-400">
@@ -71,7 +71,7 @@ export default function AdminCompliancePage() {
               </p>
             </div>
           </div>
-          <span className="rounded-full bg-green-500/15 px-4 py-1.5 text-sm font-bold text-green-400">
+          <span className="rounded-full bg-green-500/15 px-4 py-1.5 text-sm font-bold text-green-700">
             {loading ? '…' : compliantCount === items.length ? 'COMPLIANT' : 'REVIEW NEEDED'}
           </span>
         </AdminCard>
@@ -81,7 +81,7 @@ export default function AdminCompliancePage() {
             <SectionTitle icon={CheckCircle2}>Verification Coverage</SectionTitle>
             <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
               <span className="text-gray-300">Verified businesses</span>
-              <span className="font-semibold text-amber-400">
+              <span className="font-semibold text-amber-700">
                 {stats.verifiedBusinesses} / {stats.totalBusinesses}
               </span>
             </div>
@@ -93,13 +93,13 @@ export default function AdminCompliancePage() {
             <AdminCard key={item.name} hover>
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-3">
-                  <item.icon className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
+                  <item.icon className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
                   <div>
                     <p className="font-semibold text-white">{item.name}</p>
                     <p className="mt-1 text-sm text-gray-400">{item.desc}</p>
                   </div>
                 </div>
-                <span className={`shrink-0 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${item.ok ? 'bg-green-500/15 text-green-400' : 'bg-amber-500/15 text-amber-400'}`}>
+                <span className={`shrink-0 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold ${item.ok ? 'bg-green-500/15 text-green-700' : 'bg-amber-500/15 text-amber-700'}`}>
                   {item.ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : <AlertCircle className="h-3.5 w-3.5" />}
                   {item.ok ? 'OK' : 'REVIEW'}
                 </span>

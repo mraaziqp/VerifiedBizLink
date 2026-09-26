@@ -97,7 +97,7 @@ export default function RamoneVerifiedPage() {
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Shield className="h-8 w-8 text-green-400" />
+            <Shield className="h-8 w-8 text-green-700" />
             Verified Businesses
           </h1>
           <p className="text-gray-500 mt-2">Successfully verified businesses with trust scores</p>

@@ -312,7 +312,7 @@ function MessagesPageInner() {
                   </AvatarFallback>
                 </Avatar>
                 {selected.business_id ? (
-                  <Link href={`/business/${selected.business_id}`} className="text-gray-900 font-semibold hover:text-yellow-600 hover:underline">
+                  <Link href={`/business/${selected.business_id}`} className="text-gray-900 font-semibold hover:text-yellow-700 hover:underline">
                     {selected.participant_name}
                   </Link>
                 ) : (

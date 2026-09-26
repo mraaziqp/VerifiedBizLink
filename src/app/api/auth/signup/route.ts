@@ -1,47 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
-import { resolveMx } from 'dns/promises';
 import { createTrackedSession, sessionCookieOptions, hashOneTimeToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { sendVerificationEmail, appUrlFromRequest } from '@/lib/email';
 import db from '@/lib/db';
-
-const EMAIL_FORMAT = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// Well-known disposable/temporary email providers — block these outright
-// rather than letting a throwaway inbox complete signup.
-const DISPOSABLE_DOMAINS = new Set([
-  'mailinator.com', 'guerrillamail.com', 'guerrillamail.info', '10minutemail.com',
-  'tempmail.com', 'temp-mail.org', 'yopmail.com', 'trashmail.com', 'throwawaymail.com',
-  'getnada.com', 'maildrop.cc', 'fakeinbox.com', 'sharklasers.com', 'dispostable.com',
-]);
-
-// A slow/unresponsive DNS resolver shouldn't be able to hang signup
-// indefinitely — fail open (allow) rather than block real users on a
-// network hiccup that has nothing to do with whether their email is real.
-const MX_LOOKUP_TIMEOUT_MS = 3000;
-
-async function isRegistrableEmailDomain(email: string): Promise<boolean> {
-  const domain = email.split('@')[1]?.toLowerCase();
-  if (!domain) return false;
-  if (DISPOSABLE_DOMAINS.has(domain)) return false;
-  try {
-    const records = await Promise.race([
-      resolveMx(domain),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('MX lookup timed out')), MX_LOOKUP_TIMEOUT_MS)
-      ),
-    ]);
-    return records.length > 0;
-  } catch (err) {
-    // Genuine "no such domain" errors (ENOTFOUND/ENODATA) mean the domain
-    // really can't receive mail — reject those. A timeout or any other
-    // transient DNS failure shouldn't block a real signup, so allow it.
-    const code = (err as { code?: string })?.code;
-    if (code === 'ENOTFOUND' || code === 'ENODATA') return false;
-    return true;
-  }
-}
+import { EMAIL_FORMAT, MIN_PASSWORD_LENGTH, isRegistrableEmailDomain } from '@/lib/signup-guards';
 
 export async function POST(request: NextRequest) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
@@ -76,8 +39,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (password.length < 8) {
-      return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      return NextResponse.json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` }, { status: 400 });
     }
 
     if (role !== 'customer' && role !== 'business') {

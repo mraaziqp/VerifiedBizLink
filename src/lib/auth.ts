@@ -74,6 +74,12 @@ export interface SessionUser {
   avatarUrl: string;
   headline: string;
   emailVerified: boolean;
+  /**
+   * false for quick-signup shoppers and job seekers (registerBasicUser):
+   * they can browse, review and apply before confirming their email.
+   * Absent on every other token, which keeps the full verification gate.
+   */
+  requiresVerification?: boolean;
   sid?: string;
 }
 

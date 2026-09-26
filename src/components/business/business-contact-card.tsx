@@ -3,6 +3,7 @@ import { Globe, Phone, MapPin, Mail, Building2, ExternalLink } from 'lucide-reac
 import { Card, CardContent } from '@/components/ui/card';
 import { getBusinessProfile, type BusinessProfileResult } from '@/db/queries/business';
 import { cn } from '@/lib/utils';
+import { getSession } from '@/lib/auth';
 
 export interface BusinessContactCardProps {
   businessId?: string;
@@ -32,7 +33,10 @@ export async function BusinessContactCard({
     return null;
   }
 
-  const { website, phone, address, location, email } = profile;
+  const { website, phone, address, location } = profile;
+  // The only email on record is the owner's login address. Profiles are
+  // public, so it is shown to signed-in members only — not to scrapers.
+  const email = (await getSession()) ? profile.email : null;
   const fullAddress = address || location;
 
   const hasAnyContact = Boolean(website || phone || fullAddress || email);

@@ -221,7 +221,7 @@ export default function BusinessGalleryPage() {
         <div className="mb-8 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="h-10 w-10 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center shrink-0">
-              <Sparkles className="h-5 w-5 text-amber-600" />
+              <Sparkles className="h-5 w-5 text-amber-700" />
             </div>
             <div>
               <p className="text-sm font-bold text-slate-900">

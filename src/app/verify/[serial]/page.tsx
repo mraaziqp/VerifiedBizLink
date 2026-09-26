@@ -256,7 +256,7 @@ export default async function VerifyCertificatePage({
         </p>
       </div>
 
-      <div className="text-center text-[11px] text-slate-400 relative z-10 mt-6">
+      <div className="text-center text-[11px] text-slate-500 relative z-10 mt-6">
         VerifiedBizLink &copy; {new Date().getFullYear()} &bull; Trust &amp; Compliance Services &bull; Republic of South Africa
       </div>
     </div>

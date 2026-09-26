@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { GlassBackground } from '@/components/shared/glass-ui';
+import { MediaUploader } from '@/components/shared/media-uploader';
 
 interface Ad {
   id: string;
@@ -268,10 +269,10 @@ export default function BusinessAdsPage() {
           {/* Credits Badge & Topup */}
           <div className="flex items-center gap-3 bg-white border border-amber-300 rounded-2xl p-2.5 shadow-xs">
             <div className="p-2 rounded-xl bg-amber-100 text-amber-950 font-bold">
-              <Coins className="h-5 w-5 text-amber-600" />
+              <Coins className="h-5 w-5 text-amber-700" />
             </div>
             <div>
-              <span className="text-[10px] uppercase font-bold text-slate-400 block">AVAILABLE BALANCE</span>
+              <span className="text-[10px] uppercase font-bold text-slate-500 block">AVAILABLE BALANCE</span>
               <p className="text-xl font-black text-amber-950">{adCredits} Credits</p>
             </div>
           </div>
@@ -316,7 +317,7 @@ export default function BusinessAdsPage() {
         {!loading && !hasBusiness && (
           <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
             You need a business profile before you can buy credits or run ads.{' '}
-            <Link href="/onboarding" className="font-bold underline underline-offset-2">Create your business profile</Link>
+            <Link href="/business/create" className="font-bold underline underline-offset-2">Create your business profile</Link>
           </div>
         )}
 
@@ -341,10 +342,10 @@ export default function BusinessAdsPage() {
                     </p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className={`text-sm font-black ${tx.delta > 0 ? 'text-emerald-600' : 'text-slate-900'}`}>
+                    <p className={`text-sm font-black ${tx.delta > 0 ? 'text-emerald-700' : 'text-slate-900'}`}>
                       {tx.delta > 0 ? '+' : ''}{tx.delta}
                     </p>
-                    <p className="text-[11px] text-slate-400">Balance {tx.balanceAfter}</p>
+                    <p className="text-[11px] text-slate-500">Balance {tx.balanceAfter}</p>
                   </div>
                 </li>
               ))}
@@ -449,11 +450,28 @@ export default function BusinessAdsPage() {
                   <label className="text-xs font-bold text-slate-700">Creative Image / Banner URL (Optional)</label>
                   <Input
                     placeholder="https://... or upload photo"
-                    value={formData.imageUrl}
+                    value={formData.imageUrl.startsWith('data:') ? 'Uploaded image' : formData.imageUrl}
+                    readOnly={formData.imageUrl.startsWith('data:')}
                     onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
                     className="bg-slate-50 border-slate-200 rounded-xl mt-1 text-sm"
                   />
                 </div>
+              </div>
+
+              {/* Upload the creative instead of pasting a link. Strict 5MB,
+                  images only, checked before anything is sent. */}
+              <div>
+                <label className="text-xs font-bold text-slate-700">Or upload the creative</label>
+                <MediaUploader
+                  type="image"
+                  className="mt-1"
+                  label="Drop an image (JPG, PNG, WebP · max 5MB)"
+                  onUploadComplete={(url) => {
+                    setFormData((prev) => ({ ...prev, imageUrl: url }));
+                    toast({ title: 'Image added to your ad' });
+                  }}
+                  onError={(msg) => toast({ title: 'Image not added', description: msg, variant: 'destructive' })}
+                />
               </div>
 
               {/* Duration Presets */}
@@ -519,7 +537,7 @@ export default function BusinessAdsPage() {
 
         {/* Ads List */}
         {loading ? (
-          <div className="p-12 text-center text-slate-400">
+          <div className="p-12 text-center text-slate-500">
             <Loader2 className="h-6 w-6 animate-spin mx-auto text-amber-500 mb-2" />
             Loading campaigns…
           </div>
@@ -554,7 +572,7 @@ export default function BusinessAdsPage() {
                         <h3 className="font-extrabold text-base text-slate-900">{ad.title}</h3>
                         <Badge
                           variant={ad.is_active && !isExpired ? 'default' : 'secondary'}
-                          className={ad.is_active && !isExpired ? 'bg-emerald-500 text-white font-bold text-[10px]' : 'text-[10px] font-bold'}
+                          className={ad.is_active && !isExpired ? 'bg-emerald-700 text-white font-bold text-[10px]' : 'text-[10px] font-bold'}
                         >
                           {ad.is_active && !isExpired ? 'Active' : isExpired ? 'Completed' : 'Paused'}
                         </Badge>
@@ -568,16 +586,16 @@ export default function BusinessAdsPage() {
                     {/* Analytics Pills */}
                     <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs">
                       <div className="text-center">
-                        <span className="text-[10px] text-slate-400 font-bold block">VIEWS</span>
+                        <span className="text-[10px] text-slate-500 font-bold block">VIEWS</span>
                         <span className="font-extrabold text-slate-900">{ad.impressions.toLocaleString()}</span>
                       </div>
                       <div className="text-center">
-                        <span className="text-[10px] text-slate-400 font-bold block">CLICKS</span>
+                        <span className="text-[10px] text-slate-500 font-bold block">CLICKS</span>
                         <span className="font-extrabold text-blue-600">{ad.clicks.toLocaleString()}</span>
                       </div>
                       <div className="text-center">
-                        <span className="text-[10px] text-slate-400 font-bold block">CTR</span>
-                        <span className="font-extrabold text-emerald-600">{ctr}%</span>
+                        <span className="text-[10px] text-slate-500 font-bold block">CTR</span>
+                        <span className="font-extrabold text-emerald-700">{ctr}%</span>
                       </div>
                     </div>
                   </div>

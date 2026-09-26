@@ -129,7 +129,7 @@ export default function EmployerJobsPage() {
 
         {notVerified && (
           <div className="mb-5 flex items-start gap-3 rounded-2xl border-2 border-amber-300 bg-amber-50 p-5">
-            <ShieldAlert className="mt-0.5 h-6 w-6 shrink-0 text-amber-600" />
+            <ShieldAlert className="mt-0.5 h-6 w-6 shrink-0 text-amber-700" />
             <div>
               <p className="font-bold text-amber-900">Only verified businesses can post jobs</p>
               <p className="text-sm text-amber-800">

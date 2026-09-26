@@ -238,7 +238,7 @@ export function CvScanner({ cvUrl, cvFileName, onUploaded, onRemoved, onApply }:
           disabled={busy !== null}
           className="h-11 gap-2 border-amber-300 bg-white font-bold text-amber-900 hover:bg-amber-50"
         >
-          <Camera className="h-4 w-4 text-amber-600" />
+          <Camera className="h-4 w-4 text-amber-700" />
           {pages.length ? 'Add another page' : 'Scan paper CV'}
         </Button>
       </div>
@@ -270,7 +270,7 @@ export function CvScanner({ cvUrl, cvFileName, onUploaded, onRemoved, onApply }:
               <button
                 type="button"
                 onClick={() => cameraRef.current?.click()}
-                className="flex h-20 w-16 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-slate-300 text-[10px] font-semibold text-slate-500 hover:border-amber-400 hover:text-amber-700"
+                className="flex h-20 w-16 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-slate-300 text-[10px] font-semibold text-slate-500 hover:border-amber-400 hover:text-amber-800"
               >
                 <Plus className="h-4 w-4" /> Page
               </button>

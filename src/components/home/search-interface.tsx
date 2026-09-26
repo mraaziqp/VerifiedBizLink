@@ -33,7 +33,7 @@ export function SearchInterface({
       <div className="text-center py-2 space-y-1">
         <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
           Find{" "}
-          <span className="text-amber-500 font-black">
+          <span className="text-amber-600 font-black">
             Trusted
           </span>{" "}
           Businesses
@@ -79,7 +79,7 @@ export function SearchInterface({
             event.stopPropagation();
             onRefreshLocation();
           }}
-          className="p-1.5 hover:bg-amber-50 rounded-xl transition-colors flex-shrink-0 active:scale-95 text-slate-400 hover:text-amber-600"
+          className="p-1.5 hover:bg-amber-50 rounded-xl transition-colors flex-shrink-0 active:scale-95 text-slate-400 hover:text-amber-700"
           aria-label="Refresh location"
           title="Refresh location"
         >

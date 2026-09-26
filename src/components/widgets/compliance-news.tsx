@@ -95,7 +95,7 @@ export function ComplianceNews() {
           </CardTitle>
           <button
             onClick={() => setNewsViewerOpen(true)}
-            className="text-xs font-semibold text-amber-600 hover:text-amber-700"
+            className="text-xs font-semibold text-amber-700 hover:text-amber-800"
           >
             View All →
           </button>
@@ -106,7 +106,7 @@ export function ComplianceNews() {
               <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
             </div>
           ) : news.length === 0 ? (
-            <p className="py-6 text-center text-xs text-gray-400">No news available right now.</p>
+            <p className="py-6 text-center text-xs text-gray-500">No news available right now.</p>
           ) : (
             <>
               {/* Featured story */}
@@ -121,7 +121,7 @@ export function ComplianceNews() {
                     </span>
                     <span className="text-[10px] text-gray-400 font-medium">{timeAgo(featured.date)}</span>
                   </div>
-                  <p className="text-sm font-bold text-gray-900 leading-snug group-hover:text-amber-700 transition-colors line-clamp-2">
+                  <p className="text-sm font-bold text-gray-900 leading-snug group-hover:text-amber-800 transition-colors line-clamp-2">
                     {featured.title}
                   </p>
                   <p className="mt-1 text-[11px] text-gray-500 leading-snug line-clamp-2">{featured.description}</p>
@@ -140,7 +140,7 @@ export function ComplianceNews() {
                 >
                   <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${DOT_COLORS[item.category] ?? "bg-gray-300"}`} />
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold text-gray-800 leading-snug group-hover:text-amber-700 transition-colors line-clamp-2">
+                    <p className="text-xs font-semibold text-gray-800 leading-snug group-hover:text-amber-800 transition-colors line-clamp-2">
                       {item.title}
                     </p>
                     <span className="mt-0.5 flex items-center gap-1.5 text-[10px] text-gray-400 font-medium">
@@ -176,11 +176,11 @@ export function ComplianceNews() {
           { label: "Help", href: "/contact" },
         ].map((link) => (
           <Link key={link.label} href={link.href}
-            className="text-[10px] font-bold text-gray-400 hover:text-gray-600 uppercase tracking-widest">
+            className="text-[10px] font-bold text-gray-500 hover:text-gray-800 uppercase tracking-widest">
             {link.label}
           </Link>
         ))}
-        <p className="text-[10px] text-gray-300 w-full mt-1 font-medium">
+        <p className="text-[10px] text-gray-500 w-full mt-1 font-medium">
           VerifiedBizLink © {new Date().getFullYear()}
         </p>
       </div>

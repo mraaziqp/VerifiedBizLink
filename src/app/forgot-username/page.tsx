@@ -57,7 +57,7 @@ export default function ForgotUsernamePage() {
             <p className="text-gray-500">
               If an account exists with this email address, we have sent your username.
             </p>
-            <Link href="/login" className="inline-flex items-center gap-2 text-sm font-bold text-yellow-600 hover:text-yellow-700 hover:underline pt-2">
+            <Link href="/login" className="inline-flex items-center gap-2 text-sm font-bold text-yellow-700 hover:text-yellow-800 hover:underline pt-2">
               <ArrowLeft className="h-4 w-4" /> Back to Sign In
             </Link>
           </div>

@@ -59,7 +59,7 @@ export default function BusinessSettingsPage() {
       <div className="max-w-3xl mx-auto px-4 py-8">
         <Link
           href="/business/dashboard"
-          className={`inline-flex items-center gap-2 text-yellow-500 hover:text-yellow-600 mb-6 rounded-lg ${glassInteractive}`}
+          className={`inline-flex items-center gap-2 text-yellow-500 hover:text-yellow-700 mb-6 rounded-lg ${glassInteractive}`}
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Dashboard

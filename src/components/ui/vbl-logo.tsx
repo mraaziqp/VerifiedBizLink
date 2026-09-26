@@ -115,7 +115,7 @@ export function VBLLogo({
   const subColor = theme === "dark" ? "text-gray-500" : "text-white/60";
   // Brand gold, not text-primary: primary is slate-900, which made "Biz"
   // vanish on dark headers and turned it grey on light ones.
-  const bizColor = theme === "dark" ? "text-amber-600" : "text-amber-400";
+  const bizColor = theme === "dark" ? "text-amber-700" : "text-amber-400";
 
   if (variant === "text") {
     return (

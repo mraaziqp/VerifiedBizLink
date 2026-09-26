@@ -85,7 +85,7 @@ export default function EnforcerDashboard() {
           </Button>
         </Link>
         <span className="hidden text-sm text-gray-500 lg:inline">{user?.email}</span>
-        <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 border-red-500/30 text-red-400 hover:bg-red-500/10">
+        <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 border-red-500/30 text-red-700 hover:bg-red-500/10">
           <LogOut className="h-4 w-4" /> Logout
         </Button>
       </AdminPageHeader>
@@ -100,7 +100,7 @@ export default function EnforcerDashboard() {
         <div className="flex gap-1 border-b border-gray-200">
           {([["reports", "Reports"], ["compliance", "Compliance"], ["activity", "Activity"]] as const).map(([v, label]) => (
             <button key={v} onClick={() => setTab(v)}
-              className={`px-4 py-2.5 text-sm font-semibold transition-all ${tab === v ? "border-b-2 border-amber-400 text-amber-400" : "text-gray-500 hover:text-gray-700"}`}>
+              className={`px-4 py-2.5 text-sm font-semibold transition-all ${tab === v ? "border-b-2 border-amber-400 text-amber-700" : "text-gray-500 hover:text-gray-700"}`}>
               {label}
             </button>
           ))}
@@ -112,7 +112,7 @@ export default function EnforcerDashboard() {
             {loading ? <p className="py-6 text-center text-gray-500">Loading…</p>
               : reports.length === 0 ? (
                 <div className="py-10 text-center">
-                  <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-green-400" />
+                  <CheckCircle2 className="mx-auto mb-2 h-8 w-8 text-green-700" />
                   <p className="text-sm text-gray-500">No open reports — the platform is clean.</p>
                 </div>
               ) : (
@@ -155,7 +155,7 @@ export default function EnforcerDashboard() {
               ))}
               <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-4">
                 <span className="font-semibold text-gray-900">Verified Businesses</span>
-                <span className="font-semibold text-amber-400">{loading ? "…" : `${stats?.verifiedBusinesses ?? 0} / ${stats?.totalBusinesses ?? 0}`}</span>
+                <span className="font-semibold text-amber-700">{loading ? "…" : `${stats?.verifiedBusinesses ?? 0} / ${stats?.totalBusinesses ?? 0}`}</span>
               </div>
             </div>
           </AdminCard>
@@ -171,7 +171,7 @@ export default function EnforcerDashboard() {
                   {logs.map((l) => (
                     <div key={l.id} className="flex gap-2 text-gray-500">
                       <span className="text-gray-600">[{new Date(l.created_at).toLocaleString("en-ZA", { dateStyle: "short", timeStyle: "short" })}]</span>
-                      <span className="text-amber-400">{l.admin_name}</span>
+                      <span className="text-amber-700">{l.admin_name}</span>
                       <span>{l.action}{l.target_name ? ` → ${l.target_name}` : ""}</span>
                     </div>
                   ))}

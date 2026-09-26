@@ -92,7 +92,7 @@ export default function RamonePendingPage() {
 
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <Clock className="h-8 w-8 text-yellow-400" />
+            <Clock className="h-8 w-8 text-yellow-700" />
             Pending Verifications
           </h1>
           <p className="text-gray-500 mt-2">Businesses awaiting your review and approval</p>
@@ -113,7 +113,7 @@ export default function RamonePendingPage() {
         {filteredBusinesses.length === 0 ? (
           <Card className="rounded-2xl bg-white/80 border-gray-200 shadow-md">
             <CardContent className="p-12 text-center">
-              <CheckCircle2 className="h-12 w-12 text-green-400 mx-auto mb-4" />
+              <CheckCircle2 className="h-12 w-12 text-green-700 mx-auto mb-4" />
               <p className="text-gray-500 text-lg">All caught up! No pending verifications.</p>
             </CardContent>
           </Card>

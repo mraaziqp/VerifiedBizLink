@@ -65,13 +65,13 @@ function PaymentSuccessContent() {
               : 'bg-amber-100 p-4 rounded-full'
             }>
               {outcome === 'checking' ? (
-                <Loader2 className="h-12 w-12 text-amber-600 animate-spin" />
+                <Loader2 className="h-12 w-12 text-amber-700 animate-spin" />
               ) : outcome === 'completed' ? (
                 <CheckCircle2 className="h-12 w-12 text-green-600" />
               ) : outcome === 'failed' ? (
                 <Clock className="h-12 w-12 text-red-600" />
               ) : (
-                <Clock className="h-12 w-12 text-amber-600" />
+                <Clock className="h-12 w-12 text-amber-700" />
               )}
             </div>
           </div>

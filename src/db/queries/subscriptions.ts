@@ -26,8 +26,8 @@ export async function scanOverdueSubscriptions(referenceDate = new Date()): Prom
         userId: subscriptions.userId,
         status: subscriptions.status,
         nextBillingDate: subscriptions.nextBillingDate,
-        stripeSubscriptionId: subscriptions.stripeSubscriptionId,
-        paypalSubscriptionId: subscriptions.paypalSubscriptionId,
+        // No stripe/paypal id columns exist on the live table (billing is
+        // PayFast); selecting them made this scan fail and return nothing.
         userEmail: users.email,
         userName: users.fullName,
       })
@@ -60,13 +60,14 @@ export async function scanOverdueSubscriptions(referenceDate = new Date()): Prom
         userName: row.userName,
         status: row.status,
         nextBillingDate: billingDate,
-        stripeSubscriptionId: row.stripeSubscriptionId,
-        paypalSubscriptionId: row.paypalSubscriptionId,
+        stripeSubscriptionId: null,
+        paypalSubscriptionId: null,
         daysOverdue,
       };
     });
   } catch (error) {
+    // Thrown, not swallowed: an empty list would read as "nobody is overdue".
     console.error('scanOverdueSubscriptions error:', error);
-    return [];
+    throw error;
   }
 }

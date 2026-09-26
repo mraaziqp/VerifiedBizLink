@@ -1,6 +1,7 @@
 "use client";
 
 import { Shield, TrendingUp, Users } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { RatingSummary } from "@/components/ui/star-rating";
@@ -44,12 +45,12 @@ export function FeaturedBusinesses({
             <p className="text-xs text-slate-500">
               Complete your business profile and get vetted to appear in Trending This Week.
             </p>
-            <a
-              href="/onboarding"
+            <Link
+              href="/business/create"
               className="inline-block mt-1 text-xs font-bold text-amber-700 underline underline-offset-4 hover:text-amber-900 transition-colors"
             >
               Start your profile →
-            </a>
+            </Link>
           </div>
         )}
 

@@ -136,7 +136,7 @@ export default function NetworkPage() {
                         {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)}
                       </div>
                     ) : filtered.length === 0 ? (
-                      <div className="text-center py-12 text-gray-400 font-medium">
+                      <div className="text-center py-12 text-gray-500 font-medium">
                         {search ? "No connections match your search." : "No connections yet. Discover and connect with businesses."}
                       </div>
                     ) : (
@@ -178,7 +178,7 @@ export default function NetworkPage() {
                   {/* Incoming Pending */}
                   <TabsContent value="pending" className="p-6 focus-visible:ring-0 mt-0">
                     {incomingPending.length === 0 ? (
-                      <div className="text-center py-12 text-gray-400 font-medium">No incoming connection requests.</div>
+                      <div className="text-center py-12 text-gray-500 font-medium">No incoming connection requests.</div>
                     ) : (
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {incomingPending.map((conn) => (
@@ -232,7 +232,7 @@ export default function NetworkPage() {
                   {/* Outgoing Pending */}
                   <TabsContent value="sent" className="p-6 focus-visible:ring-0 mt-0">
                     {outgoingPending.length === 0 ? (
-                      <div className="text-center py-12 text-gray-400 font-medium">No sent requests awaiting response.</div>
+                      <div className="text-center py-12 text-gray-500 font-medium">No sent requests awaiting response.</div>
                     ) : (
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {outgoingPending.map((conn) => (

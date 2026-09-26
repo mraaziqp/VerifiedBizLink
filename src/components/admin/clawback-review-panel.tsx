@@ -137,7 +137,7 @@ export function ClawbackReviewPanel() {
   return (
     <AdminCard>
       <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-gray-900">
-        <ShieldAlert className="h-5 w-5 text-amber-600" /> Commission clawbacks
+        <ShieldAlert className="h-5 w-5 text-amber-700" /> Commission clawbacks
       </h2>
       <p className="mb-4 text-sm text-gray-500">
         When a payment is refunded or reversed, the commission it earned is flagged
@@ -148,7 +148,7 @@ export function ClawbackReviewPanel() {
       {/* Reverse a payment */}
       <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
         <p className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-800">
-          <Undo2 className="h-4 w-4 text-amber-600" /> Reverse a payment
+          <Undo2 className="h-4 w-4 text-amber-700" /> Reverse a payment
         </p>
         <div className="grid gap-3 sm:grid-cols-[1fr_1.5fr_auto] sm:items-end">
           <div>

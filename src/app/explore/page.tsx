@@ -72,7 +72,7 @@ export default function ExplorePage() {
         <GlassBackground>
           <div className="flex items-center justify-center min-h-screen">
             <div className="text-center">
-              <Loader2 className="animate-spin h-10 w-10 text-yellow-600 mx-auto mb-4" />
+              <Loader2 className="animate-spin h-10 w-10 text-yellow-700 mx-auto mb-4" />
               <p className="text-gray-600">Loading explore directory...</p>
             </div>
           </div>
@@ -241,7 +241,7 @@ function ExploreContent() {
       <GlassBackground>
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <Loader2 className="animate-spin h-10 w-10 text-yellow-600 mx-auto mb-4" />
+            <Loader2 className="animate-spin h-10 w-10 text-yellow-700 mx-auto mb-4" />
             <p className="text-gray-600">Discovering trusted businesses...</p>
           </div>
         </div>
@@ -414,7 +414,7 @@ function ExploreContent() {
                   </div>
 
                   {/* Company Info */}
-                  <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-yellow-600 transition-colors line-clamp-2 flex items-center gap-1.5">
+                  <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-yellow-700 transition-colors line-clamp-2 flex items-center gap-1.5">
                     <span className="line-clamp-2">{business.company_name}</span>
                     {business.status === 'verified' && <GoldCheckmark />}
                   </h3>
@@ -443,7 +443,7 @@ function ExploreContent() {
                     {business.phone && (
                       <a
                         href={`tel:${business.phone}`}
-                        className="flex items-center gap-2 text-gray-600 hover:text-yellow-600 transition-colors"
+                        className="flex items-center gap-2 text-gray-600 hover:text-yellow-700 transition-colors"
                       >
                         <Phone className="h-4 w-4" />
                         <span className="line-clamp-1">{business.phone}</span>
@@ -466,7 +466,7 @@ function ExploreContent() {
                       onClick={() => handleNavigate(business)}
                       variant="outline"
                       size="sm"
-                      className="flex-1 border-gray-300 text-gray-600 hover:text-yellow-600 hover:border-yellow-400"
+                      className="flex-1 border-gray-300 text-gray-600 hover:text-yellow-700 hover:border-yellow-400"
                     >
                       <Navigation className="h-4 w-4 mr-1" />
                       Navigate
@@ -505,7 +505,7 @@ function ExploreContent() {
                         {INDUSTRY_ICONS[business.industry] || '💼'}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-yellow-600 transition-colors line-clamp-1 flex items-center gap-1.5">
+                        <h3 className="text-lg font-bold text-gray-900 mb-1 group-hover:text-yellow-700 transition-colors line-clamp-1 flex items-center gap-1.5">
                           <span className="line-clamp-1">{business.company_name}</span>
                           {business.status === 'verified' && <GoldCheckmark />}
                         </h3>
@@ -514,7 +514,7 @@ function ExploreContent() {
                           {business.phone && (
                             <a
                               href={`tel:${business.phone}`}
-                              className="text-xs text-gray-600 hover:text-yellow-600 transition-colors"
+                              className="text-xs text-gray-600 hover:text-yellow-700 transition-colors"
                             >
                               <Phone className="h-3 w-3 inline mr-1" />
                               {business.phone}
@@ -522,7 +522,7 @@ function ExploreContent() {
                           )}
                           <Link
                             href={`/business/${business.id}`}
-                            className="text-xs text-gray-600 hover:text-yellow-600 transition-colors"
+                            className="text-xs text-gray-600 hover:text-yellow-700 transition-colors"
                           >
                             <Globe className="h-3 w-3 inline mr-1" />
                             View Profile

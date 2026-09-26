@@ -49,7 +49,7 @@ function MatchBadge({ score }: { score: number }) {
       : 'bg-slate-100 text-slate-700 border-slate-200';
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold ${tone}`}>
-      <Sparkles className="h-3 w-3 text-amber-600" />
+      <Sparkles className="h-3 w-3 text-amber-700" />
       {score}% match
     </span>
   );
@@ -94,6 +94,22 @@ function JobsContent() {
   const [postLocation, setPostLocation] = useState('');
   const [postSalaryMin, setPostSalaryMin] = useState('');
   const [postSalaryMax, setPostSalaryMax] = useState('');
+
+  // The employer's own posts for the "Manage Job Posts" tab — loaded when
+  // that tab is first opened, and again after publishing.
+  const [myJobs, setMyJobs] = useState<{ id: string; title: string; status: string; applicationCount: number; createdAt: string }[] | null>(null);
+  const loadMyJobs = useCallback(async () => {
+    try {
+      const res = await fetch('/api/jobs?mine=true', { cache: 'no-store' });
+      const data = res.ok ? await res.json() : null;
+      setMyJobs(Array.isArray(data?.jobs) ? data.jobs : []);
+    } catch {
+      setMyJobs([]);
+    }
+  }, []);
+  useEffect(() => {
+    if (activeTab === 'post' && myJobs === null) void loadMyJobs();
+  }, [activeTab, myJobs, loadMyJobs]);
 
   const load = useCallback(async (q: string, loc: string) => {
     const params = new URLSearchParams();
@@ -142,7 +158,7 @@ function JobsContent() {
           location: postLocation.trim() || null,
           salaryMinCents: postSalaryMin ? Math.round(parseFloat(postSalaryMin) * 100) : null,
           salaryMaxCents: postSalaryMax ? Math.round(parseFloat(postSalaryMax) * 100) : null,
-          salaryPeriod: 'monthly',
+          salaryPeriod: 'month',
           salaryVisible: true,
         }),
       });
@@ -156,7 +172,7 @@ function JobsContent() {
         setPostLocation('');
         setPostSalaryMin('');
         setPostSalaryMax('');
-        setActiveTab('find');
+        void loadMyJobs();
         const refreshed = await load('', 'all');
         if (refreshed?.jobs) setJobs(refreshed.jobs);
       } else {
@@ -178,9 +194,9 @@ function JobsContent() {
     },
     {
       id: 'post',
-      label: 'Post a Job',
+      label: 'Manage Job Posts',
       icon: PlusCircle,
-      badge: 'Verified Biz',
+      badge: myJobs && myJobs.length > 0 ? myJobs.length : undefined,
     },
   ];
 
@@ -372,6 +388,32 @@ function JobsContent() {
         )}
 
         {/* TAB 2: POST A JOB FORM */}
+        {activeTab === 'post' && myJobs && myJobs.length > 0 && (
+          <div className="mb-6 rounded-2xl border border-slate-200 bg-white shadow-xs animate-fade-in">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 p-4 sm:p-5">
+              <h2 className="text-base font-black text-slate-900">Your job posts</h2>
+              <Link href="/business/jobs" className="text-xs font-bold text-slate-600 hover:text-slate-900">Open full manager →</Link>
+            </div>
+            <ul className="divide-y divide-slate-100">
+              {myJobs.map((j) => (
+                <li key={j.id}>
+                  <Link href={`/business/jobs/${j.id}`} className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 sm:px-5">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold text-slate-900">{j.title}</p>
+                      <p className="text-xs text-slate-500">
+                        {j.applicationCount} applicant{j.applicationCount === 1 ? '' : 's'} · posted {when(j.createdAt).toLowerCase()}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold capitalize ${
+                      j.status === 'open' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-slate-200'
+                    }`}>{j.status}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         {activeTab === 'post' && (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs animate-fade-in">
             <div className="mb-6 pb-4 border-b border-slate-100">

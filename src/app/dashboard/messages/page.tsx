@@ -10,25 +10,48 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
-/** Shape of an item from GET /api/connections; fields vary by endpoint version. */
+/** A row from GET /api/connections (snake_case, straight from SQL). */
 interface ApiConnection {
-  id?: string;
-  userId?: string;
-  fullName?: string;
-  name?: string;
-  email?: string;
-  avatarUrl?: string;
-  role?: string;
-  companyName?: string;
-  isVerified?: boolean;
-  status?: string;
-  lastMessage?: string;
-  lastMessageTime?: string;
-  unreadCount?: number;
+  id: string;
+  status: string;
+  connected_user_id: string;
+  full_name: string | null;
+  headline: string | null;
+  avatar_url: string | null;
+  company_name: string | null;
+  business_status: string | null;
 }
+
+/** A row from GET /api/messages/list (conversation summaries). */
+interface ApiConversation {
+  participant_id: string;
+  last_message: string | null;
+  last_message_time: string | null;
+  unread_count: number;
+}
+
+/** A row from GET /api/messages/list?with=<id>. */
+interface ApiMessage {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  read: boolean;
+  created_at: string;
+}
+
+const toMessage = (m: ApiMessage): MessageItem => ({
+  id: String(m.id),
+  senderId: String(m.sender_id),
+  receiverId: String(m.receiver_id),
+  content: m.content ?? '',
+  createdAt: m.created_at,
+  read: m.read === true,
+});
 
 interface ConnectionUser {
   id: string;
@@ -60,6 +83,7 @@ interface MessageItem {
  */
 function DashboardMessagesContent() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const searchParams = useSearchParams();
   const initialWith = searchParams.get('with');
 
@@ -82,22 +106,39 @@ function DashboardMessagesContent() {
     let active = true;
     (async () => {
       try {
-        const res = await fetch('/api/connections');
+        // Accepted connections only — a pending request is not someone you
+        // can message yet. Conversation summaries fill in the last message
+        // and unread count. (This page used to read camelCase fields the API
+        // never sends, so every contact showed as "Member" and was keyed by
+        // the connection's id instead of the person's.)
+        const [res, convRes] = await Promise.all([
+          fetch('/api/connections?status=accepted'),
+          fetch('/api/messages/list', { cache: 'no-store' }),
+        ]);
         if (res.ok) {
           const data = await res.json();
-          const items: ConnectionUser[] = (data.connections || []).map((c: ApiConnection) => ({
-            id: (c.userId || c.id) as string,
-            fullName: c.fullName || c.name || 'Member',
-            email: c.email || '',
-            avatarUrl: c.avatarUrl,
-            role: c.role || 'Member',
-            companyName: c.companyName,
-            isVerified: c.isVerified || c.status === 'verified',
-            lastMessage: c.lastMessage || 'Connected on VerifiedBizLink',
-            lastMessageTime: c.lastMessageTime || '',
-            unreadCount: c.unreadCount || 0,
-            online: true,
-          }));
+          const convData = convRes.ok ? await convRes.json().catch(() => ({})) : {};
+          const convs = new Map<string, ApiConversation>(
+            ((convData.conversations ?? []) as ApiConversation[]).map((c) => [String(c.participant_id), c]),
+          );
+          const items: ConnectionUser[] = ((data.connections ?? []) as ApiConnection[]).map((c) => {
+            const conv = convs.get(String(c.connected_user_id));
+            return {
+              id: String(c.connected_user_id),
+              fullName: c.full_name || 'Member',
+              email: '',
+              avatarUrl: c.avatar_url ?? undefined,
+              role: c.headline || 'Member',
+              companyName: c.company_name ?? undefined,
+              isVerified: c.business_status === 'verified',
+              lastMessage: conv?.last_message || 'Connected on VerifiedBizLink',
+              lastMessageTime: conv?.last_message_time || '',
+              unreadCount: Number(conv?.unread_count ?? 0),
+              online: false,
+            };
+          })
+            // Most recent conversation first, then everyone else.
+            .sort((a, b) => (b.lastMessageTime || '').localeCompare(a.lastMessageTime || ''));
 
           if (active) {
             setConnectionsList(items);
@@ -128,11 +169,13 @@ function DashboardMessagesContent() {
 
     (async () => {
       try {
-        const res = await fetch(`/api/messages?with=${selectedUser.id}`);
+        const res = await fetch(`/api/messages/list?with=${encodeURIComponent(selectedUser.id)}`, { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           if (active) {
-            setMessages(data.messages || []);
+            setMessages(((data.messages ?? []) as ApiMessage[]).map(toMessage));
+            // Opening the thread marks it read server-side.
+            setConnectionsList((prev) => prev.map((c) => (c.id === selectedUser.id ? { ...c, unreadCount: 0 } : c)));
           }
         }
       } catch (err) {
@@ -168,23 +211,29 @@ function DashboardMessagesContent() {
     setMessages((prev) => [...prev, optimisticMsg]);
 
     try {
-      const res = await fetch('/api/messages', {
+      const res = await fetch('/api/messages/send', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          receiverId: selectedUser.id,
-          content,
-        }),
+        body: JSON.stringify({ receiver_id: selectedUser.id, content }),
       });
+      const data = await res.json().catch(() => ({}));
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.message) {
-          setMessages((prev) => prev.map((m) => (m.id === optimisticMsg.id ? data.message : m)));
-        }
+      if (res.ok && data.message) {
+        setMessages((prev) => prev.map((m) => (m.id === optimisticMsg.id ? toMessage(data.message) : m)));
+        setConnectionsList((prev) => prev.map((c) => (
+          c.id === selectedUser.id ? { ...c, lastMessage: content, lastMessageTime: new Date().toISOString() } : c
+        )));
+      } else {
+        // Undo the optimistic bubble and say why, instead of leaving a
+        // message on screen that was never delivered.
+        setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
+        setInputText(content);
+        toast({ title: 'Message not sent', description: data.error || 'Please try again.', variant: 'destructive' });
       }
-    } catch (err) {
-      console.error('Failed to send message:', err);
+    } catch {
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
+      setInputText(content);
+      toast({ title: 'Message not sent', description: 'Check your connection and try again.', variant: 'destructive' });
     } finally {
       setSending(false);
     }
@@ -241,7 +290,7 @@ function DashboardMessagesContent() {
               <div className="p-8 text-center text-slate-500">
                 <Users className="h-8 w-8 text-slate-300 mx-auto mb-2" />
                 <p className="text-xs font-bold text-slate-700">No connections found</p>
-                <p className="text-[11px] text-slate-400 mt-1">
+                <p className="text-[11px] text-slate-500 mt-1">
                   Connect with verified businesses or members in Explore to start messaging.
                 </p>
                 <Link href="/explore">
@@ -431,7 +480,7 @@ function DashboardMessagesContent() {
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400">
               <Users className="h-14 w-14 text-slate-200 mb-3" />
               <h3 className="text-base font-bold text-slate-700">Select a conversation</h3>
-              <p className="text-xs text-slate-400 max-w-sm mt-1">
+              <p className="text-xs text-slate-500 max-w-sm mt-1">
                 Choose an active connection from the left panel to review past conversations or launch a new inquiry.
               </p>
             </div>

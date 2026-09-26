@@ -82,7 +82,7 @@ export function ApprovalCelebrationModal({
           {/* Heading */}
           <div className="space-y-2">
             <h2 className="text-3xl font-black text-gray-900">Verified! 🎉</h2>
-            <p className="text-base font-bold text-amber-600">{businessName}</p>
+            <p className="text-base font-bold text-amber-700">{businessName}</p>
           </div>
 
           {/* Message */}
@@ -123,7 +123,7 @@ export function ApprovalCelebrationModal({
             <Button
               onClick={handleShare}
               variant="outline"
-              className="rounded-xl h-11 gap-2 border-amber-200 text-amber-600 hover:bg-amber-50 font-bold"
+              className="rounded-xl h-11 gap-2 border-amber-200 text-amber-700 hover:bg-amber-50 font-bold"
             >
               <Share2 className="h-4 w-4" />
               Share Victory

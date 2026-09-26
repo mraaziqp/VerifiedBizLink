@@ -330,7 +330,7 @@ export default function AgentPortalPage() {
                 Business Advisor Command Center
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 font-medium">
-                {user.fullName || user.email} · Partner Code: <span className="font-bold text-amber-600">{referral?.code || '—'}</span> · Active Tier: <span className="font-extrabold text-slate-900">{currentWeeklyTier.ratePercent}%</span>
+                {user.fullName || user.email} · Partner Code: <span className="font-bold text-amber-700">{referral?.code || '—'}</span> · Active Tier: <span className="font-extrabold text-slate-900">{currentWeeklyTier.ratePercent}%</span>
               </p>
             </div>
           </div>
@@ -367,7 +367,7 @@ export default function AgentPortalPage() {
         <div className="rounded-2xl border border-amber-300/80 bg-gradient-to-r from-amber-100/60 via-amber-50/40 to-white p-4 sm:p-5 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-amber-950 font-black text-sm sm:text-base">
-              <ShieldCheck className="h-5 w-5 text-amber-600" />
+              <ShieldCheck className="h-5 w-5 text-amber-700" />
               <span>Official Business Advisor Commission Policy (Version 1.0)</span>
             </div>
             <p className="text-xs sm:text-sm text-slate-600 max-w-2xl">
@@ -469,7 +469,7 @@ export default function AgentPortalPage() {
               <Card className="border border-amber-300 bg-amber-50/70 shadow-xs rounded-2xl p-5 space-y-1.5">
                 <div className="flex items-center justify-between text-amber-900">
                   <span className="text-xs font-bold uppercase tracking-wider">Total Commission</span>
-                  <Wallet className="h-4.5 w-4.5 text-amber-600" />
+                  <Wallet className="h-4.5 w-4.5 text-amber-700" />
                 </div>
                 <div className="text-3xl font-black text-amber-950">
                   {loading ? '—' : formatRand(totals?.commissionCents ?? 0)}
@@ -768,19 +768,19 @@ export default function AgentPortalPage() {
                       <tr>
                         <td className="p-3 font-bold text-slate-900">Tier 1</td>
                         <td className="p-3">1 – 10 businesses</td>
-                        <td className="p-3 font-extrabold text-amber-600">20%</td>
+                        <td className="p-3 font-extrabold text-amber-700">20%</td>
                         <td className="p-3 text-slate-600">8 businesses @ R10,000 value = <span className="font-bold text-slate-900">R2,000</span></td>
                       </tr>
                       <tr>
                         <td className="p-3 font-bold text-slate-900">Tier 2</td>
                         <td className="p-3">11 – 15 businesses</td>
-                        <td className="p-3 font-extrabold text-amber-600">30%</td>
+                        <td className="p-3 font-extrabold text-amber-700">30%</td>
                         <td className="p-3 text-slate-600">14 businesses @ R18,000 value = <span className="font-bold text-slate-900">R5,400</span></td>
                       </tr>
                       <tr>
                         <td className="p-3 font-bold text-slate-900">Tier 3</td>
                         <td className="p-3">16 – 20 businesses</td>
-                        <td className="p-3 font-extrabold text-amber-600">40%</td>
+                        <td className="p-3 font-extrabold text-amber-700">40%</td>
                         <td className="p-3 text-slate-600">18 businesses @ R25,000 value = <span className="font-bold text-slate-900">R10,000</span></td>
                       </tr>
                       <tr className="bg-amber-50/50">
@@ -1174,7 +1174,7 @@ export default function AgentPortalPage() {
                 <div>
                   <div className="flex justify-between font-bold text-slate-700 mb-1.5">
                     <span>New Businesses Signed Up / Week:</span>
-                    <span className="text-amber-600 font-black">{simWeeklySales} / week ({simWeeklyTier.percent}% Tier Rate)</span>
+                    <span className="text-amber-700 font-black">{simWeeklySales} / week ({simWeeklyTier.percent}% Tier Rate)</span>
                   </div>
                   <input
                     type="range"
@@ -1189,7 +1189,7 @@ export default function AgentPortalPage() {
                 <div>
                   <div className="flex justify-between font-bold text-slate-700 mb-1.5">
                     <span>Average Package Price / Subscription:</span>
-                    <span className="text-amber-600 font-black">R{simAvgPackage}</span>
+                    <span className="text-amber-700 font-black">R{simAvgPackage}</span>
                   </div>
                   <div className="grid grid-cols-3 gap-2 mt-2">
                     {[

@@ -527,7 +527,7 @@ export default function VettingPage() {
                     <AlertCircle className="h-4 w-4" />
                     Help & Support
                   </div>
-                  <p className="text-xs text-yellow-600 font-medium">Need help? Our compliance officers are available for business accounts.</p>
+                  <p className="text-xs text-yellow-700 font-medium">Need help? Our compliance officers are available for business accounts.</p>
                   <Link href="/contact" className="text-xs text-yellow-700 font-bold underline hover:text-yellow-800 transition-colors">
                     Contact Compliance Agent
                   </Link>

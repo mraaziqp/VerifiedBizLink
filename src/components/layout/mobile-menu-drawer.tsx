@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
+import { MessageSquare,
   X, Home, Users, MapPin, ShieldCheck, BarChart3,
   Settings, Shield, LogOut, Building2, Megaphone, Zap, QrCode, Briefcase, PlusCircle
 } from "lucide-react";
@@ -24,6 +24,7 @@ const ROLE_LABELS: Record<string, string> = {
 const MENU_ITEMS = [
   { name: "Home", href: "/", icon: Home },
   { name: "My Network", href: "/network", icon: Users },
+  { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { name: "Explore", href: "/explore", icon: MapPin },
   { name: "Jobs", href: "/jobs", icon: Briefcase },
   { name: "Vetting Hub", href: "/vetting", icon: ShieldCheck },

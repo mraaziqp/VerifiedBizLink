@@ -206,7 +206,7 @@ export function Certificate({
           disabled={downloading}
           variant="outline"
           size="sm"
-          className="gap-2 rounded-xl border-amber-500/40 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 hover:text-amber-500 font-bold flex-1 h-10 transition-all shadow-xs"
+          className="gap-2 rounded-xl border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 hover:text-amber-500 font-bold flex-1 h-10 transition-all shadow-xs"
         >
           {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
           <span>{downloading ? "Preparing SVG..." : "Download Certificate"}</span>

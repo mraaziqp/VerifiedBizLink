@@ -115,7 +115,7 @@ export default function RamoneAdminPanel() {
           <div className="flex justify-between items-start">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <Shield className="h-8 w-8 text-green-400" />
+                <Shield className="h-8 w-8 text-green-700" />
                 <h1 className="text-4xl font-bold text-gray-900">Vetting Command Center</h1>
               </div>
               <p className="text-gray-500">Business verification and vetting management workspace</p>
@@ -128,7 +128,7 @@ export default function RamoneAdminPanel() {
               </Link>
               <Button
                 variant="outline"
-                className="border-red-500/30 text-red-400"
+                className="border-red-500/30 text-red-700"
                 onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4 mr-2" />

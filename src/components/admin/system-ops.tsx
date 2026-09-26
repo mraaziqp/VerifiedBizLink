@@ -155,7 +155,7 @@ export function SystemOps() {
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <Crown className="h-5 w-5 text-amber-600" />
+                  <Crown className="h-5 w-5 text-amber-700" />
                   Create Admin / Shareholder Account
                 </DialogTitle>
                 <DialogDescription className="text-xs text-gray-500">
@@ -299,7 +299,7 @@ export function SystemOps() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="p-3 bg-yellow-50 rounded-2xl">
-                <Cpu className="h-6 w-6 text-yellow-600" />
+                <Cpu className="h-6 w-6 text-yellow-700" />
               </div>
               <Badge className="bg-yellow-100 text-yellow-700 font-bold">Optimal</Badge>
             </div>
@@ -372,7 +372,7 @@ export function SystemOps() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-yellow-50 rounded-xl">
-                <Megaphone className="h-5 w-5 text-yellow-600" />
+                <Megaphone className="h-5 w-5 text-yellow-700" />
               </div>
               <div>
                 <CardTitle className="text-base">Ad System</CardTitle>

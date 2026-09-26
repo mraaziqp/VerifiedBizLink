@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Storage } from '@google-cloud/storage';
+import { MEDIA_MAX_BYTES, sniffMedia } from '@/lib/media-sniff';
 
-const MAX_BYTES = 5 * 1024 * 1024; // Strict 5MB limit
+const MAX_BYTES = MEDIA_MAX_BYTES; // Strict 5MB limit
 const ALLOWED_IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 const ALLOWED_VIDEO_MIMES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/ogg', 'video/x-matroska'];
 
@@ -74,6 +75,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 3. Content check: the bytes must be what the label claims. File.type
+    //    is client-controlled; the detected type is what we store and serve.
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const sniffed = sniffMedia(buffer);
+    if (!sniffed || sniffed.kind !== (requestedType === 'video' ? 'video' : 'image')) {
+      return NextResponse.json(
+        { success: false, error: requestedType === 'video' ? 'That file is not a playable video (MP4, WebM or MOV).' : 'That file is not a valid image (JPEG, PNG, WebP or GIF).' },
+        { status: 400 },
+      );
+    }
+
     // 3. Storage persistence (GCP/Firebase Storage or Data URL)
     const bucketName =
       process.env.GCP_STORAGE_BUCKET ||
@@ -90,17 +102,14 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        const ext = file.name.split('.').pop() || 'bin';
+        const ext = sniffed.ext;
         const folder = requestedType === 'video' ? 'videos' : 'images';
         const destination = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
         const bucket = storage.bucket(bucketName);
         const gcsFile = bucket.file(destination);
 
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
         await gcsFile.save(buffer, {
-          contentType: file.type,
+          contentType: sniffed.mime,
           resumable: false,
           metadata: {
             cacheControl: 'public, max-age=31536000',
@@ -112,7 +121,7 @@ export async function POST(request: NextRequest) {
           success: true,
           url: publicUrl,
           fileName: file.name,
-          type: file.type,
+          type: sniffed.mime,
           size: file.size,
           method: 'storage',
         });
@@ -122,15 +131,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Fallback: Data URL
-    const fileBuffer = await file.arrayBuffer();
-    const base64 = Buffer.from(fileBuffer).toString('base64');
-    const dataUrl = `data:${file.type};base64,${base64}`;
+    const dataUrl = `data:${sniffed.mime};base64,${buffer.toString('base64')}`;
 
     return NextResponse.json({
       success: true,
       url: dataUrl,
       fileName: file.name,
-      type: file.type,
+      type: sniffed.mime,
       size: file.size,
       method: 'dataurl',
     });
