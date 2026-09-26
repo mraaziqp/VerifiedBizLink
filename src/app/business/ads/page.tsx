@@ -1,5 +1,6 @@
 'use client';
 
+import { formatNumber } from '@/lib/format-number';
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -587,11 +588,11 @@ export default function BusinessAdsPage() {
                     <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs">
                       <div className="text-center">
                         <span className="text-[10px] text-slate-500 font-bold block">VIEWS</span>
-                        <span className="font-extrabold text-slate-900">{ad.impressions.toLocaleString()}</span>
+                        <span className="font-extrabold text-slate-900">{formatNumber(ad.impressions)}</span>
                       </div>
                       <div className="text-center">
                         <span className="text-[10px] text-slate-500 font-bold block">CLICKS</span>
-                        <span className="font-extrabold text-blue-600">{ad.clicks.toLocaleString()}</span>
+                        <span className="font-extrabold text-blue-600">{formatNumber(ad.clicks)}</span>
                       </div>
                       <div className="text-center">
                         <span className="text-[10px] text-slate-500 font-bold block">CTR</span>

@@ -193,6 +193,22 @@ export function MobileMenuDrawer() {
                 );
               })}
 
+              {!isBusiness && (
+                <Link
+                  href="/business/create"
+                  onClick={() => setOpen(false)}
+                  className={`mt-2 flex items-center gap-3 rounded-xl border border-amber-400/30 px-3.5 py-2.5 text-sm font-semibold transition-all ${
+                    pathname === "/business/create"
+                      ? "bg-amber-400 text-slate-950 font-bold"
+                      : "text-white hover:bg-white/10"
+                  }`}
+                >
+                  <PlusCircle size={18} className="text-amber-400" />
+                  <span className="flex-1">List my business</span>
+                  <span className="rounded-full bg-amber-400/20 px-1.5 text-[10px] font-black text-amber-300">FREE</span>
+                </Link>
+              )}
+
               {isBusiness && (
                 <>
                   <div className="pt-2 pb-1 px-3">

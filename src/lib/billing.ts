@@ -1,3 +1,4 @@
+import { formatRandCents } from '@/lib/format-number';
 /**
  * Subscription and invoicing rules.
  *
@@ -99,10 +100,7 @@ export function invoiceNumber(now: Date, random: string): string {
 }
 
 export function formatRand(cents: number): string {
-  return `R${((Number(cents) || 0) / 100).toLocaleString('en-ZA', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}`;
+  return formatRandCents(cents);
 }
 
 export function formatDate(value: Date | string | null): string {

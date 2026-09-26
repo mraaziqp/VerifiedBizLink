@@ -168,11 +168,23 @@ export default function OnboardingPage() {
   }, []);
 
   const isBusiness = user?.role === "business";
+  // Businesses are welcomed by their full company name, not the first word
+  // of it ("Welcome, Cotton Traders!" rather than "Welcome, Cotton!").
+  const [businessName, setBusinessName] = useState("");
+  useEffect(() => {
+    if (!isBusiness) return;
+    let active = true;
+    fetch("/api/business/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (active && d?.business?.company_name) setBusinessName(String(d.business.company_name)); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [isBusiness]);
   const STEPS = isBusiness ? BUSINESS_STEPS : CUSTOMER_STEPS;
   const totalSteps = STEPS.length;
   const progress = Math.round(((step - 1) / (totalSteps - 1)) * 100);
   const currentStep = STEPS[step - 1];
-  const firstName = user?.fullName?.split(" ")[0] || "";
+  const firstName = isBusiness ? (businessName || user?.fullName || "") : user?.fullName?.split(" ")[0] || "";
 
   const toggleIndustry = (ind: string) => {
     setSelectedIndustries((prev) =>

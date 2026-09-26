@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/format-number';
 export type TierName = 'free' | 'verified' | 'standard' | 'premium' | 'enterprise';
 
 export interface TierFeatures {
@@ -221,12 +222,8 @@ export function hasTierFeature<K extends keyof TierFeatures['features']>(
  * Format price for display
  */
 export function formatPrice(priceInCents: number, currency: string = 'ZAR'): string {
-  const priceInRands = priceInCents / 100;
-  return new Intl.NumberFormat('en-ZA', {
-    style: 'currency',
-    currency: currency,
-    minimumFractionDigits: 2,
-  }).format(priceInRands);
+  const amount = formatNumber(priceInCents / 100, 2);
+  return currency === 'ZAR' ? `R${amount}` : `${currency} ${amount}`;
 }
 
 /**

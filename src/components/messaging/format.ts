@@ -1,3 +1,4 @@
+import { formatNumber } from '@/lib/format-number';
 export function initials(name: string): string {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]?.toUpperCase() ?? '').join('') || '?';
 }
@@ -23,7 +24,7 @@ export function dayLabel(iso: string): string {
 }
 
 export const rand = (n: number) =>
-  `R ${n.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  `R ${formatNumber(n, 2)}`;
 
 export const fileSize = (b: number) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 

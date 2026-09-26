@@ -1,5 +1,6 @@
 'use client';
 
+import { formatNumber } from '@/lib/format-number';
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import {
@@ -295,17 +296,17 @@ export default function AdminAdsManagerPage() {
 
           <Card className="border border-slate-200 bg-white shadow-xs p-4 space-y-1">
             <span className="text-[11px] font-bold uppercase text-slate-500">Impressions</span>
-            <p className="text-2xl font-black text-slate-900">{totals?.totalImpressions.toLocaleString() ?? 0}</p>
+            <p className="text-2xl font-black text-slate-900">{formatNumber(totals?.totalImpressions) ?? 0}</p>
           </Card>
 
           <Card className="border border-slate-200 bg-white shadow-xs p-4 space-y-1">
             <span className="text-[11px] font-bold uppercase text-slate-500">Clicks</span>
-            <p className="text-2xl font-black text-blue-600">{totals?.totalClicks.toLocaleString() ?? 0}</p>
+            <p className="text-2xl font-black text-blue-600">{formatNumber(totals?.totalClicks) ?? 0}</p>
           </Card>
 
           <Card className="border border-amber-300 bg-amber-50/70 shadow-xs p-4 space-y-1">
             <span className="text-[11px] font-bold uppercase text-amber-900">Credits Spent</span>
-            <p className="text-2xl font-black text-amber-950">{totals?.totalCreditsSpent.toLocaleString() ?? 0}</p>
+            <p className="text-2xl font-black text-amber-950">{formatNumber(totals?.totalCreditsSpent) ?? 0}</p>
           </Card>
         </div>
 
@@ -416,11 +417,11 @@ export default function AdminAdsManagerPage() {
                         <div className="flex items-center gap-4 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-xs">
                           <div className="text-center">
                             <span className="text-[10px] text-slate-400 font-bold block">IMPRESSIONS</span>
-                            <span className="font-extrabold text-slate-900">{ad.impressions.toLocaleString()}</span>
+                            <span className="font-extrabold text-slate-900">{formatNumber(ad.impressions)}</span>
                           </div>
                           <div className="text-center">
                             <span className="text-[10px] text-slate-400 font-bold block">CLICKS</span>
-                            <span className="font-extrabold text-blue-600">{ad.clicks.toLocaleString()}</span>
+                            <span className="font-extrabold text-blue-600">{formatNumber(ad.clicks)}</span>
                           </div>
                           <div className="text-center">
                             <span className="text-[10px] text-slate-400 font-bold block">CTR</span>

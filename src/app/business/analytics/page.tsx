@@ -1,5 +1,6 @@
 'use client';
 
+import { formatNumber } from '@/lib/format-number';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, BarChart3, Eye, Users, Star, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -65,7 +66,7 @@ export default function BusinessAnalyticsPage() {
                         <Icon className={`h-6 w-6 ${metric.color}`} />
                       </div>
                       <p className="text-slate-400 text-sm mb-1">{metric.label}</p>
-                      <p className="text-3xl font-bold text-slate-100">{metric.value.toLocaleString()}</p>
+                      <p className="text-3xl font-bold text-slate-100">{formatNumber(metric.value)}</p>
                     </CardContent>
                   </Card>
                 );

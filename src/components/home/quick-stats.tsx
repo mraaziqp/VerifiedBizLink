@@ -1,5 +1,6 @@
 "use client";
 
+import { formatNumber } from '@/lib/format-number';
 import { Users, Check, Zap } from "lucide-react";
 import { HomeStats } from "@/components/home/types";
 
@@ -12,7 +13,7 @@ export function QuickStats({ stats, loading }: QuickStatsProps) {
   const statsItems = [
     {
       icon: Users,
-      value: loading ? "..." : stats.verifiedBusinesses.toLocaleString(),
+      value: loading ? "..." : formatNumber(stats.verifiedBusinesses),
       label: "Verified Businesses",
       color: "from-blue-500/20 to-blue-600/20",
     },
@@ -24,7 +25,7 @@ export function QuickStats({ stats, loading }: QuickStatsProps) {
     },
     {
       icon: Zap,
-      value: loading ? "..." : stats.activeConnections.toLocaleString(),
+      value: loading ? "..." : formatNumber(stats.activeConnections),
       label: "Active Connections",
       color: "from-primary/20 to-primary/10",
     },

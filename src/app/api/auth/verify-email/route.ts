@@ -49,12 +49,14 @@ export async function GET(request: NextRequest) {
 
     // Best-effort: sendWelcomeEmail swallows its own errors so a transient
     // SMTP failure can't turn a successful verification into an error page.
-    await sendWelcomeEmail(
-      verifiedUser.email,
-      (verifiedUser.full_name || '').split(' ')[0],
-      verifiedUser.role,
-      baseUrl
-    );
+    // Businesses are greeted by their full company name ("You're in, Cotton
+    // Traders."), people by their first name.
+    let greetingName = String(verifiedUser.full_name || '').split(' ')[0];
+    if (verifiedUser.role === 'business') {
+      const [biz] = await db`SELECT company_name FROM businesses WHERE user_id = ${verifiedUser.id} ORDER BY created_at ASC LIMIT 1`.catch(() => []);
+      greetingName = String(biz?.company_name || verifiedUser.full_name || '').trim();
+    }
+    await sendWelcomeEmail(verifiedUser.email, greetingName, verifiedUser.role, baseUrl);
 
     const sessionUser = {
       id: verifiedUser.id,

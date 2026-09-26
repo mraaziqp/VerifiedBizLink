@@ -51,7 +51,9 @@ export default function MarketplacePage() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  // null until the first fetch: a time created during render differs between
+  // the server and the browser by a second or so and breaks hydration.
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Load watchlist from localStorage on mount
   useEffect(() => {
@@ -162,7 +164,7 @@ export default function MarketplacePage() {
               <p className="text-gray-600">Real-time commodity prices, market news, and analysis</p>
             </div>
             <div className="text-right text-xs text-gray-500">
-              <p>Updated {lastUpdated.toLocaleTimeString()}</p>
+              <p>{lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Updating…'}</p>
               <p className="text-gray-500">Auto-refresh every 30s</p>
             </div>
           </div>

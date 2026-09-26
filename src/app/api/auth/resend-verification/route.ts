@@ -82,12 +82,8 @@ export async function POST(request: Request) {
     console.error('Resend-verification email failed for', rows[0].email, err);
   }
 
-  // Only expose the instant verification URL in non-production environments
-  const isDev = process.env.NODE_ENV !== 'production';
-  const verifyLink = `${baseUrl}/api/auth/verify-email?token=${token}`;
-
-  return NextResponse.json({
-    success: true,
-    ...(isDev ? { verificationUrl: verifyLink } : {}),
-  });
+  // The link goes to the inbox only. Returning it here (even "just in dev")
+  // let anyone confirm an address they don't own, which is the whole point
+  // of email verification.
+  return NextResponse.json({ success: true });
 }

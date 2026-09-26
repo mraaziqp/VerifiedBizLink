@@ -1,5 +1,6 @@
 'use client';
 
+import { formatRandCents } from '@/lib/format-number';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CreditCard, CheckCircle2, Clock, XCircle, TrendingUp, Loader2 } from 'lucide-react';
@@ -39,7 +40,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 const formatRand = (cents: number) =>
-  `R${(cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  formatRandCents(cents);
 
 export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);

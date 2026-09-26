@@ -1,5 +1,6 @@
 'use client';
 
+import { formatNumber } from '@/lib/format-number';
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -181,7 +182,7 @@ export default function BusinessPostsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-500 text-sm mb-2">Total Likes</p>
-                  <p className="text-3xl font-bold text-gray-900">{totalLikes.toLocaleString()}</p>
+                  <p className="text-3xl font-bold text-gray-900">{formatNumber(totalLikes)}</p>
                 </div>
                 <div className="p-3 bg-gray-200 rounded-lg">
                   <Heart className="h-6 w-6 text-yellow-400" />
@@ -195,7 +196,7 @@ export default function BusinessPostsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-500 text-sm mb-2">Total Comments</p>
-                  <p className="text-3xl font-bold text-gray-900">{totalComments.toLocaleString()}</p>
+                  <p className="text-3xl font-bold text-gray-900">{formatNumber(totalComments)}</p>
                 </div>
                 <div className="p-3 bg-gray-200 rounded-lg">
                   <TrendingUp className="h-6 w-6 text-yellow-400" />

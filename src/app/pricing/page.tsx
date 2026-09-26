@@ -77,6 +77,17 @@ const DEFAULT_TIERS: Tier[] = [
 
 export default function PricingPage() {
   const { user } = useAuth();
+  // Arriving straight from creating a business: congratulate it by name.
+  const [welcomeBusiness, setWelcomeBusiness] = useState<string | null>(null);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("welcome") !== "business") return;
+    let active = true;
+    fetch("/api/business/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (active) setWelcomeBusiness(String(d?.business?.company_name || user?.fullName || "Your business")); })
+      .catch(() => { if (active) setWelcomeBusiness(user?.fullName || "Your business"); });
+    return () => { active = false; };
+  }, [user?.fullName]);
   const { toast } = useToast();
   const router = useRouter();
   const [tiers, setTiers] = useState<Tier[]>(DEFAULT_TIERS);
@@ -162,6 +173,18 @@ export default function PricingPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Top Navigation & Back Button */}
       <SubpageNav title="Pricing & Plans" />
+
+      {welcomeBusiness && (
+        <div role="status" className="mx-auto mt-6 max-w-3xl px-4">
+          <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+            <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-600" />
+            <div>
+              <p className="text-lg font-black text-slate-900">Congratulations — {welcomeBusiness} is on VerifiedBizLink!</p>
+              <p className="mt-1 text-sm text-slate-700">Your business profile is set up. Choose a plan below to get verified and start being found, or skip for now and explore.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="text-center pt-10 pb-12 px-4 max-w-3xl mx-auto">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-400 bg-yellow-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-yellow-700 mb-6">
