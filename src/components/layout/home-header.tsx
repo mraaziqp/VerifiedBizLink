@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Bell, Menu, CheckCheck, Trash2, X,
 } from "lucide-react";
@@ -15,107 +15,37 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-
-interface NotificationItem {
-  id: string;
-  type: string;
-  message: string;
-  read: boolean;
-  link?: string | null;
-  created_at: string;
-}
+import { useAuth } from "@/contexts/auth-context";
+import { selectUnread, useNotificationsStore, useNotificationsSync, type AppNotification } from "@/stores/notifications-store";
 
 export function HomeHeader() {
   const router = useRouter();
   const { setOpen } = useMobileMenu();
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { user } = useAuth();
+  // Signed-out visitors have no notifications: no polling at all for them.
+  useNotificationsSync(Boolean(user));
+  const notifications = useNotificationsStore((s) => s.items);
+  const unreadCount = useNotificationsStore(selectUnread);
+  const loadingNotifications = useNotificationsStore((s) => s.loading && !s.loaded);
+  const refresh = useNotificationsStore((s) => s.refresh);
+  const markAllAsRead = useNotificationsStore((s) => s.markAllRead);
+  const markRead = useNotificationsStore((s) => s.markRead);
+  const dismiss = useNotificationsStore((s) => s.dismiss);
+  const clearAll = useNotificationsStore((s) => s.clearAll);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
-  const loadNotifications = async () => {
-    setLoadingNotifications(true);
-    try {
-      const response = await fetch("/api/notifications", { cache: "no-store" }).catch(() => null);
-      if (!response?.ok) return;
-
-      const data = await response.json().catch(() => ({ notifications: [] }));
-      const items = (data.notifications || []) as NotificationItem[];
-      setNotifications(items);
-      const unread = items.filter((item) => !item.read).length;
-      setUnreadCount(unread);
-    } finally {
-      setLoadingNotifications(false);
-    }
-  };
-
-  useEffect(() => {
-    let mounted = true;
-
-    const fetchNotifications = async () => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      const response = await fetch("/api/notifications", { cache: "no-store" }).catch(() => null);
-      if (!response?.ok) return;
-
-      const data = await response.json().catch(() => ({ notifications: [] }));
-      if (!mounted) return;
-
-      const items = (data.notifications || []) as NotificationItem[];
-      setNotifications(items);
-      const unread = items.filter((item) => !item.read).length;
-      setUnreadCount(unread);
-    };
-
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000);
-
-    return () => {
-      mounted = false;
-      clearInterval(interval);
-    };
-  }, []);
-
-  const openNotifications = async () => {
+  const openNotifications = () => {
     setNotificationsOpen(true);
-    await loadNotifications();
+    void refresh();
   };
 
-  const markAllAsRead = async () => {
-    const response = await fetch("/api/notifications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ markAll: true }),
-    }).catch(() => null);
-
-    if (response?.ok) {
-      setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
-      setUnreadCount(0);
-    }
-  };
-
-  const dismissNotification = async (id: string, e: React.MouseEvent) => {
+  const dismissNotification = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    await fetch(`/api/notifications?id=${id}`, { method: 'DELETE' }).catch(() => null);
-    setNotifications((prev) => prev.filter((item) => item.id !== id));
+    void dismiss(id);
   };
 
-  const clearAll = async () => {
-    await fetch('/api/notifications?clearAll=true', { method: 'DELETE' }).catch(() => null);
-    setNotifications([]);
-    setUnreadCount(0);
-  };
-
-  const openNotification = async (item: NotificationItem) => {
-    if (!item.read) {
-      await fetch("/api/notifications", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: item.id }),
-      }).catch(() => null);
-      setNotifications((prev) => prev.map((row) => (row.id === item.id ? { ...row, read: true } : row)));
-      setUnreadCount((prev) => Math.max(prev - 1, 0));
-    }
-
+  const openNotification = (item: AppNotification) => {
+    if (!item.read) markRead(item.id);
     setNotificationsOpen(false);
     router.push(item.link || "/network");
   };

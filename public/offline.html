@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>You're offline · VerifiedBizLink</title>
+  <style>
+    :root { --bg: #f8fafc; --card: #ffffff; --text: #0f172a; --muted: #475569; --line: #e2e8f0; --brand: #f59e0b; --brand-hover: #fbbf24; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px calc(24px + env(safe-area-inset-bottom)); }
+    .card { width: 100%; max-width: 420px; background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 32px 24px; text-align: center; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06); }
+    .logo { width: 64px; height: 64px; border-radius: 16px; margin: 0 auto 20px; display: block; }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    p { color: var(--muted); line-height: 1.5; margin: 0 0 24px; font-size: 15px; }
+    button { appearance: none; border: 0; border-radius: 12px; background: var(--brand); color: var(--text); font-weight: 700; font-size: 16px; padding: 14px 20px; width: 100%; cursor: pointer; }
+    button:hover { background: var(--brand-hover); }
+    button:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+    .status { margin-top: 16px; font-size: 13px; color: var(--muted); min-height: 1.2em; }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card" role="alert">
+      <img class="logo" src="/icon-192.png" alt="" width="64" height="64" />
+      <h1>You're offline</h1>
+      <p>VerifiedBizLink needs an internet connection. Check your Wi‑Fi or mobile data — we'll reconnect as soon as you're back.</p>
+      <button type="button" id="retry">Try again</button>
+      <div class="status" id="status" aria-live="polite"></div>
+    </div>
+  </main>
+  <script>
+    // In the Android app this page is loaded from the APK itself, so "try
+    // again" has to go back to the live site rather than reload this file.
+    var SITE = 'https://www.verifiedbizlink.co.za/';
+    // capacitor.config.ts appends "VerifiedBizLinkApp" to the app's user agent;
+    // a hostname check would also match someone's local dev server.
+    var isLocal = navigator.userAgent.indexOf('VerifiedBizLinkApp') !== -1 || location.protocol === 'file:';
+    function retry() {
+      document.getElementById('status').textContent = 'Reconnecting…';
+      location.href = isLocal ? SITE : location.href;
+    }
+    document.getElementById('retry').addEventListener('click', retry);
+    window.addEventListener('online', retry);
+  </script>
+</body>
+</html>

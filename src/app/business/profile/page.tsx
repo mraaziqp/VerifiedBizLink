@@ -302,11 +302,9 @@ export default function BusinessProfilePage() {
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     {coverUploading ? 'Uploading photo…' : 'Save Changes'}
                   </Button>
-                  <Link href="/business/dashboard">
-                    <Button variant="outline" className={`border-gray-200 text-gray-600 hover:bg-gray-100 ${glassInteractive}`}>
+                  <Button variant="outline" className={`border-gray-200 text-gray-600 hover:bg-gray-100 ${glassInteractive}`} asChild><Link href="/business/dashboard">
                       Cancel
-                    </Button>
-                  </Link>
+                    </Link></Button>
                 </div>
               </>
             )}

@@ -61,7 +61,7 @@ Successfully created 3 admin accounts in **Neon database**:
 
 **Credentials:** (Stored securely in environment)
 - Email: [as above]
-- Temporary Password: `Admin@123` (Neon DB)
+- Temporary Password: `<set-your-own-password>` (Neon DB)
 - Status: Ready for first login/password reset
 
 ### 4. **Shareholder Accounts** ✅

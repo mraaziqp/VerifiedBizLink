@@ -299,19 +299,17 @@ export default function PricingPage() {
                     ))}
                   </ul>
 
-                  {action.href ? (
-                    <Link href={action.href}>
-                      <Button
-                        disabled={isCurrent}
-                        className={`w-full font-bold h-11 rounded-xl ${
-                          highlighted
-                            ? "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
-                            : "bg-gray-900 text-white hover:bg-gray-800"
-                        }`}
-                      >
-                        {ctaLabel(tier)}
-                      </Button>
-                    </Link>
+                  {action.href && !isCurrent ? (
+                    <Button
+                      asChild
+                      className={`w-full font-bold h-11 rounded-xl ${
+                        highlighted
+                          ? "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
+                          : "bg-gray-900 text-white hover:bg-gray-800"
+                      }`}
+                    >
+                      <Link href={action.href}>{ctaLabel(tier)}</Link>
+                    </Button>
                   ) : (
                     <Button
                       onClick={action.onClick}
@@ -347,11 +345,9 @@ export default function PricingPage() {
               </p>
             </div>
           </div>
-          <Link href="/contact" className="shrink-0 w-full sm:w-auto">
-            <Button className="w-full sm:w-auto bg-gray-900 text-white hover:bg-gray-800 font-bold rounded-xl h-11 px-6">
+          <Button className="w-full sm:w-auto bg-gray-900 text-white hover:bg-gray-800 font-bold rounded-xl h-11 px-6" asChild><Link href="/contact" className="shrink-0 w-full sm:w-auto">
               Contact Sales
-            </Button>
-          </Link>
+            </Link></Button>
         </div>
       </div>
 
@@ -399,11 +395,9 @@ export default function PricingPage() {
         <p className="text-gray-500 mb-8">
           Join the verified businesses building trust and growing together on VerifiedBizLink
         </p>
-        <Link href={user ? "/business/dashboard" : "/signup"}>
-          <Button className="bg-yellow-400 text-gray-900 hover:bg-yellow-300 px-8 py-6 text-lg font-bold rounded-xl">
+        <Button className="bg-yellow-400 text-gray-900 hover:bg-yellow-300 px-8 py-6 text-lg font-bold rounded-xl" asChild><Link href={user ? "/business/dashboard" : "/signup"}>
             Get Started Now
-          </Button>
-        </Link>
+          </Link></Button>
         <p className="text-gray-500 text-xs mt-6">
           By subscribing you agree to our{" "}
           <Link href="/terms" className="underline hover:text-gray-800">Terms &amp; Conditions</Link> and{" "}

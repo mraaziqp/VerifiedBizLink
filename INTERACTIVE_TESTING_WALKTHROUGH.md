@@ -30,7 +30,7 @@ ACTION:
 1. Click "Sign Up" button
 2. Fill in:
    - Email: test1@example.com
-   - Password: TestPass123!
+   - Password: <set-your-own-password>
    - Business Name: Test Business 1
    - Check "I accept terms"
 3. Click "Sign Up"
@@ -74,7 +74,7 @@ ACTION:
 2. You should be on login page
 3. Login with:
    - Email: test1@example.com
-   - Password: TestPass123!
+   - Password: <set-your-own-password>
 4. Click "Login"
 
 REPORT BACK:

@@ -54,11 +54,9 @@ export default function AdminAnalyticsPage() {
   return (
     <AdminBackground>
       <AdminPageHeader title="Platform Analytics" subtitle="Real-time platform metrics and performance">
-        <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10">
+        <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10" asChild><Link href="/admin">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
-          </Button>
-        </Link>
+          </Link></Button>
       </AdminPageHeader>
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:py-12 space-y-6">

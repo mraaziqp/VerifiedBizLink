@@ -13,9 +13,9 @@ All 3 primary admin accounts are now **fully functional**:
 
 | Admin | Email | Password | Status | Role | Access |
 |-------|-------|----------|--------|------|--------|
-| **Ramoen** | ramoen@verifiedbizlink.co.za | Ramoen@123456 | ✅ Working | admin | Vetting Desk, Document Review, User Management |
-| **Wesley** | wesley@verifiedbizlink.co.za | Wesley@123456 | ✅ Working | banker | Banking/Compliance Tools |
-| **Super Admin** | mraaziqp@gmail.com | SuperAdmin@123456 | ✅ Working | admin | Full Platform Access |
+| **Ramoen** | ramoen@verifiedbizlink.co.za | <set-your-own-password> | ✅ Working | admin | Vetting Desk, Document Review, User Management |
+| **Wesley** | wesley@verifiedbizlink.co.za | <set-your-own-password> | ✅ Working | banker | Banking/Compliance Tools |
+| **Super Admin** | mraaziqp@gmail.com | <set-your-own-password> | ✅ Working | admin | Full Platform Access |
 
 ### Shareholder Accounts ✅
 
@@ -111,7 +111,7 @@ curl -X POST https://www.verifiedbizlink.co.za/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "ramoen@verifiedbizlink.co.za",
-    "password": "Ramoen@123456"
+    "password": "<set-your-own-password>"
   }'
 
 # Response:
@@ -204,19 +204,19 @@ npm run dev
 **Admin Account:**
 ```
 Email: ramoen@verifiedbizlink.co.za
-Password: Ramoen@123456
+Password: <set-your-own-password>
 ```
 
 **Banking Specialist:**
 ```
 Email: wesley@verifiedbizlink.co.za
-Password: Wesley@123456
+Password: <set-your-own-password>
 ```
 
 **Super Admin:**
 ```
 Email: mraaziqp@gmail.com
-Password: SuperAdmin@123456
+Password: <set-your-own-password>
 ```
 
 ### Seed All Passwords (if needed):

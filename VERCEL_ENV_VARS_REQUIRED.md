@@ -64,7 +64,7 @@ Go to: `https://vercel.com/dashboard/VerifiedBizLink/settings/environment-variab
 
 **Variable:** `DATABASE_URL`  
 **Type:** Secret  
-**Value:** `postgresql://neondb_owner:npg_JKPrhN0bY9UQ@ep-long-bonus-abxhs75s-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require`  
+**Value:** `postgresql://USER:PASSWORD@YOUR-NEON-HOST/neondb?sslmode=require`  
 **Environment:** Production + Preview + Development  
 **Purpose:** Neon PostgreSQL database connection  
 **Note:** May already be set in Vercel  

@@ -1,142 +1,94 @@
-// v5: the install step no longer stores '/'. The home page is a signed-in
-// member's personalised feed, so keeping a copy in the cache meant that HTML
-// outlived the session it was rendered for. Bumping the name makes activate()
-// delete the old cache that still holds it.
-const CACHE_NAME = 'verifiedbizlink-v5';
+// v6
+// - Only this site's own requests are handled. Images on other origins
+//   (Supabase avatars, etc.) go straight to the browser: intercepting them
+//   turned every failed avatar into an "Uncaught (in promise) Failed to fetch"
+//   and cached opaque responses, which Chrome counts as ~7 MB each of quota.
+// - Nothing here ever rejects: a request that can't be served resolves to
+//   Response.error(), which is exactly what the page would have seen anyway.
+// - Pages are never cached (the home page is a member's personalised feed),
+//   but when there's no connection a navigation gets /offline.html instead of
+//   the browser's error screen. The Android app shows the same page.
+// - Next.js build output under /_next/static/ is content-hashed and never
+//   changes, so it is served cache-first: repeat visits skip the network.
+const VERSION = 'v6';
+const STATIC_CACHE = `vbl-static-${VERSION}`;
+const ASSET_CACHE = `vbl-assets-${VERSION}`;
+const OFFLINE_URL = '/offline.html';
+const PRECACHE = [OFFLINE_URL, '/icon-192.png'];
+const MAX_ASSETS = 120;
+const MAX_STATIC = 300; // old deploys' chunks age out instead of piling up
 
-// Install event - nothing is pre-cached; static assets are cached as fetched.
-self.addEventListener('install', () => {
+self.addEventListener('install', (event) => {
+  event.waitUntil(
+    caches.open(STATIC_CACHE).then((cache) => cache.addAll(PRECACHE)).catch(() => {})
+  );
   self.skipWaiting();
 });
 
-// Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    caches.keys()
+      .then((names) => Promise.all(
+        names.filter((n) => n !== STATIC_CACHE && n !== ASSET_CACHE).map((n) => caches.delete(n))
+      ))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+async function trim(cacheName, max) {
+  const cache = await caches.open(cacheName);
+  // Oldest first; the precached offline page is never evicted.
+  const keys = (await cache.keys()).filter((req) => !PRECACHE.includes(new URL(req.url).pathname));
+  for (let i = 0; i < keys.length - max; i++) await cache.delete(keys[i]);
+}
+
+function putInBackground(event, cacheName, request, response) {
+  if (!response || response.status !== 200 || response.type !== 'basic') return;
+  const copy = response.clone();
+  event.waitUntil(
+    caches.open(cacheName)
+      .then((cache) => cache.put(request, copy))
+      .then(() => trim(cacheName, cacheName === ASSET_CACHE ? MAX_ASSETS : MAX_STATIC))
+      .catch(() => {})
+  );
+}
+
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
+  const { request } = event;
+  if (request.method !== 'GET') return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return; // other sites: browser handles it
+  if (url.pathname.startsWith('/api/')) return;     // live data: always network
+
+  // Pages: network only, offline page when there is no network. Redirects
+  // (apex -> www) pass through untouched because the response is the network's.
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).catch(async () => (await caches.match(OFFLINE_URL)) || Response.error())
+    );
     return;
   }
 
-  // Skip non-http requests (chrome-extension, etc)
-  if (!event.request.url.startsWith('http')) {
+  // Hashed build output: cache first, it never changes for a given URL.
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      caches.match(request).then((hit) => hit || fetch(request).then((res) => {
+        putInBackground(event, STATIC_CACHE, request, res);
+        return res;
+      })).catch(() => Response.error())
+    );
     return;
   }
 
-  // Do NOT intercept navigations — let the browser handle them natively so
-  // domain redirects (e.g. apex -> www) actually move the address bar instead
-  // of being masked by a cached HTML response.
-  if (event.request.mode === 'navigate') {
-    return;
+  // Images, fonts, manifest: network first so updates show, cache when offline.
+  if (/\.(png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf)$/i.test(url.pathname) || url.pathname === '/manifest.json') {
+    event.respondWith(
+      fetch(request).then((res) => {
+        putInBackground(event, ASSET_CACHE, request, res);
+        return res;
+      }).catch(async () => (await caches.match(request)) || Response.error())
+    );
   }
-
-  // Skip API requests entirely — let them hit the network directly. (Don't
-  // synthesize a 503 on failure: that masked real upload/redirect errors.)
-  if (event.request.url.includes('/api/')) {
-    return;
-  }
-
-  // Only intercept actual static assets (images, fonts, the manifest) —
-  // NOT page-shaped URLs. Next.js's router prefetches routes (e.g. /settings)
-  // with a plain same-origin GET that isn't a navigation and isn't under
-  // /_next/static/, so an "intercept everything else" fallback here was
-  // catching those too; letting one fail (a transient blip, a stale build
-  // after a deploy) surfaced as an uncaught rejection on a URL that looked
-  // like a whole page was broken. Everything not matching this allowlist —
-  // including _next/static/** and page/RSC prefetch requests — is left
-  // alone and goes straight to the network like navigations already do.
-  const isStaticAsset = /\.(png|jpe?g|gif|svg|webp|ico|woff2?|ttf|css)$/i.test(event.request.url)
-    || event.request.url.endsWith('/manifest.json');
-  if (!isStaticAsset) {
-    return;
-  }
-
-  // For static assets: try network first, fallback to cache
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Clone the response
-        const responseClone = response.clone();
-
-        // Cache successful responses
-        if (response.status === 200) {
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
-        }
-
-        return response;
-      })
-      .catch(async (networkError) => {
-        // Network failed — serve the cached copy if we have one (genuinely
-        // useful offline). If we don't, re-throw the real network error
-        // instead of fabricating a 503: a manufactured "Service Unavailable"
-        // reads as a server outage in devtools when the actual cause could
-        // be anything (offline, a 404, a blocked request) — the real error
-        // is more useful for diagnosing what actually happened.
-        const cachedResponse = await caches.match(event.request);
-        if (cachedResponse) return cachedResponse;
-        throw networkError;
-      })
-  );
+  // Everything else (RSC/prefetch requests, etc.) goes straight to the network.
 });
-
-// Background sync for offline actions
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-posts') {
-    event.waitUntil(syncPosts());
-  }
-});
-
-async function syncPosts() {
-  try {
-    const db = await openDB();
-    const posts = await db.getAll('pending_posts');
-
-    for (const post of posts) {
-      try {
-        await fetch('/api/posts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(post),
-        });
-        await db.delete('pending_posts', post.id);
-      } catch (error) {
-        console.error('Failed to sync post:', error);
-      }
-    }
-  } catch (error) {
-    console.error('Sync failed:', error);
-  }
-}
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('VerifiedBizLink', 1);
-
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains('pending_posts')) {
-        db.createObjectStore('pending_posts', { keyPath: 'id' });
-      }
-    };
-  });
-}

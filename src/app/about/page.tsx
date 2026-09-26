@@ -35,9 +35,7 @@ export default async function AboutPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black">
       <div className="max-w-4xl mx-auto px-4 py-12">
-        <Link href="/">
-          <Button variant="outline" className="mb-8">← Back</Button>
-        </Link>
+        <Button variant="outline" className="mb-8" asChild><Link href="/">← Back</Link></Button>
 
         <div className="mb-12">
           <h1 className="text-4xl font-bold text-white mb-4">About VerifiedBizLink</h1>
@@ -116,14 +114,10 @@ export default async function AboutPage() {
           <h2 className="text-xl font-bold text-white mb-2">Ready to get verified?</h2>
           <p className="text-gray-400 mb-6">Join hundreds of businesses building trust on VerifiedBizLink.</p>
           <div className="flex flex-wrap gap-3 justify-center">
-            <Link href="/signup">
-              <Button className="bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-bold">
+            <Button className="bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-bold" asChild><Link href="/signup">
                 Create Your Free Profile
-              </Button>
-            </Link>
-            <Link href="/contact">
-              <Button variant="outline">Contact Us</Button>
-            </Link>
+              </Link></Button>
+            <Button variant="outline" asChild><Link href="/contact">Contact Us</Link></Button>
           </div>
         </section>
       </div>

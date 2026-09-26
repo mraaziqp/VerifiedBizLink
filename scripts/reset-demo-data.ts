@@ -1,3 +1,9 @@
+
+function requiredEnv(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`Set ${name} to run this script (never commit real passwords).`);
+  return v;
+}
 /**
  * Demo data reset — removes all fake seed data and creates 2 clean test users.
  * Keeps: Ramone, Wesley, Developer Admin (real accounts).
@@ -61,7 +67,7 @@ async function reset() {
   const testUsers = [
     {
       email: 'testa@demo.verifiedbizlink.com',
-      password: 'TestA1234',
+      password: requiredEnv('SEED_PASSWORD'),
       fullName: 'Test User A',
       role: 'business',
       headline: 'Demo Business Owner — VerifiedBizLink',
@@ -69,7 +75,7 @@ async function reset() {
     },
     {
       email: 'testb@demo.verifiedbizlink.com',
-      password: 'TestB1234',
+      password: requiredEnv('SEED_PASSWORD'),
       fullName: 'Test User B',
       role: 'business',
       headline: 'Demo Business Owner — VerifiedBizLink',

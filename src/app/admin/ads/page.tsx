@@ -270,11 +270,9 @@ export default function AdminAdsManagerPage() {
         title="Ad Placement &amp; Credit Command Center"
         subtitle="Manage sponsored campaigns, placement slots, feed rotation frequencies, and business ad credits"
       >
-        <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-amber-300 text-amber-900 bg-white hover:bg-amber-50 rounded-xl">
+        <Button variant="outline" size="sm" className="gap-2 border-amber-300 text-amber-900 bg-white hover:bg-amber-50 rounded-xl" asChild><Link href="/admin">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
-          </Button>
-        </Link>
+          </Link></Button>
       </AdminPageHeader>
 
       <div className="mx-auto max-w-7xl px-4 py-8 space-y-6">

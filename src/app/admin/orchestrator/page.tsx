@@ -113,24 +113,18 @@ export default function OrchestratorDashboard() {
           <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back to App</span>
         </Button>
         <span className="hidden text-sm text-gray-500 lg:inline">{user?.email}</span>
-        <Link href="/admin/dashboard">
-          <Button variant="outline" size="sm"
-            className="gap-2 border-blue-500/30 text-blue-700 hover:border-blue-500/50 hover:bg-blue-500/10">
+        <Button variant="outline" size="sm"
+            className="gap-2 border-blue-500/30 text-blue-700 hover:border-blue-500/50 hover:bg-blue-500/10" asChild><Link href="/admin/dashboard">
             <Activity className="h-4 w-4" /> <span className="hidden sm:inline">My Tools</span>
-          </Button>
-        </Link>
-        <Link href="/admin/team">
-          <Button variant="outline" size="sm"
-            className="gap-2 border-purple-500/30 text-purple-700 hover:border-purple-500/50 hover:bg-purple-500/10">
+          </Link></Button>
+        <Button variant="outline" size="sm"
+            className="gap-2 border-purple-500/30 text-purple-700 hover:border-purple-500/50 hover:bg-purple-500/10" asChild><Link href="/admin/team">
             <Users className="h-4 w-4" /> <span className="hidden sm:inline">Team</span>
-          </Button>
-        </Link>
-        <Link href="/admin/settings">
-          <Button variant="outline" size="sm"
-            className="gap-2 border-slate-300 text-slate-700 hover:border-slate-400 hover:bg-slate-100">
+          </Link></Button>
+        <Button variant="outline" size="sm"
+            className="gap-2 border-slate-300 text-slate-700 hover:border-slate-400 hover:bg-slate-100" asChild><Link href="/admin/settings">
             <Settings className="h-4 w-4" /> <span className="hidden sm:inline">Settings</span>
-          </Button>
-        </Link>
+          </Link></Button>
         <Button variant="outline" size="sm" onClick={handleLogout}
           className="gap-2 border-red-500/30 text-red-700 hover:border-red-500/50 hover:bg-red-500/10">
           <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Logout</span>

@@ -12,10 +12,10 @@ Create these 4 users:
 
 | Email | Password | Role | Auto Confirm |
 |-------|----------|------|--------------|
-| test@example.com | TestPass123! | Customer | ✅ |
-| ramoen@verifiedbizlink.co.za | TestPass123! | Admin | ✅ |
-| wesley@verifiedbizlink.co.za | TestPass123! | Banker | ✅ |
-| mraaziqp@gmail.com | TestPass123! | Super Admin | ✅ |
+| test@example.com | <set-your-own-password> | Customer | ✅ |
+| ramoen@verifiedbizlink.co.za | <set-your-own-password> | Admin | ✅ |
+| wesley@verifiedbizlink.co.za | <set-your-own-password> | Banker | ✅ |
+| mraaziqp@gmail.com | <set-your-own-password> | Super Admin | ✅ |
 
 **After creating each user:**
 - Click **Save user**
@@ -56,7 +56,7 @@ Hard refresh: `Ctrl + Shift + R`
 1. Go to http://localhost:3000/login
 2. Login with:
    ```
-   test@example.com / TestPass123!
+   test@example.com / <set-your-own-password>
    ```
 3. Should see dashboard
 4. Try logout
@@ -71,7 +71,7 @@ Hard refresh: `Ctrl + Shift + R`
 1. Logout
 2. Login as:
    ```
-   ramoen@verifiedbizlink.co.za / TestPass123!
+   ramoen@verifiedbizlink.co.za / <set-your-own-password>
    ```
 3. Go to `/admin/dashboard` or `/vetting-hub`
 4. Should see admin-only tools

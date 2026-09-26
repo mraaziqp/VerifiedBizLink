@@ -1,3 +1,9 @@
+
+function requiredEnv(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`Set ${name} to run this script (never commit real passwords).`);
+  return v;
+}
 /**
  * Seed Script - Create Test Admin Accounts
  *
@@ -32,14 +38,14 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 const testAccounts = [
   {
     email: 'ramoen@verifiedbizlink.co.za',
-    password: 'TestPass123!',
+    password: requiredEnv('SEED_PASSWORD'),
     fullName: 'Ramoen - Lead Admin',
     businessName: 'Ramoen Verification Co',
     role: 'admin',
   },
   {
     email: 'wesley@verifiedbizlink.co.za',
-    password: 'TestPass123!',
+    password: requiredEnv('SEED_PASSWORD'),
     fullName: 'Wesley - Banking Specialist',
     businessName: 'Wesley Banking Services',
     role: 'banker',

@@ -1,10 +1,31 @@
-name: Build iOS App (IPA)
+name: Build iOS App (compile check)
+
+# The iOS project uses Capacitor's Swift Package Manager setup
+# (ios/App/CapApp-SPM), so there is no Podfile and no .xcworkspace; the old
+# `pod install` + `-workspace` steps failed on every run. This builds the
+# project for a generic iOS device with code signing off, which proves the
+# native project compiles. Producing an installable IPA additionally needs an
+# Apple Developer team, certificate and provisioning profile as repo secrets.
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'ios/**'
+      - 'capacitor.config.ts'
+      - 'public/offline.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios-build.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'ios/**'
+      - 'capacitor.config.ts'
+      - 'public/offline.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ios-build.yml'
   workflow_dispatch:
 
 jobs:
@@ -29,135 +50,20 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Build Next.js
-        run: npm run build
-
+      # The app loads the live site (capacitor.config.ts server.url); only the
+      # static files in public/ (offline page, icons) are bundled.
       - name: Sync iOS platform
         run: npx cap sync ios
 
-      - name: Install CocoaPods dependencies
+      - name: Build (unsigned)
         working-directory: ios/App
         run: |
-          pod install
-
-      - name: Build iOS archive
-        working-directory: ios/App
-        run: |
+          xcodebuild -list -project App.xcodeproj
           xcodebuild \
-            -workspace App.xcworkspace \
+            -project App.xcodeproj \
             -scheme App \
             -configuration Release \
+            -destination 'generic/platform=iOS' \
             -derivedDataPath build \
-            -archivePath build/App.xcarchive \
-            -allowProvisioningUpdates \
-            archive
-
-      - name: Export IPA
-        working-directory: ios/App
-        run: |
-          # Create export options plist
-          cat > ExportOptions.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>signingStyle</key>
-              <string>automatic</string>
-              <key>stripSwiftSymbols</key>
-              <true/>
-              <key>method</key>
-              <string>ad-hoc</string>
-              <key>teamID</key>
-              <string></string>
-          </dict>
-          </plist>
-          EOF
-
-          # Export the archive
-          xcodebuild \
-            -exportArchive \
-            -archivePath build/App.xcarchive \
-            -exportOptionsPlist ExportOptions.plist \
-            -exportPath build/output \
-            -allowProvisioningUpdates
-
-      - name: Check IPA
-        working-directory: ios/App
-        run: |
-          ls -lh build/output/
-          file build/output/*.ipa || echo "IPA not found yet"
-
-      - name: Rename IPA
-        working-directory: ios/App
-        run: |
-          if [ -f build/output/App.ipa ]; then
-            cp build/output/App.ipa build/output/VerifiedBizLink.ipa
-          fi
-
-      - name: Upload IPA to artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: VerifiedBizLink-iOS
-          path: |
-            ios/App/build/output/VerifiedBizLink.ipa
-            ios/App/build/output/App.ipa
-          retention-days: 30
-
-      - name: Create Release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ios-build-${{ github.run_number }}
-          release_name: iOS Build ${{ github.run_number }}
-          body: |
-            ## VerifiedBizLink iOS Build
-
-            **Date:** ${{ github.event.head_commit.timestamp }}
-            **Commit:** ${{ github.sha }}
-            **Branch:** ${{ github.ref }}
-
-            ### Build Details
-            - **Status:** ✅ Success
-            - **Runner:** macOS Latest
-            - **Xcode:** Latest Stable
-            - **Build Type:** Ad-hoc Distribution
-
-            ### Download
-            Download the IPA from the Artifacts section.
-
-            ### Installation
-            1. Download the IPA file
-            2. Use Transporter app (Mac App Store)
-            3. Or use TestFlight for beta testing
-            4. Or install directly on device via Xcode
-
-            ### Features Included
-            - ✅ Real-time commodity prices
-            - ✅ Market news and analysis
-            - ✅ Price comparator tool
-            - ✅ Watchlist management
-            - ✅ All admin dashboards
-            - ✅ Settings portal
-            - ✅ User management
-            - ✅ Compliance tracking
-          draft: false
-          prerelease: false
-
-  notify:
-    runs-on: ubuntu-latest
-    needs: build
-    if: always()
-
-    steps:
-      - name: Build status
-        run: |
-          if [ "${{ needs.build.result }}" == "success" ]; then
-            echo "✅ iOS build completed successfully!"
-            echo "📦 IPA file available in Artifacts"
-            echo "📱 Ready for TestFlight or distribution"
-          else
-            echo "❌ iOS build failed"
-            echo "Check the build logs above for details"
-          fi
+            CODE_SIGNING_ALLOWED=NO \
+            build

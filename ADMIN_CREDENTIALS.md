@@ -5,7 +5,7 @@
 ### 1. **Ramoen - Lead Admin** (Vetting Specialist)
 - **Email:** `ramoen@verifiedbizlink.co.za`
 - **Role:** `admin`
-- **Password:** `Admin@123` (temporary - Neon DB) / `Ramoen@123456` (for Supabase Auth)
+- **Password:** `<set-your-own-password>` (temporary - Neon DB) / `<set-your-own-password>` (for Supabase Auth)
 - **Access:** All vetting and verification tools
 - **Tools Available:**
   - ✅ Vetting Desk (review pending businesses)
@@ -18,7 +18,7 @@
 ### 2. **Wesley - Banking Specialist** (Compliance Officer)
 - **Email:** `wesley@verifiedbizlink.co.za`
 - **Role:** `banker`
-- **Password:** `Admin@123` (temporary - Neon DB) / `Wesley@123456` (for Supabase Auth)
+- **Password:** `<set-your-own-password>` (temporary - Neon DB) / `<set-your-own-password>` (for Supabase Auth)
 - **Access:** Banking and compliance tools
 - **Tools Available:**
   - ✅ Business Vetting Portal
@@ -28,7 +28,7 @@
 ### 3. **Super Admin - Owner** (Full Access)
 - **Email:** `mraaziqp@gmail.com`
 - **Role:** `admin`
-- **Password:** `Admin@123` (temporary - Neon DB) / `SuperAdmin@123456` (for Supabase Auth)
+- **Password:** `<set-your-own-password>` (temporary - Neon DB) / `<set-your-own-password>` (for Supabase Auth)
 - **Access:** Full platform access including admin panel
 - **Tools Available:**
   - ✅ All admin tools
@@ -63,7 +63,7 @@
 | Apex Dynamics | owner@apexdynamics.com | Pending ⏳ | 30% | AI/Automation |
 | Skyline Realty | ceo@skylinerealty.com | Reviewing 🔄 | 60% | Real Estate |
 
-**Demo User Password:** `Pass@123`
+**Demo User Password:** `<set-your-own-password>`
 
 ---
 

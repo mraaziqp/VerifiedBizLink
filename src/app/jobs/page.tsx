@@ -243,11 +243,9 @@ function JobsContent() {
                 </p>
               </div>
             </div>
-            <Link href="/talent/profile" className="shrink-0">
-              <Button className="gap-2 bg-slate-900 text-white font-bold hover:bg-slate-800">
+            <Button className="gap-2 bg-slate-900 text-white font-bold hover:bg-slate-800" asChild><Link href="/talent/profile" className="shrink-0">
                 Build my profile <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+              </Link></Button>
           </div>
         )}
 

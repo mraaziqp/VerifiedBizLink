@@ -24,7 +24,8 @@ const rawHost = process.env.SMTP_HOST;
 const SMTP_HOST = (!rawHost || rawHost.includes('titan')) ? 'smtpout.secureserver.net' : rawHost;
 const _SMTP_PORT = Number(process.env.SMTP_PORT || 465);
 const FROM_EMAIL = process.env.TITAN_EMAIL_ADDRESS || process.env.SMTP_USER || 'info@verifiedbizlink.co.za';
-const FROM_PASS = process.env.TITAN_EMAIL_PASSWORD || process.env.SMTP_PASS || process.env.SMTP_PASSWORD || 'Verified@123!@';
+// No fallback: a password in source is a password on GitHub. Set TITAN_EMAIL_PASSWORD.
+const FROM_PASS = process.env.TITAN_EMAIL_PASSWORD || process.env.SMTP_PASS || process.env.SMTP_PASSWORD || '';
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.verifiedbizlink.co.za';
 
 /**
@@ -49,6 +50,7 @@ export async function sendWithFallback(mailOptions: SendMailOptions): Promise<Se
   const { default: nodemailer } = await import('nodemailer');
   const user = FROM_EMAIL;
   const pass = FROM_PASS;
+  if (!pass) throw new Error("Email is not configured: set TITAN_EMAIL_PASSWORD.");
 
   const hostsToTry = [SMTP_HOST, 'smtpout.secureserver.net'];
   const uniqueHosts = Array.from(new Set(hostsToTry.filter(Boolean)));

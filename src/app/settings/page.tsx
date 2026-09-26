@@ -737,11 +737,9 @@ function SettingsForm() {
                       <h3 className="text-lg font-bold text-gray-900">Change or upgrade your plan</h3>
                       <p className="text-sm text-gray-500 mt-1">Compare all plans and switch instantly — same account, no separate signup.</p>
                     </div>
-                    <Link href="/pricing" className="shrink-0">
-                      <Button className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-6 h-11 rounded-xl">
+                    <Button className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-6 h-11 rounded-xl" asChild><Link href="/pricing" className="shrink-0">
                         View Plans
-                      </Button>
-                    </Link>
+                      </Link></Button>
                   </CardContent>
                 </Card>
 

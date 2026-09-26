@@ -152,12 +152,10 @@ export default function MarketplacePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/">
-            <Button variant="outline" size="sm" className="mb-4 gap-2 border-gray-200 hover:border-gray-300">
+          <Button variant="outline" size="sm" className="mb-4 gap-2 border-gray-200 hover:border-gray-300" asChild><Link href="/">
               <ArrowLeft className="h-4 w-4" />
               Back to App
-            </Button>
-          </Link>
+            </Link></Button>
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-4xl font-bold text-gray-900 mb-2">Marketplace</h1>

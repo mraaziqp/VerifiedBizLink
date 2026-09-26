@@ -293,14 +293,14 @@ To test with multiple users, create more in Supabase Auth:
 1. **Ramoen (Admin):**
    ```
    Email:    ramoen@verifiedbizlink.co.za
-   Password: TestPass123!
+   Password: <set-your-own-password>
    ✅ Auto confirm
    ```
 
 2. **Wesley (Banker):**
    ```
    Email:    wesley@verifiedbizlink.co.za
-   Password: TestPass123!
+   Password: <set-your-own-password>
    ✅ Auto confirm
    ```
 

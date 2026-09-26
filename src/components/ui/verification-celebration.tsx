@@ -232,11 +232,9 @@ export function VerificationCelebration({
 
         {/* CTA */}
         <div className="px-4 pt-1 pb-5 space-y-2">
-          <Link href="/" onClick={handleClose} className="block">
-            <Button className="w-full bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-black rounded-2xl h-12 text-base shadow-lg shadow-yellow-400/25 transition-all duration-200 hover:scale-[1.02]">
+          <Button className="w-full bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-black rounded-2xl h-12 text-base shadow-lg shadow-yellow-400/25 transition-all duration-200 hover:scale-[1.02]" asChild><Link href="/" onClick={handleClose} className="block">
               Connect &amp; Grow
-            </Button>
-          </Link>
+            </Link></Button>
           <button
             onClick={handleClose}
             className="w-full text-center text-gray-600 hover:text-gray-400 text-xs font-medium py-1 transition-colors"

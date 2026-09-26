@@ -23,12 +23,12 @@ curl -X POST http://localhost:9002/api/setup/seed-accounts \
   "credentials": {
     "ramoen": {
       "email": "ramoen@verifiedbizlink.co.za",
-      "password": "TestPass123!",
+      "password": "<set-your-own-password>",
       "role": "admin"
     },
     "wesley": {
       "email": "wesley@verifiedbizlink.co.za",
-      "password": "TestPass123!",
+      "password": "<set-your-own-password>",
       "role": "banker"
     }
   }
@@ -54,7 +54,7 @@ npx ts-node scripts/seed-admin-accounts.ts
 ### **Ramoen (Admin)**
 ```
 Email:    ramoen@verifiedbizlink.co.za
-Password: TestPass123!
+Password: <set-your-own-password>
 Role:     admin
 ```
 
@@ -72,7 +72,7 @@ Role:     admin
 ### **Wesley (Banker)**
 ```
 Email:    wesley@verifiedbizlink.co.za
-Password: TestPass123!
+Password: <set-your-own-password>
 Role:     banker
 ```
 
@@ -111,7 +111,7 @@ When you seed accounts, this is created:
 
 1. **Supabase Auth User**
    - Email: ramoen@verifiedbizlink.co.za
-   - Password: TestPass123!
+   - Password: <set-your-own-password>
    - Email verified: Yes
 
 2. **User Profile** (in `users` table)
@@ -168,13 +168,13 @@ The endpoint will skip creating duplicates. To reset:
 ## **Testing the Setup**
 
 ### **Test as Ramoen (Admin):**
-1. Login: ramoen@verifiedbizlink.co.za / TestPass123!
+1. Login: ramoen@verifiedbizlink.co.za / <set-your-own-password>
 2. You should see: "👑 Admin Control Center"
 3. Click any tool → Should navigate to that tool
 4. Check stats: Should show "Pending Verifications: 12"
 
 ### **Test as Wesley (Banker):**
-1. Login: wesley@verifiedbizlink.co.za / TestPass123!
+1. Login: wesley@verifiedbizlink.co.za / <set-your-own-password>
 2. You should see: "🏦 Banking Portal"
 3. Click "Business Vetting Portal" → Should show vetting queue
 4. Check stats: Should show "Pending Reviews: 8"

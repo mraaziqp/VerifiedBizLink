@@ -7,8 +7,10 @@ android {
         applicationId "co.za.verifiedbizlink"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // CI passes -PvblVersionCode=<run number> so every build installs as
+        // an update of the previous one (Android refuses a lower/equal code).
+        versionCode((project.findProperty('vblVersionCode') ?: '1') as Integer)
+        versionName(project.findProperty('vblVersionName') ?: '1.0')
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +18,25 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Release signing is optional and comes from CI secrets (see
+    // .github/workflows/android-build.yml). Without them only the debug APK
+    // is built, which is signed with the (cached) debug key and installable.
+    signingConfigs {
+        release {
+            def ks = System.getenv('VBL_KEYSTORE_PATH')
+            if (ks) {
+                storeFile file(ks)
+                storePassword System.getenv('VBL_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('VBL_KEY_ALIAS')
+                keyPassword System.getenv('VBL_KEY_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (System.getenv('VBL_KEYSTORE_PATH')) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

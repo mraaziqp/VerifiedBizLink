@@ -51,12 +51,10 @@ export default function BusinessDocumentsPage() {
             <CardTitle className="text-slate-100">Verification Documents</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Link href="/vetting">
-              <Button className={`gap-2 bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-bold ${glassInteractive}`}>
+            <Button className={`gap-2 bg-yellow-500 text-slate-950 hover:bg-yellow-400 font-bold ${glassInteractive}`} asChild><Link href="/vetting">
                 <Upload className="h-4 w-4" />
                 Upload Document
-              </Button>
-            </Link>
+              </Link></Button>
             <p className="text-sm text-slate-400">
               Upload CIPC registration, SARS tax clearance, and other verification documents in the Vetting Hub.
             </p>

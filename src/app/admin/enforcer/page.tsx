@@ -79,11 +79,9 @@ export default function EnforcerDashboard() {
   return (
     <AdminBackground>
       <AdminPageHeader title="Enforcer Portal" subtitle="Reports, compliance & platform integrity">
-        <Link href="/">
-          <Button variant="outline" size="sm" className="gap-2 border-gray-500/30 text-gray-600 hover:bg-gray-100">
+        <Button variant="outline" size="sm" className="gap-2 border-gray-500/30 text-gray-600 hover:bg-gray-100" asChild><Link href="/">
             <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back to App</span>
-          </Button>
-        </Link>
+          </Link></Button>
         <span className="hidden text-sm text-gray-500 lg:inline">{user?.email}</span>
         <Button variant="outline" size="sm" onClick={handleLogout} className="gap-2 border-red-500/30 text-red-700 hover:bg-red-500/10">
           <LogOut className="h-4 w-4" /> Logout

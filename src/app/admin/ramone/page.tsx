@@ -121,11 +121,9 @@ export default function RamoneAdminPanel() {
               <p className="text-gray-500">Business verification and vetting management workspace</p>
             </div>
             <div className="flex gap-2">
-              <Link href="/admin/dashboard">
-                <Button variant="outline" className="border-gray-500/30">
+              <Button variant="outline" className="border-gray-500/30" asChild><Link href="/admin/dashboard">
                   Admin Dashboard
-                </Button>
-              </Link>
+                </Link></Button>
               <Button
                 variant="outline"
                 className="border-red-500/30 text-red-700"

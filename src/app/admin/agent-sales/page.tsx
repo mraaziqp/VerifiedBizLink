@@ -114,11 +114,9 @@ export default function AgentSalesPage() {
         title="Marketer &amp; Agent Sales Performance"
         subtitle="Assisted business signups, conversion rates, and revenue distribution across all registered marketers"
       >
-        <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-amber-300 text-amber-900 bg-white hover:bg-amber-50">
+        <Button variant="outline" size="sm" className="gap-2 border-amber-300 text-amber-900 bg-white hover:bg-amber-50" asChild><Link href="/admin">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
-          </Button>
-        </Link>
+          </Link></Button>
       </AdminPageHeader>
 
       <div className="mx-auto max-w-7xl px-4 py-8 space-y-6">

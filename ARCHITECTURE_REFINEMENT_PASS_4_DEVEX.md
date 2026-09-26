@@ -258,7 +258,7 @@ export const fixtures = {
 
   validUser: (): CreateUserInput => ({
     email: `user_${Date.now()}@test.local`,
-    password: 'TestPass123!',
+    password: '<set-your-own-password>',
     dateOfBirth: '1990-01-01',
   }),
 };

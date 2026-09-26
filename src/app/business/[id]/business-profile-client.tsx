@@ -162,9 +162,7 @@ export function BusinessProfileClient({ contactCard }: { contactCard?: ReactNode
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background p-8">
         <Building2 className="h-16 w-16 text-foreground/20" />
         <h2 className="text-2xl font-black text-foreground">Business not found</h2>
-        <Link href="/">
-          <Button variant="outline">← Back to home</Button>
-        </Link>
+        <Button variant="outline" asChild><Link href="/">← Back to home</Link></Button>
       </div>
     );
   }
@@ -234,15 +232,12 @@ export function BusinessProfileClient({ contactCard }: { contactCard?: ReactNode
               <div className="flex items-center gap-2 mt-2">
                 {!isOwnBusiness && user && (
                   <>
-                    <Link href={`/dashboard/messages?with=${business.userId}`}>
-                      <Button
+                    <Button
                         variant="outline"
-                        className="font-bold gap-2"
-                      >
+                        className="font-bold gap-2" asChild><Link href={`/dashboard/messages?with=${business.userId}`}>
                         <MessageCircle className="h-4 w-4" />
                         Message
-                      </Button>
-                    </Link>
+                      </Link></Button>
                     <Button
                       onClick={handleConnect}
                       disabled={connecting}
@@ -255,11 +250,9 @@ export function BusinessProfileClient({ contactCard }: { contactCard?: ReactNode
                   </>
                 )}
                 {!user && (
-                  <Link href="/login">
-                    <Button className="bg-slate-900 text-white hover:bg-slate-800 font-bold">
+                  <Button className="bg-slate-900 text-white hover:bg-slate-800 font-bold" asChild><Link href="/login">
                       Sign in to Connect
-                    </Button>
-                  </Link>
+                    </Link></Button>
                 )}
               </div>
             </div>
