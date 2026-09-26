@@ -1,6 +1,8 @@
 'use server';
 
+import { z } from 'zod';
 import { getSession, type SessionUser } from '@/lib/auth';
+import { rateLimit } from '@/lib/rate-limit';
 import { REQUIRE_EMAIL_VERIFICATION } from '@/lib/feature-flags';
 import {
   deleteCannedResponse as deleteCanned,
@@ -44,6 +46,30 @@ async function requireUser(forSending = false): Promise<SessionUser | Fail> {
 }
 const failed = (u: SessionUser | Fail): u is Fail => 'ok' in u;
 
+// Server actions accept whatever a client posts, so arguments are checked
+// here before anything reaches SQL. lib/messaging re-checks ownership.
+const Id = z.string().uuid();
+const SendInput = z.object({
+  receiverId: Id,
+  content: z.string().max(5000).optional(),
+  kind: z.enum(['text', 'quote', 'payment_request']).optional(),
+  meta: z.object({
+    amount: z.number().finite().positive().max(1e9),
+    description: z.string().max(500),
+    reference: z.string().max(60).optional(),
+    date: z.string().max(40).optional(),
+  }).nullish(),
+  attachment: z.object({
+    url: z.string().max(6_000_000),
+    name: z.string().max(255),
+    type: z.string().max(100),
+    size: z.number().int().nonnegative(),
+  }).nullish(),
+  replyToId: Id.nullish(),
+});
+const Category = z.enum(['lead', 'support', 'verification', 'general']);
+const bad: Fail = { ok: false, error: 'That request was not valid.' };
+
 export interface SendMessageInput {
   receiverId: string;
   content?: string;
@@ -53,9 +79,14 @@ export interface SendMessageInput {
   replyToId?: string | null;
 }
 
-export async function sendMessage(input: SendMessageInput): Promise<{ ok: true; message: ChatMessage } | Fail> {
+export async function sendMessage(raw: SendMessageInput): Promise<{ ok: true; message: ChatMessage } | Fail> {
   const user = await requireUser(true);
   if (failed(user)) return user;
+  const parsed = SendInput.safeParse(raw);
+  if (!parsed.success) return bad;
+  const input = parsed.data;
+  const rl = await rateLimit(`msg:${user.id}`, 120, 600);
+  if (!rl.allowed) return { ok: false, error: 'You are sending messages very quickly. Please wait a moment.' };
   try {
     const result = await sendDirectMessage({
       senderId: user.id,
@@ -78,6 +109,7 @@ export async function sendMessage(input: SendMessageInput): Promise<{ ok: true; 
 export async function editMessage(messageId: string, content: string): Promise<{ ok: true; message: ChatMessage } | Fail> {
   const user = await requireUser(true);
   if (failed(user)) return user;
+  if (!Id.safeParse(messageId).success || typeof content !== 'string' || content.length > 5000) return bad;
   try {
     return await editDirectMessage(user.id, messageId, content);
   } catch (error) {
@@ -89,6 +121,7 @@ export async function editMessage(messageId: string, content: string): Promise<{
 export async function deleteMessage(messageId: string): Promise<{ ok: true; message: ChatMessage } | Fail> {
   const user = await requireUser();
   if (failed(user)) return user;
+  if (!Id.safeParse(messageId).success) return bad;
   try {
     return await deleteDirectMessage(user.id, messageId);
   } catch (error) {
@@ -100,18 +133,22 @@ export async function deleteMessage(messageId: string): Promise<{ ok: true; mess
 export async function togglePin(otherUserId: string, isPinned: boolean): Promise<{ ok: true } | Fail> {
   const user = await requireUser();
   if (failed(user)) return user;
+  if (!Id.safeParse(otherUserId).success) return bad;
   return setThreadPrefs(user.id, otherUserId, { isPinned: Boolean(isPinned) }).catch(() => ({ ok: false as const, error: 'Could not update the conversation.' }));
 }
 
 export async function toggleArchive(otherUserId: string, isArchived: boolean): Promise<{ ok: true } | Fail> {
   const user = await requireUser();
   if (failed(user)) return user;
+  if (!Id.safeParse(otherUserId).success) return bad;
   return setThreadPrefs(user.id, otherUserId, { isArchived: Boolean(isArchived) }).catch(() => ({ ok: false as const, error: 'Could not update the conversation.' }));
 }
 
 export async function setThreadCategory(otherUserId: string, category: ThreadCategory, label?: string | null): Promise<{ ok: true } | Fail> {
   const user = await requireUser();
   if (failed(user)) return user;
+  if (!Id.safeParse(otherUserId).success || !Category.safeParse(category).success) return bad;
+  if (label != null && (typeof label !== 'string' || label.length > 40)) return bad;
   return setThreadPrefs(user.id, otherUserId, { category, ...(label === undefined ? {} : { label }) })
     .catch(() => ({ ok: false as const, error: 'Could not update the conversation.' }));
 }
@@ -119,6 +156,7 @@ export async function setThreadCategory(otherUserId: string, category: ThreadCat
 export async function getContactContext(otherUserId: string): Promise<{ ok: true; context: ContactContext } | Fail> {
   const user = await requireUser();
   if (failed(user)) return user;
+  if (!Id.safeParse(otherUserId).success) return bad;
   try {
     const context = await loadContactContext(user.id, otherUserId);
     return context ? { ok: true, context } : { ok: false, error: 'That person could not be found.' };
@@ -141,11 +179,12 @@ export async function listCannedResponses(): Promise<{ ok: true; responses: Cann
 export async function saveCannedResponse(shortcut: string, text: string): Promise<{ ok: true; response: CannedResponse } | Fail> {
   const user = await requireUser();
   if (failed(user)) return user;
+  if (typeof shortcut !== 'string' || typeof text !== 'string' || shortcut.length > 40 || text.length > 2000) return bad;
   return saveCanned(user.id, shortcut, text).catch(() => ({ ok: false as const, error: 'Could not save that reply.' }));
 }
 
 export async function deleteCannedResponse(id: string): Promise<{ ok: boolean }> {
   const user = await requireUser();
-  if (failed(user)) return { ok: false };
+  if (failed(user) || !Id.safeParse(id).success) return { ok: false };
   return deleteCanned(user.id, id).catch(() => ({ ok: false }));
 }

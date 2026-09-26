@@ -2,11 +2,11 @@ import { NextResponse } from 'next/server';
 import { getSession, hashOneTimeToken } from '@/lib/auth';
 import { sendVerificationEmail, appUrlFromRequest } from '@/lib/email';
 import db from '@/lib/db';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { clientIp, rateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
-  const ip = request.headers.get?.('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const rl = checkRateLimit(`resend-verify:${ip}`, 3, 300);
+  const ip = clientIp(request.headers);
+  const rl = await rateLimit(`resend-verify:${ip}`, 3, 300);
   if (!rl.allowed) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }

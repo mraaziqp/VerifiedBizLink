@@ -1,6 +1,7 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   typescript: {
     ignoreBuildErrors: false,
   },
@@ -21,6 +22,10 @@ const nextConfig: NextConfig = {
     return config;
   },
   images: {
+    // Optimised images are cached at Amplify's CloudFront edge; a longer
+    // TTL and modern formats mean fewer trips to the SSR compute to re-resize.
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60 * 60 * 24,
     remotePatterns: [
       {
         protocol: 'https',

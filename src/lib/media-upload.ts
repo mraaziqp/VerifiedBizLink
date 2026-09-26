@@ -1,5 +1,4 @@
-import { storage } from './firebase';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getFirebaseStorage } from './firebase';
 
 export async function uploadImage(
   userId: string,
@@ -13,8 +12,10 @@ export async function uploadImage(
     }
 
     // Try Firebase Storage first
+    const storage = await getFirebaseStorage();
     if (storage) {
       try {
+        const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
         const ext = file.name.split('.').pop() || 'bin';
         const timestamp = Date.now();
         const path = `${folder}/${userId}/${timestamp}.${ext}`;
@@ -50,7 +51,9 @@ export async function deleteImage(
   filePath: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    if (storage && filePath.includes('firebasestorage')) {
+    const storage = filePath.includes('firebasestorage') ? await getFirebaseStorage() : null;
+    if (storage) {
+      const { ref, deleteObject } = await import('firebase/storage');
       const storageRef = ref(storage, filePath);
       await deleteObject(storageRef);
     }

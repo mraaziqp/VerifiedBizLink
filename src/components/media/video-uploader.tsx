@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { ref, uploadBytesResumable, getDownloadURL, UploadTask } from 'firebase/storage';
-import { storage } from '@/lib/firebase';
+import type { UploadTask } from 'firebase/storage';
+import { getFirebaseStorage } from '@/lib/firebase';
 import { Pause, Play, X, CheckCircle2, AlertCircle, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -103,8 +103,10 @@ export function VideoUploader({
     setIsPaused(false);
 
     // If Firebase Storage is initialized and available
+    const storage = await getFirebaseStorage();
     if (storage) {
       try {
+        const { ref, uploadBytesResumable, getDownloadURL } = await import('firebase/storage');
         const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
         const storagePath = `videos/${userId}/${Date.now()}_${sanitizedName}`;
         const storageRef = ref(storage, storagePath);

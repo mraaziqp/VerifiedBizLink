@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { hash } from 'bcryptjs';
 import db from '@/lib/db';
 import { createTrackedSession, getSession, hashOneTimeToken, sessionCookieOptions, type SessionUser } from '@/lib/auth';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { sendVerificationEmail, sendWithin, appUrlFromRequest } from '@/lib/email';
 import { REQUIRE_EMAIL_VERIFICATION } from '@/lib/feature-flags';
 import {
@@ -49,9 +49,9 @@ export async function registerBasicUser(
   input: FormData | RegisterBasicUserInput,
 ): Promise<RegisterBasicUserResult> {
   const req = await requestLike();
-  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const ip = clientIp(req.headers);
   // Same bucket as /api/auth/signup, so the two doors share one limit.
-  const rl = checkRateLimit(`signup:${ip}`, 5, 900);
+  const rl = await rateLimit(`signup:${ip}`, 5, 900);
   if (!rl.allowed) {
     return { success: false, error: `Too many signup attempts. Try again in ${rl.retryAfterSecs} seconds.` };
   }

@@ -2,16 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createTrackedSession, createMfaChallenge, sessionCookieOptions } from '@/lib/auth';
 import { compare } from 'bcryptjs';
 import db from '@/lib/db';
+import { z } from 'zod';
+import { clientIp, rateLimit, tooManyRequests } from '@/lib/rate-limit';
+
+const LoginBody = z.object({
+  email: z.string().trim().min(3).max(254),
+  password: z.string().min(1).max(200),
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
-
-    if (!email || !password) {
+    const parsed = LoginBody.safeParse(await request.json().catch(() => null));
+    if (!parsed.success) {
       return NextResponse.json({ error: 'Email and password required' }, { status: 400 });
     }
+    const { password } = parsed.data;
+    const normalizedEmail = parsed.data.email.toLowerCase();
 
-    const normalizedEmail = email.toLowerCase().trim();
+    // Per account (can't be dodged by rotating IPs) and per IP (slows
+    // credential stuffing across many accounts).
+    const [byAccount, byIp] = await Promise.all([
+      rateLimit(`login:email:${normalizedEmail}`, 10, 900),
+      rateLimit(`login:ip:${clientIp(request.headers)}`, 40, 900),
+    ]);
+    if (!byAccount.allowed || !byIp.allowed) {
+      return tooManyRequests(Math.max(byAccount.retryAfterSecs, byIp.retryAfterSecs),
+        'Too many sign-in attempts. Please wait a few minutes and try again.');
+    }
 
     // Neon's users.password_hash is the ONLY source of truth for
     // credentials — signup, forgot/reset-password, and Settings' change-

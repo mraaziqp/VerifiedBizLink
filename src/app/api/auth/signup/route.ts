@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { createTrackedSession, sessionCookieOptions, hashOneTimeToken } from '@/lib/auth';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { sendVerificationEmail, sendWithin, appUrlFromRequest } from '@/lib/email';
 import db from '@/lib/db';
 import { EMAIL_FORMAT, MIN_PASSWORD_LENGTH, isRegistrableEmailDomain } from '@/lib/signup-guards';
 
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const rl = checkRateLimit(`signup:${ip}`, 5, 900);
+  const ip = clientIp(request.headers);
+  const rl = await rateLimit(`signup:${ip}`, 5, 900);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: `Too many signup attempts. Try again in ${rl.retryAfterSecs} seconds.` },
@@ -196,6 +196,6 @@ export async function POST(request: NextRequest) {
     const errorStack = error instanceof Error ? error.stack : '';
     console.error('Signup error:', errorMsg);
     if (errorStack) console.error('Stack:', errorStack);
-    return NextResponse.json({ error: 'Internal server error', detail: errorMsg }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error', ...(process.env.NODE_ENV === 'production' ? {} : { detail: errorMsg }) }, { status: 500 });
   }
 }
