@@ -50,7 +50,7 @@ export default function AdminNetworkPage() {
     <AdminBackground>
       <AdminPageHeader title="Network Statistics" subtitle="Live connection metrics across the platform">
         <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10">
+          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
           </Button>
         </Link>
@@ -65,17 +65,17 @@ export default function AdminNetworkPage() {
           <SectionTitle icon={Activity}>Connection Overview</SectionTitle>
           <div className="divide-y divide-white/5">
             <Row label="System Health" value={
-              <span className={`rounded-full px-3 py-1 text-sm font-semibold ${healthy ? 'bg-green-500/15 text-green-400' : 'bg-amber-500/15 text-amber-400'}`}>
+              <span className={`rounded-full px-3 py-1 text-sm font-semibold ${healthy ? 'bg-green-500/15 text-green-700' : 'bg-amber-500/15 text-amber-700'}`}>
                 {loading ? '…' : healthy ? 'Healthy' : 'Degraded'}
               </span>
             } />
             <Row label="Most Connected User" value={
-              <span className="font-semibold text-amber-400">
+              <span className="font-semibold text-amber-700">
                 {loading ? '…' : stats?.topUser ? `${stats.topUser.name} (${stats.topUser.count})` : 'None yet'}
               </span>
             } />
             <Row label="Database Latency" value={
-              <span className="font-semibold text-amber-400">{loading ? '…' : `${stats?.dbLatencyMs} ms`}</span>
+              <span className="font-semibold text-amber-700">{loading ? '…' : `${stats?.dbLatencyMs} ms`}</span>
             } />
           </div>
         </AdminCard>

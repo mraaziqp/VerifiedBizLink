@@ -178,7 +178,7 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
                 <video src={videoUrl} controls className="w-full max-h-56 rounded-lg bg-black object-contain shadow-xs" />
                 <div className="flex items-center justify-between mt-2 px-1 text-xs text-slate-600">
                   <span className="truncate max-w-xs font-semibold text-slate-800 flex items-center gap-1.5">
-                    <Video className="h-3.5 w-3.5 text-amber-600" />
+                    <Video className="h-3.5 w-3.5 text-amber-700" />
                     {videoMeta?.name || 'Attached Video'}
                   </span>
                   <button
@@ -212,14 +212,14 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
                       description: "Your photo will be included with the post.",
                     });
                   }}
-                  buttonClassName="text-slate-500 hover:text-amber-700 hover:bg-amber-100/60 rounded-xl p-2 transition-colors"
+                  buttonClassName="text-slate-500 hover:text-amber-800 hover:bg-amber-100/60 rounded-xl p-2 transition-colors"
                 />
 
                 {/* Video Uploader Button */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-slate-500 hover:text-amber-700 hover:bg-amber-100/60 rounded-xl"
+                  className="text-slate-500 hover:text-amber-800 hover:bg-amber-100/60 rounded-xl"
                   onClick={() => setIsVideoModalOpen(true)}
                   title="Upload Video (Firebase Cloud Storage)"
                 >
@@ -238,18 +238,18 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-slate-500 hover:text-amber-700 hover:bg-amber-100/60 rounded-xl"
+                  className="text-slate-500 hover:text-amber-800 hover:bg-amber-100/60 rounded-xl"
                   onClick={() => attachInputRef.current?.click()}
                   disabled={isAttaching}
                   title="Attach file"
                 >
-                  {isAttaching ? <Loader2 className="h-5 w-5 animate-spin text-amber-600" /> : <Paperclip className="h-5 w-5" />}
+                  {isAttaching ? <Loader2 className="h-5 w-5 animate-spin text-amber-700" /> : <Paperclip className="h-5 w-5" />}
                 </Button>
 
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-slate-500 hover:text-amber-700 hover:bg-amber-100/60 rounded-xl"
+                  className="text-slate-500 hover:text-amber-800 hover:bg-amber-100/60 rounded-xl"
                   onClick={handleInsertLink}
                   title="Insert link"
                 >
@@ -264,7 +264,7 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
                   onClick={handleAIDraft}
                   disabled={isDrafting || !content.trim()}
                 >
-                  {isDrafting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-amber-600" />}
+                  {isDrafting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-amber-700" />}
                   <span className="hidden sm:inline">{isDrafting ? "Drafting..." : "Draft with AI"}</span>
                   <span className="sm:hidden">{isDrafting ? "..." : "AI"}</span>
                 </Button>

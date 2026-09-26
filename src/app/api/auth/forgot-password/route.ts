@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import db from '@/lib/db';
 import { sendPasswordResetEmail, appUrlFromRequest } from '@/lib/email';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { hashOneTimeToken } from '@/lib/auth';
 import { EMAIL_DELIVERY_AVAILABLE } from '@/lib/feature-flags';
 
@@ -14,8 +14,8 @@ const GENERIC_RESPONSE = {
 };
 
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const rl = checkRateLimit(`forgot-password:${ip}`, 5, 900);
+  const ip = clientIp(request.headers);
+  const rl = await rateLimit(`forgot-password:${ip}`, 5, 900);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: `Too many requests. Try again in ${rl.retryAfterSecs} seconds.` },
@@ -25,11 +25,16 @@ export async function POST(request: NextRequest) {
 
   try {
     const { email } = await request.json();
-    if (!email) {
+    if (typeof email !== 'string' || !email.trim()) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = email.toLowerCase().trim().slice(0, 254);
+    // Stops anyone flooding a person's inbox with reset mails from many IPs.
+    // Same answer either way, so this doesn't reveal whether the account exists.
+    if (!(await rateLimit(`forgot-password:email:${normalizedEmail}`, 3, 3600)).allowed) {
+      return NextResponse.json(GENERIC_RESPONSE);
+    }
     const token = randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 

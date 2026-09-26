@@ -62,7 +62,7 @@ export default function VerifyLookupPage() {
             <VBLLogo variant="full" size="md" iconSize={44} theme="dark" />
           </Link>
           <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-200/80 border border-slate-300 text-xs font-bold text-slate-800">
-            <Sparkles className="h-3 w-3 text-amber-600" />
+            <Sparkles className="h-3 w-3 text-amber-700" />
             Official Public Verification Gateway
           </div>
         </div>
@@ -93,7 +93,7 @@ export default function VerifyLookupPage() {
                 <label htmlFor="serial" className="text-xs font-bold uppercase tracking-wider text-slate-700">
                   Certificate Serial Number
                 </label>
-                <span className="hidden sm:inline text-[11px] text-slate-400 font-mono">Format: VBL-YYYY-XXXX-XXXX</span>
+                <span className="hidden sm:inline text-[11px] text-slate-500 font-mono">Format: VBL-YYYY-XXXX-XXXX</span>
               </div>
               <div className="relative">
                 <input
@@ -176,7 +176,7 @@ export default function VerifyLookupPage() {
         </p>
       </div>
 
-      <div className="text-center text-[11px] text-slate-400 relative z-10 mt-6">
+      <div className="text-center text-[11px] text-slate-500 relative z-10 mt-6">
         VerifiedBizLink &copy; {new Date().getFullYear()} &bull; Official South African Business Verification Registry
       </div>
     </div>

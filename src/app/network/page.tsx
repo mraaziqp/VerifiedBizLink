@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { SidebarLeft } from "@/components/layout/sidebar-left";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GoldCheckmark } from "@/components/ui/gold-checkmark";
-import { Search, Loader2, UserCheck, UserX, UserMinus } from "lucide-react";
+import { MessageSquare, Search, Loader2, UserCheck, UserX, UserMinus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -136,7 +137,7 @@ export default function NetworkPage() {
                         {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-24 rounded-2xl" />)}
                       </div>
                     ) : filtered.length === 0 ? (
-                      <div className="text-center py-12 text-gray-400 font-medium">
+                      <div className="text-center py-12 text-gray-500 font-medium">
                         {search ? "No connections match your search." : "No connections yet. Discover and connect with businesses."}
                       </div>
                     ) : (
@@ -159,12 +160,18 @@ export default function NetworkPage() {
                               </div>
                             </div>
                             <div className="flex gap-1">
+                              <Button asChild size="sm" className="rounded-full bg-amber-400 font-bold text-slate-900 hover:bg-amber-300">
+                                <Link href={`/dashboard/messages?with=${conn.connected_user_id}`} aria-label={`Message ${conn.full_name}`}>
+                                  <MessageSquare className="h-4 w-4" /><span className="hidden min-[420px]:inline">Message</span>
+                                </Link>
+                              </Button>
                               <Button
                                 variant="ghost" size="icon"
-                                className="rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50"
+                                className="rounded-full text-gray-500 hover:text-red-500 hover:bg-red-50"
                                 onClick={() => handleRemove(conn.id, conn.full_name)}
                                 disabled={actioning === conn.id}
                                 title="Remove connection"
+                                aria-label={`Remove ${conn.full_name}`}
                               >
                                 {actioning === conn.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserMinus className="h-5 w-5" />}
                               </Button>
@@ -178,7 +185,7 @@ export default function NetworkPage() {
                   {/* Incoming Pending */}
                   <TabsContent value="pending" className="p-6 focus-visible:ring-0 mt-0">
                     {incomingPending.length === 0 ? (
-                      <div className="text-center py-12 text-gray-400 font-medium">No incoming connection requests.</div>
+                      <div className="text-center py-12 text-gray-500 font-medium">No incoming connection requests.</div>
                     ) : (
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {incomingPending.map((conn) => (
@@ -232,7 +239,7 @@ export default function NetworkPage() {
                   {/* Outgoing Pending */}
                   <TabsContent value="sent" className="p-6 focus-visible:ring-0 mt-0">
                     {outgoingPending.length === 0 ? (
-                      <div className="text-center py-12 text-gray-400 font-medium">No sent requests awaiting response.</div>
+                      <div className="text-center py-12 text-gray-500 font-medium">No sent requests awaiting response.</div>
                     ) : (
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         {outgoingPending.map((conn) => (

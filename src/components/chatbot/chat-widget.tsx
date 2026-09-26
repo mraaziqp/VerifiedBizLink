@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageSquare, X, Send, User, ChevronDown, Trash2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { usePathname } from "next/navigation";
 
 interface Message {
   id: number;
@@ -64,6 +65,7 @@ function BotMessage({ text }: { text: string }) {
 }
 
 export function ChatWidget() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [input, setInput] = useState("");
@@ -131,6 +133,9 @@ export function ChatWidget() {
 
   const userMessageCount = messages.filter((m) => m.role === "user").length;
 
+  // The messages hub has its own composer in this corner.
+  if (pathname?.startsWith("/dashboard/messages")) return null;
+
   return (
     <>
       {/* Floating button */}
@@ -162,7 +167,7 @@ export function ChatWidget() {
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 bg-gray-900 text-white shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-primary rounded-full flex items-center justify-center">
+              <div className="w-9 h-9 bg-amber-400 rounded-full flex items-center justify-center">
                 <Sparkles className="h-4 w-4 text-gray-900" />
               </div>
               <div>
@@ -195,7 +200,7 @@ export function ChatWidget() {
               <div key={msg.id} className={`flex gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 self-end ${
-                    msg.role === "bot" ? "bg-gray-900" : "bg-primary"
+                    msg.role === "bot" ? "bg-gray-900" : "bg-amber-400"
                   }`}
                 >
                   {msg.role === "bot" ? (

@@ -38,8 +38,8 @@ export function MobileBottomNav() {
     {
       icon: <MessageSquare className="h-6 w-6" />,
       label: "Messages",
-      href: "/messages",
-      active: pathname === "/messages",
+      href: "/dashboard/messages",
+      active: pathname.startsWith("/dashboard/messages"),
     },
     {
       icon: <User className="h-6 w-6" />,

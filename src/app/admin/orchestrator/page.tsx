@@ -109,19 +109,19 @@ export default function OrchestratorDashboard() {
     <AdminBackground>
       <AdminPageHeader title="Orchestrator Portal" subtitle="Business intelligence & tier management">
         <Button onClick={() => router.push("/")} variant="outline" size="sm"
-          className="gap-2 border-cyan-500/30 text-cyan-400 hover:border-cyan-500/50 hover:bg-cyan-500/10">
+          className="gap-2 border-cyan-500/30 text-cyan-700 hover:border-cyan-500/50 hover:bg-cyan-500/10">
           <ArrowLeft className="h-4 w-4" /> <span className="hidden sm:inline">Back to App</span>
         </Button>
         <span className="hidden text-sm text-gray-500 lg:inline">{user?.email}</span>
         <Link href="/admin/dashboard">
           <Button variant="outline" size="sm"
-            className="gap-2 border-blue-500/30 text-blue-400 hover:border-blue-500/50 hover:bg-blue-500/10">
+            className="gap-2 border-blue-500/30 text-blue-700 hover:border-blue-500/50 hover:bg-blue-500/10">
             <Activity className="h-4 w-4" /> <span className="hidden sm:inline">My Tools</span>
           </Button>
         </Link>
         <Link href="/admin/team">
           <Button variant="outline" size="sm"
-            className="gap-2 border-purple-500/30 text-purple-400 hover:border-purple-500/50 hover:bg-purple-500/10">
+            className="gap-2 border-purple-500/30 text-purple-700 hover:border-purple-500/50 hover:bg-purple-500/10">
             <Users className="h-4 w-4" /> <span className="hidden sm:inline">Team</span>
           </Button>
         </Link>
@@ -132,7 +132,7 @@ export default function OrchestratorDashboard() {
           </Button>
         </Link>
         <Button variant="outline" size="sm" onClick={handleLogout}
-          className="gap-2 border-red-500/30 text-red-400 hover:border-red-500/50 hover:bg-red-500/10">
+          className="gap-2 border-red-500/30 text-red-700 hover:border-red-500/50 hover:bg-red-500/10">
           <LogOut className="h-4 w-4" /> <span className="hidden sm:inline">Logout</span>
         </Button>
       </AdminPageHeader>
@@ -153,7 +153,7 @@ export default function OrchestratorDashboard() {
                 { v: "appearance", label: "Appearance", Icon: ImageIcon },
               ].map(({ v, label, Icon }) => (
                 <TabsTrigger key={v} value={v}
-                  className="rounded-none border-b-2 border-transparent px-3 py-3 text-gray-500 data-[state=active]:border-amber-400 data-[state=active]:bg-transparent data-[state=active]:text-amber-400">
+                  className="rounded-none border-b-2 border-transparent px-3 py-3 text-gray-500 data-[state=active]:border-amber-400 data-[state=active]:bg-transparent data-[state=active]:text-amber-700">
                   <Icon className="mr-2 h-4 w-4" /> {label}
                 </TabsTrigger>
               ))}
@@ -216,10 +216,10 @@ export default function OrchestratorDashboard() {
               <SectionTitle icon={FileText}>Quick Breakdown</SectionTitle>
               <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
                 {[
-                  { label: "Verified", count: stats?.verifiedBusinesses, color: "text-green-400", Icon: CheckCircle2 },
-                  { label: "Pending", count: stats?.pendingBusinesses, color: "text-amber-400", Icon: Clock },
-                  { label: "Total Posts", count: stats?.totalPosts, color: "text-cyan-400", Icon: FileText },
-                  { label: "Connections", count: stats?.totalConnections, color: "text-purple-400", Icon: Link2 },
+                  { label: "Verified", count: stats?.verifiedBusinesses, color: "text-green-700", Icon: CheckCircle2 },
+                  { label: "Pending", count: stats?.pendingBusinesses, color: "text-amber-700", Icon: Clock },
+                  { label: "Total Posts", count: stats?.totalPosts, color: "text-cyan-700", Icon: FileText },
+                  { label: "Connections", count: stats?.totalConnections, color: "text-purple-700", Icon: Link2 },
                 ].map((t) => (
                   <div key={t.label} className="rounded-xl border border-gray-200 bg-gray-50 p-4">
                     <div className="mb-2 flex items-center gap-2">

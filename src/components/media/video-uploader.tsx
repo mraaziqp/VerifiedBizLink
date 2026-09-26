@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { ref, uploadBytesResumable, getDownloadURL, UploadTask } from 'firebase/storage';
-import { storage } from '@/lib/firebase';
+import type { UploadTask } from 'firebase/storage';
+import { getFirebaseStorage } from '@/lib/firebase';
 import { Pause, Play, X, CheckCircle2, AlertCircle, Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -103,8 +103,10 @@ export function VideoUploader({
     setIsPaused(false);
 
     // If Firebase Storage is initialized and available
+    const storage = await getFirebaseStorage();
     if (storage) {
       try {
+        const { ref, uploadBytesResumable, getDownloadURL } = await import('firebase/storage');
         const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
         const storagePath = `videos/${userId}/${Date.now()}_${sanitizedName}`;
         const storageRef = ref(storage, storagePath);
@@ -240,7 +242,7 @@ export function VideoUploader({
           className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-amber-300 hover:border-amber-500 rounded-2xl cursor-pointer bg-amber-50/40 hover:bg-amber-50/70 transition-all group"
         >
           <div className="h-13 w-13 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-            <Film className="h-6 w-6 text-amber-600" />
+            <Film className="h-6 w-6 text-amber-700" />
           </div>
           <p className="text-sm font-extrabold text-slate-900">Click or drag video to upload</p>
           <p className="text-xs text-slate-500 mt-1 font-medium">MP4, WebM or MOV (Up to {maxSizeMB}MB)</p>
@@ -261,7 +263,7 @@ export function VideoUploader({
           {isUploading && (
             <div className="space-y-2 bg-slate-50 border border-slate-200 p-3.5 rounded-xl">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-amber-600 font-extrabold">{progress}% uploaded</span>
+                <span className="text-amber-700 font-extrabold">{progress}% uploaded</span>
                 <span className="text-slate-600 font-bold">{isPaused ? 'Paused' : 'Streaming to Cloud Storage...'}</span>
               </div>
               <Progress value={progress} className="h-2.5 bg-slate-200" />

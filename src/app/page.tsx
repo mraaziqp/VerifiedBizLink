@@ -351,9 +351,9 @@ export default function Home() {
             ) : (
               <div className="rounded-2xl border border-yellow-400/30 bg-gradient-to-br from-yellow-50 to-white p-6 sm:p-8 text-center space-y-4 shadow-sm">
                 <div className="flex justify-center gap-3">
-                  <ShieldCheck className="h-8 w-8 text-yellow-600" />
-                  <Users className="h-8 w-8 text-yellow-600" />
-                  <TrendingUp className="h-8 w-8 text-yellow-600" />
+                  <ShieldCheck className="h-8 w-8 text-yellow-700" />
+                  <Users className="h-8 w-8 text-yellow-700" />
+                  <TrendingUp className="h-8 w-8 text-yellow-700" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Join VerifiedBizLink</h2>

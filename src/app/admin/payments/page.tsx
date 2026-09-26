@@ -34,7 +34,7 @@ interface PaymentStats {
 
 const STATUS_BADGE: Record<string, string> = {
   completed: 'bg-green-500/10 text-green-700',
-  pending: 'bg-yellow-500/10 text-yellow-400',
+  pending: 'bg-yellow-500/10 text-yellow-700',
   failed: 'bg-red-500/10 text-red-700',
 };
 
@@ -78,7 +78,7 @@ export default function AdminPaymentsPage() {
     <AdminBackground>
       <AdminPageHeader title="Payment Gateway" subtitle="PayFast transactions, revenue, and status">
         <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10">
+          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
           </Button>
         </Link>

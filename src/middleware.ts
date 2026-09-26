@@ -140,6 +140,17 @@ const PUBLIC_BUSINESS_API = new RegExp(`^/api/businesses/${UUID}(/reviews(/${UUI
 // (provisioned directly, not through the public signup+verify flow).
 const UNVERIFIED_ALLOWED_PREFIXES = ['/settings', '/onboarding', '/vetting', '/business/verify'];
 
+// What a quick-signup shopper or job seeker (requiresVerification: false in
+// their token) may do before confirming their email: review a business,
+// build a talent profile and CV, and apply for jobs. Posting, messaging,
+// connecting and every business feature still need a confirmed address.
+const BASIC_ACCOUNT_ALLOWED = [
+  new RegExp(`^/api/businesses/${UUID}/reviews$`, 'i'),
+  new RegExp(`^/api/jobs/${UUID}/apply$`, 'i'),
+  /^\/api\/talent(\/|$)/,
+  /^\/api\/applications(\/|$)/,
+];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -180,10 +191,10 @@ export async function middleware(request: NextRequest) {
   // Decode once and reuse below — every check past this point needs the
   // role/emailVerified claims, and an invalid/expired token means the same
   // thing everywhere: back to login.
-  let claims: { role?: string; emailVerified?: boolean };
+  let claims: { role?: string; emailVerified?: boolean; requiresVerification?: boolean };
   try {
     const { payload } = await jwtVerify(session.value, jwtSecret());
-    claims = payload as { role?: string; emailVerified?: boolean };
+    claims = payload as typeof claims;
   } catch {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('from', pathname);
@@ -222,10 +233,15 @@ export async function middleware(request: NextRequest) {
   // app, so they can't publish a post, message anyone, or build out a
   // business profile before proving they own the email on file. Page
   // navigation only; the public paths/API prefixes above are unaffected.
+  // Strictly false, not merely falsy: tokens issued before this flag existed
+  // have no claim at all and keep the full gate.
+  const isBasicAccount = claims.requiresVerification === false;
+
   if (
     REQUIRE_EMAIL_VERIFICATION &&
     !isStaffUser &&
     !claims.emailVerified &&
+    !isBasicAccount &&
     !pathname.startsWith('/api') &&
     !UNVERIFIED_ALLOWED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
   ) {
@@ -242,7 +258,8 @@ export async function middleware(request: NextRequest) {
     !VERIFICATION_EXEMPT.test(pathname) &&
     !VERIFICATION_EXEMPT_PATHS.includes(pathname) &&
     !isStaffUser &&
-    !claims.emailVerified
+    !claims.emailVerified &&
+    !(isBasicAccount && BASIC_ACCOUNT_ALLOWED.some((re) => re.test(pathname)))
   ) {
     return NextResponse.json(
       { error: 'Please verify your email address to unlock this feature.' },

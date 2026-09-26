@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error('Log ingestion error:', errorMsg);
     return NextResponse.json(
-      { error: 'Failed to ingest log', detail: errorMsg },
+      { error: 'Failed to ingest log', ...(process.env.NODE_ENV === 'production' ? {} : { detail: errorMsg }) },
       { status: 500 }
     );
   }
@@ -292,7 +292,7 @@ export async function GET(request: NextRequest) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error('Log fetch error:', errorMsg);
     return NextResponse.json(
-      { error: 'Failed to fetch logs', detail: errorMsg },
+      { error: 'Failed to fetch logs', ...(process.env.NODE_ENV === 'production' ? {} : { detail: errorMsg }) },
       { status: 500 }
     );
   }

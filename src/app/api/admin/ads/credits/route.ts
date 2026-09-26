@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { isStaff } from '@/lib/roles';
 import db from '@/lib/db';
+import { changeCredits } from '@/lib/ad-credits';
 
 type Row = Record<string, unknown>;
 
@@ -59,39 +60,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { businessId, amount, reason } = body;
+    const body = await request.json().catch(() => ({}));
+    const { businessId, reason } = body;
+    const amount = Number(body.amount);
 
-    if (!businessId || typeof amount !== 'number') {
-      return NextResponse.json({ error: 'businessId and numeric amount required' }, { status: 400 });
+    if (!businessId || !Number.isInteger(amount) || amount === 0) {
+      return NextResponse.json({ error: 'Enter a whole number of credits (negative to deduct).' }, { status: 400 });
+    }
+    if (Math.abs(amount) > 1_000_000) {
+      return NextResponse.json({ error: 'Adjust at most 1,000,000 credits at a time.' }, { status: 400 });
     }
 
-    const [biz] = await db`SELECT id, company_name, ad_credits FROM businesses WHERE id = ${businessId} LIMIT 1`;
+    const [biz] = await db`SELECT id, company_name, COALESCE(ad_credits, 0) AS ad_credits FROM businesses WHERE id = ${businessId} LIMIT 1`;
     if (!biz) {
       return NextResponse.json({ error: 'Business not found' }, { status: 404 });
     }
 
     const currentCredits = Number(biz.ad_credits) || 0;
-    const newCredits = Math.max(0, currentCredits + amount);
+    // A deduction larger than the balance empties it rather than failing.
+    const delta = amount < 0 ? Math.max(amount, -currentCredits) : amount;
+    if (delta === 0) {
+      return NextResponse.json({ error: `${biz.company_name} has no credits to deduct.` }, { status: 400 });
+    }
 
-    await db`
-      UPDATE businesses
-      SET
-        ad_credits = ${newCredits},
-        credits_last_topped_up_at = NOW(),
-        updated_at = NOW()
-      WHERE id = ${businessId}
-    `;
+    const note = typeof reason === 'string' && reason.trim() ? reason.trim().slice(0, 200) : null;
+    // Through the ledger, and without touching credits_last_topped_up_at:
+    // setting that here used to cancel the business's monthly plan allowance
+    // for the rest of the month.
+    const result = await changeCredits({
+      businessId,
+      delta,
+      kind: 'admin_adjustment',
+      note: note ? `Admin: ${note}` : `Admin adjustment by ${session.fullName}`,
+      actorId: session.id,
+    });
+    if (!result.applied) {
+      return NextResponse.json({ error: 'The balance changed while saving. Refresh and try again.' }, { status: 409 });
+    }
+    const newCredits = result.balance;
 
-    // Credit adjustments are money-adjacent, so record who changed what and
-    // why. The reason was being collected from the admin and then dropped.
-    const note = typeof reason === 'string' && reason.trim() ? ` — ${reason.trim().slice(0, 200)}` : '';
     await db`
       INSERT INTO audit_logs (admin_id, admin_name, action, target_type, target_id, target_name)
       VALUES (
         ${session.id},
         ${session.fullName},
-        ${`Adjusted ad credits ${currentCredits} → ${newCredits}${note}`},
+        ${`Adjusted ad credits ${currentCredits} → ${newCredits}${note ? ` — ${note}` : ''}`},
         'business',
         ${businessId},
         ${biz.company_name}

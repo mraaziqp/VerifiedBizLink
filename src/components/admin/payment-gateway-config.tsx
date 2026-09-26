@@ -55,7 +55,7 @@ export default function PaymentGatewayConfig() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <CreditCard className="h-6 w-6 text-yellow-400" />
+          <CreditCard className="h-6 w-6 text-yellow-700" />
           Payment Gateway
         </h2>
         <p className="text-gray-500 text-sm mt-1">

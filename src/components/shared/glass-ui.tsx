@@ -80,7 +80,7 @@ export function SectionTitle({
   return (
     <div className="mb-5 flex items-center justify-between gap-3">
       <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 sm:text-xl">
-        {Icon && <Icon className="h-5 w-5 text-amber-600" />}
+        {Icon && <Icon className="h-5 w-5 text-amber-700" />}
         {children}
       </h2>
       {action}

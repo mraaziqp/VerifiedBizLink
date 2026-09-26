@@ -88,7 +88,7 @@ const TRUST_BAND = (score: number) =>
   score >= 80
     ? { label: "High", icon: TrendingUp, color: "text-green-600" }
     : score >= 40
-    ? { label: "Medium", icon: Minus, color: "text-yellow-600" }
+    ? { label: "Medium", icon: Minus, color: "text-yellow-700" }
     : { label: "Low", icon: TrendingDown, color: "text-red-500" };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -928,7 +928,7 @@ export function VettingDesk() {
 
                 {selectedBiz.review_notes && (
                   <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-xl">
-                    <p className="text-xs font-bold text-yellow-600 uppercase mb-1">
+                    <p className="text-xs font-bold text-yellow-700 uppercase mb-1">
                       Previous Review Notes
                     </p>
                     <p className="text-sm text-gray-700">{selectedBiz.review_notes}</p>

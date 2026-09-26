@@ -246,7 +246,7 @@ export function AgentSupportPanel() {
       {/* My contact details */}
       <div className="rounded-2xl border border-gray-200 bg-white/80 p-5 shadow-md sm:p-6">
         <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-gray-900">
-          <User className="h-5 w-5 text-amber-600" /> My details
+          <User className="h-5 w-5 text-amber-700" /> My details
         </h2>
         <p className="mb-4 text-sm text-gray-500">
           Keep these current — your name is what a business sees when they sign up
@@ -381,7 +381,7 @@ export function AgentSupportPanel() {
       {/* Contact the directors */}
       <div className="rounded-2xl border border-gray-200 bg-white/80 p-5 shadow-md sm:p-6">
         <h2 className="mb-1 flex items-center gap-2 text-lg font-bold text-gray-900">
-          <MessageSquare className="h-5 w-5 text-amber-600" /> Contact the directors
+          <MessageSquare className="h-5 w-5 text-amber-700" /> Contact the directors
         </h2>
         <p className="mb-4 text-sm text-gray-500">
           Anything wrong, unclear or worth suggesting — this goes straight to the
@@ -474,7 +474,7 @@ export function AgentSupportPanel() {
       {/* What I've reported */}
       <div className="rounded-2xl border border-gray-200 bg-white/80 p-5 shadow-md sm:p-6">
         <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
-          <Clock className="h-5 w-5 text-amber-600" /> My reports
+          <Clock className="h-5 w-5 text-amber-700" /> My reports
         </h2>
 
         {issues.length === 0 ? (

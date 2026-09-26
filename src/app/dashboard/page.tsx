@@ -271,7 +271,7 @@ export default function Dashboard() {
           ) : (
             <div className="rounded-2xl bg-white/80 border border-gray-200 p-6 shadow-sm">
               <p className="text-gray-500 text-sm font-medium uppercase tracking-wide">Verified Directory</p>
-              <Link href="/explore" className="text-sm font-bold text-yellow-600 hover:text-yellow-700 flex items-center gap-1 mt-3">
+              <Link href="/explore" className="text-sm font-bold text-yellow-700 hover:text-yellow-800 flex items-center gap-1 mt-3">
                 Browse 100% Verified South African Businesses →
               </Link>
             </div>

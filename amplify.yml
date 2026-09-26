@@ -28,6 +28,14 @@ frontend:
         - npm ci --legacy-peer-deps --cache .npm --prefer-offline || npm install --legacy-peer-deps
     build:
       commands:
+        # Heap for `next build` on the 8 GiB Standard instance. Measured peak
+        # is ~3.5 GB across the build and its workers (4 vCPU). NODE_OPTIONS
+        # is inherited by every worker Next spawns, so the per-process cap has
+        # to leave room for all of them: 4096 per process keeps the total well
+        # under 8 GiB, where 6144+ lets four processes overcommit the box and
+        # get OOM-killed instead of garbage-collecting.
+        - export NODE_OPTIONS="--max-old-space-size=4096"
+        - export NEXT_TELEMETRY_DISABLED=1
         # Amplify does NOT pass console environment variables into the Next.js
         # SSR runtime. They exist during the build shell, but the compute
         # functions that serve API routes never see them — which is why every
@@ -40,9 +48,17 @@ frontend:
         # Listed explicitly rather than dumping all of `env`, so AWS-internal
         # build variables and credentials don't leak into the artifact.
         - env | grep -e '^DATABASE_URL=' -e '^JWT_SECRET=' -e '^SETUP_SECRET=' -e '^CRON_SECRET=' -e '^TWO_FACTOR_ENCRYPTION_KEY=' >> .env.production || true
-        - env | grep -e '^TITAN_EMAIL_ADDRESS=' -e '^TITAN_EMAIL_PASSWORD=' -e '^SMTP_HOST=' -e '^SMTP_PORT=' -e '^SUPPORT_EMAIL=' >> .env.production || true
+        # Certificates were being signed with the JWT_SECRET fallback because
+        # this was missing here; lib/certificates still accepts those.
+        - env | grep -e '^CERTIFICATE_SIGNING_SECRET=' >> .env.production || true
+        # Server-side Google Cloud Storage uploads (avatar, media, video fallback).
+        - env | grep -e '^GCP_PROJECT_ID=' -e '^GCP_CLIENT_EMAIL=' -e '^GCP_PRIVATE_KEY=' -e '^GCP_STORAGE_BUCKET=' >> .env.production || true
+        - env | grep -e '^TITAN_EMAIL_ADDRESS=' -e '^TITAN_EMAIL_PASSWORD=' -e '^SMTP_HOST=' -e '^SMTP_PORT=' -e '^SMTP_USER=' -e '^SMTP_PASS=' -e '^SMTP_PASSWORD=' -e '^SUPPORT_EMAIL=' >> .env.production || true
         - env | grep -e '^GOOGLE_API_KEY=' -e '^GEMINI_API_KEY=' -e '^SUPABASE_SERVICE_ROLE_KEY=' >> .env.production || true
         - env | grep -e '^PAYFAST_' >> .env.production || true
+        # Shared rate-limit store (optional; falls back to Postgres) and the
+        # SMTP certificate escape hatch (see src/lib/email.ts).
+        - env | grep -e '^UPSTASH_REDIS_REST_URL=' -e '^UPSTASH_REDIS_REST_TOKEN=' -e '^SMTP_ALLOW_INVALID_CERT=' >> .env.production || true
         - env | grep -e '^NEXT_PUBLIC_' >> .env.production || true
         # Names only — never the values — so a failure is diagnosable from the
         # build log without printing secrets into it.

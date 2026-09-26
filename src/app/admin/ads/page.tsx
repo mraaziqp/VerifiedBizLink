@@ -217,11 +217,14 @@ export default function AdminAdsManagerPage() {
           reason: grantReason,
         }),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        const data = await res.json();
         toast({ title: data.message });
         setSelectedBizForCredit(null);
         loadBusinesses();
+      } else {
+        // Used to fail silently: the dialog just sat there.
+        toast({ title: 'Could not update credits', description: data.error, variant: 'destructive' });
       }
     } catch {
       toast({ title: 'Failed to update credits', variant: 'destructive' });
@@ -289,7 +292,7 @@ export default function AdminAdsManagerPage() {
 
           <Card className="border border-slate-200 bg-white shadow-xs p-4 space-y-1">
             <span className="text-[11px] font-bold uppercase text-slate-500">Paused / Expired</span>
-            <p className="text-2xl font-black text-amber-600">{totals?.pausedAds ?? 0}</p>
+            <p className="text-2xl font-black text-amber-700">{totals?.pausedAds ?? 0}</p>
           </Card>
 
           <Card className="border border-slate-200 bg-white shadow-xs p-4 space-y-1">
@@ -401,7 +404,7 @@ export default function AdminAdsManagerPage() {
                             </span>
                             <Badge
                               variant={ad.is_active && !isExpired ? 'default' : 'secondary'}
-                              className={ad.is_active && !isExpired ? 'bg-emerald-500 text-white font-bold text-[10px]' : 'text-[10px] font-bold'}
+                              className={ad.is_active && !isExpired ? 'bg-emerald-700 text-white font-bold text-[10px]' : 'text-[10px] font-bold'}
                             >
                               {ad.is_active && !isExpired ? 'Active Live' : isExpired ? 'Expired' : 'Paused'}
                             </Badge>

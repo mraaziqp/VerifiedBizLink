@@ -125,9 +125,9 @@ const GROWTH_RECOMMENDATIONS = [
 ];
 
 function getTrustScoreLabel(score: number): { label: string; color: string } {
-  if (score >= 80) return { label: 'Excellent', color: 'text-green-400' };
-  if (score >= 60) return { label: 'Good', color: 'text-green-400' };
-  if (score >= 30) return { label: 'Building', color: 'text-yellow-600' };
+  if (score >= 80) return { label: 'Excellent', color: 'text-green-700' };
+  if (score >= 60) return { label: 'Good', color: 'text-green-700' };
+  if (score >= 30) return { label: 'Building', color: 'text-yellow-700' };
   return { label: 'Get Verified', color: 'text-gray-500' };
 }
 
@@ -315,7 +315,7 @@ export default function BusinessDashboard() {
           {adminBusinesses.length > 0 && isStaffRole(user?.role) && (
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3 px-4 flex flex-wrap items-center justify-between gap-3 text-sm">
               <div className="flex items-center gap-2 text-amber-900 font-bold">
-                <Shield className="h-4 w-4 text-amber-600" />
+                <Shield className="h-4 w-4 text-amber-700" />
                 <span>Admin View: Inspecting Business</span>
               </div>
               <div className="flex items-center gap-2">
@@ -351,7 +351,7 @@ export default function BusinessDashboard() {
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                   <h1 className="text-lg sm:text-3xl font-bold text-gray-900 truncate">{business.company_name}</h1>
                   {business.status === 'verified' && (
-                    <Badge className="bg-green-500 text-white border-0 text-[10px] sm:text-xs shrink-0">VERIFIED</Badge>
+                    <Badge className="bg-green-700 text-white border-0 text-[10px] sm:text-xs shrink-0">VERIFIED</Badge>
                   )}
                 </div>
                 <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1">{business.industry || 'Business'} • {profileCompletion}% Complete</p>
@@ -370,7 +370,7 @@ export default function BusinessDashboard() {
               <Link href={`/business/${business.id}`} target="_blank">
                 <Button
                   variant="outline"
-                  className="gap-2 border-yellow-500/40 text-yellow-600 hover:bg-yellow-500/10 hidden sm:flex"
+                  className="gap-2 border-yellow-500/40 text-yellow-700 hover:bg-yellow-500/10 hidden sm:flex"
                 >
                   <Eye className="h-4 w-4" />
                   View Public Page
@@ -399,7 +399,7 @@ export default function BusinessDashboard() {
           <Link href={`/business/${business.id}`} target="_blank" className="sm:hidden block mb-4">
             <Button
               variant="outline"
-              className="w-full gap-2 border-yellow-500/40 text-yellow-600 hover:bg-yellow-500/10 h-11"
+              className="w-full gap-2 border-yellow-500/40 text-yellow-700 hover:bg-yellow-500/10 h-11"
             >
               <Eye className="h-4 w-4" />
               View Public Page
@@ -499,10 +499,10 @@ export default function BusinessDashboard() {
                           <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Step 1</span>
                           {business.description ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />}
                         </div>
-                        <p className="font-bold text-gray-900 text-sm group-hover:text-amber-600 transition">Company Profile</p>
+                        <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700 transition">Company Profile</p>
                         <p className="text-xs text-gray-500 mt-1">Add logo, description & contact details</p>
                       </div>
-                      <span className="text-xs font-bold text-amber-600 mt-3 inline-flex items-center gap-1">Edit Details →</span>
+                      <span className="text-xs font-bold text-amber-700 mt-3 inline-flex items-center gap-1">Edit Details →</span>
                     </Link>
 
                     <Link href="/business/documents" className="p-3.5 bg-white/95 backdrop-blur rounded-xl border border-white/60 shadow-sm hover:bg-white transition flex flex-col justify-between group">
@@ -511,10 +511,10 @@ export default function BusinessDashboard() {
                           <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Step 2</span>
                           {business.doc_count > 0 ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />}
                         </div>
-                        <p className="font-bold text-gray-900 text-sm group-hover:text-amber-600 transition">Vetting Documents</p>
+                        <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700 transition">Vetting Documents</p>
                         <p className="text-xs text-gray-500 mt-1">Upload CIPC, ID & SARS documents</p>
                       </div>
-                      <span className="text-xs font-bold text-amber-600 mt-3 inline-flex items-center gap-1">Upload Docs →</span>
+                      <span className="text-xs font-bold text-amber-700 mt-3 inline-flex items-center gap-1">Upload Docs →</span>
                     </Link>
 
                     <Link href="/business/gallery" className="p-3.5 bg-white/95 backdrop-blur rounded-xl border border-white/60 shadow-sm hover:bg-white transition flex flex-col justify-between group">
@@ -523,10 +523,10 @@ export default function BusinessDashboard() {
                           <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Step 3</span>
                           {(stats?.gallery_count ?? 0) >= 1 ? <CheckCircle2 className="h-4 w-4 text-green-600" /> : <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />}
                         </div>
-                        <p className="font-bold text-gray-900 text-sm group-hover:text-amber-600 transition">Photo Gallery</p>
+                        <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700 transition">Photo Gallery</p>
                         <p className="text-xs text-gray-500 mt-1">Add workspace & product photos</p>
                       </div>
-                      <span className="text-xs font-bold text-amber-600 mt-3 inline-flex items-center gap-1">Add Photos →</span>
+                      <span className="text-xs font-bold text-amber-700 mt-3 inline-flex items-center gap-1">Add Photos →</span>
                     </Link>
 
                     <Link href="/business/posts" className="p-3.5 bg-white/95 backdrop-blur rounded-xl border border-white/60 shadow-sm hover:bg-white transition flex flex-col justify-between group">
@@ -535,10 +535,10 @@ export default function BusinessDashboard() {
                           <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Step 4</span>
                           <div className="h-2.5 w-2.5 rounded-full bg-amber-500" />
                         </div>
-                        <p className="font-bold text-gray-900 text-sm group-hover:text-amber-600 transition">Publish Post</p>
+                        <p className="font-bold text-gray-900 text-sm group-hover:text-amber-700 transition">Publish Post</p>
                         <p className="text-xs text-gray-500 mt-1">Share business announcements</p>
                       </div>
-                      <span className="text-xs font-bold text-amber-600 mt-3 inline-flex items-center gap-1">Create Post →</span>
+                      <span className="text-xs font-bold text-amber-700 mt-3 inline-flex items-center gap-1">Create Post →</span>
                     </Link>
                   </div>
                 </div>
@@ -559,7 +559,7 @@ export default function BusinessDashboard() {
                   ) : business.status === 'pending' ? (
                     <AlertTriangle className="h-5 w-5 text-yellow-400" />
                   ) : business.status === 'rejected' ? (
-                    <AlertCircle className="h-5 w-5 text-red-400" />
+                    <AlertCircle className="h-5 w-5 text-red-600" />
                   ) : (
                     <FileText className="h-5 w-5 text-gray-500" />
                   )}
@@ -594,7 +594,7 @@ export default function BusinessDashboard() {
                   Profile Completion: {profileCompletion}%
                 </h3>
                 {profileCompletion < 100 && (
-                  <span className="text-sm text-yellow-600 font-medium">+{100 - profileCompletion}% to full potential</span>
+                  <span className="text-sm text-yellow-700 font-medium">+{100 - profileCompletion}% to full potential</span>
                 )}
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
@@ -607,11 +607,11 @@ export default function BusinessDashboard() {
                 {profileCompletionItems.map((item, i) => (
                   <div key={i} className="flex items-center gap-2">
                     {item.completed ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-400 flex-shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 text-green-700 flex-shrink-0" />
                     ) : (
                       <div className="h-4 w-4 rounded-full border border-gray-300 flex-shrink-0"></div>
                     )}
-                    <span className={`text-sm ${item.completed ? 'text-green-400' : 'text-gray-500'}`}>
+                    <span className={`text-sm ${item.completed ? 'text-green-700' : 'text-gray-500'}`}>
                       {item.label}
                     </span>
                   </div>
@@ -631,7 +631,7 @@ export default function BusinessDashboard() {
                         <div className="flex items-end gap-2">
                           <p className="text-4xl font-bold text-gray-900">{stats?.week_views || 0}</p>
                           {stats?.week_change_pct !== null && stats?.week_change_pct !== undefined && (
-                            <p className={`text-sm font-medium mb-1 ${stats.week_change_pct >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            <p className={`text-sm font-medium mb-1 ${stats.week_change_pct >= 0 ? 'text-green-700' : 'text-red-600'}`}>
                               {stats.week_change_pct >= 0 ? '+' : ''}{stats.week_change_pct}%
                             </p>
                           )}
@@ -751,7 +751,7 @@ export default function BusinessDashboard() {
                         <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg">
                           <MessageSquare className="h-5 w-5 text-cyan-400" />
                         </div>
-                        <Badge className="bg-yellow-500/10 text-yellow-300 border-yellow-500/20">Popular</Badge>
+                        <Badge className="bg-yellow-500/10 text-yellow-800 border-yellow-500/20">Popular</Badge>
                       </div>
                       <h3 className="font-semibold text-gray-900 mb-2">Posts</h3>
                       <p className="text-gray-500 text-sm">Share updates with your audience</p>
@@ -766,7 +766,7 @@ export default function BusinessDashboard() {
                         <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg">
                           <ImageIcon className="h-5 w-5 text-purple-400" />
                         </div>
-                        <Badge className="bg-yellow-500/10 text-yellow-300 border-yellow-500/20">{stats?.gallery_count ?? 0} images</Badge>
+                        <Badge className="bg-yellow-500/10 text-yellow-800 border-yellow-500/20">{stats?.gallery_count ?? 0} images</Badge>
                       </div>
                       <h3 className="font-semibold text-gray-900 mb-2">Gallery</h3>
                       <p className="text-gray-500 text-sm">Showcase your business</p>
@@ -955,7 +955,7 @@ export default function BusinessDashboard() {
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-gray-900 font-medium">Profile Completeness</span>
-                      <span className="text-yellow-600">{profileCompletion}%</span>
+                      <span className="text-yellow-700">{profileCompletion}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div className="bg-green-500 h-2 rounded-full" style={{ width: `${profileCompletion}%` }}></div>
@@ -965,7 +965,7 @@ export default function BusinessDashboard() {
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-gray-900 font-medium">Monthly Views</span>
-                      <span className="text-yellow-600">{stats?.month_views ?? 0}</span>
+                      <span className="text-yellow-700">{stats?.month_views ?? 0}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div className="bg-green-500 h-2 rounded-full" style={{ width: `${Math.min(100, (stats?.month_views ?? 0) * 2)}%` }}></div>
@@ -975,7 +975,7 @@ export default function BusinessDashboard() {
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-gray-900 font-medium">Connections</span>
-                      <span className="text-yellow-600">{stats?.connections ?? 0}</span>
+                      <span className="text-yellow-700">{stats?.connections ?? 0}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div className="bg-green-500 h-2 rounded-full" style={{ width: `${Math.min(100, (stats?.connections ?? 0) * 5)}%` }}></div>
@@ -1038,7 +1038,7 @@ export default function BusinessDashboard() {
                   <div className={`flex gap-4 p-4 bg-gray-100 rounded-lg border-l-2 ${step1Complete ? 'border-green-400' : 'border-gray-300'}`}>
                     <div className="flex-shrink-0">
                       {step1Complete ? (
-                        <CheckCircle2 className="h-6 w-6 text-green-400 mt-1" />
+                        <CheckCircle2 className="h-6 w-6 text-green-700 mt-1" />
                       ) : (
                         <div className="flex items-center justify-center h-6 w-6 rounded-full bg-gray-300 text-gray-900 text-sm font-bold mt-1">1</div>
                       )}
@@ -1126,7 +1126,7 @@ export default function BusinessDashboard() {
                   ].map((item) => (
                     <Link key={item.label} href={item.href} className="flex items-center gap-3 p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
                       {item.done ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-400 shrink-0" />
+                        <CheckCircle2 className="h-5 w-5 text-green-700 shrink-0" />
                       ) : (
                         <div className="h-5 w-5 rounded border border-gray-300 shrink-0" />
                       )}

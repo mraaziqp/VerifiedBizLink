@@ -297,11 +297,11 @@ function LoginForm() {
                   Password
                 </Label>
                 <div className="flex gap-2">
-                  <Link href="/forgot-username" className="text-xs font-semibold text-yellow-600 hover:text-yellow-700 hover:underline">
+                  <Link href="/forgot-username" className="text-xs font-semibold text-yellow-700 hover:text-yellow-800 hover:underline">
                     Forgot username?
                   </Link>
                   <span className="text-xs text-gray-300">|</span>
-                  <Link href="/forgot-password" className="text-xs font-semibold text-yellow-600 hover:text-yellow-700 hover:underline">
+                  <Link href="/forgot-password" className="text-xs font-semibold text-yellow-700 hover:text-yellow-800 hover:underline">
                     Forgot password?
                   </Link>
                 </div>
@@ -347,14 +347,14 @@ function LoginForm() {
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-500">
               Don&apos;t have an account?{" "}
-              <Link href="/signup" className="font-bold text-yellow-600 hover:text-yellow-700 hover:underline">
+              <Link href="/signup" className="font-bold text-yellow-700 hover:text-yellow-800 hover:underline">
                 Create one for free
               </Link>
             </p>
           </div>
 
           <div className="mt-8 p-4 rounded-2xl bg-slate-50 border border-slate-100 text-center">
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-slate-500 leading-relaxed">
               <span className="font-semibold text-slate-500">Staff &amp; Admin accounts</span> are redirected
               to the Admin Hub automatically upon sign-in.
             </p>

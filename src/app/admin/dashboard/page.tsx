@@ -146,7 +146,7 @@ export default function AdminDashboard() {
     <AdminBackground>
       <AdminPageHeader title={dashboardTitle} subtitle={dashboardDescription}>
         <Link href="/admin/orchestrator">
-          <Button variant="outline" size="sm" className="border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10">
+          <Button variant="outline" size="sm" className="border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10">
             Orchestrator
           </Button>
         </Link>
@@ -165,7 +165,7 @@ export default function AdminDashboard() {
               <p className="text-lg font-semibold text-gray-900">{user.fullName || user.email}</p>
               <p className="mt-1 text-sm text-gray-500">
                 Role:{' '}
-                <span className={`font-semibold ${isSuperAdmin ? 'text-yellow-600' : 'text-blue-600'}`}>
+                <span className={`font-semibold ${isSuperAdmin ? 'text-yellow-700' : 'text-blue-600'}`}>
                   {isSuperAdmin ? 'Admin' : user.role === 'lawyer' ? 'Legal' : 'Compliance Officer'}
                 </span>
               </p>
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
           <div className="mb-8 rounded-2xl border border-amber-300/60 bg-gradient-to-r from-amber-50 via-yellow-50 to-white p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Mail className="h-5 w-5 text-amber-600" />
+                <Mail className="h-5 w-5 text-amber-700" />
                 <h3 className="font-bold text-gray-900 text-base">Export & Email User Directory</h3>
               </div>
               <p className="text-xs sm:text-sm text-gray-600 max-w-xl">
@@ -233,7 +233,7 @@ export default function AdminDashboard() {
                   </div>
                   <h3 className="text-lg font-bold text-gray-900">{tool.name}</h3>
                   <p className="mt-2 text-sm text-gray-500">{tool.description}</p>
-                  <div className="flex items-center pt-4 text-sm font-semibold text-amber-400">
+                  <div className="flex items-center pt-4 text-sm font-semibold text-amber-700">
                     Open Tool <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </div>
                 </AdminCard>

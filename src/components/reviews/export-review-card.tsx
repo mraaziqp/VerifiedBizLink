@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import html2canvas from 'html2canvas';
 import { Star, Download, ShieldCheck, Check, Loader2, Quote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { VBLLogo } from '@/components/ui/vbl-logo';
@@ -35,6 +34,8 @@ export function ExportReviewCard({ review, className }: ExportReviewCardProps) {
     setDownloading(true);
 
     try {
+      // Loaded on click: ~45 kB the profile page doesn't need until someone shares.
+      const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(cardRef.current, {
         scale: 2.5, // High resolution for crisp social exports
         useCORS: true,

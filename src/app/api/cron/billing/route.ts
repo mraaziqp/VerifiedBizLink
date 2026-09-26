@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { DOWNGRADE_TIER, GRACE_PERIOD_HOURS, graceExpiresAt, graceHoursRemaining, formatRand, formatDate } from '@/lib/billing';
 import { sendPaymentFailedEmail, appUrlFromRequest } from '@/lib/email';
+import { scanOverdueSubscriptions } from '@/db/queries/subscriptions';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
 
   const baseUrl = appUrlFromRequest(request);
   const now = new Date();
-  const result = { warned: 0, downgraded: 0, lapsed: 0, errors: 0 };
+  const result = { warned: 0, downgraded: 0, lapsed: 0, errors: 0, overdueSubscriptions: 0 };
 
   try {
     // --- 1. Warn, halfway through the window -------------------------------
@@ -131,6 +132,26 @@ export async function GET(request: NextRequest) {
           ${'Your ' + String(row.downgraded_from || 'paid') + ' subscription has ended. Your business is still listed and nothing has been deleted — resubscribe any time to restore premium features.'}
         )
       `.catch((e) => console.error('Downgrade notification failed:', e));
+    }
+
+    // 3. Admin-assigned subscriptions (user_subscriptions) whose renewal date
+    //    has passed while still active/unpaid. Reported, not acted on: these
+    //    are set by hand in the admin panel, so a person decides what happens.
+    //    One notification per admin per run, only when there is something new.
+    try {
+      const overdue = await scanOverdueSubscriptions(now);
+      result.overdueSubscriptions = overdue.length;
+      if (overdue.length > 0) {
+        const names = overdue.slice(0, 5).map((o) => o.userName || o.userEmail).join(', ');
+        await db`
+          INSERT INTO notifications (user_id, type, title, content)
+          SELECT id, 'billing_overdue', 'Subscriptions past their renewal date',
+                 ${`${overdue.length} subscription${overdue.length === 1 ? ' is' : 's are'} past the renewal date: ${names}${overdue.length > 5 ? '…' : ''}. Review them in Admin → Users.`}
+          FROM users WHERE role = 'admin'
+        `.catch((e) => console.error('Overdue notification failed:', e));
+      }
+    } catch {
+      result.errors += 1;
     }
 
     return NextResponse.json({ ok: true, ...result });

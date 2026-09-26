@@ -79,7 +79,7 @@ export function ConnectionDiscovery() {
           <div className="flex flex-col items-center gap-2 py-6 text-center">
             <Users className="h-8 w-8 text-gray-300" />
             <p className="text-sm font-medium text-gray-500">No suggestions yet</p>
-            <p className="text-xs text-gray-400">As more businesses join, you&apos;ll see recommendations here.</p>
+            <p className="text-xs text-gray-500">As more businesses join, you&apos;ll see recommendations here.</p>
           </div>
         ) : (
           suggestions.slice(0, 4).map((sug) => {

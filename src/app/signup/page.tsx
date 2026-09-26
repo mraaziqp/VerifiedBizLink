@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   ShieldCheck, Building2, Loader2,
-  Lock, Eye, EyeOff, CheckCircle2, Circle, User,
+  Lock, Eye, EyeOff, CheckCircle2, Circle, ShoppingBag, Briefcase
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,14 +16,18 @@ import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import { VBLLogo } from "@/components/ui/vbl-logo";
 import { BUSINESS_CATEGORIES } from "@/lib/categories";
+import { registerBasicUser } from "@/app/actions/auth-actions";
 
 type AccountRole = "customer" | "business";
 
-// Customer signups are paused until the business directory is populated —
-// only business accounts can register for now.
-const ROLES: { value: AccountRole; label: string; icon: React.ElementType; desc: string }[] = [
-  { value: "customer", label: "Customer", icon: User, desc: "Browse and review verified businesses" },
-  { value: "business", label: "Business", icon: Building2, desc: "Set up your company profile for review" },
+// One question up front: what are you here to do? "Shop" and "Find work"
+// are the quick four-field signup (registerBasicUser); "List my business"
+// is the full signup through /api/auth/signup with company details.
+type Choice = "shop" | "work" | "business";
+const CHOICES: { id: Choice; role: AccountRole; label: string; icon: React.ElementType; desc: string }[] = [
+  { id: "shop", role: "customer", label: "Shop & review", icon: ShoppingBag, desc: "Find trusted businesses" },
+  { id: "work", role: "customer", label: "Find work", icon: Briefcase, desc: "Apply at verified employers" },
+  { id: "business", role: "business", label: "List my business", icon: Building2, desc: "Get verified & found" },
 ];
 
 function getStrength(pw: string) {
@@ -40,9 +44,12 @@ const strengthLabel = ["", "Very Weak", "Weak", "Fair", "Good", "Strong"];
 const strengthColor = ["", "bg-red-500", "bg-orange-400", "bg-yellow-400", "bg-lime-500", "bg-green-500"];
 
 export default function SignupPage() {
-  const [role, setRole] = useState<AccountRole>("customer");
+  const [choice, setChoice] = useState<Choice>("shop");
+  const role: AccountRole = choice === "business" ? "business" : "customer";
   const [formData, setFormData] = useState({
     fullName: "",
+    firstName: "",
+    lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -100,11 +107,37 @@ export default function SignupPage() {
   const { refresh } = useAuth();
 
   const strength = useMemo(() => getStrength(formData.password), [formData.password]);
+  // The quick customer signup asks for four fields only, so there is no
+  // confirm box to match; the password field has a show/hide toggle instead.
   const passwordsMatch =
-    formData.confirmPassword.length === 0 || formData.password === formData.confirmPassword;
+    role === "customer" || formData.confirmPassword.length === 0 || formData.password === formData.confirmPassword;
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (role === "customer") {
+      setIsLoading(true);
+      try {
+        const result = await registerBasicUser({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          userType: choice === "work" ? "job_seeker" : "customer",
+        });
+        if (result.success) {
+          await refresh();
+          toast({ title: "Welcome to VerifiedBizLink!", description: "We've emailed you a link to confirm your address — you can start right away." });
+          window.location.href = result.redirectTo;
+        } else {
+          toast({ title: "Signup Failed", description: result.error, variant: "destructive" });
+        }
+      } catch {
+        toast({ title: "Signup Failed", description: "Could not connect to server.", variant: "destructive" });
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
     if (formData.password !== formData.confirmPassword) {
       toast({ title: "Passwords do not match", variant: "destructive" });
       return;
@@ -147,8 +180,9 @@ export default function SignupPage() {
       const data = await res.json();
       if (res.ok) {
         await refresh();
-        toast({ title: "Account Created!", description: "Welcome to VerifiedBizLink. Let's set up your business hub." });
-        window.location.href = role === "business" ? "/business/dashboard?welcome=true" : "/onboarding";
+        toast({ title: "Account Created!", description: "Welcome to VerifiedBizLink. Next, choose the plan that suits your business." });
+        // Business profile was created with the account: next step is choosing a plan.
+        window.location.href = role === "business" ? "/pricing?welcome=business" : "/onboarding";
       } else {
         toast({ title: "Signup Failed", description: data.error, variant: "destructive" });
       }
@@ -229,35 +263,38 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Create your account</h2>
-              <p className="mt-1.5 text-gray-500">Set up your profile and begin the verification process</p>
+              <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Create your free account</h2>
+              <p className="mt-1.5 text-gray-600">
+                {role === "business"
+                  ? "Next you'll choose a plan and submit your documents for verification."
+                  : "Takes under a minute. You can start straight away."}
+              </p>
             </div>
 
-            {/* Role selector */}
-            <div className={cn("grid gap-3", ROLES.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
-              {ROLES.map(({ value, label, icon: Icon, desc }) => (
+            {/* What are you here to do? */}
+            <div role="radiogroup" aria-label="What are you here to do?" className="grid grid-cols-3 gap-2 sm:gap-3">
+              {CHOICES.map(({ id, label, icon: Icon, desc }) => (
                 <button
-                  key={value}
+                  key={id}
                   type="button"
-                  onClick={() => setRole(value)}
+                  role="radio"
+                  aria-checked={choice === id}
+                  onClick={() => setChoice(id)}
                   className={cn(
-                    "flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 text-center transition-all",
-                    role === value
+                    "flex flex-col items-center gap-1.5 rounded-2xl border-2 p-2.5 text-center transition-all sm:p-3",
+                    choice === id
                       ? "border-yellow-400 bg-yellow-50 shadow-md shadow-yellow-400/20"
-                      : "border-gray-200 hover:border-gray-300 bg-gray-50"
+                      : "border-gray-200 bg-gray-50 hover:border-gray-300"
                   )}
                 >
                   <div className={cn(
-                    "h-9 w-9 rounded-xl flex items-center justify-center",
-                    role === value ? "bg-yellow-400 text-gray-900" : "bg-gray-200 text-gray-500"
+                    "flex h-9 w-9 items-center justify-center rounded-xl",
+                    choice === id ? "bg-yellow-400 text-gray-900" : "bg-gray-200 text-gray-600"
                   )}>
                     <Icon className="h-4 w-4" />
                   </div>
-                  <span className={cn(
-                    "text-xs font-bold",
-                    role === value ? "text-gray-900" : "text-gray-500"
-                  )}>{label}</span>
-                  <span className="text-[10px] text-gray-400 leading-tight hidden sm:block">{desc}</span>
+                  <span className={cn("text-xs font-bold leading-tight", choice === id ? "text-gray-900" : "text-gray-700")}>{label}</span>
+                  <span className="text-[10px] leading-tight text-gray-600">{desc}</span>
                 </button>
               ))}
             </div>
@@ -265,17 +302,33 @@ export default function SignupPage() {
             <form className="space-y-4" onSubmit={handleSignup} suppressHydrationWarning>
               {/* Account holder's own name - only for Customer accounts */}
               {role === "customer" && (
-                <div className="space-y-1.5" suppressHydrationWarning>
-                  <Label htmlFor="full-name" className="text-sm font-semibold text-gray-700">Your Full Name</Label>
-                  <Input
-                    id="full-name"
-                    required
-                    autoComplete="name"
-                    placeholder="Jane Dlamini"
-                    className="h-11 rounded-xl border-gray-200 bg-white"
-                    value={formData.fullName}
-                    onChange={(e) => update("fullName", e.target.value)}
-                  />
+                <div className="space-y-4" suppressHydrationWarning>
+                  <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="first-name" className="text-sm font-semibold text-gray-700">First name</Label>
+                      <Input
+                        id="first-name"
+                        required
+                        autoComplete="given-name"
+                        placeholder="Jane"
+                        className="h-11 rounded-xl border-gray-200 bg-white"
+                        value={formData.firstName}
+                        onChange={(e) => update("firstName", e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="last-name" className="text-sm font-semibold text-gray-700">Last name</Label>
+                      <Input
+                        id="last-name"
+                        required
+                        autoComplete="family-name"
+                        placeholder="Dlamini"
+                        className="h-11 rounded-xl border-gray-200 bg-white"
+                        value={formData.lastName}
+                        onChange={(e) => update("lastName", e.target.value)}
+                      />
+                    </div>
+                  </div>
                 </div>
               )}
 
@@ -501,7 +554,7 @@ export default function SignupPage() {
                     </div>
                     <p className={cn(
                       "text-xs font-semibold",
-                      strength <= 2 ? "text-red-500" : strength === 3 ? "text-yellow-600" : "text-green-600"
+                      strength <= 2 ? "text-red-500" : strength === 3 ? "text-yellow-700" : "text-green-600"
                     )}>
                       {strengthLabel[strength]}
                     </p>
@@ -509,8 +562,8 @@ export default function SignupPage() {
                 )}
               </div>
 
-              {/* Confirm Password */}
-              <div className="space-y-1.5">
+              {/* Confirm Password — business accounts only */}
+              {role === "business" && <div className="space-y-1.5">
                 <Label htmlFor="confirm-password" className="text-sm font-semibold text-gray-700">Confirm Password</Label>
                 <div className="relative">
                   <Input
@@ -547,7 +600,7 @@ export default function SignupPage() {
                 {!passwordsMatch && (
                   <p className="text-xs text-red-500 font-medium">Passwords do not match</p>
                 )}
-              </div>
+              </div>}
 
               {/* POPI notice */}
               <div className="flex items-start gap-2.5 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-500">
@@ -572,11 +625,11 @@ export default function SignupPage() {
                 />
                 <label htmlFor="accept-terms" className="text-sm text-gray-700 cursor-pointer leading-relaxed">
                   I agree to the{" "}
-                  <Link href="/terms" target="_blank" className="font-bold text-yellow-600 hover:underline">
+                  <Link href="/terms" target="_blank" className="font-bold text-yellow-700 hover:underline">
                     Terms & Conditions
                   </Link>{" "}
                   and{" "}
-                  <Link href="/privacy" target="_blank" className="font-bold text-yellow-600 hover:underline">
+                  <Link href="/privacy" target="_blank" className="font-bold text-yellow-700 hover:underline">
                     Privacy Policy
                   </Link>
                   . I understand how my data is used under the POPI Act.
@@ -600,7 +653,7 @@ export default function SignupPage() {
 
             <p className="text-center text-sm text-gray-500">
               Already have an account?{" "}
-              <Link href="/login" className="font-bold text-yellow-600 hover:text-yellow-700 hover:underline">
+              <Link href="/login" className="font-bold text-yellow-700 hover:text-yellow-800 hover:underline">
                 Sign in instead
               </Link>
             </p>

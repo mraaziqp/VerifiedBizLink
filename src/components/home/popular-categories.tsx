@@ -127,7 +127,7 @@ export function PopularCategories({
       {/* Header Bar */}
       <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="p-1.5 rounded-xl bg-amber-500/10 text-amber-600 shrink-0">
+          <div className="p-1.5 rounded-xl bg-amber-500/10 text-amber-700 shrink-0">
             <LayoutGrid className="h-4 w-4" />
           </div>
           <h3 className="text-sm font-extrabold text-gray-900 tracking-tight">Categories</h3>
@@ -232,7 +232,7 @@ function CategoryChip({
           : "bg-gray-50/80 hover:bg-amber-50 border-gray-200/80 text-gray-700 hover:border-amber-300 hover:text-gray-900 active:scale-95 shadow-xs"
       }`}
     >
-      <Icon className={`h-4 w-4 ${isActive ? "text-zinc-950" : "text-amber-600"}`} />
+      <Icon className={`h-4 w-4 ${isActive ? "text-zinc-950" : "text-amber-700"}`} />
       <span className="whitespace-nowrap">{category.label}</span>
       {category.count > 0 && (
         <span

@@ -510,7 +510,7 @@ export default function VettingPage() {
                     <div className="space-y-3">
                       {["Unlock Trade Networks","Higher Placement in Search","Instant Trust with Partners","Exclusive Verified Groups"].map((item, i) => (
                         <div key={i} className="flex items-start gap-2 text-sm text-gray-300">
-                          <div className="mt-1 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                          <div className="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
                           <span className="font-medium">{item}</span>
                         </div>
                       ))}
@@ -527,7 +527,7 @@ export default function VettingPage() {
                     <AlertCircle className="h-4 w-4" />
                     Help & Support
                   </div>
-                  <p className="text-xs text-yellow-600 font-medium">Need help? Our compliance officers are available for business accounts.</p>
+                  <p className="text-xs text-yellow-700 font-medium">Need help? Our compliance officers are available for business accounts.</p>
                   <Link href="/contact" className="text-xs text-yellow-700 font-bold underline hover:text-yellow-800 transition-colors">
                     Contact Compliance Agent
                   </Link>

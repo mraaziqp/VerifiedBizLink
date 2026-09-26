@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 import { orderPayfastFields, signPayfast, payfastEnv, payfastEnvWasDirty } from '@/lib/payfast';
 import { getTier } from '@/lib/tiers';
+import { findCreditPack } from '@/lib/ad-credits';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +14,26 @@ export async function POST(request: NextRequest) {
 
     // purchaseType tells the webhook what to actually grant on success:
     // 'ad_boost' (needs adId), 'subscription_standard', 'subscription_premium', or 'ad_credits' (no auto-effect).
-    const { amount, description, adId, purchaseType } = await request.json();
+    const body = await request.json();
+    const { adId, purchaseType } = body;
+    let { amount, description } = body;
+
+    // Credit packs are priced on the server. The browser only says WHICH pack;
+    // what it costs and what it grants both come from AD_CREDIT_PACKS, so a
+    // tampered amount cannot buy credits cheaply, and the webhook grants
+    // exactly the pack that was paid for.
+    const pack = purchaseType === 'ad_credits_topup' ? findCreditPack(body.packId) : null;
+    if (purchaseType === 'ad_credits_topup') {
+      if (!pack) {
+        return NextResponse.json({ error: 'Choose a credit pack.' }, { status: 400 });
+      }
+      const [biz] = await db`SELECT id FROM businesses WHERE user_id = ${session.id} LIMIT 1`;
+      if (!biz) {
+        return NextResponse.json({ error: 'Create your business profile before buying ad credits.' }, { status: 400 });
+      }
+      amount = pack.price;
+      description = `${pack.credits} Ad Credits (${pack.label})`;
+    }
 
     if (!amount || !description) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -157,6 +177,7 @@ export async function POST(request: NextRequest) {
       custom_str1: adId || '',
       custom_str2: session.id,
       custom_str3: purchaseType || 'ad_credits',
+      custom_str4: pack?.id,
       ...(isSubscription
         ? {
             subscription_type: '1',

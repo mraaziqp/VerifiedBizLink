@@ -85,7 +85,7 @@ export function AgentReferralField({ className = '' }: { className?: string }) {
   return (
     <div className={`rounded-xl border border-gray-200 bg-white/70 p-4 ${className}`}>
       <p className="flex items-center gap-2 text-sm font-bold text-gray-900">
-        <UserPlus className="h-4 w-4 text-amber-600" />
+        <UserPlus className="h-4 w-4 text-amber-700" />
         Did an advisor help you?
       </p>
       <p className="mt-1 text-xs text-gray-500">

@@ -189,7 +189,7 @@ export default function PricingPage() {
                 ONCE-OFF · NOT A SUBSCRIPTION
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900 flex items-center gap-2.5">
-                <ShieldCheck className="h-7 w-7 text-yellow-600 shrink-0" />
+                <ShieldCheck className="h-7 w-7 text-yellow-700 shrink-0" />
                 Vetting &amp; Verified Badge — R49 Once-Off
               </h2>
               <p className="text-gray-600 text-sm leading-relaxed">
@@ -203,7 +203,7 @@ export default function PricingPage() {
                   "No recurring monthly fees",
                 ].map((item) => (
                   <div key={item} className="flex items-center gap-2 text-xs font-semibold text-gray-700">
-                    <CheckCircle2 className="h-4 w-4 text-yellow-600 shrink-0" />
+                    <CheckCircle2 className="h-4 w-4 text-yellow-700 shrink-0" />
                     <span>{item}</span>
                   </div>
                 ))}
@@ -277,7 +277,7 @@ export default function PricingPage() {
                   )}
 
                   <div className="h-10 w-10 rounded-xl flex items-center justify-center mb-4 bg-yellow-50">
-                    <Icon className="h-5 w-5 text-yellow-600" />
+                    <Icon className="h-5 w-5 text-yellow-700" />
                   </div>
 
                   <h3 className="text-xl font-bold text-gray-900 mb-1">{tier.name}</h3>
@@ -404,10 +404,10 @@ export default function PricingPage() {
             Get Started Now
           </Button>
         </Link>
-        <p className="text-gray-400 text-xs mt-6">
+        <p className="text-gray-500 text-xs mt-6">
           By subscribing you agree to our{" "}
-          <Link href="/terms" className="underline hover:text-gray-600">Terms &amp; Conditions</Link> and{" "}
-          <Link href="/refund-policy" className="underline hover:text-gray-600">Refund Policy</Link>.
+          <Link href="/terms" className="underline hover:text-gray-800">Terms &amp; Conditions</Link> and{" "}
+          <Link href="/refund-policy" className="underline hover:text-gray-800">Refund Policy</Link>.
         </p>
       </div>
     </div>

@@ -240,7 +240,7 @@ export function VettingDeskPro() {
         <Card className="border-2 border-amber-300 bg-amber-50">
           <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-start gap-3">
-              <ShieldAlert className="mt-0.5 h-6 w-6 shrink-0 text-amber-600" />
+              <ShieldAlert className="mt-0.5 h-6 w-6 shrink-0 text-amber-700" />
               <div>
                 <p className="font-bold text-amber-900">
                   {stats.paidUnreviewed} business{stats.paidUnreviewed === 1 ? '' : 'es'} carrying the badge
@@ -266,7 +266,7 @@ export function VettingDeskPro() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="text-3xl font-bold text-yellow-600">{stats.pending}</div>
+            <div className="text-3xl font-bold text-yellow-700">{stats.pending}</div>
             <p className="text-sm text-gray-600">Pending Review</p>
           </CardContent>
         </Card>

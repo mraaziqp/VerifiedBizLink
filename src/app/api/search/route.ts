@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error('Search error:', errorMsg);
     return NextResponse.json(
-      { error: 'Search failed', detail: errorMsg },
+      { error: 'Search failed', ...(process.env.NODE_ENV === 'production' ? {} : { detail: errorMsg }) },
       { status: 500 }
     );
   }

@@ -77,23 +77,21 @@ export async function GET(request: NextRequest) {
       `;
     }
 
-    // Get owner info for recommendations
-    const recommendationsWithOwners = await Promise.all(
-      recommendations.map(async (b) => {
-        const owner = await db`
-          SELECT full_name, headline
-          FROM users
-          WHERE id = ${b.user_id}
-          LIMIT 1
-        `;
-        return {
-          ...b,
-          verified: true, // every query above filters WHERE status = 'verified'
-          ownerName: owner[0]?.full_name,
-          ownerHeadline: owner[0]?.headline,
-        };
-      })
-    );
+    // Owner names in one query (was one query per business: N+1 round trips to Neon).
+    const ownerIds = [...new Set(recommendations.map((b) => String(b.user_id)).filter(Boolean))];
+    const owners = ownerIds.length
+      ? await db`SELECT id, full_name, headline FROM users WHERE id = ANY(${ownerIds}::uuid[])`
+      : [];
+    const ownerById = new Map(owners.map((o) => [String(o.id), o]));
+    const recommendationsWithOwners = recommendations.map((b) => {
+      const owner = ownerById.get(String(b.user_id));
+      return {
+        ...b,
+        verified: true, // every query above filters WHERE status = 'verified'
+        ownerName: owner?.full_name,
+        ownerHeadline: owner?.headline,
+      };
+    });
 
     return NextResponse.json({
       success: true,
@@ -104,7 +102,7 @@ export async function GET(request: NextRequest) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error('Recommendations error:', errorMsg);
     return NextResponse.json(
-      { error: 'Failed to fetch recommendations', detail: errorMsg },
+      { error: 'Failed to fetch recommendations', ...(process.env.NODE_ENV === 'production' ? {} : { detail: errorMsg }) },
       { status: 500 }
     );
   }

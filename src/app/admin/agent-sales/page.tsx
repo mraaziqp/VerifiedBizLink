@@ -132,7 +132,7 @@ export default function AgentSalesPage() {
 
           <Card className="border border-slate-200 bg-white shadow-xs p-5 space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Assisted Signups</span>
-            <p className="text-3xl font-black text-amber-600">{totalAssisted}</p>
+            <p className="text-3xl font-black text-amber-700">{totalAssisted}</p>
             <p className="text-xs text-slate-400">Businesses registered via tracking links</p>
           </Card>
 

@@ -1,6 +1,17 @@
-import { eq, or, ilike, sql } from 'drizzle-orm';
-import { db } from '../index';
-import { businesses } from '../schema';
+import { extractSerial } from '@/lib/certificate-serial';
+import { verifySerial } from '@/lib/certificates';
+
+/**
+ * Certificate lookup by the string someone typed or scanned.
+ *
+ * This used to run its own query against businesses.certificate_serial — a
+ * column that does not exist in the live database — and never checked a
+ * signature, so it could neither find a genuine certificate nor catch a
+ * forged one. There is now ONE verification path: lib/certificates
+ * verifySerial(), which reads the signed certificates table, checks the
+ * HMAC and the business's live status, and is covered by tests. This module
+ * keeps the original function names and result shape for callers.
+ */
 
 export interface VerifiedCertificateResult {
   valid: boolean;
@@ -16,95 +27,43 @@ export interface VerifiedCertificateResult {
 }
 
 /**
- * Normalizes input string to canonical certificate format: VBL-YYYY-XXXX-XXXX
+ * Normalises any typed or pasted form to the canonical VBL-YYYY-XXXX-XXXX:
+ * lower case, missing or extra dashes and spaces, or a full verify URL.
+ * Returns '' when the input cannot be a certificate number.
  */
 export function sanitizeCertificateString(input: string): string {
-  if (!input) return '';
-  const bare = input.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-  
-  // Format: VBL + 4 digit year + 4 characters + 4 characters
-  const m1 = bare.match(/^VBL(\d{4})([A-Z0-9]{4})([A-Z0-9]{4})$/);
-  if (m1) {
-    return `VBL-${m1[1]}-${m1[2]}-${m1[3]}`;
-  }
-
-  // Format: VBL + 4 digit year + 4 characters
-  const m2 = bare.match(/^VBL(\d{4})([A-Z0-9]{4})$/);
-  if (m2) {
-    return `VBL-${m2[1]}-${m2[2]}`;
-  }
-
-  // Fallback with dashes if already starts with VBL
-  if (bare.startsWith('VBL') && bare.length > 7) {
-    return `VBL-${bare.slice(3, 7)}-${bare.slice(7, 11)}${bare.length > 11 ? `-${bare.slice(11, 15)}` : ''}`;
-  }
-
-  return bare;
+  return extractSerial(input) ?? '';
 }
 
 /**
- * Strict Drizzle ORM query to verify a certificate by serial or certificate code string.
- * Supports exact string matching as well as normalized sanitization.
+ * Verifies a certificate string. Returns null only when the registry could
+ * not be reached — never "invalid" for a database error, which would call a
+ * genuine certificate fake.
  */
 export async function verifyCertificateByString(rawInput: string): Promise<VerifiedCertificateResult | null> {
-  if (!rawInput || !rawInput.trim()) return null;
-
-  const sanitized = sanitizeCertificateString(rawInput);
-  const trimmed = rawInput.trim();
+  const serial = sanitizeCertificateString(rawInput);
+  const empty = {
+    valid: false, businessId: '', companyName: '', regNumber: null, status: 'unverified',
+    trustScore: 0, serial, verifiedAt: null, formattedSerial: serial,
+  };
+  if (!serial) return { ...empty, error: 'Not a certificate number (expected VBL-YYYY-XXXX-XXXX)' };
 
   try {
-    const records = await db
-      .select({
-        id: businesses.id,
-        companyName: businesses.companyName,
-        regNumber: businesses.regNumber,
-        status: businesses.status,
-        trustScore: businesses.trustScore,
-        certificateSerial: businesses.certificateSerial,
-        verifiedAt: businesses.verifiedAt,
-      })
-      .from(businesses)
-      .where(
-        or(
-          eq(businesses.certificateSerial, trimmed),
-          eq(businesses.certificateSerial, sanitized),
-          ilike(businesses.certificateSerial, `%${sanitized}%`),
-          eq(sql`REPLACE(UPPER(${businesses.certificateSerial}), '-', '')`, sanitized.replace(/-/g, ''))
-        )
-      )
-      .limit(1);
-
-    if (!records || records.length === 0) {
-      return {
-        valid: false,
-        businessId: '',
-        companyName: '',
-        regNumber: null,
-        status: 'unverified',
-        trustScore: 0,
-        serial: sanitized,
-        verifiedAt: null,
-        formattedSerial: sanitized,
-        error: 'Certificate not found in registry',
-      };
-    }
-
-    const b = records[0];
-    const isVerified = b.status === 'verified';
-
+    const r = await verifySerial(serial);
     return {
-      valid: isVerified,
-      businessId: b.id,
-      companyName: b.companyName,
-      regNumber: b.regNumber,
-      status: b.status || 'unregistered',
-      trustScore: b.trustScore || 0,
-      serial: b.certificateSerial || sanitized,
-      verifiedAt: b.verifiedAt,
-      formattedSerial: b.certificateSerial || sanitized,
+      valid: r.outcome === 'valid',
+      businessId: r.businessId ?? '',
+      companyName: r.companyName ?? '',
+      regNumber: r.regNumber,
+      status: r.outcome === 'valid' ? 'verified' : (r.currentStatus ?? r.outcome),
+      trustScore: 0,
+      serial: r.serial,
+      verifiedAt: r.verifiedSince ? new Date(r.verifiedSince) : null,
+      formattedSerial: r.serial,
+      ...(r.outcome === 'valid' ? {} : { error: r.message }),
     };
   } catch (error) {
-    console.error('verifyCertificateByString error:', error);
+    console.error('verifyCertificateByString: registry unavailable', error);
     return null;
   }
 }

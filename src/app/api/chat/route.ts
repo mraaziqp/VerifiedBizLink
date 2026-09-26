@@ -187,7 +187,7 @@ plainly and direct them to email info@verifiedbizlink.co.za or use the Contact p
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.error('Chat API error:', errorMsg);
     return NextResponse.json(
-      { error: 'Failed to process message', detail: errorMsg },
+      { error: 'Failed to process message', ...(process.env.NODE_ENV === 'production' ? {} : { detail: errorMsg }) },
       { status: 500 }
     );
   }

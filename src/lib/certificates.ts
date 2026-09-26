@@ -143,13 +143,27 @@ export function signCertificate(payload: CertificatePayload): string {
   return crypto.createHmac('sha256', signingSecret()).update(canonical(payload)).digest('hex');
 }
 
+/**
+ * Every secret a genuine certificate may have been signed with: the current
+ * one first, then JWT_SECRET. Until CERTIFICATE_SIGNING_SECRET reached the
+ * Amplify runtime, certificates were signed with the JWT_SECRET fallback;
+ * accepting it keeps those valid after the dedicated secret is switched on.
+ */
+function verificationSecrets(): string[] {
+  const secrets = [signingSecret(), process.env.JWT_SECRET?.trim()].filter((s): s is string => Boolean(s));
+  return [...new Set(secrets)];
+}
+
 /** Constant-time, so a wrong signature cannot be found one character at a time. */
 export function signatureMatches(payload: CertificatePayload, signature: string): boolean {
-  const expected = signCertificate(payload);
-  const a = Buffer.from(expected, 'utf8');
   const b = Buffer.from(String(signature ?? ''), 'utf8');
-  if (a.length !== b.length) return false;
-  return crypto.timingSafeEqual(a, b);
+  let ok = false;
+  for (const secret of verificationSecrets()) {
+    const a = Buffer.from(crypto.createHmac('sha256', secret).update(canonical(payload)).digest('hex'), 'utf8');
+    // No early exit: every candidate is compared, so timing doesn't reveal which key matched.
+    if (a.length === b.length && crypto.timingSafeEqual(a, b)) ok = true;
+  }
+  return ok;
 }
 
 /**

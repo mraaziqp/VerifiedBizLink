@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getSession } from '@/lib/auth';
-import { checkRateLimit } from '@/lib/rate-limit';
+import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { sendRawEmail } from '@/lib/email';
 import db from '@/lib/db';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
 
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const rl = checkRateLimit(`contact:${ip}`, 5, 900);
+  const ip = clientIp(request.headers);
+  const rl = await rateLimit(`contact:${ip}`, 5, 900);
   if (!rl.allowed) {
     return NextResponse.json(
       { error: `Too many requests. Try again in ${rl.retryAfterSecs} seconds.` },

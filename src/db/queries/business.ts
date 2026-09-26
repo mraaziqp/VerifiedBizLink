@@ -47,13 +47,15 @@ export async function getBusinessProfile(businessIdOrUserId: string): Promise<Bu
         website: businesses.website,
         phone: businesses.phone,
         address: businesses.address,
-        location: businesses.location,
+        // businesses has no location/certificate/connection-count columns in
+        // the live database (they exist only in this schema file), and
+        // selecting them made the whole query fail — so the contact card
+        // silently rendered nothing. Location comes from the owner instead;
+        // certificates live in their own table (lib/certificates).
+        location: users.location,
         coverImageUrl: businesses.coverImageUrl,
         tagline: businesses.tagline,
         verifiedAt: businesses.verifiedAt,
-        certificateSerial: businesses.certificateSerial,
-        certificateCheckCode: businesses.certificateCheckCode,
-        connectionsCount: businesses.connectionsCount,
         userEmail: users.email,
       })
       .from(businesses)
@@ -87,9 +89,9 @@ export async function getBusinessProfile(businessIdOrUserId: string): Promise<Bu
       coverImageUrl: b.coverImageUrl,
       tagline: b.tagline,
       verifiedAt: b.verifiedAt,
-      certificateSerial: b.certificateSerial,
-      certificateCheckCode: b.certificateCheckCode,
-      connectionsCount: b.connectionsCount || 0,
+      certificateSerial: null,
+      certificateCheckCode: null,
+      connectionsCount: 0,
     };
   } catch (error) {
     console.error('getBusinessProfile error:', error);

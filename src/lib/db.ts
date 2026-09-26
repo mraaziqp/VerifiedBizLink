@@ -22,3 +22,12 @@ export type DbRow = Record<string, any>;
 export default function db(strings: TemplateStringsArray, ...values: unknown[]): Promise<DbRow[]> {
   return getDb()(strings, ...values) as unknown as Promise<DbRow[]>;
 }
+
+/**
+ * Run a constant SQL statement that can't be written as a tagged template
+ * (DDL from a list, e.g. CREATE INDEX CONCURRENTLY). Never pass user input:
+ * nothing here is parameterised.
+ */
+export function rawStatement(sql: string): Promise<DbRow[]> {
+  return getDb().query(sql) as unknown as Promise<DbRow[]>;
+}

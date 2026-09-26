@@ -87,7 +87,7 @@ export default function AgentSignupsPage() {
     <AdminBackground>
       <AdminPageHeader title="Agent Sign Up Dashboard" subtitle="Every business signup marked as assisted by a sales agent">
         <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10">
+          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
           </Button>
         </Link>
@@ -109,7 +109,7 @@ export default function AgentSignupsPage() {
         <AdminCard className="p-0 overflow-hidden">
           <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-5 py-3">
             <p className="font-semibold text-gray-900 flex items-center gap-2">
-              <UserCheck className="h-4 w-4 text-amber-600" /> {filtered.length} Assisted Sign Up{filtered.length === 1 ? '' : 's'}
+              <UserCheck className="h-4 w-4 text-amber-700" /> {filtered.length} Assisted Sign Up{filtered.length === 1 ? '' : 's'}
             </p>
           </div>
           {loading ? (

@@ -168,7 +168,7 @@ export default function AgentIssuesPage() {
         subtitle="Queries and problems raised by the sales team, answered from here"
       >
         <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10">
+          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
           </Button>
         </Link>
@@ -235,11 +235,11 @@ export default function AgentIssuesPage() {
                     </p>
                   </div>
                   <div className="flex gap-2 text-xs">
-                    <a href={`mailto:${i.agentEmail}`} className="flex items-center gap-1 text-amber-600 hover:underline">
+                    <a href={`mailto:${i.agentEmail}`} className="flex items-center gap-1 text-amber-700 hover:underline">
                       <Mail className="h-3.5 w-3.5" /> Email
                     </a>
                     {i.agentPhone && (
-                      <a href={`tel:${i.agentPhone}`} className="flex items-center gap-1 text-amber-600 hover:underline">
+                      <a href={`tel:${i.agentPhone}`} className="flex items-center gap-1 text-amber-700 hover:underline">
                         <Phone className="h-3.5 w-3.5" /> Call
                       </a>
                     )}
@@ -263,7 +263,7 @@ export default function AgentIssuesPage() {
                       href={i.pageUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-amber-600"
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-amber-700"
                     >
                       <ExternalLink className="h-3.5 w-3.5" /> Page they were on
                     </a>

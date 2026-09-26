@@ -115,7 +115,7 @@ export default function AdminActivityPage() {
     <AdminBackground>
       <AdminPageHeader title="Activity & Receipts" subtitle="Every sign-up and every payment, as it happens">
         <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-600 hover:bg-yellow-500/10">
+          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
           </Button>
         </Link>

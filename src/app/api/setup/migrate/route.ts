@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ensurePerformanceIndexes } from '@/lib/db-indexes';
 import db from '@/lib/db';
 
 // POST /api/setup/migrate — add new columns and tables safely (idempotent)
@@ -8,6 +9,10 @@ export async function POST(request: NextRequest) {
   if (!expectedSecret || !incomingSecret || incomingSecret !== expectedSecret) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+
+  // First and independent of the steps below: each index is its own
+  // statement, and a failure is reported rather than aborting the migration.
+  const indexes = await ensurePerformanceIndexes();
 
   try {
     // --- Core schema fixes ---
@@ -343,9 +348,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Migration v14 applied: Certificates table, banking details, and all system migrations configured.',
+      indexes,
     });
   } catch (error) {
     console.error('Migration error:', error);
-    return NextResponse.json({ error: 'Migration failed', detail: String(error) }, { status: 500 });
+    return NextResponse.json({ error: 'Migration failed', detail: String(error), indexes }, { status: 500 });
   }
 }

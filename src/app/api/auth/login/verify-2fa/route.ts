@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createTrackedSession, verifyMfaChallenge, sessionCookieOptions } from '@/lib/auth';
 import { verifyTotpToken, hashBackupCode, decryptTotpSecret } from '@/lib/twofactor';
 import db from '@/lib/db';
+import { rateLimit, tooManyRequests } from '@/lib/rate-limit';
 
 // POST /api/auth/login/verify-2fa — completes a login started by
 // /api/auth/login when the account has 2FA enabled. Accepts either a live
@@ -16,6 +17,13 @@ export async function POST(request: NextRequest) {
     const userId = await verifyMfaChallenge(challengeToken);
     if (!userId) {
       return NextResponse.json({ error: 'This login attempt has expired. Please sign in again.' }, { status: 401 });
+    }
+
+    // Keyed on the account, not the challenge: a fresh challenge is one
+    // password away, so a per-challenge limit would not stop guessing.
+    const rl = await rateLimit(`2fa:${userId}`, 6, 600);
+    if (!rl.allowed) {
+      return tooManyRequests(rl.retryAfterSecs, 'Too many incorrect codes. Please wait 10 minutes and sign in again.');
     }
 
     const users = await db`
