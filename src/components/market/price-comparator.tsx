@@ -1,5 +1,6 @@
 'use client';
 
+import { formatNumber } from '@/lib/format-number';
 import { useState } from 'react';
 
 interface Price {
@@ -70,7 +71,7 @@ export function PriceComparator({ prices }: PriceComparatorProps) {
                     <p className="text-xs text-zinc-500">{p.symbol}</p>
                   </td>
                   <td className="px-4 py-3 text-right font-mono text-white">
-                    {p.price.toLocaleString('en-ZA', { maximumFractionDigits: 4 })}
+                    {formatNumber(p.price, 2)}
                   </td>
                   <td
                     className={`px-4 py-3 text-right font-mono ${

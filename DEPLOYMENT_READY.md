@@ -184,14 +184,14 @@ After deployment, you can create these accounts:
 **Ramoen (Admin):**
 ```
 Email:    ramoen@verifiedbizlink.co.za
-Password: TestPass123!
+Password: <set-your-own-password>
 Access:   6 admin tools + vetting
 ```
 
 **Wesley (Banker):**
 ```
 Email:    wesley@verifiedbizlink.co.za
-Password: TestPass123!
+Password: <set-your-own-password>
 Access:   3 banking tools
 ```
 

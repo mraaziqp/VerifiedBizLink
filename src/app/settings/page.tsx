@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Shield, Bell, CreditCard, Loader2, Camera, Trash2, Download, AlertTriangle, Lock, CheckCircle2, LogOut, Zap, ArrowLeft } from "lucide-react";
+import { User, Shield, Bell, CreditCard, Loader2, Camera, Trash2, Download, AlertTriangle, Lock, CheckCircle2, LogOut, Zap, ArrowLeft, Building2 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -436,6 +436,22 @@ function SettingsForm() {
               </TabsList>
 
               <TabsContent value="profile" className="animate-in fade-in duration-500">
+                {user && !["business", "admin", "banker", "lawyer"].includes(user.role) && (
+                  <Card className="mb-6 border border-amber-200 bg-amber-50 shadow-sm">
+                    <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex items-start gap-3">
+                        <Building2 className="mt-0.5 h-6 w-6 shrink-0 text-amber-700" />
+                        <div>
+                          <p className="font-black text-slate-900">Have a business? List it for free</p>
+                          <p className="text-sm text-slate-700">Keep this account and add a business profile to it. You can get verified, post jobs and advertise — your reviews and connections stay as they are.</p>
+                        </div>
+                      </div>
+                      <Button asChild className="shrink-0 rounded-xl bg-slate-900 font-bold text-white hover:bg-slate-800">
+                        <Link href="/business/create">Switch to a business account</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
                 <Card className="border-none shadow-sm overflow-hidden">
                   <CardHeader className="bg-white border-b py-6">
                     <CardTitle>Personal Information</CardTitle>
@@ -737,11 +753,9 @@ function SettingsForm() {
                       <h3 className="text-lg font-bold text-gray-900">Change or upgrade your plan</h3>
                       <p className="text-sm text-gray-500 mt-1">Compare all plans and switch instantly — same account, no separate signup.</p>
                     </div>
-                    <Link href="/pricing" className="shrink-0">
-                      <Button className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-6 h-11 rounded-xl">
+                    <Button className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 font-bold px-6 h-11 rounded-xl" asChild><Link href="/pricing" className="shrink-0">
                         View Plans
-                      </Button>
-                    </Link>
+                      </Link></Button>
                   </CardContent>
                 </Card>
 

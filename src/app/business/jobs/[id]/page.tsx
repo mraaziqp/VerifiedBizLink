@@ -111,11 +111,9 @@ export default function JobApplicantsPage() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50 px-4 text-center">
         <p className="text-lg font-bold text-gray-900">This is not your listing</p>
-        <Link href="/business/jobs">
-          <Button variant="outline" className="gap-2 border-gray-300">
+        <Button variant="outline" className="gap-2 border-gray-300" asChild><Link href="/business/jobs">
             <ArrowLeft className="h-4 w-4" /> Your jobs
-          </Button>
-        </Link>
+          </Link></Button>
       </div>
     );
   }

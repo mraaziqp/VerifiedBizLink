@@ -30,12 +30,10 @@ export default function DiscoverPage() {
                 className="pl-10 bg-white border-gray-300 text-gray-900"
               />
             </div>
-            <Link href="/explore">
-              <Button variant="outline" className="border-gray-200 text-gray-600 gap-2">
+            <Button variant="outline" className="border-gray-200 text-gray-600 gap-2" asChild><Link href="/explore">
                 <MapPin className="h-4 w-4" />
                 Search Near Me
-              </Button>
-            </Link>
+              </Link></Button>
           </div>
         </div>
       </div>

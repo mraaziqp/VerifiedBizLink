@@ -228,11 +228,9 @@ export default function RamoneVerifiedPage() {
                   </div>
 
                   {/* View Certificate */}
-                  <Link href={`/business/${business.id}`} className="block">
-                    <Button variant="outline" className="w-full border-green-500/50 text-green-600 hover:bg-green-500/10">
+                  <Button variant="outline" className="w-full border-green-500/50 text-green-600 hover:bg-green-500/10" asChild><Link href={`/business/${business.id}`} className="block">
                       View Certificate & Profile
-                    </Button>
-                  </Link>
+                    </Link></Button>
                 </CardContent>
               </Card>
             ))}

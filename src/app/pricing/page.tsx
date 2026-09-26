@@ -77,6 +77,17 @@ const DEFAULT_TIERS: Tier[] = [
 
 export default function PricingPage() {
   const { user } = useAuth();
+  // Arriving straight from creating a business: congratulate it by name.
+  const [welcomeBusiness, setWelcomeBusiness] = useState<string | null>(null);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("welcome") !== "business") return;
+    let active = true;
+    fetch("/api/business/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (active) setWelcomeBusiness(String(d?.business?.company_name || user?.fullName || "Your business")); })
+      .catch(() => { if (active) setWelcomeBusiness(user?.fullName || "Your business"); });
+    return () => { active = false; };
+  }, [user?.fullName]);
   const { toast } = useToast();
   const router = useRouter();
   const [tiers, setTiers] = useState<Tier[]>(DEFAULT_TIERS);
@@ -162,6 +173,18 @@ export default function PricingPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Top Navigation & Back Button */}
       <SubpageNav title="Pricing & Plans" />
+
+      {welcomeBusiness && (
+        <div role="status" className="mx-auto mt-6 max-w-3xl px-4">
+          <div className="flex items-start gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+            <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-600" />
+            <div>
+              <p className="text-lg font-black text-slate-900">Congratulations — {welcomeBusiness} is on VerifiedBizLink!</p>
+              <p className="mt-1 text-sm text-slate-700">Your business profile is set up. Choose a plan below to get verified and start being found, or skip for now and explore.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="text-center pt-10 pb-12 px-4 max-w-3xl mx-auto">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-400 bg-yellow-50 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-yellow-700 mb-6">
@@ -299,19 +322,17 @@ export default function PricingPage() {
                     ))}
                   </ul>
 
-                  {action.href ? (
-                    <Link href={action.href}>
-                      <Button
-                        disabled={isCurrent}
-                        className={`w-full font-bold h-11 rounded-xl ${
-                          highlighted
-                            ? "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
-                            : "bg-gray-900 text-white hover:bg-gray-800"
-                        }`}
-                      >
-                        {ctaLabel(tier)}
-                      </Button>
-                    </Link>
+                  {action.href && !isCurrent ? (
+                    <Button
+                      asChild
+                      className={`w-full font-bold h-11 rounded-xl ${
+                        highlighted
+                          ? "bg-yellow-400 text-gray-900 hover:bg-yellow-300"
+                          : "bg-gray-900 text-white hover:bg-gray-800"
+                      }`}
+                    >
+                      <Link href={action.href}>{ctaLabel(tier)}</Link>
+                    </Button>
                   ) : (
                     <Button
                       onClick={action.onClick}
@@ -347,11 +368,9 @@ export default function PricingPage() {
               </p>
             </div>
           </div>
-          <Link href="/contact" className="shrink-0 w-full sm:w-auto">
-            <Button className="w-full sm:w-auto bg-gray-900 text-white hover:bg-gray-800 font-bold rounded-xl h-11 px-6">
+          <Button className="w-full sm:w-auto bg-gray-900 text-white hover:bg-gray-800 font-bold rounded-xl h-11 px-6" asChild><Link href="/contact" className="shrink-0 w-full sm:w-auto">
               Contact Sales
-            </Button>
-          </Link>
+            </Link></Button>
         </div>
       </div>
 
@@ -399,11 +418,9 @@ export default function PricingPage() {
         <p className="text-gray-500 mb-8">
           Join the verified businesses building trust and growing together on VerifiedBizLink
         </p>
-        <Link href={user ? "/business/dashboard" : "/signup"}>
-          <Button className="bg-yellow-400 text-gray-900 hover:bg-yellow-300 px-8 py-6 text-lg font-bold rounded-xl">
+        <Button className="bg-yellow-400 text-gray-900 hover:bg-yellow-300 px-8 py-6 text-lg font-bold rounded-xl" asChild><Link href={user ? "/business/dashboard" : "/signup"}>
             Get Started Now
-          </Button>
-        </Link>
+          </Link></Button>
         <p className="text-gray-500 text-xs mt-6">
           By subscribing you agree to our{" "}
           <Link href="/terms" className="underline hover:text-gray-800">Terms &amp; Conditions</Link> and{" "}

@@ -130,15 +130,12 @@ export default function BusinessSettingsPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <Link href="/forgot-password">
-              <Button
+            <Button
                 variant="outline"
-                className={`w-full gap-2 border-gray-200 text-gray-600 hover:bg-gray-100 ${glassInteractive}`}
-              >
+                className={`w-full gap-2 border-gray-200 text-gray-600 hover:bg-gray-100 ${glassInteractive}`} asChild><Link href="/forgot-password">
                 <Lock className="h-4 w-4" />
                 Change Password
-              </Button>
-            </Link>
+              </Link></Button>
           </CardContent>
         </Card>
 

@@ -1,3 +1,9 @@
+
+function requiredEnv(name: string): string {
+  const v = process.env[name];
+  if (!v) throw new Error(`Set ${name} to run this script (never commit real passwords).`);
+  return v;
+}
 /**
  * Seed script — upserts core platform users.
  * Run with:  npx tsx scripts/seed-users.ts
@@ -14,7 +20,7 @@ const sql = neon(process.env.DATABASE_URL!);
 const users = [
   {
     email: 'ramone8711@gmail.com',
-    password: 'ramone11',
+    password: requiredEnv('SEED_PASSWORD'),
     fullName: 'Ramone',
     role: 'admin',
     headline: 'Founder & Verifier — VerifiedBizLink',

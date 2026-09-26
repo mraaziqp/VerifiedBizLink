@@ -1,5 +1,6 @@
 'use client';
 
+import { formatNumber } from '@/lib/format-number';
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -1232,10 +1233,10 @@ export default function AgentPortalPage() {
               <div className="rounded-2xl border border-amber-300 bg-gradient-to-br from-amber-100/70 to-amber-50 p-5 text-center space-y-1">
                 <p className="text-[10px] uppercase tracking-widest font-extrabold text-amber-900">Total Projected Monthly Earnings</p>
                 <p className="text-3xl font-black text-slate-900">
-                  R{Math.round(simTotalMonthlyEarnings).toLocaleString()} / mo
+                  R{formatNumber(Math.round(simTotalMonthlyEarnings))} / mo
                 </p>
                 <p className="text-xs text-slate-600 font-medium pt-1">
-                  Weekly Acquisition: <span className="font-bold text-amber-900">R{Math.round(simWeeklyAcquisitionCommission).toLocaleString()} / wk</span> · Monthly Retention: <span className="font-bold text-purple-800">R{Math.round(simMonthlyRetention).toLocaleString()} / mo</span>
+                  Weekly Acquisition: <span className="font-bold text-amber-900">R{formatNumber(Math.round(simWeeklyAcquisitionCommission))} / wk</span> · Monthly Retention: <span className="font-bold text-purple-800">R{formatNumber(Math.round(simMonthlyRetention))} / mo</span>
                 </p>
               </div>
             </Card>

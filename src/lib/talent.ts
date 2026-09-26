@@ -1,3 +1,4 @@
+import { formatRandAmount } from '@/lib/format-number';
 /**
  * Verified Talent: shared rules for profiles, jobs and matching.
  *
@@ -150,7 +151,7 @@ export function formatSalaryRange(
   maxCents: number | string | null | undefined,
   period: string | null | undefined,
 ): string | null {
-  const rand = (c: number) => `R${Math.round(c / 100).toLocaleString('en-ZA')}`;
+  const rand = (c: number) => formatRandAmount(Math.round(c / 100), 0);
   const suffix = period ? `/${period}` : '';
 
   /**

@@ -75,33 +75,20 @@ export function AdBanner() {
     if (!user || !["user", "business", "customer"].includes(user.role)) return;
 
     const fetchAdSettings = async () => {
-      try {
-        const res = await fetch("/api/ads/settings");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.enabled === false) {
-            setAdsEnabled(false);
-            return;
-          }
-        }
-      } catch {
-        // If API fails, default to showing ads
+      // Both requests at once: the ad list doesn't depend on the settings.
+      const [settings, targeted] = await Promise.all([
+        fetch("/api/ads/settings").then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        // Only ads bought for THIS placement — an ad paid for as a feed or
+        // spotlight slot must not surface here.
+        fetch(`/api/ads/targeted?placement=${AD_PLACEMENT}`, { cache: "no-store" })
+          .then((r) => (r.ok ? r.json() : null))
+          .catch(() => null), // an advertising failure must never break the page
+      ]);
+      if (settings?.enabled === false) {
+        setAdsEnabled(false);
+        return;
       }
-
-      // Load the ads bought for THIS placement. An ad paid for as a feed or
-      // spotlight slot must not surface here — that is the advertiser being
-      // given something other than what they paid for.
-      let loaded: Ad[] = [];
-      try {
-        const res = await fetch(`/api/ads/targeted?placement=${AD_PLACEMENT}`, { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.ads)) loaded = data.ads;
-        }
-      } catch {
-        // An advertising failure must never break the page around it.
-      }
-
+      const loaded: Ad[] = Array.isArray(targeted?.ads) ? targeted.ads : [];
       setAds(loaded);
 
       // Nothing paid for this slot, so nothing appears in it.
@@ -115,7 +102,7 @@ export function AdBanner() {
 
   // Poll to re-show after cooldown
   useEffect(() => {
-    if (!user || !["user", "business"].includes(user.role) || !adsEnabled) return;
+    if (!user || !["user", "business", "customer"].includes(user.role) || !adsEnabled) return;
     if (ads.length === 0) return; // nothing to rotate through
     const interval = setInterval(() => {
       if (!visible && checkShouldShow()) {

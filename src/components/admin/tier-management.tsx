@@ -1,5 +1,6 @@
 "use client";
 
+import { formatRandAmount } from '@/lib/format-number';
 import { useCallback, useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -308,7 +309,7 @@ export default function TierManagement() {
               <>
                 <div className="mb-4">
                   <p className="text-3xl font-bold text-cyan-700">
-                    R{Number(tier.price).toLocaleString("en-ZA")}
+                    {formatRandAmount(tier.price, 0)}
                     <span className="text-base font-medium text-gray-500">/month</span>
                   </p>
                 </div>

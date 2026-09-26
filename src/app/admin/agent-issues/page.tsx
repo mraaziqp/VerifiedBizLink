@@ -167,11 +167,9 @@ export default function AgentIssuesPage() {
         title="Advisor Reports"
         subtitle="Queries and problems raised by the sales team, answered from here"
       >
-        <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10">
+        <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10" asChild><Link href="/admin">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
-          </Button>
-        </Link>
+          </Link></Button>
       </AdminPageHeader>
 
       <div className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:py-12">

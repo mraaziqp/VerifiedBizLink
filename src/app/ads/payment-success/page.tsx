@@ -108,17 +108,13 @@ function PaymentSuccessContent() {
           </div>
 
           <div className="flex gap-3 pt-4">
-            <Link href="/settings?tab=billing" className="flex-1">
-              <Button className="w-full gap-2 bg-yellow-400 text-slate-900 hover:bg-yellow-300">
+            <Button className="w-full gap-2 bg-yellow-400 text-slate-900 hover:bg-yellow-300" asChild><Link href="/settings?tab=billing" className="flex-1">
                 View Billing
                 <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/business/dashboard" className="flex-1">
-              <Button variant="outline" className="w-full border-slate-600 text-slate-300">
+              </Link></Button>
+            <Button variant="outline" className="w-full border-slate-600 text-slate-300" asChild><Link href="/business/dashboard" className="flex-1">
                 Dashboard
-              </Button>
-            </Link>
+              </Link></Button>
           </div>
         </CardContent>
       </Card>

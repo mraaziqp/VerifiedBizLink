@@ -1,5 +1,6 @@
 'use client';
 
+import { formatRandCents } from '@/lib/format-number';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, CreditCard, CheckCircle2, Clock, XCircle, TrendingUp, Loader2 } from 'lucide-react';
@@ -39,7 +40,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 const formatRand = (cents: number) =>
-  `R${(cents / 100).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  formatRandCents(cents);
 
 export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -77,11 +78,9 @@ export default function AdminPaymentsPage() {
   return (
     <AdminBackground>
       <AdminPageHeader title="Payment Gateway" subtitle="PayFast transactions, revenue, and status">
-        <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10">
+        <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10" asChild><Link href="/admin">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
-          </Button>
-        </Link>
+          </Link></Button>
       </AdminPageHeader>
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:py-12 space-y-6">

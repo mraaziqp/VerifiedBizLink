@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { FileText,
   Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell,
   MapPin, Building2, Zap, Megaphone, CheckCheck, Trash2, X, Briefcase, QrCode, PlusCircle, MessageSquare
@@ -22,15 +22,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import { useMessagingStore } from "@/stores/messaging-store";
-
-interface Notification {
-  id: string;
-  type: string;
-  message: string;
-  read: boolean;
-  link: string;
-  created_at: string;
-}
+import { selectUnread, useNotificationsStore, useNotificationsSync } from "@/stores/notifications-store";
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
@@ -63,7 +55,14 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading, logout } = useAuth();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  useNotificationsSync(Boolean(user));
+  const notifications = useNotificationsStore((s) => s.items);
+  const unreadCount = useNotificationsStore(selectUnread);
+  const refreshNotifications = useNotificationsStore((s) => s.refresh);
+  const markAllRead = useNotificationsStore((s) => s.markAllRead);
+  const markRead = useNotificationsStore((s) => s.markRead);
+  const dismiss = useNotificationsStore((s) => s.dismiss);
+  const clearAllNotifications = useNotificationsStore((s) => s.clearAll);
   const [notifOpen, setNotifOpen] = useState(false);
   const [businessVerified, setBusinessVerified] = useState(false);
   // Derived rather than stored: only these roles ever have a business profile
@@ -72,19 +71,7 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
   const canHaveBusiness = !!user && ['business', 'admin', 'banker', 'lawyer'].includes(user.role);
   const verificationLoading = canHaveBusiness && !verificationChecked;
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
   const unreadMessages = useMessagingStore((s) => s.unread);
-
-  const fetchNotifications = useCallback((signal?: AbortSignal) => {
-    if (!user) return;
-    fetch('/api/notifications', { signal })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (signal?.aborted) return;
-        if (d?.notifications) setNotifications(d.notifications);
-      })
-      .catch(() => {});
-  }, [user]);
 
   useEffect(() => {
     if (!canHaveBusiness) return;
@@ -104,34 +91,9 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
     return () => controller.abort();
   }, [canHaveBusiness]);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetchNotifications(controller.signal);
-    const interval = setInterval(() => fetchNotifications(controller.signal), 30_000);
-    return () => {
-      clearInterval(interval);
-      controller.abort();
-    };
-  }, [fetchNotifications]);
-
-  const markAllRead = async () => {
-    await fetch('/api/notifications', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markAll: true }),
-    });
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
-
-  const dismissNotification = async (id: string, e: React.MouseEvent) => {
+  const dismissNotification = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    await fetch(`/api/notifications?id=${id}`, { method: 'DELETE' });
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
-
-  const clearAllNotifications = async () => {
-    await fetch('/api/notifications?clearAll=true', { method: 'DELETE' });
-    setNotifications([]);
+    void dismiss(id);
   };
 
   const initials = user?.fullName
@@ -142,11 +104,15 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
   const canManageBusiness = user && (user.role === 'business' || isAdmin);
 
   return (
-    <div className={cn("flex flex-col gap-4 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain pr-1.5 pb-8 custom-scrollbar", className)}>
+    // [&>*]:shrink-0 — when the sidebar is taller than the screen (short
+    // iPad/iPhone landscape), flexbox would otherwise squash the children to
+    // fit instead of scrolling; the profile card (overflow-hidden) collapsed
+    // to a sliver showing only the top of the avatar.
+    <div className={cn("flex flex-col gap-4 max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain pr-1.5 pb-8 custom-scrollbar [&>*]:shrink-0", className)}>
       {/* Brand Header & Logo — clean framing, zero cut-off */}
-      <div className="flex items-center justify-between px-3 py-2.5 bg-white/90 rounded-2xl border border-slate-200/90 shadow-xs">
+      <div className="flex items-center justify-between gap-2 px-3 py-2.5 bg-white/90 rounded-2xl border border-slate-200/90 shadow-xs">
         <VBLLogo variant="full" size="sm" iconSize={36} theme="dark" />
-        <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300/60">
+        <span className="shrink-0 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300/60">
           Pro
         </span>
       </div>
@@ -208,6 +174,24 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
       {/* Main Navigation */}
       <nav className="flex flex-col gap-1 bg-white/70 backdrop-blur-sm p-1.5 rounded-2xl border border-slate-200/80 shadow-xs">
         {navigation.map((item) => {
+          if (item.name === "My Business" && !canManageBusiness && user) {
+            // Customers and job seekers can turn their account into a business.
+            const active = pathname === "/business/create";
+            return (
+              <Link
+                key="list-business"
+                href="/business/create"
+                className={cn(
+                  "flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-150 group font-semibold text-sm",
+                  active ? "bg-slate-900 text-white font-bold shadow-xs" : "text-slate-700 hover:bg-amber-50 hover:text-slate-900"
+                )}
+              >
+                <PlusCircle className={cn("h-4.5 w-4.5", active ? "text-amber-400" : "text-amber-600")} />
+                <span>List my business</span>
+                <span className="ml-auto rounded-full bg-amber-100 px-1.5 text-[10px] font-black text-amber-900">FREE</span>
+              </Link>
+            );
+          }
           if ((item.name === "My Business" || item.name === "Ad Manager" || item.name === "Vetting Hub") && !canManageBusiness) {
             return null;
           }
@@ -295,7 +279,7 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
 
       {/* Notification Bell */}
       {user && (
-        <Popover open={notifOpen} onOpenChange={(o) => { setNotifOpen(o); if (o) fetchNotifications(); }}>
+        <Popover open={notifOpen} onOpenChange={(o) => { setNotifOpen(o); if (o) void refreshNotifications(); }}>
           <PopoverTrigger asChild>
             <Button
               variant="ghost"
@@ -363,15 +347,8 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
                       "px-4 py-3 cursor-pointer hover:bg-amber-50/40 transition-colors relative group flex items-start justify-between gap-3",
                       !n.read && "bg-amber-50/50"
                     )}
-                    onClick={async () => {
-                      await fetch('/api/notifications', {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ id: n.id }),
-                      });
-                      setNotifications((prev) =>
-                        prev.map((x) => (x.id === n.id ? { ...x, read: true } : x))
-                      );
+                    onClick={() => {
+                      markRead(n.id);
                       setNotifOpen(false);
                       router.push(n.link || '/network');
                     }}
@@ -420,11 +397,9 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
             <span>Sign Out</span>
           </Button>
         ) : (
-          <Link href="/login">
-            <Button className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xl h-10 shadow-md shadow-amber-400/20">
+          <Button className="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xl h-10 shadow-md shadow-amber-400/20" asChild><Link href="/login">
               Sign In
-            </Button>
-          </Link>
+            </Link></Button>
         )}
       </div>
     </div>

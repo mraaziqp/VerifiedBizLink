@@ -51,7 +51,9 @@ export default function MarketplacePage() {
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  // null until the first fetch: a time created during render differs between
+  // the server and the browser by a second or so and breaks hydration.
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // Load watchlist from localStorage on mount
   useEffect(() => {
@@ -152,19 +154,17 @@ export default function MarketplacePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <Link href="/">
-            <Button variant="outline" size="sm" className="mb-4 gap-2 border-gray-200 hover:border-gray-300">
+          <Button variant="outline" size="sm" className="mb-4 gap-2 border-gray-200 hover:border-gray-300" asChild><Link href="/">
               <ArrowLeft className="h-4 w-4" />
               Back to App
-            </Button>
-          </Link>
+            </Link></Button>
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-4xl font-bold text-gray-900 mb-2">Marketplace</h1>
               <p className="text-gray-600">Real-time commodity prices, market news, and analysis</p>
             </div>
             <div className="text-right text-xs text-gray-500">
-              <p>Updated {lastUpdated.toLocaleTimeString()}</p>
+              <p>{lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Updating…'}</p>
               <p className="text-gray-500">Auto-refresh every 30s</p>
             </div>
           </div>

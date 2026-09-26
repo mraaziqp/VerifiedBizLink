@@ -16,7 +16,7 @@
 
 **Changes**:
 - Email: ramone@verifiedbizlink.co.za (was: ramoen@...)
-- Password: Ramone@123456 (was: Ramoen@123456)
+- Password: Ramone@123456 (was: <set-your-own-password>)
 - All code references updated
 
 ---

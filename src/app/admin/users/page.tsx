@@ -283,11 +283,9 @@ export default function AdminUsersPage() {
             </>
           )}
         </Button>
-        <Link href="/admin">
-          <Button variant="outline" size="sm" className="gap-2 border-slate-300 text-slate-800 hover:bg-slate-100 font-bold">
+        <Button variant="outline" size="sm" className="gap-2 border-slate-300 text-slate-800 hover:bg-slate-100 font-bold" asChild><Link href="/admin">
             <ArrowLeft className="h-4 w-4" /> Back to Admin
-          </Button>
-        </Link>
+          </Link></Button>
       </AdminPageHeader>
 
       <div className="mx-auto max-w-7xl px-4 py-6 sm:py-8 space-y-6">

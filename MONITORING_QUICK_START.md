@@ -22,7 +22,7 @@ cd k:/Projects/VerifiedBizLink
 psql $DATABASE_URL < migrations/007_monitoring_system.sql
 
 # OR if using Neon:
-psql "postgresql://user:password@host/database" < migrations/007_monitoring_system.sql
+psql "postgresql://USER:PASSWORD@YOUR-NEON-HOST/neondb?sslmode=require" < migrations/007_monitoring_system.sql
 ```
 
 ### 2. Generate Your First API Key

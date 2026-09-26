@@ -138,7 +138,9 @@ const PUBLIC_BUSINESS_API = new RegExp(`^/api/businesses/${UUID}(/reviews(/${UUI
 // Vetting Hub to actually submit business documents) without being able to
 // wander into the rest of the app and publish anything. Staff are exempt
 // (provisioned directly, not through the public signup+verify flow).
-const UNVERIFIED_ALLOWED_PREFIXES = ['/settings', '/onboarding', '/vetting', '/business/verify'];
+// /business/create explains the email step itself; its server action still
+// refuses to save until the address is confirmed.
+const UNVERIFIED_ALLOWED_PREFIXES = ['/settings', '/onboarding', '/vetting', '/business/verify', '/business/create'];
 
 // What a quick-signup shopper or job seeker (requiresVerification: false in
 // their token) may do before confirming their email: review a business,

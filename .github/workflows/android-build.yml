@@ -1,15 +1,43 @@
 name: Build Android App (APK)
 
+# The app is a native shell around the live site (capacitor.config.ts
+# server.url) plus a bundled offline page, so only native/config changes
+# need a new APK — web changes reach the app on the next launch.
 on:
   push:
     branches: [main]
+    paths:
+      - 'android/**'
+      - 'capacitor.config.ts'
+      - 'public/offline.html'
+      - 'public/icon-*.png'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/android-build.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'android/**'
+      - 'capacitor.config.ts'
+      - 'public/offline.html'
+      - 'public/icon-*.png'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/android-build.yml'
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      VERSION_CODE: ${{ github.run_number }}
+      VERSION_NAME: 1.0.${{ github.run_number }}
+      # Optional. Set both in Settings → Secrets → Actions to publish builds
+      # to the admin dashboard (private "app-builds" bucket).
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Optional, for a signed release APK (Play Store): base64 of the .jks.
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
 
     steps:
       - name: Checkout code
@@ -28,124 +56,74 @@ jobs:
           java-version: '21'
           cache: gradle
 
+      # Same debug key every run, so a new test build installs as an update
+      # over the last one instead of "App not installed" (signature mismatch).
+      - name: Restore debug signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: vbl-android-debug-keystore-v1
+
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Build Next.js
-        run: npm run build
-
+      # No `next build`: nothing from it goes into the APK. Sync copies
+      # public/ (offline page, icons) and the Capacitor config.
       - name: Sync Android platform
         run: npx cap sync android
 
-      - name: Make gradlew executable
-        run: chmod +x android/gradlew
-
-      - name: Build APK (Debug)
+      - name: Build debug APK
         working-directory: android
-        run: ./gradlew assembleDebug
-
-      - name: Build APK (Release)
-        working-directory: android
-        run: ./gradlew assembleRelease
-
-      - name: Check APKs
         run: |
-          ls -lh android/app/build/outputs/apk/debug/
-          ls -lh android/app/build/outputs/apk/release/
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon -PvblVersionCode=$VERSION_CODE -PvblVersionName=$VERSION_NAME
 
-      - name: Upload Debug APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: VerifiedBizLink-Debug-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
-
-      - name: Upload Release APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: VerifiedBizLink-Release-APK
-          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
-          retention-days: 30
-
-      - name: Create Release (on main push)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/create-release@v1
+      - name: Build signed release APK
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        working-directory: android
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: android-build-${{ github.run_number }}
-          release_name: Android Build ${{ github.run_number }}
-          body: |
-            ## VerifiedBizLink Android Build
-
-            **Date:** ${{ github.event.head_commit.timestamp }}
-            **Commit:** ${{ github.sha }}
-            **Branch:** ${{ github.ref }}
-
-            ### Build Details
-            - **Status:** ✅ Success
-            - **Runner:** Ubuntu Latest
-            - **Java:** Temurin 17
-            - **Build Type:** Release (unsigned)
-            - **APK Size:** ~9.4 MB
-
-            ### Download
-            - **Release APK:** app-release-unsigned.apk (Production)
-            - **Debug APK:** app-debug.apk (Testing)
-
-            ### Installation
-            ```bash
-            # Using ADB
-            adb install android/app/build/outputs/apk/release/app-release-unsigned.apk
-
-            # Or manually:
-            1. Enable "Unknown Sources" in Android Settings
-            2. Transfer APK to phone
-            3. Tap to install
-            4. Launch app
-            ```
-
-            ### Features Included
-            - ✅ Real-time commodity prices (13 commodities)
-            - ✅ Market news and analysis
-            - ✅ Price comparator tool (compare up to 5)
-            - ✅ Market statistics (gainers/losers)
-            - ✅ Watchlist management with persistence
-            - ✅ All admin dashboards
-            - ✅ Settings portal (5 pages)
-            - ✅ User management
-            - ✅ Compliance tracking
-            - ✅ Audit logging
-            - ✅ Real-time monitoring
-
-            ### For Production Release
-            To release on Google Play Store:
-            1. Sign the APK with your release key
-            2. Upload to Google Play Console
-            3. Fill app details and screenshots
-            4. Submit for review
-
-            See MOBILE_APP.md for signing instructions.
-          draft: false
-          prerelease: false
-
-  notify:
-    runs-on: ubuntu-latest
-    needs: build
-    if: always()
-
-    steps:
-      - name: Build status
+          VBL_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          VBL_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          VBL_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
-          if [ "${{ needs.build.result }}" == "success" ]; then
-            echo "✅ Android build completed successfully!"
-            echo "📦 APK files available in Artifacts"
-            echo "📱 Ready for distribution"
-            echo ""
-            echo "Files:"
-            echo "- app-debug.apk (for testing)"
-            echo "- app-release-unsigned.apk (for production)"
-          else
-            echo "❌ Android build failed"
-            echo "Check the build logs above for details"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          VBL_KEYSTORE_PATH="$RUNNER_TEMP/release.jks" ./gradlew assembleRelease --no-daemon -PvblVersionCode=$VERSION_CODE -PvblVersionName=$VERSION_NAME
+          rm -f "$RUNNER_TEMP/release.jks"
+
+      - name: Name the APKs
+        id: apk
+        run: |
+          SHA=$(git rev-parse --short=7 HEAD)
+          mkdir -p out
+          cp android/app/build/outputs/apk/debug/app-debug.apk "out/VerifiedBizLink-$VERSION_NAME-$SHA-test.apk"
+          if [ -f android/app/build/outputs/apk/release/app-release.apk ]; then
+            cp android/app/build/outputs/apk/release/app-release.apk "out/VerifiedBizLink-$VERSION_NAME-$SHA-release.apk"
           fi
+          ls -lh out/
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VerifiedBizLink-APK-${{ env.VERSION_NAME }}
+          path: out/*.apk
+          retention-days: 30
+
+      # Only builds from main or a manual run go to the admin dashboard, and
+      # only to a private bucket: nothing is public until you choose to be.
+      - name: Publish to admin dashboard
+        if: env.SUPABASE_URL != '' && env.SUPABASE_SERVICE_ROLE_KEY != '' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main'))
+        run: |
+          set -euo pipefail
+          API="${SUPABASE_URL%/}/storage/v1"
+          AUTH=(-H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY")
+          # Create the private bucket once (409 = already exists).
+          code=$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$API/bucket" "${AUTH[@]}" \
+            -H 'Content-Type: application/json' -d '{"id":"app-builds","name":"app-builds","public":false}')
+          echo "bucket: HTTP $code"
+          for f in out/*.apk; do
+            name=$(basename "$f")
+            code=$(curl -sS -o /tmp/resp.txt -w '%{http_code}' -X POST "$API/object/app-builds/builds/$name" "${AUTH[@]}" \
+              -H 'Content-Type: application/vnd.android.package-archive' -H 'x-upsert: true' --data-binary @"$f")
+            echo "$name: HTTP $code"
+            if [ "$code" != "200" ]; then cat /tmp/resp.txt; exit 1; fi
+          done

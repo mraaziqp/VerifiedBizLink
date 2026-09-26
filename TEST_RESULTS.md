@@ -169,7 +169,7 @@ All critical features tested and working. Found and fixed 2 issues. Application 
 📋 **ALREADY IN PLACE**
 1. **Rate Limiting** - Signup (5/15min), Login (10/15min)
 2. **File Validation** - 5MB limit, type checking
-3. **Admin Setup** - admin@vbl.com, banker@vbl.com, lawyer@vbl.com (password: Pass@123)
+3. **Admin Setup** - admin@vbl.com, banker@vbl.com, lawyer@vbl.com (password: <set-your-own-password>)
 
 💡 **FUTURE IMPROVEMENTS (Post-Beta)**
 1. Cloud storage integration (AWS S3/GCS) for documents instead of base64 in DB
@@ -193,9 +193,9 @@ All critical features tested and working. Found and fixed 2 issues. Application 
 - **Role**: Customer
 
 ### Admin Accounts (Created during setup)
-- **Email**: admin@vbl.com | **Password**: Pass@123
-- **Email**: banker@vbl.com | **Password**: Pass@123
-- **Email**: lawyer@vbl.com | **Password**: Pass@123
+- **Email**: admin@vbl.com | **Password**: <set-your-own-password>
+- **Email**: banker@vbl.com | **Password**: <set-your-own-password>
+- **Email**: lawyer@vbl.com | **Password**: <set-your-own-password>
 
 ---
 

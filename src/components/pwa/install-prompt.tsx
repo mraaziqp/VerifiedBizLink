@@ -65,7 +65,9 @@ export function PwaInstallPrompt() {
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
-    if (isStandalone()) return;
+    // Already installed: the PWA in standalone mode, or our Android app
+    // (capacitor.config.ts appends this to the WebView user agent).
+    if (isStandalone() || navigator.userAgent.includes("VerifiedBizLinkApp")) return;
     if (sessionStorage.getItem(DISMISSED_KEY)) return;
     setDismissed(false);
 

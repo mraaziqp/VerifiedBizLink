@@ -1,3 +1,4 @@
+import { formatRandAmount } from '@/lib/format-number';
 /**
  * VERIFIEDBIZLINK
  * Business Advisor Commission & Incentive Policy (Version 1.0)
@@ -276,5 +277,5 @@ export function progressToNext(sales: number, ladder: Milestone[] = DEFAULT_MILE
 /** Cents -> "R1 234,56" string formatting */
 export function formatRand(cents: number): string {
   const rand = (Number(cents) || 0) / 100;
-  return `R${rand.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return formatRandAmount(rand);
 }

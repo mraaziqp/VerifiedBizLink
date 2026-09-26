@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard, History, UserCheck, Trophy, ShieldAlert, Receipt, Link2, Megaphone, Mail, Loader2, MessageSquare } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard, History, UserCheck, Trophy, ShieldAlert, Receipt, Link2, Megaphone, Mail, Loader2, MessageSquare, Smartphone } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -122,6 +122,7 @@ export default function AdminDashboard() {
     { id: 'agent-issues', name: 'Advisor Reports', description: 'Queries and problems raised by the sales team, with screenshots — answered from here', icon: MessageSquare, href: '/admin/agent-issues', color: 'from-sky-500 to-blue-500' },
     { id: 'activity', name: 'Activity & Receipts', description: 'Every sign-up and payment as it happens, with receipt references', icon: Receipt, href: '/admin/activity', color: 'from-teal-500 to-emerald-500' },
     { id: 'security', name: 'Security & Moderation', description: 'Warnings, strikes, bans, verification control and account removal', icon: ShieldAlert, href: '/admin/security', color: 'from-rose-500 to-red-500' },
+    { id: 'mobile-app', name: 'Mobile App (test builds)', description: 'Download the latest Android APK to test on your phone — admins only, not public', icon: Smartphone, href: '/admin/app', color: 'from-slate-700 to-slate-900', badge: 'Admin only' },
   ];
 
   const bankingTools: AdminTool[] = [
@@ -145,16 +146,12 @@ export default function AdminDashboard() {
   return (
     <AdminBackground>
       <AdminPageHeader title={dashboardTitle} subtitle={dashboardDescription}>
-        <Link href="/admin/orchestrator">
-          <Button variant="outline" size="sm" className="border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10">
+        <Button variant="outline" size="sm" className="border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10" asChild><Link href="/admin/orchestrator">
             Orchestrator
-          </Button>
-        </Link>
-        <Link href="/">
-          <Button variant="outline" size="sm" className="border-gray-500/30 text-gray-600 hover:bg-gray-100">
+          </Link></Button>
+        <Button variant="outline" size="sm" className="border-gray-500/30 text-gray-600 hover:bg-gray-100" asChild><Link href="/">
             Back to App
-          </Button>
-        </Link>
+          </Link></Button>
       </AdminPageHeader>
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:py-12">

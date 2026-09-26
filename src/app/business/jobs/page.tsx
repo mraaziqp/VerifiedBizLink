@@ -136,11 +136,9 @@ export default function EmployerJobsPage() {
                 That is what makes a listing here worth applying to. Get verified and
                 your roles go live straight away.
               </p>
-              <Link href="/business/verify">
-                <Button className="mt-3 bg-yellow-400 font-bold text-gray-900 hover:bg-yellow-300">
+              <Button className="mt-3 bg-yellow-400 font-bold text-gray-900 hover:bg-yellow-300" asChild><Link href="/business/verify">
                   Get verified
-                </Button>
-              </Link>
+                </Link></Button>
             </div>
           </div>
         )}
@@ -327,11 +325,9 @@ export default function EmployerJobsPage() {
                       <Users className="h-4 w-4 text-gray-400" />
                       {j.applicationCount} applicant{j.applicationCount === 1 ? '' : 's'}
                     </span>
-                    <Link href={`/business/jobs/${j.id}`}>
-                      <Button variant="outline" size="sm" className="border-gray-300">
+                    <Button variant="outline" size="sm" className="border-gray-300" asChild><Link href={`/business/jobs/${j.id}`}>
                         Review applicants
-                      </Button>
-                    </Link>
+                      </Link></Button>
                   </div>
                 </li>
               );

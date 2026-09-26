@@ -515,11 +515,9 @@ export default function VettingPage() {
                         </div>
                       ))}
                     </div>
-                    <Link href="/contact" className="block">
-                      <Button className="w-full rounded-xl bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold shadow-lg shadow-primary/20">
+                    <Button className="w-full rounded-xl bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold shadow-lg shadow-primary/20" asChild><Link href="/contact" className="block">
                         Learn More
-                      </Button>
-                    </Link>
+                      </Link></Button>
                   </CardContent>
                 </Card>
                 <div className="p-5 bg-yellow-50 rounded-2xl border border-yellow-200 flex flex-col gap-3">

@@ -22,8 +22,6 @@ export function EmailVerificationBanner() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [devVerifyUrl, setDevVerifyUrl] = useState<string | null>(null);
-
   const isStaff = !!user && STAFF_ROLES.includes((user as { role?: string }).role ?? '');
 
   if (!REQUIRE_EMAIL_VERIFICATION || !user || isStaff || (user as { emailVerified?: boolean }).emailVerified || dismissed) return null;
@@ -33,7 +31,6 @@ export function EmailVerificationBanner() {
     if (next) {
       setSent(false);
       setError(null);
-      setDevVerifyUrl(null);
     }
   };
 
@@ -45,7 +42,6 @@ export function EmailVerificationBanner() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setSent(true);
-        if (data.verificationUrl) setDevVerifyUrl(data.verificationUrl);
       } else {
         setError(data.error || "Could not send the email. Please try again in a few minutes.");
       }
@@ -104,17 +100,6 @@ export function EmailVerificationBanner() {
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 A new verification email is on its way — check your inbox.
               </div>
-              {devVerifyUrl && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-1.5">
-                  <p className="text-xs font-bold text-amber-900">Instant Verification Link:</p>
-                  <a
-                    href={devVerifyUrl}
-                    className="inline-block text-xs font-extrabold text-blue-600 hover:text-blue-800 underline break-all"
-                  >
-                    Click here to verify your email instantly &rarr;
-                  </a>
-                </div>
-              )}
             </div>
           ) : (
             <>

@@ -268,11 +268,9 @@ export default function BusinessDashboard() {
                   ? 'Set up your company details in the Vetting Hub to unlock your business dashboard, posts, gallery, and ads.'
                   : 'Viewing as staff — this dashboard is empty until a business profile exists for this account.'}
               </p>
-              <Link href="/vetting">
-                <Button className="w-full bg-yellow-400 text-slate-900 hover:bg-yellow-500">
+              <Button className="w-full bg-yellow-400 text-slate-900 hover:bg-yellow-500" asChild><Link href="/vetting">
                   Go to Vetting Hub
-                </Button>
-              </Link>
+                </Link></Button>
             </div>
           </CardContent>
         </Card>
@@ -358,24 +356,18 @@ export default function BusinessDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              <Link href="/">
-                <Button
+              <Button
                   variant="outline"
-                  className="gap-2 border-gray-200 text-gray-600 hover:bg-gray-100 hidden sm:flex"
-                >
+                  className="gap-2 border-gray-200 text-gray-600 hover:bg-gray-100 hidden sm:flex" asChild><Link href="/">
                   <Home className="h-4 w-4" />
                   Home
-                </Button>
-              </Link>
-              <Link href={`/business/${business.id}`} target="_blank">
-                <Button
+                </Link></Button>
+              <Button
                   variant="outline"
-                  className="gap-2 border-yellow-500/40 text-yellow-700 hover:bg-yellow-500/10 hidden sm:flex"
-                >
+                  className="gap-2 border-yellow-500/40 text-yellow-700 hover:bg-yellow-500/10 hidden sm:flex" asChild><Link href={`/business/${business.id}`} target="_blank">
                   <Eye className="h-4 w-4" />
                   View Public Page
-                </Button>
-              </Link>
+                </Link></Button>
               <Button
                 variant="outline"
                 size="icon"
@@ -396,15 +388,12 @@ export default function BusinessDashboard() {
             </div>
           </div>
 
-          <Link href={`/business/${business.id}`} target="_blank" className="sm:hidden block mb-4">
-            <Button
+          <Button
               variant="outline"
-              className="w-full gap-2 border-yellow-500/40 text-yellow-700 hover:bg-yellow-500/10 h-11"
-            >
+              className="w-full gap-2 border-yellow-500/40 text-yellow-700 hover:bg-yellow-500/10 h-11" asChild><Link href={`/business/${business.id}`} target="_blank" className="sm:hidden block mb-4">
               <Eye className="h-4 w-4" />
               View Public Page
-            </Button>
-          </Link>
+            </Link></Button>
 
           {/* Tab Navigation */}
           <div className="flex gap-2 overflow-x-auto [-webkit-overflow-scrolling:touch] -mx-4 px-4 sm:mx-0 sm:px-0">
@@ -466,11 +455,9 @@ export default function BusinessDashboard() {
                     </p>
                   </div>
                 </div>
-                <Link href="/business/verify" className="shrink-0 w-full sm:w-auto">
-                  <Button className="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-bold shadow-md shadow-yellow-400/20">
+                <Button className="w-full sm:w-auto bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-bold shadow-md shadow-yellow-400/20" asChild><Link href="/business/verify" className="shrink-0 w-full sm:w-auto">
                     Get Verified for R49 →
-                  </Button>
-                </Link>
+                  </Link></Button>
               </div>
             )}
             {/* Welcome & Setup Guide Banner for new signups or incomplete setup */}
@@ -931,11 +918,9 @@ export default function BusinessDashboard() {
                         </div>
                       </div>
                     </div>
-                    <Link href={rec.href}>
-                      <Button className="bg-yellow-400 text-slate-900 hover:bg-yellow-500 ml-4">
+                    <Button className="bg-yellow-400 text-slate-900 hover:bg-yellow-500 ml-4" asChild><Link href={rec.href}>
                         {rec.action}
-                      </Button>
-                    </Link>
+                      </Link></Button>
                   </div>
                 );
               })}
@@ -1051,11 +1036,9 @@ export default function BusinessDashboard() {
                           : 'Fill in your company name, description, contact info, website, and add photos.'}
                       </p>
                       {!step1Complete && (
-                        <Link href="/business/profile">
-                          <Button size="sm" className="bg-yellow-400 text-slate-900 hover:bg-yellow-500">
+                        <Button size="sm" className="bg-yellow-400 text-slate-900 hover:bg-yellow-500" asChild><Link href="/business/profile">
                             Complete Profile
-                          </Button>
-                        </Link>
+                          </Link></Button>
                       )}
                     </div>
                   </div>
@@ -1067,11 +1050,9 @@ export default function BusinessDashboard() {
                     <div className="flex-1">
                       <h4 className="font-semibold text-gray-900 mb-1">Step 2: Upload Documents</h4>
                       <p className="text-gray-500 text-sm mb-3">Upload business registration, tax documents, or certifications.</p>
-                      <Link href="/business/documents">
-                        <Button size="sm" className="bg-yellow-400 text-slate-900 hover:bg-yellow-500">
+                      <Button size="sm" className="bg-yellow-400 text-slate-900 hover:bg-yellow-500" asChild><Link href="/business/documents">
                           Upload Now
-                        </Button>
-                      </Link>
+                        </Link></Button>
                     </div>
                   </div>
 

@@ -54,7 +54,7 @@ NEXT_PUBLIC_APP_URL="http://localhost:3000"  # or production domain
 1. Go to `/signup`
 2. Fill form:
    - Email: `testuser@example.com`
-   - Password: `TestPass123!`
+   - Password: `<set-your-own-password>`
    - Full Name: `Test User`
    - Role: `Customer`
 3. Click "Sign Up"

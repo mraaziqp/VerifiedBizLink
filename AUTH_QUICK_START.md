@@ -36,8 +36,8 @@ Go directly to Supabase to create a user:
 5. Fill in:
    ```
    Email:             test@example.com
-   Password:          TestPass123!
-   Confirm password:  TestPass123!
+   Password:          <set-your-own-password>
+   Confirm password:  <set-your-own-password>
    Auto confirm:      ✓ (check the box)
    ```
 6. Click **Save user**
@@ -52,7 +52,7 @@ Go directly to Supabase to create a user:
 4. Login with:
    ```
    Email:    test@example.com
-   Password: TestPass123!
+   Password: <set-your-own-password>
    ```
 5. You should be logged in!
 
@@ -65,14 +65,14 @@ Once login works, create these users in Supabase:
 ### **Ramoen (Admin)**
 ```
 Email:    ramoen@verifiedbizlink.co.za
-Password: TestPass123!
+Password: <set-your-own-password>
 Auto confirm: ✓
 ```
 
 ### **Wesley (Banker)**
 ```
 Email:    wesley@verifiedbizlink.co.za
-Password: TestPass123!
+Password: <set-your-own-password>
 Auto confirm: ✓
 ```
 

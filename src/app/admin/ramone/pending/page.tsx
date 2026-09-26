@@ -189,11 +189,9 @@ export default function RamonePendingPage() {
 
                   {/* Action Buttons */}
                   <div className="grid grid-cols-2 gap-2 pt-2">
-                    <Link href={`/admin/vetting?business=${business.id}`}>
-                      <Button variant="outline" className="w-full border-blue-500/50 text-blue-600 hover:bg-blue-500/10">
+                    <Button variant="outline" className="w-full border-blue-500/50 text-blue-600 hover:bg-blue-500/10" asChild><Link href={`/admin/vetting?business=${business.id}`}>
                         Review Documents
-                      </Button>
-                    </Link>
+                      </Link></Button>
                     <Button
                       className="bg-green-600 hover:bg-green-700 w-full"
                       onClick={() => handleApprove(business.id)}

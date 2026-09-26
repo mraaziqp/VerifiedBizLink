@@ -88,11 +88,9 @@ export default function MyApplicationsPage() {
           <div className="rounded-2xl border border-gray-200 bg-white p-12 text-center">
             <Briefcase className="mx-auto h-10 w-10 text-gray-300" />
             <p className="mt-3 font-bold text-gray-900">You have not applied to anything yet</p>
-            <Link href="/jobs">
-              <Button className="mt-4 bg-yellow-400 font-bold text-gray-900 hover:bg-yellow-300">
+            <Button className="mt-4 bg-yellow-400 font-bold text-gray-900 hover:bg-yellow-300" asChild><Link href="/jobs">
                 Browse jobs
-              </Button>
-            </Link>
+              </Link></Button>
           </div>
         ) : (
           <ul className="space-y-3">

@@ -125,11 +125,9 @@ export default function JobDetailPage() {
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50 px-4 text-center">
         <Briefcase className="h-10 w-10 text-gray-300" />
         <p className="text-lg font-bold text-gray-900">That role is no longer listed</p>
-        <Link href="/jobs">
-          <Button variant="outline" className="gap-2 border-gray-300">
+        <Button variant="outline" className="gap-2 border-gray-300" asChild><Link href="/jobs">
             <ArrowLeft className="h-4 w-4" /> Back to jobs
-          </Button>
-        </Link>
+          </Link></Button>
       </div>
     );
   }
@@ -233,11 +231,9 @@ export default function JobDetailPage() {
         {isOwner ? (
           <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-5 text-center">
             <p className="text-sm text-gray-600">This is your listing.</p>
-            <Link href={`/business/jobs/${job.id}`}>
-              <Button className="mt-3 gap-2 bg-yellow-400 font-bold text-gray-900 hover:bg-yellow-300">
+            <Button className="mt-3 gap-2 bg-yellow-400 font-bold text-gray-900 hover:bg-yellow-300" asChild><Link href={`/business/jobs/${job.id}`}>
                 View applicants
-              </Button>
-            </Link>
+              </Link></Button>
           </div>
         ) : hasApplied ? (
           <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">

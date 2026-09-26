@@ -123,24 +123,24 @@ curl -X POST http://localhost:9002/api/setup/seed-accounts \
       "email": "ramoen@verifiedbizlink.co.za",
       "role": "admin",
       "status": "created",
-      "password": "TestPass123!"
+      "password": "<set-your-own-password>"
     },
     {
       "email": "wesley@verifiedbizlink.co.za",
       "role": "banker",
       "status": "created",
-      "password": "TestPass123!"
+      "password": "<set-your-own-password>"
     }
   ],
   "credentials": {
     "ramoen": {
       "email": "ramoen@verifiedbizlink.co.za",
-      "password": "TestPass123!",
+      "password": "<set-your-own-password>",
       "role": "admin"
     },
     "wesley": {
       "email": "wesley@verifiedbizlink.co.za",
-      "password": "TestPass123!",
+      "password": "<set-your-own-password>",
       "role": "banker"
     }
   }
@@ -193,7 +193,7 @@ id                  | email                              | full_name           |
 1. Go to: http://localhost:9002/login
 2. Enter:
    - Email: `ramoen@verifiedbizlink.co.za`
-   - Password: `TestPass123!`
+   - Password: `<set-your-own-password>`
 3. Click **Sign In Securely**
 
 **Expected:**
@@ -213,7 +213,7 @@ id                  | email                              | full_name           |
 1. Logout (click profile → Logout)
 2. Login with:
    - Email: `wesley@verifiedbizlink.co.za`
-   - Password: `TestPass123!`
+   - Password: `<set-your-own-password>`
 
 **Expected:**
 - ✅ Login succeeds

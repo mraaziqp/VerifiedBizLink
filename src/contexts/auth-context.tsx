@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, startTransition, useContext, useEffect, useState, useCallback } from 'react';
 
 export interface AuthUser {
   id: string;
@@ -33,16 +33,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchMe = useCallback(async () => {
     try {
       const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      } else if (res.status === 401 || res.status === 403) {
-        setUser(null);
-      }
+      const data = res.ok ? await res.json() : null;
+      // A transition, not an urgent update: when /api/auth/me answers before
+      // a streamed part of the page has hydrated, an urgent context change
+      // forces React to throw that part away and re-render it on the client
+      // (hydration error #418, plus a visible flash). Transitions wait for
+      // hydration to finish first.
+      startTransition(() => {
+        if (data) setUser(data.user);
+        else if (res.status === 401 || res.status === 403) setUser(null);
+        setLoading(false);
+      });
     } catch {
       // Keep the existing session state during transient network failures.
-    } finally {
-      setLoading(false);
+      startTransition(() => setLoading(false));
     }
   }, []);
 
