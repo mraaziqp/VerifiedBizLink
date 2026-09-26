@@ -7,7 +7,7 @@ import { hash } from 'bcryptjs';
 import db from '@/lib/db';
 import { createTrackedSession, getSession, hashOneTimeToken, sessionCookieOptions, type SessionUser } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { sendVerificationEmail, appUrlFromRequest } from '@/lib/email';
+import { sendVerificationEmail, sendWithin, appUrlFromRequest } from '@/lib/email';
 import { REQUIRE_EMAIL_VERIFICATION } from '@/lib/feature-flags';
 import {
   EMAIL_FORMAT, MIN_PASSWORD_LENGTH, ensureUserTypeColumns, isRegistrableEmailDomain,
@@ -101,7 +101,7 @@ export async function registerBasicUser(
     `;
 
     // Sent, just not required before they can start.
-    await sendVerificationEmail(user.email, user.full_name, verificationToken, appUrlFromRequest(req))
+    await sendWithin(sendVerificationEmail(user.email, user.full_name, verificationToken, appUrlFromRequest(req)))
       .catch((err) => console.error('Quick-signup verification email failed for', user.email, err));
 
     const sessionUser: SessionUser = {

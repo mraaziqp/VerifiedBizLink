@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import {
   ShieldCheck, Building2, Loader2,
-  Lock, Eye, EyeOff, CheckCircle2, Circle, User,
+  Lock, Eye, EyeOff, CheckCircle2, Circle, ShoppingBag, Briefcase
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,11 +20,14 @@ import { registerBasicUser } from "@/app/actions/auth-actions";
 
 type AccountRole = "customer" | "business";
 
-// Customer = quick four-field signup (registerBasicUser); Business = full
-// signup through /api/auth/signup with company details.
-const ROLES: { value: AccountRole; label: string; icon: React.ElementType; desc: string }[] = [
-  { value: "customer", label: "Customer", icon: User, desc: "Browse and review verified businesses" },
-  { value: "business", label: "Business", icon: Building2, desc: "Set up your company profile for review" },
+// One question up front: what are you here to do? "Shop" and "Find work"
+// are the quick four-field signup (registerBasicUser); "List my business"
+// is the full signup through /api/auth/signup with company details.
+type Choice = "shop" | "work" | "business";
+const CHOICES: { id: Choice; role: AccountRole; label: string; icon: React.ElementType; desc: string }[] = [
+  { id: "shop", role: "customer", label: "Shop & review", icon: ShoppingBag, desc: "Find trusted businesses" },
+  { id: "work", role: "customer", label: "Find work", icon: Briefcase, desc: "Apply at verified employers" },
+  { id: "business", role: "business", label: "List my business", icon: Building2, desc: "Get verified & found" },
 ];
 
 function getStrength(pw: string) {
@@ -41,12 +44,12 @@ const strengthLabel = ["", "Very Weak", "Weak", "Fair", "Good", "Strong"];
 const strengthColor = ["", "bg-red-500", "bg-orange-400", "bg-yellow-400", "bg-lime-500", "bg-green-500"];
 
 export default function SignupPage() {
-  const [role, setRole] = useState<AccountRole>("customer");
+  const [choice, setChoice] = useState<Choice>("shop");
+  const role: AccountRole = choice === "business" ? "business" : "customer";
   const [formData, setFormData] = useState({
     fullName: "",
     firstName: "",
     lastName: "",
-    userType: "customer" as "customer" | "job_seeker",
     email: "",
     password: "",
     confirmPassword: "",
@@ -119,7 +122,7 @@ export default function SignupPage() {
           lastName: formData.lastName,
           email: formData.email,
           password: formData.password,
-          userType: formData.userType,
+          userType: choice === "work" ? "job_seeker" : "customer",
         });
         if (result.success) {
           await refresh();
@@ -260,35 +263,38 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Create your account</h2>
-              <p className="mt-1.5 text-gray-500">Set up your profile and begin the verification process</p>
+              <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">Create your free account</h2>
+              <p className="mt-1.5 text-gray-600">
+                {role === "business"
+                  ? "Next you'll choose a plan and submit your documents for verification."
+                  : "Takes under a minute. You can start straight away."}
+              </p>
             </div>
 
-            {/* Role selector */}
-            <div className={cn("grid gap-3", ROLES.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
-              {ROLES.map(({ value, label, icon: Icon, desc }) => (
+            {/* What are you here to do? */}
+            <div role="radiogroup" aria-label="What are you here to do?" className="grid grid-cols-3 gap-2 sm:gap-3">
+              {CHOICES.map(({ id, label, icon: Icon, desc }) => (
                 <button
-                  key={value}
+                  key={id}
                   type="button"
-                  onClick={() => setRole(value)}
+                  role="radio"
+                  aria-checked={choice === id}
+                  onClick={() => setChoice(id)}
                   className={cn(
-                    "flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 text-center transition-all",
-                    role === value
+                    "flex flex-col items-center gap-1.5 rounded-2xl border-2 p-2.5 text-center transition-all sm:p-3",
+                    choice === id
                       ? "border-yellow-400 bg-yellow-50 shadow-md shadow-yellow-400/20"
-                      : "border-gray-200 hover:border-gray-300 bg-gray-50"
+                      : "border-gray-200 bg-gray-50 hover:border-gray-300"
                   )}
                 >
                   <div className={cn(
-                    "h-9 w-9 rounded-xl flex items-center justify-center",
-                    role === value ? "bg-yellow-400 text-gray-900" : "bg-gray-200 text-gray-500"
+                    "flex h-9 w-9 items-center justify-center rounded-xl",
+                    choice === id ? "bg-yellow-400 text-gray-900" : "bg-gray-200 text-gray-600"
                   )}>
                     <Icon className="h-4 w-4" />
                   </div>
-                  <span className={cn(
-                    "text-xs font-bold",
-                    role === value ? "text-gray-900" : "text-gray-500"
-                  )}>{label}</span>
-                  <span className="text-[10px] text-gray-500 leading-tight hidden sm:block">{desc}</span>
+                  <span className={cn("text-xs font-bold leading-tight", choice === id ? "text-gray-900" : "text-gray-700")}>{label}</span>
+                  <span className="text-[10px] leading-tight text-gray-600">{desc}</span>
                 </button>
               ))}
             </div>
@@ -297,30 +303,6 @@ export default function SignupPage() {
               {/* Account holder's own name - only for Customer accounts */}
               {role === "customer" && (
                 <div className="space-y-4" suppressHydrationWarning>
-                  <fieldset>
-                    <legend className="text-sm font-semibold text-gray-700 mb-1.5">What brings you here?</legend>
-                    <div className="grid grid-cols-2 gap-2">
-                      {([
-                        { value: "customer", label: "Shopping & reviews" },
-                        { value: "job_seeker", label: "Looking for work" },
-                      ] as const).map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          aria-pressed={formData.userType === opt.value}
-                          onClick={() => setFormData((prev) => ({ ...prev, userType: opt.value }))}
-                          className={cn(
-                            "h-11 rounded-xl border-2 px-2 text-sm font-semibold transition-colors",
-                            formData.userType === opt.value
-                              ? "border-yellow-400 bg-yellow-50 text-gray-900"
-                              : "border-gray-200 bg-white text-gray-600 hover:border-gray-300",
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </fieldset>
                   <div className="grid grid-cols-1 gap-4 min-[420px]:grid-cols-2">
                     <div className="space-y-1.5">
                       <Label htmlFor="first-name" className="text-sm font-semibold text-gray-700">First name</Label>

@@ -114,6 +114,23 @@ export async function sendPasswordResetEmail(to: string, fullName: string, token
   }
 }
 
+/**
+ * Wait for an email for at most `ms`, so a slow mail server cannot leave
+ * someone staring at a spinner on signup. The send keeps going in the
+ * background; if it is cut short they can resend from the verify banner.
+ */
+export async function sendWithin(send: Promise<unknown>, ms = 6000): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`email still sending after ${ms}ms`)), ms);
+  });
+  try {
+    await Promise.race([send, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function sendVerificationEmail(to: string, fullName: string, token: string, baseUrl?: string) {
   const link = `${baseUrl ?? APP_URL}/api/auth/verify-email?token=${token}`;
   try {

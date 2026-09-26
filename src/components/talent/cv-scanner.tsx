@@ -181,7 +181,7 @@ export function CvScanner({ cvUrl, cvFileName, onUploaded, onRemoved, onApply }:
   const nothingFound = found && !found.fields && !found.skills && !found.roles && !found.education;
 
   return (
-    <section className="rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/80 via-white to-white p-5 sm:p-6 shadow-xs">
+    <section id="cv" className="scroll-mt-20 rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/80 via-white to-white p-5 sm:p-6 shadow-xs">
       <div className="flex items-start gap-3">
         <div className="shrink-0 rounded-xl bg-slate-900 p-2.5">
           <ScanLine className="h-5 w-5 text-amber-400" aria-hidden />

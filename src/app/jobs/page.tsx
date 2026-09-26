@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import {
+import { Upload,
   Briefcase, Search, MapPin, Loader2, ShieldCheck, Sparkles,
   ArrowRight, FileText, Clock, PlusCircle, Building2,
 } from 'lucide-react';
@@ -219,11 +219,14 @@ function JobsContent() {
             </p>
           </div>
 
-          <Link href="/talent/profile" className="shrink-0">
-            <Button variant="outline" className="border-slate-300 font-bold gap-2 text-slate-800 hover:bg-slate-100">
-              <FileText className="h-4 w-4" /> My Talent Profile
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button asChild className="gap-2 bg-amber-400 font-bold text-slate-900 hover:bg-amber-300">
+              <Link href="/talent/profile#cv"><Upload className="h-4 w-4" /> Upload your CV</Link>
             </Button>
-          </Link>
+            <Button asChild variant="outline" className="gap-2 border-slate-300 font-bold text-slate-800 hover:bg-slate-100">
+              <Link href="/talent/profile"><FileText className="h-4 w-4" /> My profile</Link>
+            </Button>
+          </div>
         </div>
 
         {/* Without a profile callout */}

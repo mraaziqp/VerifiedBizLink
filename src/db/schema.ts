@@ -1,4 +1,4 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, integer, jsonb, index, unique } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, varchar, text, boolean, timestamp, integer, jsonb, index, unique, primaryKey } from 'drizzle-orm/pg-core';
 
 // ==========================================
 // 1. Users Table
@@ -92,12 +92,63 @@ export const directMessages = pgTable('messages', {
   senderId: uuid('sender_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   receiverId: uuid('receiver_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
+  imageUrl: text('image_url'),
   readStatus: boolean('read').default(false),
+  // Messaging hub columns (added on first use by lib/messaging).
+  isEdited: boolean('is_edited').notNull().default(false),
+  editedAt: timestamp('edited_at', { withTimezone: true }),
+  isDeleted: boolean('is_deleted').notNull().default(false),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  replyToId: uuid('reply_to_id'),
+  kind: text('kind').notNull().default('text'), // 'text' | 'quote' | 'payment_request'
+  meta: jsonb('meta'),
+  attachmentUrl: text('attachment_url'),
+  attachmentName: text('attachment_name'),
+  attachmentType: text('attachment_type'),
+  attachmentSize: integer('attachment_size'),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
 }, (table) => [
   index('idx_direct_messages_pair').on(table.senderId, table.receiverId, table.createdAt),
   index('idx_direct_messages_receiver').on(table.receiverId, table.readStatus),
 ]);
+
+/**
+ * Per-person state of a conversation (a conversation is the pair of users).
+ * Pinned / archived / category are each person's own view: Alice archiving
+ * her chat with Bob does not archive it for Bob.
+ */
+export const messageThreadPrefs = pgTable('message_thread_prefs', {
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  otherUserId: uuid('other_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  isPinned: boolean('is_pinned').notNull().default(false),
+  isArchived: boolean('is_archived').notNull().default(false),
+  category: text('category').notNull().default('general'), // 'general' | 'lead' | 'support' | 'verification'
+  customLabel: text('custom_label'),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  primaryKey({ columns: [table.userId, table.otherUserId] }),
+]);
+
+export const cannedResponses = pgTable('canned_responses', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  shortcutTrigger: text('shortcut_trigger').notNull(),
+  fullText: text('full_text').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  unique('canned_responses_user_shortcut').on(table.userId, table.shortcutTrigger),
+]);
+
+/** Private chat attachments, served only to the two people in the conversation. */
+export const messageFiles = pgTable('message_files', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  uploaderId: uuid('uploader_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  fileName: text('file_name').notNull(),
+  mimeType: text('mime_type').notNull(),
+  sizeBytes: integer('size_bytes').notNull(),
+  dataBase64: text('data_base64').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
 
 // ==========================================
 // 5. User Subscriptions Table (for Audit & CRON Billing)

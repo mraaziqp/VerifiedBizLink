@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageSquare, X, Send, User, ChevronDown, Trash2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { usePathname } from "next/navigation";
 
 interface Message {
   id: number;
@@ -64,6 +65,7 @@ function BotMessage({ text }: { text: string }) {
 }
 
 export function ChatWidget() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [input, setInput] = useState("");
@@ -130,6 +132,9 @@ export function ChatWidget() {
   };
 
   const userMessageCount = messages.filter((m) => m.role === "user").length;
+
+  // The messages hub has its own composer in this corner.
+  if (pathname?.startsWith("/dashboard/messages")) return null;
 
   return (
     <>

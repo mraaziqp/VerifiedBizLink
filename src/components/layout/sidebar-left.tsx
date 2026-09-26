@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import {
+import { FileText,
   Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell,
   MapPin, Building2, Zap, Megaphone, CheckCheck, Trash2, X, Briefcase, QrCode, PlusCircle, MessageSquare
 } from "lucide-react";
@@ -21,6 +21,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
+import { useMessagingStore } from "@/stores/messaging-store";
 
 interface Notification {
   id: string;
@@ -72,6 +73,7 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
   const verificationLoading = canHaveBusiness && !verificationChecked;
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadMessages = useMessagingStore((s) => s.unread);
 
   const fetchNotifications = useCallback((signal?: AbortSignal) => {
     if (!user) return;
@@ -229,7 +231,26 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
                   isActive ? "text-amber-400" : "text-slate-400 group-hover:text-slate-700"
                 )} />
                 <span>{item.name}</span>
+                {item.name === "Messages" && unreadMessages > 0 && (
+                  <span className="ml-auto rounded-full bg-amber-400 px-1.5 text-[10px] font-black text-slate-900">{unreadMessages > 99 ? "99+" : unreadMessages}</span>
+                )}
               </Link>
+
+              {/* Everyone can look for work, so the CV link is always there. */}
+              {isJobs && (
+                <Link
+                  href="/talent/profile#cv"
+                  className={cn(
+                    "flex items-center gap-2.5 pl-9 pr-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150",
+                    pathname === "/talent/profile"
+                      ? "text-slate-900 bg-amber-50 font-bold border-l-2 border-amber-500"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  )}
+                >
+                  <FileText className="h-3.5 w-3.5 text-amber-700" />
+                  <span>My CV &amp; profile</span>
+                </Link>
+              )}
 
               {/* Nested Post a Job route: conditionally rendered for verified business accounts */}
               {isJobs && businessVerified && (

@@ -234,7 +234,7 @@ export function BusinessProfileClient({ contactCard }: { contactCard?: ReactNode
               <div className="flex items-center gap-2 mt-2">
                 {!isOwnBusiness && user && (
                   <>
-                    <Link href={`/messages?with=${business.userId}`}>
+                    <Link href={`/dashboard/messages?with=${business.userId}`}>
                       <Button
                         variant="outline"
                         className="font-bold gap-2"

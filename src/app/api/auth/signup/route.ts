@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { createTrackedSession, sessionCookieOptions, hashOneTimeToken } from '@/lib/auth';
 import { checkRateLimit } from '@/lib/rate-limit';
-import { sendVerificationEmail, appUrlFromRequest } from '@/lib/email';
+import { sendVerificationEmail, sendWithin, appUrlFromRequest } from '@/lib/email';
 import db from '@/lib/db';
 import { EMAIL_FORMAT, MIN_PASSWORD_LENGTH, isRegistrableEmailDomain } from '@/lib/signup-guards';
 
@@ -169,9 +169,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Send verification email (await so serverless Lambda environments don't kill the connection prematurely)
+    // Send verification email (await so serverless Lambda environments don't kill
+    // the connection prematurely, but never for long enough to stall signup)
     try {
-      await sendVerificationEmail(user.email, user.full_name, verificationToken, appUrlFromRequest(request));
+      await sendWithin(sendVerificationEmail(user.email, user.full_name, verificationToken, appUrlFromRequest(request)));
     } catch (err) {
       console.error('Signup verification email failed for', user.email, err);
     }

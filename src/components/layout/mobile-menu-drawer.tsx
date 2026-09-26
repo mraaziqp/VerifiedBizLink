@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { MessageSquare,
+import { FileText, MessageSquare,
   X, Home, Users, MapPin, ShieldCheck, BarChart3,
   Settings, Shield, LogOut, Building2, Megaphone, Zap, QrCode, Briefcase, PlusCircle
 } from "lucide-react";
@@ -160,6 +160,18 @@ export function MobileMenuDrawer() {
                       {item.name}
                     </Link>
 
+                    {isJobs && (
+                      <Link
+                        href="/talent/profile#cv"
+                        onClick={() => setOpen(false)}
+                        className={`flex items-center gap-2 pl-9 pr-3.5 py-2 text-xs font-semibold rounded-lg transition-all ${
+                          pathname === "/talent/profile" ? "bg-amber-400/20 text-amber-300 font-bold" : "text-white/70 hover:text-white hover:bg-white/5"
+                        }`}
+                      >
+                        <FileText size={14} className="text-amber-400" />
+                        <span>My CV &amp; profile</span>
+                      </Link>
+                    )}
                     {isJobs && (isBusiness || businessVerified) && (
                       <Link
                         href="/jobs?tab=post"
