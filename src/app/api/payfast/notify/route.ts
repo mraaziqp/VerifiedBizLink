@@ -370,10 +370,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (!userId) {
-      // Still recorded, so the money is visible in the payment log; an admin
-      // has to decide whose it is.
-      await recordCharge('completed').catch((err) => raiseUnrecorded(err.message));
-      await raiseUnrecorded('it was recorded without an owner — no user could be matched to it');
+      // payments requires an owner, so a charge nobody can be matched to
+      // (e.g. the account was deleted) goes to the billing log, which admins
+      // see, with an alert to decide whose it is and whether to refund it.
+      await raiseUnrecorded('no user could be matched to it (the account may have been deleted) — refund it or cancel the subscription at PayFast');
       return NextResponse.json({ success: true }, { status: 200 });
     }
 

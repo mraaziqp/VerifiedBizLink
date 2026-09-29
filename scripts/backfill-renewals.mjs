@@ -119,9 +119,10 @@ for (const [ref, list] of byCheckout) {
 
   if (charges.length === 0) { console.log(''); continue; }
   if (!checkout) {
-    // The account is gone entirely, but the money still moved. Record it
-    // without an owner so it appears in the admin payment log.
-    console.log(`  ! account deleted — charges will be recorded without an owner. PayFast subscription ${first.token || '?'} may still be active: cancel it in the PayFast dashboard.`);
+    // The account is gone entirely, but the money still moved. payments
+    // requires an owner, so these go to the billing log instead, which is
+    // shown in Admin → Payment Gateway.
+    console.log(`  ! account deleted — charges will be recorded in the billing log. PayFast subscription ${first.token || '?'} may still be active: cancel it in the PayFast dashboard.`);
     checkout = { id: null, user_id: null, purchase_type: first.custom_str3 || null, payfast_reference: null };
   }
 
@@ -136,6 +137,24 @@ for (const [ref, list] of byCheckout) {
   }
 
   for (const r of renewals) {
+    if (!checkout.user_id) {
+      const [logged] = await db`
+        SELECT id FROM billing_events WHERE reference = ${r.payfast_reference} LIMIT 1`.catch(() => []);
+      if (logged) continue;
+      missing += 1;
+      const cents = Math.round(parseFloat(r.body.amount_gross || '0') * 100);
+      console.log(`  + unlogged charge ${fmt(r.at)} pf=${r.payfast_reference} R${(cents / 100).toFixed(2)} (to billing log)`);
+      if (apply) {
+        const ins = await db`
+          INSERT INTO billing_events (event, severity, amount_cents, reference, detail, created_at)
+          VALUES ('charge_succeeded', 'warning', ${cents}, ${r.payfast_reference},
+                  ${`PayFast charged R${(cents / 100).toFixed(2)} (${r.body.item_name || 'subscription'}) to ${r.body.email_address || 'unknown payer'} on subscription ${r.body.token || '?'}, but that account no longer exists, so it is not in the payments table. Recorded from the ITN log by scripts/backfill-renewals.mjs. Cancel the subscription at PayFast if it is still active.`},
+                  ${new Date(r.at).toISOString()})
+          RETURNING id`;
+        written += ins.length;
+      }
+      continue;
+    }
     const [exists] = await db`
       SELECT id FROM payments
       WHERE reference = ${r.payfast_reference}
