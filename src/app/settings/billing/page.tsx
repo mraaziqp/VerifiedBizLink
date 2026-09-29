@@ -7,6 +7,7 @@ import { GlassBackground, GlassCard, SectionTitle } from '@/components/shared/gl
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { formatRand, formatDate } from '@/lib/billing';
+import { startPayfastCheckout } from '@/lib/payfast-checkout';
 
 interface Subscription {
   tierKey: string;
@@ -20,6 +21,8 @@ interface Subscription {
   graceHoursRemaining: number;
   graceEndsAt: string | null;
   downgradedFrom: string | null;
+  canPayNow: boolean;
+  payNowCents: number;
   terms: string;
 }
 
@@ -39,7 +42,46 @@ export default function BillingSettingsPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  // Arriving from the payment-failed email's Pay now button.
+  const [fromEmail, setFromEmail] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    try {
+      setFromEmail(new URLSearchParams(window.location.search).get('pay') === '1');
+    } catch { /* no query string */ }
+  }, []);
+
+  const payNow = async () => {
+    setPaying(true);
+    const result = await startPayfastCheckout({}, '/api/billing/renew');
+    // Only reached if checkout could not be started; success leaves the page.
+    toast({ title: 'Could not start payment', description: result.error, variant: 'destructive' });
+    setPaying(false);
+  };
+
+  const cancelSubscription = async () => {
+    if (!window.confirm(
+      'Cancel your subscription and move to the Free plan now?\n\nYour business stays listed and nothing is deleted. You can resubscribe any time.',
+    )) return;
+    setCancelling(true);
+    try {
+      const res = await fetch('/api/businesses/cancel-subscription', { method: 'POST' });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast({ title: 'Subscription cancelled', description: 'You are now on the Free plan.' });
+        apply(await fetchBilling());
+      } else {
+        toast({ title: 'Could not cancel', description: data.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not cancel', variant: 'destructive' });
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   // Returns the parsed payload rather than setting state itself, so the
   // effect below owns every setState and none of them happen synchronously
@@ -128,17 +170,52 @@ export default function BillingSettingsPage() {
           </GlassCard>
         ) : (
           <div className="space-y-5">
-            {/* Failed payment banner — the 72-hour window */}
+            {/* Failed payment — the 5-day grace window */}
             {sub.paymentFailedAt && sub.graceHoursRemaining > 0 && (
-              <div className="rounded-2xl border border-red-200 bg-red-50 p-5">
+              <div
+                id="pay"
+                className={`rounded-2xl border border-red-200 bg-red-50 p-5 ${fromEmail ? 'ring-2 ring-red-400 ring-offset-2' : ''}`}
+              >
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
-                  <div>
-                    <p className="font-bold text-red-800">We couldn&apos;t process your payment</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-bold text-red-800">Your subscription payment failed</p>
                     <p className="mt-1 text-sm text-red-700">
-                      You have about <strong>{sub.graceHoursRemaining} hours</strong> (until{' '}
-                      {formatDate(sub.graceEndsAt)}) to update it. After that your account moves to
-                      the Free tier — your business stays listed and nothing is deleted.
+                      Please pay now or your {sub.tierName} subscription will expire in{' '}
+                      <strong>
+                        {Math.max(1, Math.ceil(sub.graceHoursRemaining / 24))}{' '}
+                        {Math.ceil(sub.graceHoursRemaining / 24) <= 1 ? 'day' : 'days'}
+                      </strong>{' '}
+                      (on {formatDate(sub.graceEndsAt)}). After that your account moves to the Free
+                      plan — your business stays listed and nothing is deleted.
+                    </p>
+                    <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                      {sub.canPayNow && (
+                        <Button
+                          onClick={payNow}
+                          disabled={paying}
+                          className="bg-red-600 text-white hover:bg-red-700"
+                        >
+                          {paying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
+                          Pay now — {formatRand(sub.payNowCents)}
+                        </Button>
+                      )}
+                      <Button asChild variant="outline" className="border-red-200 bg-white text-gray-800">
+                        <Link href="/pricing">Choose a different plan</Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        onClick={cancelSubscription}
+                        disabled={cancelling}
+                        className="text-red-700 hover:bg-red-100"
+                      >
+                        {cancelling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Cancel subscription
+                      </Button>
+                    </div>
+                    <p className="mt-3 text-xs text-red-700/80">
+                      Pay now takes you to PayFast to pay securely. Your plan continues immediately and
+                      renews monthly on the card you use.
                     </p>
                   </div>
                 </div>
@@ -149,6 +226,14 @@ export default function BillingSettingsPage() {
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-800">
                 Your account was moved from <strong>{sub.downgradedFrom}</strong> to the Free tier.
                 Everything you created is still here — resubscribe any time to restore your features.
+                {sub.canPayNow && sub.status === 'downgraded_nonpayment' && (
+                  <div className="mt-3">
+                    <Button onClick={payNow} disabled={paying} className="bg-yellow-500 text-slate-950 hover:bg-yellow-600">
+                      {paying ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CreditCard className="mr-2 h-4 w-4" />}
+                      Restore my plan — {formatRand(sub.payNowCents)}/month
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 

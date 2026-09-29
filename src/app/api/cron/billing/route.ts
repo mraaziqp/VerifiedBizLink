@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { DOWNGRADE_TIER, GRACE_PERIOD_HOURS, RENEWAL_GRACE_HOURS, graceExpiresAt, graceHoursRemaining, formatRand, formatDate } from '@/lib/billing';
-import { sendPaymentFailedEmail, appUrlFromRequest } from '@/lib/email';
+import { DOWNGRADE_TIER, GRACE_PERIOD_HOURS, GRACE_PERIOD_DAYS, RENEWAL_GRACE_HOURS, FINAL_NOTICE_HOURS, formatDate } from '@/lib/billing';
+import { appUrlFromRequest } from '@/lib/email';
+import { sendFailureNotice } from '@/lib/billing-notices';
+import { logBillingEvent } from '@/lib/billing-events';
 import { scanOverdueSubscriptions } from '@/db/queries/subscriptions';
 
 export const dynamic = 'force-dynamic';
@@ -24,15 +26,20 @@ function authorized(request: NextRequest): boolean {
  * time-based rather than run-based, so a missed run only makes a decision
  * late, never wrong.
  *
- * Three jobs:
+ * Jobs, in order:
  *
- *  0. Catch renewals that were due and never charged, and open the grace
- *     window on them. This is what makes a recurring subscription verifiable
- *     rather than assumed: if PayFast stops billing, somebody finds out.
- *  1. Warn businesses inside the 72-hour grace window (once, at the halfway
- *     point) so a failed card is not discovered only after features vanish.
+ *  0. Catch renewals that were due and never charged, and open the 5-day
+ *     grace window on them. This is what makes a recurring subscription
+ *     verifiable rather than assumed: if PayFast stops billing, somebody
+ *     finds out.
+ *  1. Email every business whose payment failed and has not been told yet —
+ *     Pay now / Choose a different plan / Cancel — and again a day before
+ *     the plan expires. A send that fails is retried on the next run.
  *  2. Downgrade anyone whose grace window has closed, and anyone whose paid
  *     term ended with auto-renew switched off.
+ *
+ * Every step is written to billing_events, and anything needing a person is
+ * sent to admins in-app and by email.
  *
  * Downgrade means package_type -> 'free'. It never deletes a business, a
  * profile, a document or a gallery image: the rule is that a lapsed customer
@@ -45,34 +52,30 @@ export async function GET(request: NextRequest) {
 
   const baseUrl = appUrlFromRequest(request);
   const now = new Date();
-  const result = { overdue: 0, warned: 0, downgraded: 0, lapsed: 0, errors: 0, overdueSubscriptions: 0 };
+  const result = { overdue: 0, noticed: 0, finalNoticed: 0, downgraded: 0, lapsed: 0, errors: 0, overdueSubscriptions: 0 };
 
   try {
     /* --- 0. A renewal that never charged ---------------------------------
      *
-     * Runs before the warning step so an overdue renewal enters the same
-     * 72-hour grace path as a declined card, rather than being a separate
-     * silent state.
-     *
      * The webhook advances next_billing_at on every successful charge; if a
-     * cycle never lands, next_billing_at simply stays in the past. The
-     * downgrade clauses below only ever matched auto_renew IS FALSE, so such
-     * a business kept its paid tier for free indefinitely and nothing said so.
+     * cycle never lands, next_billing_at simply stays in the past. PayFast
+     * does not reliably notify on a declined subscription charge, so this is
+     * how a failed renewal is found at all — JL Industrial's renewal on
+     * 26 September 2026 never charged and nothing anywhere said so.
      *
-     * Marking payment_failed_at is deliberately all this does: it opens the
-     * window, the customer gets the existing warning email, and they keep
-     * their features for 72 hours in case the charge is merely slow.
+     * Waits RENEWAL_GRACE_HOURS past the due date first, because PayFast
+     * settles after the billing date and money may already be on its way.
      *
      * Only businesses that actually have a subscription qualify. A plan put
-     * on by hand — staff accounts, comped plans, anything granted in the
-     * admin screens — has no PayFast token and no payment history, and carries
-     * a next_billing_at only because the column has a default. An earlier
-     * version without this condition dunned two such accounts for failing to
-     * pay a subscription they never had (scripts/repair-false-overdue.mjs).
+     * on by hand has no PayFast token and no payment history, and carries a
+     * next_billing_at only because the column has a default.
      */
     const overdue = (await db`
       UPDATE businesses
       SET payment_failed_at = NOW(),
+          payment_failed_notified_at = NULL,
+          grace_warned_at = NULL,
+          payment_failed_reason = 'renewal_not_charged',
           subscription_status = 'renewal_overdue',
           updated_at = NOW()
       WHERE auto_renew IS TRUE
@@ -82,58 +85,55 @@ export async function GET(request: NextRequest) {
         AND next_billing_at <= NOW() - (${RENEWAL_GRACE_HOURS} * INTERVAL '1 hour')
         AND (payfast_token IS NOT NULL OR last_billed_at IS NOT NULL)
         AND payment_failed_at IS NULL
-      RETURNING id, user_id, company_name, package_type, next_billing_at
+      RETURNING id, user_id, company_name, package_type, next_billing_at, payfast_token
     `.catch((e) => { console.error('Overdue renewal scan failed:', e); result.errors += 1; return []; })) as unknown as Row[];
     result.overdue = overdue.length;
 
-    // Admins need to see this: an overdue renewal is usually a subscription
-    // that does not exist at PayFast or a card that was declined, which no
-    // customer will ever report.
     for (const row of overdue) {
-      await db`
-        INSERT INTO notifications (user_id, type, title, content)
-        SELECT id, 'renewal_overdue', 'A subscription renewal did not charge',
-               ${`${String(row.company_name)} is on ${String(row.package_type)} and its renewal was due ${formatDate(row.next_billing_at as string)}, but no payment arrived. Check the subscription in the PayFast dashboard — they now have ${GRACE_PERIOD_HOURS} hours before downgrade.`}
-        FROM users WHERE role = 'admin'
-      `.catch((e) => console.error('Overdue notification failed:', e));
+      await logBillingEvent({
+        event: 'renewal_overdue',
+        severity: 'critical',
+        businessId: String(row.id),
+        userId: String(row.user_id),
+        reference: row.payfast_token ? String(row.payfast_token) : null,
+        detail: `${String(row.company_name)} (${String(row.package_type)}) was due to renew on ${formatDate(row.next_billing_at as string)} but PayFast has not charged it. The customer is being emailed a Pay now link and has ${GRACE_PERIOD_DAYS} days before the plan expires. Check subscription ${String(row.payfast_token ?? '(no token)')} in the PayFast dashboard.`,
+        alertAdmins: true,
+        alertTitle: `Renewal did not charge: ${String(row.company_name)}`,
+      });
     }
 
-    // --- 1. Warn, halfway through the window -------------------------------
-    const warnAfterHours = Math.floor(GRACE_PERIOD_HOURS / 2);
-    const atRisk = (await db`
-      SELECT b.id, b.company_name, b.package_type, b.payment_failed_at,
-             u.id AS user_id, u.email, u.full_name,
-             t.name AS tier_name, t.price AS tier_price
-      FROM businesses b
-      JOIN users u ON u.id = b.user_id
-      LEFT JOIN tiers t ON t.key = b.package_type
-      WHERE b.payment_failed_at IS NOT NULL
-        AND b.package_type IS NOT NULL
-        AND b.package_type <> ${DOWNGRADE_TIER}
-        AND b.payment_failed_at < NOW() - (${warnAfterHours} * INTERVAL '1 hour')
-        AND b.payment_failed_at > NOW() - (${GRACE_PERIOD_HOURS} * INTERVAL '1 hour')
-        AND b.grace_warned_at IS NULL
+    // --- 1a. First notice: every failure not yet emailed ------------------
+    const needNotice = (await db`
+      SELECT id FROM businesses
+      WHERE payment_failed_at IS NOT NULL
+        AND payment_failed_notified_at IS NULL
+        AND package_type IS NOT NULL
+        AND package_type <> ${DOWNGRADE_TIER}
+        AND payment_failed_at > NOW() - (${GRACE_PERIOD_HOURS} * INTERVAL '1 hour')
       LIMIT 100
-    `.catch(() => [])) as unknown as Row[];
+    `.catch((e) => { console.error('Notice scan failed:', e); result.errors += 1; return []; })) as unknown as Row[];
 
-    for (const row of atRisk) {
-      try {
-        const failedAt = new Date(row.payment_failed_at as string);
-        await sendPaymentFailedEmail(
-          String(row.email),
-          String(row.full_name || '').split(' ')[0],
-          String(row.tier_name || row.package_type),
-          formatRand(Math.round((Number(row.tier_price) || 0) * 100)),
-          graceHoursRemaining(failedAt, now),
-          formatDate(graceExpiresAt(failedAt)),
-          baseUrl,
-        );
-        await db`UPDATE businesses SET grace_warned_at = NOW() WHERE id = ${row.id}`;
-        result.warned += 1;
-      } catch (error) {
-        console.error('Grace warning failed for', row.id, error);
-        result.errors += 1;
-      }
+    for (const row of needNotice) {
+      if (await sendFailureNotice(String(row.id), { baseUrl })) result.noticed += 1;
+      else result.errors += 1;
+    }
+
+    // --- 1b. Final reminder, a day before the plan expires ----------------
+    const needFinal = (await db`
+      SELECT id FROM businesses
+      WHERE payment_failed_at IS NOT NULL
+        AND payment_failed_notified_at IS NOT NULL
+        AND grace_warned_at IS NULL
+        AND package_type IS NOT NULL
+        AND package_type <> ${DOWNGRADE_TIER}
+        AND payment_failed_at <= NOW() - (${GRACE_PERIOD_HOURS - FINAL_NOTICE_HOURS} * INTERVAL '1 hour')
+        AND payment_failed_at > NOW() - (${GRACE_PERIOD_HOURS} * INTERVAL '1 hour')
+      LIMIT 100
+    `.catch((e) => { console.error('Final notice scan failed:', e); result.errors += 1; return []; })) as unknown as Row[];
+
+    for (const row of needFinal) {
+      if (await sendFailureNotice(String(row.id), { final: true, baseUrl })) result.finalNoticed += 1;
+      else result.errors += 1;
     }
 
     // --- 2a. Grace window closed -> downgrade ------------------------------
@@ -144,6 +144,7 @@ export async function GET(request: NextRequest) {
           package_type = ${DOWNGRADE_TIER},
           subscription_status = 'downgraded_nonpayment',
           payment_failed_at = NULL,
+          payment_failed_notified_at = NULL,
           grace_warned_at = NULL,
           auto_renew = FALSE,
           updated_at = NOW()
@@ -151,9 +152,22 @@ export async function GET(request: NextRequest) {
         AND package_type IS NOT NULL
         AND package_type <> ${DOWNGRADE_TIER}
         AND payment_failed_at <= NOW() - (${GRACE_PERIOD_HOURS} * INTERVAL '1 hour')
-      RETURNING id, user_id, downgraded_from
-    `.catch(() => [])) as unknown as Row[];
+      RETURNING id, user_id, company_name, downgraded_from, payfast_token
+    `.catch((e) => { console.error('Downgrade step failed:', e); result.errors += 1; return []; })) as unknown as Row[];
     result.downgraded = expired.length;
+
+    for (const row of expired) {
+      await logBillingEvent({
+        event: 'downgraded_nonpayment',
+        severity: 'warning',
+        businessId: String(row.id),
+        userId: String(row.user_id),
+        reference: row.payfast_token ? String(row.payfast_token) : null,
+        detail: `${String(row.company_name)} was moved from ${String(row.downgraded_from)} to Free after ${GRACE_PERIOD_DAYS} days without payment.${row.payfast_token ? ` Make sure PayFast subscription ${String(row.payfast_token)} is cancelled so it cannot charge later.` : ''}`,
+        alertAdmins: true,
+        alertTitle: `Subscription expired for non-payment: ${String(row.company_name)}`,
+      });
+    }
 
     // --- 2b. Term ended with auto-renew off -> lapse to free ---------------
     const lapsed = (await db`
@@ -169,7 +183,7 @@ export async function GET(request: NextRequest) {
         AND next_billing_at IS NOT NULL
         AND next_billing_at <= NOW()
       RETURNING id, user_id, downgraded_from
-    `.catch(() => [])) as unknown as Row[];
+    `.catch((e) => { console.error('Lapse step failed:', e); result.errors += 1; return []; })) as unknown as Row[];
     result.lapsed = lapsed.length;
 
     // In-app notification rather than email: non-essential alerts are kept

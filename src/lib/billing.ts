@@ -10,8 +10,18 @@ import { formatRandCents } from '@/lib/format-number';
  * amount_cents. Conversion to rand happens only at display.
  */
 
-/** Hours a failed payment has before premium features are withdrawn. */
-export const GRACE_PERIOD_HOURS = 72;
+/**
+ * Hours a failed payment has before the plan expires and premium features are
+ * withdrawn: five days. The customer is emailed the moment the failure is
+ * detected, with a Pay now button, and again when a day is left.
+ */
+export const GRACE_PERIOD_HOURS = 120;
+
+/** Days in the grace window, for customer-facing wording. */
+export const GRACE_PERIOD_DAYS = GRACE_PERIOD_HOURS / 24;
+
+/** Hours before expiry that the final reminder goes out. */
+export const FINAL_NOTICE_HOURS = 24;
 
 /**
  * How long a renewal may be late before it is treated as failed.

@@ -6,6 +6,9 @@ import { changeCredits, findCreditPack, packForAmount } from '@/lib/ad-credits';
 import { nextBillingDate } from '@/lib/billing';
 import { issueInvoice } from '@/lib/invoices';
 import { appUrlFromRequest } from '@/lib/email';
+import { logBillingEvent } from '@/lib/billing-events';
+import { sendFailureNotice } from '@/lib/billing-notices';
+import { cancelPayfastSubscription } from '@/lib/payfast-api';
 
 // PayFast's official anti-spoofing check (required by their integration
 // guide, not optional): post the exact ITN body back to PayFast and only
@@ -259,15 +262,17 @@ export async function POST(request: NextRequest) {
      * Money moved and the ledger could not show it. That is an accounting
      * problem, so admins are told rather than it being logged and forgotten.
      */
-    const raiseUnrecorded = async (why: string) => {
-      console.error('PayFast charge could not be recorded', { pfReference, paymentRef, userId, why });
-      await db`
-        INSERT INTO notifications (user_id, type, title, content)
-        SELECT id, 'payment_unrecorded', 'A PayFast charge could not be recorded',
-               ${`PayFast charge ${pfReference || paymentRef} (R${payfastData.amount_gross}) could not be written to the ledger: ${why}. Reconcile it by hand.`}
-        FROM users WHERE role = 'admin'
-      `.catch((e) => console.error('Unrecorded-payment notification failed:', e));
-    };
+    const raiseUnrecorded = (why: string) =>
+      logBillingEvent({
+        event: 'payment_unrecorded',
+        severity: 'critical',
+        userId: userId || null,
+        amountCents,
+        reference: pfReference || paymentRef,
+        detail: `PayFast charge ${pfReference || paymentRef} (R${payfastData.amount_gross}, ${payfastData.email_address || 'unknown payer'}) could not be written to the ledger: ${why}. Reconcile it by hand.`,
+        alertAdmins: true,
+        alertTitle: 'A PayFast charge could not be recorded',
+      });
 
     /** Writes this charge to the ledger — its own row for a renewal. */
     const recordCharge = async (status: string) => {
@@ -320,12 +325,38 @@ export async function POST(request: NextRequest) {
       // the 72-hour grace window the billing sweep already runs — the customer
       // is warned and keeps their plan while they fix their card.
       await recordCharge(dbStatus).catch((err) => raiseUnrecorded(err.message));
-      if (isRenewal && dbStatus === 'failed' && userId) {
-        await db`
-          UPDATE businesses
-          SET payment_failed_at = COALESCE(payment_failed_at, NOW()), updated_at = NOW()
-          WHERE user_id = ${userId} AND package_type IS NOT NULL AND package_type <> 'free'
-        `.catch((err) => console.error('Failed-renewal flag note:', err.message));
+
+      if (dbStatus === 'failed') {
+        let businessId: string | null = null;
+        if (isRenewal && userId) {
+          const flagged = (await db`
+            UPDATE businesses
+            SET payment_failed_at = COALESCE(payment_failed_at, NOW()),
+                payment_failed_reason = 'card_declined',
+                updated_at = NOW()
+            WHERE user_id = ${userId} AND package_type IS NOT NULL AND package_type <> 'free'
+            RETURNING id, company_name, payment_failed_notified_at
+          `.catch((err) => { console.error('Failed-renewal flag note:', err.message); return []; })) as unknown as { id: string; company_name: string; payment_failed_notified_at: string | null }[];
+          businessId = flagged[0]?.id ?? null;
+          // Tell the customer now rather than on the next sweep. If this
+          // send fails it is logged, and the sweep retries it.
+          if (flagged[0] && !flagged[0].payment_failed_notified_at) {
+            await sendFailureNotice(flagged[0].id, { baseUrl: appUrlFromRequest(request) });
+          }
+        }
+        await logBillingEvent({
+          event: isRenewal ? 'renewal_failed' : 'charge_failed',
+          severity: isRenewal ? 'critical' : 'warning',
+          businessId,
+          userId: userId || null,
+          amountCents,
+          reference: pfReference || paymentRef,
+          detail: isRenewal
+            ? `PayFast could not collect the R${payfastData.amount_gross} renewal (${purchaseType}) from ${payfastData.email_address || userId}. The customer has been emailed a Pay now link and has 5 days before the plan expires.`
+            : `A R${payfastData.amount_gross} ${purchaseType} payment by ${payfastData.email_address || userId} failed at PayFast. Nothing was granted.`,
+          alertAdmins: true,
+          alertTitle: isRenewal ? 'A subscription renewal failed' : 'A payment failed',
+        });
       }
       return NextResponse.json({ success: true }, { status: 200 });
     }
@@ -344,6 +375,34 @@ export async function POST(request: NextRequest) {
       await recordCharge('completed').catch((err) => raiseUnrecorded(err.message));
       await raiseUnrecorded('it was recorded without an owner — no user could be matched to it');
       return NextResponse.json({ success: true }, { status: 200 });
+    }
+
+    /**
+     * A renewal on a subscription this business has since replaced — the
+     * customer used Pay now, which starts a new subscription and cancels the
+     * old one. If the old one charges anyway (the cancel did not go through
+     * at PayFast), granting it would switch the account back to the old
+     * token. Record the money, grant nothing, and get a person to refund it.
+     */
+    if (isRenewal && token && purchaseType.startsWith('subscription_')) {
+      const [current] = (await db`
+        SELECT id, company_name, payfast_token FROM businesses WHERE user_id = ${userId} LIMIT 1
+      `.catch(() => [])) as unknown as { id: string; company_name: string; payfast_token: string | null }[];
+      if (current?.payfast_token && current.payfast_token !== token) {
+        await recordCharge('completed').catch((err) => raiseUnrecorded(err.message));
+        await logBillingEvent({
+          event: 'charge_on_replaced_subscription',
+          severity: 'critical',
+          businessId: current.id,
+          userId,
+          amountCents,
+          reference: pfReference,
+          detail: `${current.company_name} was charged R${payfastData.amount_gross} on their OLD PayFast subscription ${token}, which was replaced by ${current.payfast_token}. They may have been billed twice — cancel ${token} in the PayFast dashboard and refund charge ${pfReference}.`,
+          alertAdmins: true,
+          alertTitle: `Possible double charge: ${current.company_name}`,
+        });
+        return NextResponse.json({ success: true }, { status: 200 });
+      }
     }
 
     // Grant whatever was actually purchased. If this throws, nothing has been
@@ -392,7 +451,14 @@ export async function POST(request: NextRequest) {
          * their billing date never moved, and the overdue sweep downgraded
          * customers who had paid.
          */
-        const renewalOf = isRenewal && original ? Number(original.amount) / 100 : null;
+        /*
+         * A Pay now after a failed renewal (custom_str5 = 'resume') restarts
+         * the customer's existing plan at their existing price, so it is held
+         * to the amount /api/billing/renew priced on the server and stored on
+         * the checkout row — not to whether the tier is still on sale.
+         */
+        const isResume = !isRenewal && payfastData.custom_str5 === 'resume' && Boolean(original);
+        const renewalOf = (isRenewal || isResume) && original ? Number(original.amount) / 100 : null;
         const eligible = renewalOf !== null
           ? Boolean(tierKey)
           : Boolean(tier && tier.isPurchasable);
@@ -431,6 +497,15 @@ export async function POST(request: NextRequest) {
            */
           const grantsBadge = paidAmount > 0;
 
+          // The subscription this charge replaces, if the customer used Pay
+          // now. Read before the UPDATE below overwrites it.
+          const [before] = (await db`
+            SELECT payfast_token FROM businesses WHERE user_id = ${userId} LIMIT 1
+          `.catch(() => [])) as unknown as { payfast_token: string | null }[];
+          const replacedToken = before?.payfast_token && token && before.payfast_token !== token
+            ? before.payfast_token
+            : null;
+
           const upgraded = (await db`
             UPDATE businesses
             SET package_type = ${tierKey},
@@ -441,6 +516,8 @@ export async function POST(request: NextRequest) {
                 next_billing_at = ${nextBilling.toISOString()},
                 auto_renew = TRUE,
                 payment_failed_at = NULL,
+                payment_failed_notified_at = NULL,
+                payment_failed_reason = NULL,
                 grace_warned_at = NULL,
                 downgraded_from = NULL,
                 downgraded_at = NULL,
@@ -457,12 +534,42 @@ export async function POST(request: NextRequest) {
           if (upgraded.length === 0) {
             // Paid, and nothing on the account moved. Without this the renewal
             // sweep would later dun a customer whose money arrived.
-            await db`
-              INSERT INTO notifications (user_id, type, title, content)
-              SELECT id, 'payment_unapplied', 'A subscription payment was not applied',
-                     ${`PayFast charge ${pfReference || paymentRef} (R${payfastData.amount_gross}) for ${tierName} matched no business for user ${userId}. Apply it by hand.`}
-              FROM users WHERE role = 'admin'
-            `.catch((e) => console.error('Unapplied-payment notification failed:', e));
+            await logBillingEvent({
+              event: 'payment_unapplied',
+              severity: 'critical',
+              userId,
+              amountCents: Math.round(paidAmount * 100),
+              reference: pfReference || paymentRef,
+              detail: `PayFast charge ${pfReference || paymentRef} (R${payfastData.amount_gross}) for ${tierName} matched no business for user ${userId}. Apply it by hand.`,
+              alertAdmins: true,
+              alertTitle: 'A subscription payment was not applied',
+            });
+          } else {
+            if (replacedToken) {
+              // The new subscription has charged, so the old one must never
+              // charge again — otherwise the customer pays twice next month.
+              const cancelled = await cancelPayfastSubscription(replacedToken);
+              await logBillingEvent({
+                event: cancelled.ok ? 'old_subscription_cancelled' : 'old_subscription_cancel_failed',
+                severity: cancelled.ok ? 'info' : 'critical',
+                businessId: upgraded[0].id,
+                userId,
+                reference: replacedToken,
+                detail: cancelled.ok
+                  ? `Old PayFast subscription ${replacedToken} cancelled after the customer paid on new subscription ${token}.`
+                  : `The customer paid on new subscription ${token}, but old subscription ${replacedToken} could NOT be cancelled automatically (HTTP ${cancelled.status}: ${cancelled.detail}). Cancel it in the PayFast dashboard now or they may be billed twice.`,
+                alertAdmins: !cancelled.ok,
+                alertTitle: 'Cancel an old PayFast subscription by hand',
+              });
+            }
+            await logBillingEvent({
+              event: isRenewal ? 'renewal_succeeded' : 'charge_succeeded',
+              businessId: upgraded[0].id,
+              userId,
+              amountCents: Math.round(paidAmount * 100),
+              reference: pfReference || paymentRef,
+              detail: `${tierName} ${isRenewal ? 'renewed' : isResume ? 'resumed through Pay now' : 'started'} — R${payfastData.amount_gross} from ${payfastData.email_address || userId}. Next billing ${nextBilling.toISOString().slice(0, 10)}.`,
+            });
           }
 
           grantMessage = isRenewal
@@ -486,14 +593,17 @@ export async function POST(request: NextRequest) {
             baseUrl: appUrlFromRequest(request),
           });
         } else {
-          console.error(`Blocked subscription grant: paid R${paidAmount} for ${tierKey} (requires R${requiredRand}, purchasable=${tier?.isPurchasable}, renewal=${isRenewal})`, { userId, paymentRef, pfReference });
           grantMessage = 'Your payment was received, but the amount did not match the selected plan. Please contact support.';
-          await db`
-            INSERT INTO notifications (user_id, type, title, content)
-            SELECT id, 'payment_unapplied', 'A subscription payment was not applied',
-                   ${`PayFast charge ${pfReference || paymentRef} paid R${paidAmount} for ${tierName} but R${requiredRand} was required${isRenewal ? ' (renewal)' : ''}. Review it.`}
-            FROM users WHERE role = 'admin'
-          `.catch((e) => console.error('Unapplied-payment notification failed:', e));
+          await logBillingEvent({
+            event: 'payment_unapplied',
+            severity: 'critical',
+            userId,
+            amountCents: Math.round(paidAmount * 100),
+            reference: pfReference || paymentRef,
+            detail: `PayFast charge ${pfReference || paymentRef} paid R${paidAmount} for ${tierName} but R${requiredRand} was required (purchasable=${tier?.isPurchasable}, renewal=${isRenewal}, resume=${isResume}). The customer was charged and not given the plan — review it.`,
+            alertAdmins: true,
+            alertTitle: 'A subscription payment was not applied',
+          });
         }
       } else if (purchaseType === 'ad_credits_topup') {
         const paidAmount = parseFloat(payfastData.amount_gross as string);
@@ -581,6 +691,18 @@ export async function POST(request: NextRequest) {
         INSERT INTO notifications (user_id, type, title, content)
         VALUES (${userId}, 'payment_success', ${isRenewal ? 'Subscription renewed' : 'Payment Successful'}, ${grantMessage})
       `.catch(err => console.log('Notification note:', err.message));
+
+      // Subscriptions log their own outcome above; everything else is logged
+      // here so every purchase appears in the billing log.
+      if (!purchaseType.startsWith('subscription_')) {
+        await logBillingEvent({
+          event: 'charge_succeeded',
+          userId,
+          amountCents,
+          reference: pfReference || paymentRef,
+          detail: `${purchaseType} — R${payfastData.amount_gross} from ${payfastData.email_address || userId}: ${grantMessage}`,
+        });
+      }
     }
 
     // Recorded last: a completed row is the marker that this charge has been

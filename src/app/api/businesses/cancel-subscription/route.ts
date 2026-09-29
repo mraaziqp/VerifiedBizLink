@@ -1,21 +1,20 @@
 import { NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
+import { cancelPayfastSubscription } from '@/lib/payfast-api';
+import { logBillingEvent } from '@/lib/billing-events';
 
-// POST /api/businesses/cancel-subscription — downgrades the caller's
-// business to Free immediately (same as before). Paid tiers are now real
-// PayFast recurring subscriptions, though, so simply changing our own
-// package_type does NOT stop PayFast from continuing to charge the card
-// every month — that requires calling PayFast's own subscription-cancel
-// API against the stored payfast_token.
-//
-// We deliberately do NOT attempt that API call yet: there's no confirmed
-// PAYFAST_PASSPHRASE configured, and silently claiming a cancellation
-// succeeded when we can't actually verify it against PayFast would risk
-// a customer being charged again next month while believing they'd
-// cancelled — worse than being honest about a manual step. Instead this
-// flags the cancellation for staff (visible in Admin > Logs) to action
-// in the PayFast dashboard, and tells the business the same thing.
+/**
+ * POST /api/businesses/cancel-subscription — moves the caller's business to
+ * Free and cancels their PayFast subscription so the card stops being
+ * charged.
+ *
+ * Changing package_type alone never stopped PayFast billing. The cancel goes
+ * through PayFast's API; if PayFast does not confirm it, nothing claims it
+ * did — admins are alerted to cancel it by hand in the PayFast dashboard, and
+ * the customer is told the same, because being charged next month after
+ * being told you cancelled is worse than an honest manual step.
+ */
 export async function POST() {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -33,33 +32,50 @@ export async function POST() {
     return NextResponse.json({ error: 'You are already on the Free plan' }, { status: 400 });
   }
 
-  const hadToken = !!business.payfast_token;
+  const token: string | null = business.payfast_token || null;
+  const cancelled = token ? await cancelPayfastSubscription(token) : null;
+  const confirmed = !token || Boolean(cancelled?.ok);
 
   await db`
     UPDATE businesses
-    SET package_type = 'free', subscription_status = 'cancel_requested', updated_at = NOW()
+    SET package_type = 'free',
+        subscription_status = ${confirmed ? 'cancelled' : 'cancel_requested'},
+        auto_renew = FALSE,
+        payment_failed_at = NULL,
+        payment_failed_notified_at = NULL,
+        grace_warned_at = NULL,
+        updated_at = NOW()
     WHERE id = ${business.id}
   `;
+
+  await logBillingEvent({
+    event: confirmed ? 'old_subscription_cancelled' : 'old_subscription_cancel_failed',
+    severity: confirmed ? 'info' : 'critical',
+    businessId: String(business.id),
+    userId: session.id,
+    reference: token,
+    detail: !token
+      ? `${business.company_name} cancelled and moved to Free. No PayFast subscription on file, so nothing to cancel there.`
+      : confirmed
+        ? `${business.company_name} cancelled and moved to Free. PayFast subscription ${token} cancelled.`
+        : `${business.company_name} cancelled and moved to Free, but PayFast subscription ${token} could NOT be cancelled automatically (HTTP ${cancelled?.status}: ${cancelled?.detail}). Cancel it in the PayFast dashboard now or they will keep being charged.`,
+    alertAdmins: !confirmed,
+    alertTitle: `Cancel a PayFast subscription by hand: ${business.company_name}`,
+  });
 
   await db`
     INSERT INTO audit_logs (user_id, action, entity_type, entity_id, details)
     VALUES (
       ${session.id},
-      'subscription_cancel_requested',
+      'subscription_cancelled',
       'business',
       ${business.id},
-      ${JSON.stringify({
-        companyName: business.company_name,
-        payfastToken: business.payfast_token || null,
-        note: hadToken
-          ? 'Business downgraded to Free in-app. PayFast recurring billing for this token has NOT been cancelled automatically — needs manual cancellation in the PayFast dashboard to stop future charges.'
-          : 'Business downgraded to Free in-app. No PayFast token on file (may predate recurring billing), so nothing to cancel on PayFast’s side.',
-      })}
+      ${JSON.stringify({ companyName: business.company_name, payfastToken: token, payfastCancelled: confirmed })}
     )
   `.catch((err) => console.log('Cancellation audit log note:', err.message));
 
   return NextResponse.json({
     success: true,
-    requiresManualPayfastCancellation: hadToken,
+    requiresManualPayfastCancellation: !confirmed,
   });
 }

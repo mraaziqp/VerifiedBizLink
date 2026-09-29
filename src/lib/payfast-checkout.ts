@@ -28,7 +28,8 @@ export interface CheckoutFailure {
  * callers should leave their loading state on and let the redirect happen.
  */
 export async function startPayfastCheckout(
-  payload: CheckoutRequest,
+  payload: CheckoutRequest | Record<string, never>,
+  endpoint = '/api/payfast/init',
 ): Promise<CheckoutFailure> {
   let data: {
     payfastUrl?: string;
@@ -38,7 +39,7 @@ export async function startPayfastCheckout(
   };
 
   try {
-    const res = await fetch('/api/payfast/init', {
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

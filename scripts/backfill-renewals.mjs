@@ -55,7 +55,7 @@ let written = 0;
 console.log(`${itns.length} ITN(s) logged across ${byCheckout.size} checkout(s)\n`);
 
 for (const [ref, list] of byCheckout) {
-  const [checkout] = await db`
+  let [checkout] = await db`
     SELECT p.id, p.user_id, p.amount, p.status, p.payfast_reference, p.purchase_type, p.created_at,
            u.email, b.company_name, b.package_type, b.payfast_token, b.subscription_status,
            b.auto_renew, b.last_billed_at, b.next_billing_at, b.payment_failed_at
@@ -68,6 +68,24 @@ for (const [ref, list] of byCheckout) {
   const isSub = (checkout?.purchase_type || first.custom_str3 || '').startsWith('subscription_') || Boolean(first.token);
   if (!isSub) continue;
 
+  // The checkout row itself can be gone (test data cleared). The charges are
+  // still real, so the owner is found through the subscription token or the
+  // user id PayFast echoed back, and every charge is treated as unrecorded.
+  let checkoutMissing = false;
+  if (!checkout) {
+    checkoutMissing = true;
+    const userId = first.custom_str2 || null;
+    [checkout] = await db`
+      SELECT NULL::text AS id, u.id AS user_id, NULL::int AS amount, NULL::text AS status,
+             NULL::text AS payfast_reference, ${first.custom_str3 || null}::text AS purchase_type,
+             u.email, b.company_name, b.package_type, b.payfast_token, b.subscription_status,
+             b.auto_renew, b.last_billed_at, b.next_billing_at, b.payment_failed_at
+      FROM users u
+      LEFT JOIN businesses b ON b.user_id = u.id
+      WHERE u.id::text = ${userId} OR b.payfast_token = ${first.token || null}
+      LIMIT 1`;
+  }
+
   console.log(`=== ${checkout?.company_name ?? '(no business)'} <${checkout?.email ?? first.email_address ?? '?'}> — ${ref}`);
   if (checkout) {
     console.log(`  plan ${checkout.package_type}, status ${checkout.subscription_status}, auto_renew ${checkout.auto_renew}`);
@@ -75,8 +93,9 @@ for (const [ref, list] of byCheckout) {
     console.log(`  last billed ${fmt(checkout.last_billed_at)}, next due ${fmt(checkout.next_billing_at)}` +
       (checkout.payment_failed_at ? `, grace window open since ${fmt(checkout.payment_failed_at)}` : ''));
   } else {
-    console.log('  no checkout row in payments for this reference');
+    console.log('  no checkout row, and no user or business matches this subscription');
   }
+  if (checkoutMissing && checkout) console.log('  (checkout row is missing from payments — every charge below is unrecorded)');
 
   console.log('  notifications from PayFast:');
   for (const i of list) {
@@ -98,11 +117,18 @@ for (const [ref, list] of byCheckout) {
   }
   console.log(`  ${charges.length} distinct completed charge(s)`);
 
-  if (!checkout || charges.length === 0) { console.log(''); continue; }
+  if (charges.length === 0) { console.log(''); continue; }
+  if (!checkout) {
+    // The account is gone entirely, but the money still moved. Record it
+    // without an owner so it appears in the admin payment log.
+    console.log(`  ! account deleted — charges will be recorded without an owner. PayFast subscription ${first.token || '?'} may still be active: cancel it in the PayFast dashboard.`);
+    checkout = { id: null, user_id: null, purchase_type: first.custom_str3 || null, payfast_reference: null };
+  }
 
-  const [firstCharge, ...renewals] = charges;
+  const [firstCharge, ...laterCharges] = charges;
+  const renewals = checkoutMissing ? charges : laterCharges;
 
-  if (checkout.payfast_reference !== firstCharge.payfast_reference) {
+  if (!checkoutMissing && checkout.payfast_reference !== firstCharge.payfast_reference) {
     console.log(`  checkout row points at pf=${checkout.payfast_reference}; its own first charge is pf=${firstCharge.payfast_reference}`);
     if (apply) {
       await db`UPDATE payments SET payfast_reference = ${firstCharge.payfast_reference} WHERE id = ${checkout.id}`;
@@ -111,16 +137,20 @@ for (const [ref, list] of byCheckout) {
 
   for (const r of renewals) {
     const [exists] = await db`
-      SELECT id FROM payments WHERE reference = ${r.payfast_reference} OR (payfast_reference = ${r.payfast_reference} AND id <> ${checkout.id}) LIMIT 1`;
+      SELECT id FROM payments
+      WHERE reference = ${r.payfast_reference}
+         OR (payfast_reference = ${r.payfast_reference} AND id::text IS DISTINCT FROM ${checkout.id})
+      LIMIT 1`;
     if (exists) continue;
     missing += 1;
     const cents = Math.round(parseFloat(r.body.amount_gross || '0') * 100);
-    console.log(`  + missing renewal ${fmt(r.at)} pf=${r.payfast_reference} R${(cents / 100).toFixed(2)}`);
+    const label = checkoutMissing && r === firstCharge ? 'first charge' : 'renewal';
+    console.log(`  + missing ${label} ${fmt(r.at)} pf=${r.payfast_reference} R${(cents / 100).toFixed(2)}`);
     if (apply) {
       const ins = await db`
         INSERT INTO payments (user_id, amount, status, reference, payfast_reference, description, purchase_type, created_at, completed_at)
         VALUES (${checkout.user_id}, ${cents}, 'completed', ${r.payfast_reference}, ${r.payfast_reference},
-                ${`${r.body.item_name || 'Subscription'} — renewal`}, ${checkout.purchase_type || r.body.custom_str3 || null},
+                ${checkoutMissing && r === firstCharge ? (r.body.item_name || 'Subscription') : `${r.body.item_name || 'Subscription'} — renewal`}, ${checkout.purchase_type || r.body.custom_str3 || null},
                 ${new Date(r.at).toISOString()}, ${new Date(r.at).toISOString()})
         ON CONFLICT (reference) DO NOTHING
         RETURNING id`;
@@ -138,5 +168,5 @@ for (const [ref, list] of byCheckout) {
   console.log('');
 }
 
-console.log(`missing renewal rows: ${missing}`);
+console.log(`missing charge rows: ${missing}`);
 console.log(apply ? `written: ${written}` : 'dry run — nothing written. Re-run with --apply to write them.');

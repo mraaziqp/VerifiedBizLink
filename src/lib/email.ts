@@ -224,29 +224,43 @@ export async function sendInvoiceEmail(
   }
 }
 
+/**
+ * Failed-payment notice (first notice or the final reminder). Throws when the
+ * send fails, so the caller can log it and retry on the next billing sweep —
+ * a customer who was never told cannot be expected to pay.
+ */
 export async function sendPaymentFailedEmail(
   to: string,
-  fullName: string,
-  tierName: string,
-  amount: string,
-  hoursRemaining: number,
-  deadline: string,
+  props: {
+    firstName: string;
+    companyName?: string;
+    tierName: string;
+    amount: string;
+    daysRemaining: number;
+    deadline: string;
+    final?: boolean;
+  },
   baseUrl?: string,
 ) {
-  try {
-    const html = await renderTemplate(() => import('@/emails/PaymentFailedEmail').then((m) => m.PaymentFailedEmail), {
-        userFirstName: fullName, tierName, amount, hoursRemaining, deadline,
-        appUrl: baseUrl ?? APP_URL,
-      });
-    return await sendWithFallback({
-      from: `VerifiedBizLink <${FROM_EMAIL}>`,
-      to,
-      subject: `Action needed: we couldn't process your ${tierName} payment`,
-      html,
-    });
-  } catch (error) {
-    console.error('Failed to dispatch payment-failed email to:', to, error);
-  }
+  const html = await renderTemplate(() => import('@/emails/PaymentFailedEmail').then((m) => m.PaymentFailedEmail), {
+    userFirstName: props.firstName,
+    companyName: props.companyName,
+    tierName: props.tierName,
+    amount: props.amount,
+    daysRemaining: props.daysRemaining,
+    deadline: props.deadline,
+    final: props.final ?? false,
+    appUrl: baseUrl ?? APP_URL,
+  });
+  const dayWord = props.daysRemaining === 1 ? '1 day' : `${props.daysRemaining} days`;
+  return await sendWithFallback({
+    from: `VerifiedBizLink <${FROM_EMAIL}>`,
+    to,
+    subject: props.final
+      ? `Final reminder: your ${props.tierName} subscription expires tomorrow — pay now`
+      : `Payment failed: please pay now or your ${props.tierName} subscription expires in ${dayWord}`,
+    html,
+  });
 }
 
 export async function sendAgentInviteEmail(
