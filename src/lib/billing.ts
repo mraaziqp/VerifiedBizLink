@@ -14,6 +14,22 @@ import { formatRandCents } from '@/lib/format-number';
 export const GRACE_PERIOD_HOURS = 72;
 
 /**
+ * How long a renewal may be late before it is treated as failed.
+ *
+ * PayFast charges a subscription on its billing date and sends the ITN when
+ * the charge settles, which is not instant. Declaring a renewal failed the
+ * moment the date passes would cut off customers whose money is already on
+ * its way, so the sweep waits this long first.
+ *
+ * It exists because an overdue renewal was previously invisible. The cron
+ * only ever lapsed accounts with auto_renew switched OFF, so a subscription
+ * that simply never charged — a declined card, a subscription that was never
+ * created at PayFast, a lost ITN — sat with auto_renew TRUE and a billing
+ * date in the past, kept its paid tier indefinitely, and told nobody.
+ */
+export const RENEWAL_GRACE_HOURS = 48;
+
+/**
  * Downgrade target. Deliberately a downgrade and never a delete — a lapsed
  * business stays listed with restricted functionality, and is only removed if
  * they explicitly ask.

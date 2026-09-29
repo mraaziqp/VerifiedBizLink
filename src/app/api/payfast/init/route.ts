@@ -53,7 +53,9 @@ export async function POST(request: NextRequest) {
     if ((purchaseType || '').startsWith('subscription_')) {
       const [existing] = await db`
         SELECT payfast_token FROM businesses
-        WHERE user_id = ${session.id} AND subscription_status = 'active' AND payfast_token IS NOT NULL
+        WHERE user_id = ${session.id}
+          AND subscription_status IN ('active', 'renewal_overdue')
+          AND payfast_token IS NOT NULL
         LIMIT 1
       `;
       if (existing) {

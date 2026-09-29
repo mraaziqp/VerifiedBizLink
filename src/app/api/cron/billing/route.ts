@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { DOWNGRADE_TIER, GRACE_PERIOD_HOURS, graceExpiresAt, graceHoursRemaining, formatRand, formatDate } from '@/lib/billing';
+import { DOWNGRADE_TIER, GRACE_PERIOD_HOURS, RENEWAL_GRACE_HOURS, graceExpiresAt, graceHoursRemaining, formatRand, formatDate } from '@/lib/billing';
 import { sendPaymentFailedEmail, appUrlFromRequest } from '@/lib/email';
 import { scanOverdueSubscriptions } from '@/db/queries/subscriptions';
 
@@ -18,15 +18,17 @@ function authorized(request: NextRequest): boolean {
 /**
  * GET /api/cron/billing — the subscription lifecycle sweep.
  *
- * Scheduled daily (02:00) because Vercel's Hobby plan caps cron jobs at one
- * run per day. The logic is time-based rather than run-based, so a daily
- * cadence is safe: it downgrades anyone whose 72-hour window has *already*
- * closed, so the only effect is that a downgrade can land up to 24 hours
- * late — erring in the customer's favour. Move to hourly (`0 * * * *`) if
- * the account is upgraded to Pro, and nothing else needs to change.
+ * Run hourly by .github/workflows/scheduled-jobs.yml. The app is hosted on
+ * AWS Amplify, which ignores vercel.json and has no scheduler, so until that
+ * workflow existed this sweep never ran in production at all. The logic is
+ * time-based rather than run-based, so a missed run only makes a decision
+ * late, never wrong.
  *
- * Two jobs:
+ * Three jobs:
  *
+ *  0. Catch renewals that were due and never charged, and open the grace
+ *     window on them. This is what makes a recurring subscription verifiable
+ *     rather than assumed: if PayFast stops billing, somebody finds out.
  *  1. Warn businesses inside the 72-hour grace window (once, at the halfway
  *     point) so a failed card is not discovered only after features vanish.
  *  2. Downgrade anyone whose grace window has closed, and anyone whose paid
@@ -43,9 +45,59 @@ export async function GET(request: NextRequest) {
 
   const baseUrl = appUrlFromRequest(request);
   const now = new Date();
-  const result = { warned: 0, downgraded: 0, lapsed: 0, errors: 0, overdueSubscriptions: 0 };
+  const result = { overdue: 0, warned: 0, downgraded: 0, lapsed: 0, errors: 0, overdueSubscriptions: 0 };
 
   try {
+    /* --- 0. A renewal that never charged ---------------------------------
+     *
+     * Runs before the warning step so an overdue renewal enters the same
+     * 72-hour grace path as a declined card, rather than being a separate
+     * silent state.
+     *
+     * The webhook advances next_billing_at on every successful charge; if a
+     * cycle never lands, next_billing_at simply stays in the past. The
+     * downgrade clauses below only ever matched auto_renew IS FALSE, so such
+     * a business kept its paid tier for free indefinitely and nothing said so.
+     *
+     * Marking payment_failed_at is deliberately all this does: it opens the
+     * window, the customer gets the existing warning email, and they keep
+     * their features for 72 hours in case the charge is merely slow.
+     *
+     * Only businesses that actually have a subscription qualify. A plan put
+     * on by hand — staff accounts, comped plans, anything granted in the
+     * admin screens — has no PayFast token and no payment history, and carries
+     * a next_billing_at only because the column has a default. An earlier
+     * version without this condition dunned two such accounts for failing to
+     * pay a subscription they never had (scripts/repair-false-overdue.mjs).
+     */
+    const overdue = (await db`
+      UPDATE businesses
+      SET payment_failed_at = NOW(),
+          subscription_status = 'renewal_overdue',
+          updated_at = NOW()
+      WHERE auto_renew IS TRUE
+        AND package_type IS NOT NULL
+        AND package_type <> ${DOWNGRADE_TIER}
+        AND next_billing_at IS NOT NULL
+        AND next_billing_at <= NOW() - (${RENEWAL_GRACE_HOURS} * INTERVAL '1 hour')
+        AND (payfast_token IS NOT NULL OR last_billed_at IS NOT NULL)
+        AND payment_failed_at IS NULL
+      RETURNING id, user_id, company_name, package_type, next_billing_at
+    `.catch((e) => { console.error('Overdue renewal scan failed:', e); result.errors += 1; return []; })) as unknown as Row[];
+    result.overdue = overdue.length;
+
+    // Admins need to see this: an overdue renewal is usually a subscription
+    // that does not exist at PayFast or a card that was declined, which no
+    // customer will ever report.
+    for (const row of overdue) {
+      await db`
+        INSERT INTO notifications (user_id, type, title, content)
+        SELECT id, 'renewal_overdue', 'A subscription renewal did not charge',
+               ${`${String(row.company_name)} is on ${String(row.package_type)} and its renewal was due ${formatDate(row.next_billing_at as string)}, but no payment arrived. Check the subscription in the PayFast dashboard — they now have ${GRACE_PERIOD_HOURS} hours before downgrade.`}
+        FROM users WHERE role = 'admin'
+      `.catch((e) => console.error('Overdue notification failed:', e));
+    }
+
     // --- 1. Warn, halfway through the window -------------------------------
     const warnAfterHours = Math.floor(GRACE_PERIOD_HOURS / 2);
     const atRisk = (await db`

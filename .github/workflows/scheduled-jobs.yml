@@ -1,0 +1,93 @@
+# Scheduled jobs for the deployed app.
+#
+# These used to live in vercel.json under "crons". The app is deployed on AWS
+# Amplify, which does not read vercel.json and has no built-in scheduler, so
+# neither job has ever run in production: subscriptions were never swept, and
+# abandoned signups were never chased. GitHub Actions runs them instead,
+# because it is already set up for this repo and is independent of where the
+# app is hosted.
+#
+# Required repository secrets:
+#   CRON_SECRET  - must match the CRON_SECRET the app is deployed with
+#   APP_URL      - e.g. https://www.verifiedbizlink.co.za (no trailing slash)
+
+name: Scheduled jobs
+
+on:
+  schedule:
+    # Hourly. The billing sweep is time-based rather than run-based, so a
+    # missed or delayed run only means a late decision, never a wrong one —
+    # but hourly keeps an overdue renewal from hiding for most of a day.
+    - cron: '7 * * * *'
+    # Once a day, 07:00 UTC = 09:00 SAST.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+jobs:
+  billing:
+    name: Subscription billing sweep
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sweep subscriptions
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "APP_URL or CRON_SECRET is not set in repository secrets."
+            exit 1
+          fi
+
+          # -sS keeps the output quiet but still prints real errors; the body
+          # and status are captured separately so a 200 with an error payload
+          # is not mistaken for success.
+          response=$(curl -sS -w '\n%{http_code}' --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/billing")
+          status=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP $status"
+          echo "$body"
+
+          if [ "$status" != "200" ]; then
+            echo "Billing sweep failed."
+            exit 1
+          fi
+
+          # The route reports its own per-step error count. A run that returns
+          # 200 while failing to send warnings is still a failed run.
+          if echo "$body" | grep -qE '"errors":[1-9]'; then
+            echo "Billing sweep reported errors."
+            exit 1
+          fi
+
+  abandoned-signups:
+    name: Chase abandoned signups
+    runs-on: ubuntu-latest
+    # Only on the daily schedule, not the hourly one.
+    if: github.event.schedule == '0 7 * * *' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Send abandoned-signup reminders
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "APP_URL or CRON_SECRET is not set in repository secrets."
+            exit 1
+          fi
+
+          response=$(curl -sS -w '\n%{http_code}' --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/abandoned-signups")
+          status=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP $status"
+          echo "$body"
+
+          if [ "$status" != "200" ]; then
+            echo "Abandoned-signup run failed."
+            exit 1
+          fi
