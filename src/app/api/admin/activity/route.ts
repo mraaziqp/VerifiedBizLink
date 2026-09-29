@@ -42,8 +42,8 @@ export async function GET() {
         p.created_at, p.completed_at,
         u.full_name, u.email, b.company_name
       FROM payments p
-      JOIN users u ON u.id = p.user_id
-      LEFT JOIN businesses b ON b.user_id = u.id
+      LEFT JOIN users u ON u.id = p.user_id
+      LEFT JOIN businesses b ON b.user_id = p.user_id
       ORDER BY p.created_at DESC
       LIMIT 100
     `.catch(() => [])) as unknown as Row[];

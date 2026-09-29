@@ -82,11 +82,14 @@ export async function POST(request: NextRequest) {
       case 'payment_failed': {
         await sendPaymentFailedEmail(
           recipient,
-          'Test Business Owner',
-          'Gold Verified Tier',
-          'R1,499.00',
-          48,
-          new Date(Date.now() + 48 * 60 * 60 * 1000).toLocaleDateString('en-ZA'),
+          {
+            firstName: 'Test Business Owner',
+            companyName: 'Test Business (Pty) Ltd',
+            tierName: 'Gold Verified Tier',
+            amount: 'R1,499.00',
+            daysRemaining: 5,
+            deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-ZA'),
+          },
           baseUrl,
         );
         results.payment_failed = 'Payment failed alert email sent';
@@ -140,11 +143,14 @@ export async function POST(request: NextRequest) {
         });
         await sendPaymentFailedEmail(
           recipient,
-          'Test Business Owner',
-          'Gold Verified Tier',
-          'R1,499.00',
-          48,
-          new Date(Date.now() + 48 * 60 * 60 * 1000).toLocaleDateString('en-ZA'),
+          {
+            firstName: 'Test Business Owner',
+            companyName: 'Test Business (Pty) Ltd',
+            tierName: 'Gold Verified Tier',
+            amount: 'R1,499.00',
+            daysRemaining: 5,
+            deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toLocaleDateString('en-ZA'),
+          },
           baseUrl,
         );
         await sendAbandonedSignupEmail(

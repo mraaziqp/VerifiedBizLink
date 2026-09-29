@@ -5,6 +5,7 @@ import {
   DEFAULT_INTERVALS, subscriptionTerms, graceHoursRemaining, graceExpiresAt,
   DOWNGRADE_TIER,
 } from '@/lib/billing';
+import { resumeAmountCents } from '@/lib/billing-notices';
 
 type Row = Record<string, unknown>;
 
@@ -48,6 +49,15 @@ export async function GET() {
     const renewalCents = Math.round((Number(biz?.tier_price) || 0) * 100);
     const failedAt = (biz?.payment_failed_at as string) ?? null;
 
+    // Pay now is offered while a failed payment is in its grace window, and
+    // after a downgrade for non-payment (to restore the plan they lost).
+    const inGrace = Boolean(failedAt) && Boolean(biz?.package_type) && biz?.package_type !== DOWNGRADE_TIER;
+    const lapsedFor = biz?.subscription_status === 'downgraded_nonpayment' && biz?.downgraded_from
+      ? String(biz.downgraded_from)
+      : null;
+    const payNowTier = inGrace ? String(biz?.package_type) : lapsedFor;
+    const payNowCents = payNowTier ? await resumeAmountCents(session.id, payNowTier) : 0;
+
     return NextResponse.json({
       subscription: biz
         ? {
@@ -66,6 +76,8 @@ export async function GET() {
             graceHoursRemaining: graceHoursRemaining(failedAt),
             graceEndsAt: failedAt ? graceExpiresAt(new Date(failedAt)).toISOString() : null,
             downgradedFrom: biz.downgraded_from ?? null,
+            canPayNow: Boolean(payNowTier) && payNowCents >= 500,
+            payNowCents,
             downgradedAt: biz.downgraded_at ?? null,
             terms: subscriptionTerms(renewalCents, (biz.next_billing_at as string) ?? null),
           }

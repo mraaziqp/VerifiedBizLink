@@ -7,6 +7,7 @@ import { ArrowLeft, CreditCard, CheckCircle2, Clock, XCircle, TrendingUp, Loader
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminBackground, AdminCard, AdminPageHeader, StatCard, SectionTitle } from '@/components/admin/ui';
+import { BillingLog } from '@/components/admin/billing-log';
 
 interface Payment {
   id: string;
@@ -156,6 +157,8 @@ export default function AdminPaymentsPage() {
             </div>
           )}
         </AdminCard>
+
+        <BillingLog />
       </div>
     </AdminBackground>
   );
