@@ -111,16 +111,18 @@ export default function RamoneAdminPanel() {
     <GlassBackground>
       {/* Header */}
       <div className="safe-area-pt border-b border-gray-200 bg-white/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex justify-between items-start">
-            <div>
+        <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6">
+          {/* Stacked on a phone: side by side, the title and the two buttons
+              were wider than the screen and the whole page scrolled sideways. */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
+            <div className="min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <Shield className="h-8 w-8 text-green-700" />
-                <h1 className="text-4xl font-bold text-gray-900">Vetting Command Center</h1>
+                <Shield className="h-7 w-7 sm:h-8 sm:w-8 shrink-0 text-green-700" />
+                <h1 className="text-2xl sm:text-4xl font-bold text-gray-900">Vetting Command Center</h1>
               </div>
               <p className="text-gray-500">Business verification and vetting management workspace</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 shrink-0">
               <Button variant="outline" className="border-gray-500/30" asChild><Link href="/admin/dashboard">
                   Admin Dashboard
                 </Link></Button>

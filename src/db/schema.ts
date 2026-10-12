@@ -1,4 +1,5 @@
-import { pgTable, uuid, varchar, text, boolean, timestamp, integer, jsonb, index, unique, primaryKey } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
+import { pgTable, uuid, varchar, text, boolean, timestamp, integer, bigint, date, jsonb, index, uniqueIndex, unique, primaryKey } from 'drizzle-orm/pg-core';
 
 // ==========================================
 // 1. Users Table
@@ -173,25 +174,162 @@ export const subscriptions = pgTable('user_subscriptions', {
 ]);
 
 // ==========================================
-// 6. Job Posts & Talent Profiles
+// 6. Jobs & Talent
 // ==========================================
-export const jobPosts = pgTable('job_posts', {
+// These describe the tables as they exist in the database. The tables
+// themselves are created and upgraded by ensureTalentSchema() in
+// lib/talent-schema.ts (and scripts/migrate-talent.mjs for a manual run), and
+// every route reads them with tagged-template SQL — so a change here changes
+// nothing in the database on its own. Keep the three in step.
+//
+// The previous definition in this section described a `job_posts` table that
+// was never created; the real table has always been `job_postings`.
+
+/** JobListing. status: 'draft' | 'open' (published) | 'paused' | 'closed'. */
+export const jobPostings = pgTable('job_postings', {
   id: uuid('id').primaryKey().defaultRandom(),
   businessId: uuid('business_id').notNull().references(() => businesses.id, { onDelete: 'cascade' }),
-  title: varchar('title', { length: 255 }).notNull(),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  // Readable words plus a short random code; the public address /jobs/<slug>.
+  // Issued once and never changed, so a shared link survives a retitle.
+  slug: text('slug'),
+  title: text('title').notNull(),
   description: text('description').notNull(),
-  requiredSkills: jsonb('required_skills').default([]),
-  employmentType: varchar('employment_type', { length: 50 }).default('full_time'),
-  locationType: varchar('location_type', { length: 50 }).default('onsite'),
-  location: varchar('location', { length: 255 }),
-  salaryMinCents: integer('salary_min_cents'),
-  salaryMaxCents: integer('salary_max_cents'),
-  salaryPeriod: varchar('salary_period', { length: 50 }).default('monthly'),
-  applicationDeadline: timestamp('application_deadline', { withTimezone: true }),
-  status: varchar('status', { length: 50 }).default('active'),
-  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
-});
+  requirements: text('requirements'),
+  benefits: text('benefits'),
+  requiredSkills: text('required_skills').array().notNull().default([]),
+  employmentType: text('employment_type').notNull().default('full_time'), // full_time | part_time | contract | temporary | internship | learnership
+  locationType: text('location_type').notNull().default('on_site'), // on_site | hybrid | remote
+  location: text('location'),
+  // Cents, like every other money column. BIGINT so an annual figure cannot overflow.
+  salaryMinCents: bigint('salary_min_cents', { mode: 'number' }),
+  salaryMaxCents: bigint('salary_max_cents', { mode: 'number' }),
+  salaryPeriod: text('salary_period').default('month'), // hour | day | month | year
+  currency: text('currency').notNull().default('ZAR'),
+  // The inverse of "hideSalary": false withholds the figures everywhere.
+  salaryVisible: boolean('salary_visible').notNull().default(true),
+  applicationDeadline: date('application_deadline'),
+  status: text('status').notNull().default('open'),
+  viewsCount: integer('views_count').notNull().default(0),
+  // The number of applications is counted from job_applications when read,
+  // not stored here: a counter column is one missed update away from being wrong.
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  publishedAt: timestamp('published_at', { withTimezone: true }),
+  closedAt: timestamp('closed_at', { withTimezone: true }),
+}, (table) => [
+  uniqueIndex('job_postings_slug_idx').on(table.slug),
+  index('job_postings_business_idx').on(table.businessId),
+  index('job_postings_open_idx').on(table.status, table.createdAt.desc()),
+  index('job_postings_skills_idx').using('gin', table.requiredSkills),
+]);
+
+/** JobApplication. status: applied | reviewing | shortlisted | interview | hired | rejected | withdrawn. */
+export const jobApplications = pgTable('job_applications', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  jobId: uuid('job_id').notNull().references(() => jobPostings.id, { onDelete: 'cascade' }),
+  applicantUserId: uuid('applicant_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  coverNote: text('cover_note'),
+  // What the employer actually read, frozen at the moment of applying.
+  snapshotHeadline: text('snapshot_headline'),
+  snapshotSkills: text('snapshot_skills').array().notNull().default([]),
+  snapshotCvUrl: text('snapshot_cv_url'), // the résumé sent with this application
+  status: text('status').notNull().default('applied'),
+  statusNote: text('status_note'), // what the candidate was told about the latest change
+  employerNotes: text('employer_notes'), // the employer's private notes; never returned to the candidate
+  statusChangedAt: timestamp('status_changed_at', { withTimezone: true }),
+  statusChangedBy: uuid('status_changed_by').references(() => users.id, { onDelete: 'set null' }),
+  matchScore: integer('match_score'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(), // appliedAt
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  // One application per person per job.
+  uniqueIndex('job_applications_once_idx').on(table.jobId, table.applicantUserId),
+  index('job_applications_job_status_idx').on(table.jobId, table.status),
+  index('job_applications_applicant_idx').on(table.applicantUserId, table.createdAt.desc()),
+]);
+
+/**
+ * An application's history, and its link to the conversation it lives in.
+ * Direct messages are a pair of people (see `messages`), so the thread between
+ * an employer and a candidate needs no table of its own; `messageId` records
+ * which message told the candidate about a given stage change.
+ */
+export const jobApplicationEvents = pgTable('job_application_events', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  applicationId: uuid('application_id').notNull().references(() => jobApplications.id, { onDelete: 'cascade' }),
+  actorUserId: uuid('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
+  kind: text('kind').notNull(), // applied | status | withdrawn
+  fromStatus: text('from_status'),
+  toStatus: text('to_status'),
+  detail: text('detail'),
+  messageId: uuid('message_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('job_application_events_app_idx').on(table.applicationId, table.createdAt),
+]);
+
+export const savedJobs = pgTable('saved_jobs', {
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  jobId: uuid('job_id').notNull().references(() => jobPostings.id, { onDelete: 'cascade' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  primaryKey({ columns: [table.userId, table.jobId] }),
+  index('saved_jobs_job_idx').on(table.jobId),
+]);
+
+/** CandidateProfile. One per user. */
+export const talentProfiles = pgTable('talent_profiles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  headline: text('headline'),
+  summary: text('summary'), // bio
+  location: text('location'),
+  yearsExperience: integer('years_experience'),
+  skills: text('skills').array().notNull().default([]),
+  workHistory: jsonb('work_history').notNull().default([]),
+  education: jsonb('education').notNull().default([]),
+  portfolioLinks: jsonb('portfolio_links').notNull().default([]), // [{ label, url }]
+  cvUrl: text('cv_url'), // résumé; a permission-checked /api/talent/cv/<id> address
+  cvText: text('cv_text'),
+  videoIntroUrl: text('video_intro_url'),
+  // Visibility: true lists the profile for verified businesses; false keeps
+  // it unlisted, seen only by employers the person applies to.
+  isPublished: boolean('is_published').notNull().default(false),
+  openToWork: boolean('open_to_work').notNull().default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('talent_profiles_skills_idx').using('gin', table.skills),
+  index('talent_profiles_published_idx').on(table.isPublished, table.openToWork),
+]);
+
+export const jobPostingsRelations = relations(jobPostings, ({ one, many }) => ({
+  business: one(businesses, { fields: [jobPostings.businessId], references: [businesses.id] }),
+  applications: many(jobApplications),
+  savedBy: many(savedJobs),
+}));
+
+export const jobApplicationsRelations = relations(jobApplications, ({ one, many }) => ({
+  job: one(jobPostings, { fields: [jobApplications.jobId], references: [jobPostings.id] }),
+  candidate: one(users, { fields: [jobApplications.applicantUserId], references: [users.id] }),
+  events: many(jobApplicationEvents),
+}));
+
+export const jobApplicationEventsRelations = relations(jobApplicationEvents, ({ one }) => ({
+  application: one(jobApplications, { fields: [jobApplicationEvents.applicationId], references: [jobApplications.id] }),
+  // The chat message that carried this update to the candidate, if one was sent.
+  message: one(directMessages, { fields: [jobApplicationEvents.messageId], references: [directMessages.id] }),
+}));
+
+export const savedJobsRelations = relations(savedJobs, ({ one }) => ({
+  user: one(users, { fields: [savedJobs.userId], references: [users.id] }),
+  job: one(jobPostings, { fields: [savedJobs.jobId], references: [jobPostings.id] }),
+}));
+
+export const talentProfilesRelations = relations(talentProfiles, ({ one }) => ({
+  user: one(users, { fields: [talentProfiles.userId], references: [users.id] }),
+}));
 
 export const businessReviews = pgTable('business_reviews', {
   id: uuid('id').primaryKey().defaultRandom(),

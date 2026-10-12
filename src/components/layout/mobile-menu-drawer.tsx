@@ -9,6 +9,7 @@ import { FileText, MessageSquare,
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useMobileMenu } from "@/contexts/mobile-menu-context";
+import { useBusinessVerified } from "@/hooks/use-business-verified";
 import { VBLLogo } from "@/components/ui/vbl-logo";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { GoldCheckmark } from "@/components/ui/gold-checkmark";
@@ -40,7 +41,8 @@ export function MobileMenuDrawer() {
   const { user, logout } = useAuth();
   const { open, setOpen } = useMobileMenu();
   const [slidIn, setSlidIn] = useState(false);
-  const [businessVerified, setBusinessVerified] = useState(false);
+  // Shared with the desktop sidebar, so the two make one request between them.
+  const { verified: businessVerified } = useBusinessVerified(user);
 
   useEffect(() => {
     if (!open) {
@@ -50,22 +52,6 @@ export function MobileMenuDrawer() {
     const timer = setTimeout(() => setSlidIn(true), 10);
     return () => clearTimeout(timer);
   }, [open]);
-
-  useEffect(() => {
-    if (!user || !['business', 'admin', 'banker', 'lawyer'].includes(user.role)) {
-      setBusinessVerified(false);
-      return;
-    }
-    const controller = new AbortController();
-    fetch('/api/business/profile', { signal: controller.signal })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (controller.signal.aborted) return;
-        setBusinessVerified(d?.business?.status === 'verified');
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, [user]);
 
   if (pathname === "/login" || pathname === "/signup" || !user) return null;
 
@@ -174,16 +160,16 @@ export function MobileMenuDrawer() {
                     )}
                     {isJobs && (isBusiness || businessVerified) && (
                       <Link
-                        href="/jobs?tab=post"
+                        href="/business/jobs"
                         onClick={() => setOpen(false)}
                         className={`flex items-center gap-2 pl-9 pr-3.5 py-2 text-xs font-semibold rounded-lg transition-all ${
-                          pathname === "/jobs/post" || pathname === "/business/jobs"
+                          pathname === "/business/jobs"
                             ? "bg-amber-400/20 text-amber-300 font-bold"
                             : "text-white/70 hover:text-white hover:bg-white/5"
                         }`}
                       >
                         <PlusCircle size={14} className="text-amber-400" />
-                        <span>Post a Job</span>
+                        <span>Post &amp; manage jobs</span>
                         <span className="ml-auto text-[9px] uppercase px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold">
                           Biz
                         </span>

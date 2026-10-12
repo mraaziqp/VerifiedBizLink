@@ -55,12 +55,24 @@ const AD_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
  */
 const AD_PLACEMENT = "top_banner";
 
+/**
+ * Who the banner is for: customers and businesses browsing the platform — not
+ * staff, who are doing internal admin and vetting work, not shopping around.
+ *
+ * One list, used for fetching, counting and drawing alike. They used to be
+ * three separate checks, and the one that draws the banner had fallen behind
+ * the other two: for a customer the ad was fetched, an impression was logged
+ * against the advertiser, and then nothing was shown.
+ */
+const AD_AUDIENCE = ["user", "business", "customer"];
+
 export function AdBanner() {
   const { user } = useAuth();
   const [visible, setVisible] = useState(false);
   const [ads, setAds] = useState<Ad[]>([]);
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
   const [adsEnabled, setAdsEnabled] = useState(true);
+  const inAudience = !!user && AD_AUDIENCE.includes(user.role);
 
   const checkShouldShow = useCallback(() => {
     const dismissedAt = localStorage.getItem(DISMISS_KEY);
@@ -70,9 +82,7 @@ export function AdBanner() {
   }, []);
 
   useEffect(() => {
-    // Show to customers and businesses browsing the platform — not staff,
-    // who are doing internal admin/vetting work, not shopping around.
-    if (!user || !["user", "business", "customer"].includes(user.role)) return;
+    if (!inAudience) return;
 
     const fetchAdSettings = async () => {
       // Both requests at once: the ad list doesn't depend on the settings.
@@ -98,11 +108,11 @@ export function AdBanner() {
     };
 
     fetchAdSettings();
-  }, [user, checkShouldShow]);
+  }, [inAudience, checkShouldShow]);
 
   // Poll to re-show after cooldown
   useEffect(() => {
-    if (!user || !["user", "business", "customer"].includes(user.role) || !adsEnabled) return;
+    if (!inAudience || !adsEnabled) return;
     if (ads.length === 0) return; // nothing to rotate through
     const interval = setInterval(() => {
       if (!visible && checkShouldShow()) {
@@ -111,7 +121,7 @@ export function AdBanner() {
       }
     }, 30_000); // check every 30s
     return () => clearInterval(interval);
-  }, [user, visible, adsEnabled, ads.length, checkShouldShow]);
+  }, [inAudience, visible, adsEnabled, ads.length, checkShouldShow]);
 
   // Log one impression each time a (real) ad is actually shown to a viewer.
   useEffect(() => {
@@ -144,7 +154,7 @@ export function AdBanner() {
 
   // ads.length is the guard that matters: with nothing sold for this slot,
   // the component renders nothing at all rather than inventing filler.
-  if (!user || !["user", "business"].includes(user.role) || !visible || !adsEnabled) return null;
+  if (!inAudience || !visible || !adsEnabled) return null;
   if (ads.length === 0) return null;
 
   const ad = ads[currentAdIndex] || ads[0];

@@ -5,11 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from '@/contexts/auth-context';
 import { MobileMenuProvider } from '@/contexts/mobile-menu-context';
 import { MobileNav } from '@/components/layout/mobile-nav';
-import { MobileMenuDrawer } from '@/components/layout/mobile-menu-drawer';
-import { AdBanner } from '@/components/ads/ad-banner';
-import { ChatWidget } from '@/components/chatbot/chat-widget';
-import MessagesWidget from '@/components/chat/chat-widget';
-import { EmailVerificationBanner } from '@/components/ui/email-verification-banner';
+import { DeferredTopBanners, DeferredWidgets } from '@/components/layout/deferred-widgets';
+import { CANONICAL_ORIGIN } from '@/lib/site-url';
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register';
 import { PwaInstallPrompt } from '@/components/pwa/install-prompt';
 
@@ -23,6 +20,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  // Without this, any relative address in a page's metadata (a link-preview
+  // image, a canonical link) is resolved against localhost at build time.
+  metadataBase: new URL(CANONICAL_ORIGIN),
   title: 'VerifiedBizLink | Connecting You to Trusted Businesses',
   description: 'Find and connect with verified local businesses. CIPC and SARS verified. Your trusted business marketplace.',
   applicationName: 'VerifiedBizLink',
@@ -58,16 +58,17 @@ export default function RootLayout({
         <AuthProvider>
           <MobileMenuProvider>
             <ServiceWorkerRegister />
-            <EmailVerificationBanner />
+            <DeferredTopBanners />
+            {/* Stays in the first load: it has to be listening when the
+                browser announces that the app can be installed. */}
             <PwaInstallPrompt />
-            <MobileMenuDrawer />
             <div className="pb-20 lg:pb-0">
               {children}
             </div>
             <MobileNav />
-            <AdBanner />
-            <MessagesWidget />
-            <ChatWidget />
+            {/* Menu drawer, ad slot, messages bubble and assistant: loaded
+                once the page is idle or at the first tap. */}
+            <DeferredWidgets />
             <Toaster />
           </MobileMenuProvider>
         </AuthProvider>

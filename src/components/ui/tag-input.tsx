@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useRef, KeyboardEvent } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -75,15 +74,14 @@ export function TagInput({
             : 'border-slate-200 hover:border-slate-300'
         )}
       >
-        <AnimatePresence>
-          {tags.map((tag, idx) => (
-            <motion.span
-              key={`${tag}-${idx}`}
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-semibold shadow-xs select-none group"
+        {/* A CSS pop-in rather than an animation library: this one effect was
+            pulling ~40 kB of script into every page with a skills box. Keyed
+            by the tag itself (they are unique), so removing one does not
+            re-animate the ones after it. */}
+        {tags.map((tag, idx) => (
+            <span
+              key={tag.toLowerCase()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-semibold shadow-xs select-none group animate-in fade-in zoom-in-90 duration-150"
             >
               <span>{tag}</span>
               <button
@@ -97,9 +95,8 @@ export function TagInput({
               >
                 <X className="h-3.5 w-3.5" />
               </button>
-            </motion.span>
+            </span>
           ))}
-        </AnimatePresence>
 
         {/* Inline Input Field */}
         <input

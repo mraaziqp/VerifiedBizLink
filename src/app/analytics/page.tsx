@@ -1,21 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import { SidebarLeft } from "@/components/layout/sidebar-left";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-} from "recharts";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { TrendingUp, Users, ShieldCheck, FileText } from "lucide-react";
+
+// The charts (and the charting library with them) arrive after the page and
+// its headline figures, behind the same placeholder shown while data loads.
+const chartLoading = () => <Skeleton className="h-full w-full rounded-xl" />;
+const ConnectionsChart = dynamic(() => import("./analytics-charts").then((m) => m.ConnectionsChart), { ssr: false, loading: chartLoading });
+const TrustScoreChart = dynamic(() => import("./analytics-charts").then((m) => m.TrustScoreChart), { ssr: false, loading: chartLoading });
 
 interface AnalyticsData {
   stats: {
@@ -29,17 +25,6 @@ interface AnalyticsData {
   connectionsByMonth: { month: string; connections: number }[];
 }
 
-const chartConfig = {
-  connections: {
-    label: "Connections",
-    color: "hsl(var(--primary))",
-  },
-  score: {
-    label: "Trust Score",
-    color: "hsl(var(--primary))",
-  },
-};
-
 export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,16 +33,14 @@ export default function AnalyticsPage() {
     fetch("/api/users/analytics")
       .then((r) => r.ok ? r.json() : null)
       .then((d) => setData(d))
+      // Offline or a dropped connection: show the empty state, not an
+      // unhandled rejection in the console.
+      .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, []);
 
   const stats = data?.stats;
   const connectionsByMonth = data?.connectionsByMonth ?? [];
-
-  // Build a single-point bar for the trust score
-  const trustScoreData = stats
-    ? [{ label: "Your Score", score: stats.trustScore }]
-    : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -131,30 +114,7 @@ export default function AnalyticsPage() {
                   {loading ? (
                     <Skeleton className="h-full w-full rounded-xl" />
                   ) : (
-                    <ChartContainer config={chartConfig} className="h-full w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={connectionsByMonth}>
-                          <defs>
-                            <linearGradient id="colorConnections" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                              <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                          <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: "#9ca3af", fontSize: 12 }} />
-                          <YAxis hide allowDecimals={false} />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Area
-                            type="monotone"
-                            dataKey="connections"
-                            stroke="hsl(var(--primary))"
-                            fillOpacity={1}
-                            fill="url(#colorConnections)"
-                            strokeWidth={3}
-                          />
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
+                    <ConnectionsChart data={connectionsByMonth} />
                   )}
                 </CardContent>
               </Card>
@@ -168,18 +128,12 @@ export default function AnalyticsPage() {
                 <CardContent className="h-[300px]">
                   {loading ? (
                     <Skeleton className="h-full w-full rounded-xl" />
+                  ) : stats ? (
+                    <TrustScoreChart score={stats.trustScore} />
                   ) : (
-                    <ChartContainer config={chartConfig} className="h-full w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={trustScoreData}>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                          <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: "#9ca3af", fontSize: 12 }} />
-                          <YAxis domain={[0, 100]} hide />
-                          <ChartTooltip content={<ChartTooltipContent />} />
-                          <Bar dataKey="score" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} barSize={60} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
+                    <p className="flex h-full items-center justify-center text-sm text-gray-500">
+                      Your figures could not be loaded. Check your connection and refresh.
+                    </p>
                   )}
                 </CardContent>
               </Card>

@@ -49,6 +49,30 @@ function timeAgo(date: string): string {
   return d < 7 ? `${d}d ago` : new Date(date).toLocaleDateString("en-ZA", { day: "numeric", month: "short" });
 }
 
+/**
+ * One request, however many copies of the widget are on the page.
+ *
+ * The home page mounts two — one in the desktop sidebar, one below the feed
+ * for phones, with CSS showing whichever fits — and each used to fetch the
+ * headlines for itself, so every visit to the home page asked for the same
+ * news twice. Shared for a minute; a failure is not remembered.
+ */
+let sharedNews: { at: number; promise: Promise<{ news: NewsItem[]; live: boolean } | null> } | null = null;
+
+function loadNews(): Promise<{ news: NewsItem[]; live: boolean } | null> {
+  if (sharedNews && Date.now() - sharedNews.at < 60_000) return sharedNews.promise;
+  const promise = fetch('/api/news?limit=6')
+    .then((response) => (response.ok ? response.json() : Promise.reject(new Error(`news ${response.status}`))))
+    .then((data) => ({ news: (data.news || []) as NewsItem[], live: !!data.live }))
+    .catch((error) => {
+      console.error('Failed to fetch news:', error);
+      sharedNews = null;
+      return null;
+    });
+  sharedNews = { at: Date.now(), promise };
+  return promise;
+}
+
 export function ComplianceNews() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [live, setLive] = useState(false);
@@ -56,19 +80,13 @@ export function ComplianceNews() {
   const [newsViewerOpen, setNewsViewerOpen] = useState(false);
 
   const fetchNews = useCallback(async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/news?limit=6');
-      if (response.ok) {
-        const data = await response.json();
-        setNews(data.news || []);
-        setLive(!!data.live);
-      }
-    } catch (error) {
-      console.error('Failed to fetch news:', error);
-    } finally {
-      setLoading(false);
+    setLoading(true);
+    const data = await loadNews();
+    if (data) {
+      setNews(data.news);
+      setLive(data.live);
     }
+    setLoading(false);
   }, []);
 
   useEffect(() => {

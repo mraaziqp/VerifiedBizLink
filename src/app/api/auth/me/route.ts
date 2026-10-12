@@ -29,6 +29,17 @@ function unauthorised(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // No cookie at all is simply a visitor who has not signed in — the
+    // ordinary state of every public page (explore, pricing, a shared job).
+    // That is an answer, not an error: 200 with no user. Answering 401 made
+    // every such page log a failed request to the browser console.
+    //
+    // A cookie that turns out to be stale or revoked still gets the 401
+    // below, because that one has to be cleared.
+    if (!request.cookies.get('vbl_session')?.value) {
+      return NextResponse.json({ user: null });
+    }
+
     const session = await getSession();
     if (!session) {
       return unauthorised(request);

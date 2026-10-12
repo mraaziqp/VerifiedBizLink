@@ -381,6 +381,12 @@ export interface SendInput {
   /** Legacy image_url from the widget's photo upload. */
   imageUrl?: string | null;
   replyToId?: string | null;
+  /**
+   * The caller sends its own, more specific email about this message (an
+   * application update, say), so the generic "New message" one would only
+   * be a second email about the same thing.
+   */
+  skipEmail?: boolean;
 }
 
 export type SendResult = { ok: true; message: ChatMessage } | { ok: false; error: string; status: number };
@@ -457,7 +463,7 @@ export async function sendDirectMessage(input: SendInput): Promise<SendResult> {
     WHERE user_id = ${input.senderId} AND other_user_id = ${input.receiverId} AND is_archived = TRUE
   `.catch(() => {});
 
-  if (!recent && receiver.email && !receiver.is_suspended) {
+  if (!input.skipEmail && !recent && receiver.email && !receiver.is_suspended) {
     const who = escapeHtml(input.senderName || input.senderEmail || 'A VerifiedBizLink member');
     const body = kind === 'quote' ? '📄 Sent you a quote'
       : kind === 'payment_request' ? '💳 Sent you a payment request'

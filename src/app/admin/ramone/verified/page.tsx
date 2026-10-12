@@ -133,13 +133,14 @@ export default function RamoneVerifiedPage() {
         </div>
 
         {/* Controls */}
-        <div className="flex gap-4 mb-6">
+        {/* Stacked on a phone, where the search box and the sort menu do not fit side by side. */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 mb-6">
           <input
             type="text"
             placeholder="Search businesses..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
+            className="min-w-0 flex-1 bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none"
           />
           <select
             value={sortBy}

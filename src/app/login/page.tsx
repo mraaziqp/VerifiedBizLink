@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { VBLLogo } from "@/components/ui/vbl-logo";
 
 import { STAFF_ROLES, ROLES } from "@/lib/roles";
+import { safeReturnPath } from "@/lib/site-url";
 
 function LoginForm() {
   const [email, setEmail] = useState("");
@@ -35,7 +36,9 @@ function LoginForm() {
       // ignore
     }
     toast({ title: "Welcome back!", description: `Signed in as ${user.email}` });
-    const from = searchParams.get("from");
+    // Only ever a path on this site: `from` comes from a link, and a link can
+    // be written by anyone.
+    const from = safeReturnPath(searchParams.get("from"));
     // A sales agent's home is their own portal — they have no admin access
     // and the consumer feed isn't where their work lives.
     const target = user.role === ROLES.SALES_AGENT
@@ -47,21 +50,19 @@ function LoginForm() {
   };
 
   /**
-   * Wakes the API as soon as the sign-in page is shown.
+   * The API is woken as soon as the sign-in page is shown — by AuthProvider.
    *
    * The serverless container sleeps when idle. Measured on the deployment:
    * a cold request takes ~5.2s versus ~0.26s warm, and a slow enough cold
    * start makes the gateway give up with a 502 before the handler ever runs.
+   * The user spends several seconds typing their credentials, so that time
+   * should go on booting the container.
    *
-   * The user spends several seconds typing their credentials, so spending
-   * that time booting the container instead of making them wait for it turns
-   * the common case warm. /api/auth/me is the right thing to call: it is
-   * cheap, and with no session cookie it returns 401 without touching the
-   * database at all.
+   * AuthProvider (root layout) calls /api/auth/me the moment any page mounts,
+   * this one included, which is exactly that warm-up. This page used to send
+   * the same request again itself; the second copy bought nothing. If
+   * AuthProvider ever stops making that call, put a warm-up back here.
    */
-  useEffect(() => {
-    fetch("/api/auth/me", { cache: "no-store" }).catch(() => {});
-  }, []);
 
   /**
    * Posts the credentials, retrying on gateway-level failures.
