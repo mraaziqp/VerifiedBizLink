@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { FileText,
   Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell,
   MapPin, Building2, Zap, Megaphone, CheckCheck, Trash2, X, Briefcase, QrCode, PlusCircle, MessageSquare
@@ -21,6 +21,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
+import { useBusinessVerified } from "@/hooks/use-business-verified";
 import { useMessagingStore } from "@/stores/messaging-store";
 import { selectUnread, useNotificationsStore, useNotificationsSync } from "@/stores/notifications-store";
 
@@ -64,32 +65,14 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
   const dismiss = useNotificationsStore((s) => s.dismiss);
   const clearAllNotifications = useNotificationsStore((s) => s.clearAll);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [businessVerified, setBusinessVerified] = useState(false);
-  // Derived rather than stored: only these roles ever have a business profile
-  // to check, so everyone else is not "loading" — there is nothing to load.
-  const [verificationChecked, setVerificationChecked] = useState(false);
+  // Shared with the slide-out menu, so the two make one request between them.
+  // Only some roles ever have a business profile to check, so everyone else
+  // is not "loading" — there is nothing to load.
+  const { verified: businessVerified, checked: verificationChecked } = useBusinessVerified(user);
   const canHaveBusiness = !!user && ['business', 'admin', 'banker', 'lawyer'].includes(user.role);
   const verificationLoading = canHaveBusiness && !verificationChecked;
 
   const unreadMessages = useMessagingStore((s) => s.unread);
-
-  useEffect(() => {
-    if (!canHaveBusiness) return;
-    const controller = new AbortController();
-    fetch('/api/business/profile', { signal: controller.signal })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (controller.signal.aborted) return;
-        setBusinessVerified(d?.business?.status === 'verified');
-      })
-      .catch(() => {
-        if (!controller.signal.aborted) setBusinessVerified(false);
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) setVerificationChecked(true);
-      });
-    return () => controller.abort();
-  }, [canHaveBusiness]);
 
   const dismissNotification = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -236,10 +219,10 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
                 </Link>
               )}
 
-              {/* Nested Post a Job route: conditionally rendered for verified business accounts */}
+              {/* Hiring tools: conditionally rendered for verified business accounts */}
               {isJobs && businessVerified && (
                 <Link
-                  href="/jobs?tab=post"
+                  href="/business/jobs"
                   className={cn(
                     "flex items-center gap-2.5 pl-9 pr-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150",
                     isPostJobActive
@@ -248,10 +231,24 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
                   )}
                 >
                   <PlusCircle className="h-3.5 w-3.5 text-amber-700" />
-                  <span>Post a Job</span>
+                  <span>Post &amp; manage jobs</span>
                   <span className="ml-auto text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-bold">
                     Biz
                   </span>
+                </Link>
+              )}
+              {isJobs && businessVerified && (
+                <Link
+                  href="/talent"
+                  className={cn(
+                    "flex items-center gap-2.5 pl-9 pr-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-150",
+                    pathname === "/talent"
+                      ? "text-slate-900 bg-amber-50 font-bold border-l-2 border-amber-500"
+                      : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                  )}
+                >
+                  <Users className="h-3.5 w-3.5 text-amber-700" />
+                  <span>Find talent</span>
                 </Link>
               )}
             </div>

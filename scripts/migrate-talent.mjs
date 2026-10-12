@@ -151,9 +151,82 @@ await db`CREATE INDEX IF NOT EXISTS job_applications_job_status_idx ON job_appli
 await db`CREATE INDEX IF NOT EXISTS job_applications_applicant_idx ON job_applications (applicant_user_id, created_at DESC)`;
 console.log('indexes ready');
 
+/* ---------------------------------------------- jobs & talent portal upgrade */
+
+// The same statements src/lib/talent-schema.ts runs on first use in the
+// deployed app, kept here so the upgrade can also be applied by hand. If one
+// changes, change the other.
+//
+// No stored value is renamed: 'open' is still a published job, and 'draft'
+// (jobs) and 'reviewing' (applications) are simply new values in TEXT columns.
+
+await db`ALTER TABLE talent_profiles ADD COLUMN IF NOT EXISTS years_experience INTEGER`;
+
+await db`ALTER TABLE job_postings ADD COLUMN IF NOT EXISTS slug TEXT`;
+await db`ALTER TABLE job_postings ADD COLUMN IF NOT EXISTS requirements TEXT`;
+await db`ALTER TABLE job_postings ADD COLUMN IF NOT EXISTS benefits TEXT`;
+await db`ALTER TABLE job_postings ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'ZAR'`;
+await db`ALTER TABLE job_postings ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ`;
+
+// Roles posted before slugs existed get one, so their share links read as
+// well as a new role's. md5(id) keeps it unique and repeatable.
+await db`
+  UPDATE job_postings
+  SET slug = COALESCE(
+        NULLIF(trim(both '-' from left(regexp_replace(lower(title), '[^a-z0-9]+', '-', 'g'), 60)), ''),
+        'role'
+      ) || '-' || substr(md5(id::text), 1, 6)
+  WHERE slug IS NULL
+`;
+await db`UPDATE job_postings SET published_at = created_at WHERE published_at IS NULL AND status <> 'draft'`;
+// If two generated slugs ever came out the same, the later row takes more of
+// its own hash, so the unique index below cannot fail on a collision.
+await db`
+  UPDATE job_postings j
+  SET slug = j.slug || '-' || substr(md5(j.id::text), 7, 6)
+  WHERE EXISTS (SELECT 1 FROM job_postings o WHERE o.slug = j.slug AND o.id < j.id)
+`;
+await db`CREATE UNIQUE INDEX IF NOT EXISTS job_postings_slug_idx ON job_postings (slug)`;
+
+// The employer's private notes on a candidate. status_note is what the
+// candidate is told; this never leaves the employer's side.
+await db`ALTER TABLE job_applications ADD COLUMN IF NOT EXISTS employer_notes TEXT`;
+
+await db`
+  CREATE TABLE IF NOT EXISTS saved_jobs (
+    user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    job_id     UUID NOT NULL REFERENCES job_postings(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, job_id)
+  )
+`;
+await db`CREATE INDEX IF NOT EXISTS saved_jobs_job_idx ON saved_jobs (job_id)`;
+
+// An application's history. message_id is the link to the direct
+// conversation between employer and candidate: threads are a pair of people,
+// so this records which message carried each update rather than copying it.
+await db`
+  CREATE TABLE IF NOT EXISTS job_application_events (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    application_id UUID NOT NULL REFERENCES job_applications(id) ON DELETE CASCADE,
+    actor_user_id  UUID REFERENCES users(id) ON DELETE SET NULL,
+    kind           TEXT NOT NULL,
+    from_status    TEXT,
+    to_status      TEXT,
+    detail         TEXT,
+    message_id     UUID,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )
+`;
+await db`
+  CREATE INDEX IF NOT EXISTS job_application_events_app_idx
+  ON job_application_events (application_id, created_at)
+`;
+console.log('portal upgrade applied');
+
 /* ------------------------------------------------------------------ report */
 
-for (const t of ['talent_profiles', 'job_postings', 'job_applications']) {
+for (const t of ['talent_profiles', 'job_postings', 'job_applications', 'saved_jobs', 'job_application_events']) {
   const [r] = await db.query(`SELECT COUNT(*)::int n FROM "${t}"`);
   console.log(`  ${t}: ${r.n} row(s)`);
 }

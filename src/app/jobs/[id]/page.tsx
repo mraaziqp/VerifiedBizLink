@@ -1,280 +1,182 @@
-'use client';
-
-import { useCallback, useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { cache } from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
-import {
-  Loader2, ShieldCheck, MapPin, Briefcase, Send, CheckCircle2,
-  Sparkles, ArrowLeft, Calendar, Eye,
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import {
-  EMPLOYMENT_TYPE_LABELS, LOCATION_TYPE_LABELS, formatSalaryRange,
-} from '@/lib/talent';
+import { redirect } from 'next/navigation';
+import { Briefcase } from 'lucide-react';
+import { getSession, isStaff } from '@/lib/auth';
+import { countJobView, loadJobView, type JobView } from '@/lib/jobs-server';
+import { jobPath, jobSummaryLine, markdownToPlain } from '@/lib/talent';
+import { canonicalOrigin } from '@/lib/site-url';
+import { JobPageClient } from './job-page-client';
 
-interface JobDetail {
-  id: string;
-  title: string;
-  description: string;
-  requiredSkills: string[];
-  employmentType: string;
-  locationType: string;
-  location: string | null;
-  salaryMinCents: number | null;
-  salaryMaxCents: number | null;
-  salaryPeriod: string | null;
-  applicationDeadline: string | null;
-  status: string;
-  createdAt: string;
-  viewsCount: number;
-  businessId: string;
-  companyName: string;
-  businessVerified: boolean;
-  trustScore: number | null;
-  industry: string | null;
-  companyDescription: string | null;
+export const dynamic = 'force-dynamic';
+
+/**
+ * Where a shared job link lands.
+ *
+ * Rendered on the server so the listing is in the HTML itself: the preview
+ * robots WhatsApp, LinkedIn and Facebook send read the title and description
+ * from here without running any JavaScript, and so does a search engine.
+ * Nobody is asked to log in to read a role — only to apply for it.
+ */
+
+const SITE = canonicalOrigin(process.env.NEXT_PUBLIC_APP_URL);
+
+/** One lookup per request, shared by the metadata and the page. */
+const getView = cache(async (idOrSlug: string): Promise<JobView | null> => {
+  try {
+    const session = await getSession();
+    return await loadJobView(idOrSlug, session ? { id: session.id, isStaff: isStaff(session) } : null);
+  } catch (error) {
+    console.error('Job page lookup failed:', error);
+    return null;
+  }
+});
+
+const isPublic = (view: JobView) => view.job.status === 'open' && view.job.businessVerified;
+
+export async function generateMetadata({
+  params,
+}: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  const view = await getView(id);
+  if (!view) {
+    return {
+      title: 'Job no longer listed — VerifiedBizLink',
+      description: 'This role is no longer listed. Browse open roles at verified businesses.',
+      robots: { index: false },
+    };
+  }
+
+  const { job } = view;
+  const title = `${job.title} at ${job.companyName}`;
+  const summary = jobSummaryLine({ ...job, companyName: null });
+  const excerpt = markdownToPlain(job.description).slice(0, 160);
+  const description = [
+    job.businessVerified ? 'Verified employer' : null,
+    summary || null,
+    excerpt || null,
+  ].filter(Boolean).join(' · ').slice(0, 300);
+  const url = `${SITE}${jobPath(job)}`;
+
+  return {
+    metadataBase: new URL(SITE),
+    title: `${title} — VerifiedBizLink`,
+    description,
+    alternates: { canonical: url },
+    // A paused, closed or draft role is still viewable by the people allowed
+    // to see it, but it is not something to send search traffic to.
+    robots: isPublic(view) ? { index: true, follow: true } : { index: false },
+    openGraph: {
+      type: 'website',
+      siteName: 'VerifiedBizLink',
+      title,
+      description,
+      url,
+      locale: 'en_ZA',
+    },
+    twitter: { card: 'summary_large_image', title, description },
+  };
 }
 
-export default function JobDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-  const { toast } = useToast();
+const EMPLOYMENT_SCHEMA: Record<string, string> = {
+  full_time: 'FULL_TIME',
+  part_time: 'PART_TIME',
+  contract: 'CONTRACTOR',
+  temporary: 'TEMPORARY',
+  internship: 'INTERN',
+  learnership: 'OTHER',
+};
+const PERIOD_SCHEMA: Record<string, string> = { hour: 'HOUR', day: 'DAY', month: 'MONTH', year: 'YEAR' };
 
-  const [job, setJob] = useState<JobDetail | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [notFound, setNotFound] = useState(false);
-  const [hasApplied, setHasApplied] = useState(false);
-  const [accepting, setAccepting] = useState(true);
-  const [isOwner, setIsOwner] = useState(false);
-  const [match, setMatch] = useState<{ score: number | null; matched: string[]; missing: string[] }>({
-    score: null, matched: [], missing: [],
-  });
-  const [coverNote, setCoverNote] = useState('');
-  const [applying, setApplying] = useState(false);
+/** schema.org JobPosting, which is what puts a listing into Google's job search. */
+function structuredData(view: JobView): string {
+  const { job } = view;
+  const remote = job.locationType === 'remote';
+  const min = job.salaryMinCents ? job.salaryMinCents / 100 : null;
+  const max = job.salaryMaxCents ? job.salaryMaxCents / 100 : null;
 
-  const load = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/jobs/${id}`, { cache: 'no-store' });
-      if (!res.ok) return { notFound: true };
-      return await res.json();
-    } catch {
-      return { notFound: true };
-    }
-  }, [id]);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      const data = await load();
-      if (!active) return;
-      if (data?.notFound || !data?.job) setNotFound(true);
-      else {
-        setJob(data.job);
-        setHasApplied(data.hasApplied === true);
-        setAccepting(data.acceptingApplications !== false);
-        setIsOwner(data.isOwner === true);
-        setMatch({
-          score: data.matchScore ?? null,
-          matched: data.matchedSkills ?? [],
-          missing: data.missingSkills ?? [],
-        });
-      }
-      setLoaded(true);
-    })();
-    return () => { active = false; };
-  }, [load]);
-
-  const apply = async () => {
-    setApplying(true);
-    try {
-      const res = await fetch(`/api/jobs/${id}/apply`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ coverNote }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setHasApplied(true);
-        toast({ title: 'Application sent', description: data.message });
-      } else if (data.needsProfile) {
-        // Applying sends the profile, so there is nothing to send without one.
-        toast({ title: 'Profile needed first', description: data.error, variant: 'destructive' });
-        router.push('/talent/profile');
-      } else {
-        toast({ title: 'Could not apply', description: data.error, variant: 'destructive' });
-      }
-    } catch {
-      toast({ title: 'Could not send your application', variant: 'destructive' });
-    } finally {
-      setApplying(false);
-    }
+  const data: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'JobPosting',
+    title: job.title,
+    description: [job.description, job.requirements, job.benefits].filter(Boolean).map((t) => markdownToPlain(t)).join('\n\n'),
+    datePosted: (job.publishedAt ?? job.createdAt ?? '').slice(0, 10),
+    employmentType: EMPLOYMENT_SCHEMA[job.employmentType] ?? 'OTHER',
+    hiringOrganization: {
+      '@type': 'Organization',
+      name: job.companyName,
+      sameAs: `${SITE}/business/${job.businessId}`,
+      ...(job.logoUrl && /^https?:\/\//.test(job.logoUrl) ? { logo: job.logoUrl } : {}),
+    },
+    directApply: true,
+    url: `${SITE}${jobPath(job)}`,
   };
+  if (job.applicationDeadline) data.validThrough = `${job.applicationDeadline}T23:59:59+02:00`;
+  if (remote) {
+    data.jobLocationType = 'TELECOMMUTE';
+    data.applicantLocationRequirements = { '@type': 'Country', name: 'South Africa' };
+  }
+  if (job.location || !remote) {
+    data.jobLocation = {
+      '@type': 'Place',
+      address: {
+        '@type': 'PostalAddress',
+        ...(job.location ? { addressLocality: job.location } : {}),
+        addressCountry: 'ZA',
+      },
+    };
+  }
+  if (min || max) {
+    data.baseSalary = {
+      '@type': 'MonetaryAmount',
+      currency: job.currency || 'ZAR',
+      value: {
+        '@type': 'QuantitativeValue',
+        ...(min && max ? { minValue: min, maxValue: max } : { value: min ?? max }),
+        unitText: PERIOD_SCHEMA[job.salaryPeriod ?? 'month'] ?? 'MONTH',
+      },
+    };
+  }
+  // "<" is escaped so text an employer typed can never close the script tag.
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}
 
-  if (!loaded) {
+export default async function JobPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const view = await getView(id);
+
+  if (!view) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <Loader2 className="h-7 w-7 animate-spin text-yellow-500" />
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-slate-50 px-4 text-center">
+        <Briefcase className="h-10 w-10 text-slate-300" />
+        <h1 className="text-xl font-extrabold text-slate-900">That role is no longer listed</h1>
+        <p className="max-w-sm text-sm text-slate-600">
+          It may have been filled or taken down. There are other open roles at verified businesses.
+        </p>
+        <Link
+          href="/jobs"
+          className="mt-2 inline-flex h-11 items-center rounded-xl bg-yellow-400 px-5 text-sm font-bold text-slate-900 hover:bg-yellow-300"
+        >
+          Browse open roles
+        </Link>
       </div>
     );
   }
 
-  if (notFound || !job) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50 px-4 text-center">
-        <Briefcase className="h-10 w-10 text-gray-300" />
-        <p className="text-lg font-bold text-gray-900">That role is no longer listed</p>
-        <Button variant="outline" className="gap-2 border-gray-300" asChild><Link href="/jobs">
-            <ArrowLeft className="h-4 w-4" /> Back to jobs
-          </Link></Button>
-      </div>
-    );
-  }
+  // One address per job. Older links and notifications carry the UUID; they
+  // land on the readable address so a link copied from the address bar is
+  // always the one worth sharing.
+  if (id.trim().toLowerCase() !== view.job.slug) redirect(jobPath(view.job));
 
-  const salary = formatSalaryRange(job.salaryMinCents, job.salaryMaxCents, job.salaryPeriod);
+  if (isPublic(view) && !view.isOwner) countJobView(view.job.id);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto max-w-3xl px-4 py-8">
-        <Link href="/jobs" className="mb-5 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900">
-          <ArrowLeft className="h-4 w-4" /> All jobs
-        </Link>
-
-        <div className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h1 className="text-2xl font-extrabold text-gray-900 sm:text-3xl">{job.title}</h1>
-              <p className="mt-1 flex flex-wrap items-center gap-2 text-gray-600">
-                <Link href={`/business/${job.businessId}`} className="font-semibold hover:underline">
-                  {job.companyName}
-                </Link>
-                {job.businessVerified && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
-                    <ShieldCheck className="h-3 w-3" /> Verified employer
-                  </span>
-                )}
-              </p>
-            </div>
-            {match.score !== null && (
-              <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-bold ${
-                match.score >= 75
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                  : match.score >= 40
-                    ? 'border-amber-200 bg-amber-50 text-amber-700'
-                    : 'border-gray-200 bg-gray-50 text-gray-600'
-              }`}>
-                <Sparkles className="h-4 w-4" /> {match.score}% match
-              </span>
-            )}
-          </div>
-
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-gray-600">
-            <span className="inline-flex items-center gap-1.5">
-              <MapPin className="h-4 w-4 text-gray-400" />
-              {LOCATION_TYPE_LABELS[job.locationType as keyof typeof LOCATION_TYPE_LABELS] ?? job.locationType}
-              {job.location ? ` · ${job.location}` : ''}
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Briefcase className="h-4 w-4 text-gray-400" />
-              {EMPLOYMENT_TYPE_LABELS[job.employmentType as keyof typeof EMPLOYMENT_TYPE_LABELS] ?? job.employmentType}
-            </span>
-            {salary && <span className="font-bold text-gray-900">{salary}</span>}
-            {job.applicationDeadline && (
-              <span className="inline-flex items-center gap-1.5">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                Closes {new Date(job.applicationDeadline).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long' })}
-              </span>
-            )}
-            {isOwner && (
-              <span className="inline-flex items-center gap-1.5 text-gray-400">
-                <Eye className="h-4 w-4" /> {job.viewsCount} views
-              </span>
-            )}
-          </div>
-
-          <div className="mt-6 whitespace-pre-wrap text-[15px] leading-relaxed text-gray-800">
-            {job.description}
-          </div>
-
-          {job.requiredSkills.length > 0 && (
-            <div className="mt-7">
-              <h2 className="text-sm font-bold uppercase tracking-wide text-gray-500">What they are looking for</h2>
-              <div className="mt-2.5 flex flex-wrap gap-2">
-                {job.requiredSkills.map((s) => {
-                  const have = match.matched.includes(s);
-                  return (
-                    <span
-                      key={s}
-                      className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-medium ${
-                        have
-                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                          : 'border-gray-200 bg-gray-50 text-gray-600'
-                      }`}
-                    >
-                      {have && <CheckCircle2 className="h-3.5 w-3.5" />}
-                      {s}
-                    </span>
-                  );
-                })}
-              </div>
-              {match.score !== null && match.missing.length > 0 && (
-                <p className="mt-2.5 text-xs text-gray-500">
-                  Green are skills already on your profile. You can still apply without the rest.
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Apply */}
-        {isOwner ? (
-          <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-5 text-center">
-            <p className="text-sm text-gray-600">This is your listing.</p>
-            <Button className="mt-3 gap-2 bg-yellow-400 font-bold text-gray-900 hover:bg-yellow-300" asChild><Link href={`/business/jobs/${job.id}`}>
-                View applicants
-              </Link></Button>
-          </div>
-        ) : hasApplied ? (
-          <div className="mt-5 flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-            <CheckCircle2 className="h-6 w-6 shrink-0 text-emerald-600" />
-            <div>
-              <p className="font-bold text-emerald-900">You have applied to this role</p>
-              <Link href="/jobs/applications" className="text-sm text-emerald-800 underline">
-                Track your applications
-              </Link>
-            </div>
-          </div>
-        ) : !accepting ? (
-          <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-5 text-center text-sm text-gray-600">
-            This role has closed for applications.
-          </div>
-        ) : (
-          <div className="mt-5 rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
-            <h2 className="font-bold text-gray-900">Apply</h2>
-            <p className="mt-1 text-sm text-gray-600">
-              Your professional profile is sent as it is right now. Add a note if you
-              want to say something specific to this employer.
-            </p>
-            <Textarea
-              value={coverNote}
-              onChange={(e) => setCoverNote(e.target.value)}
-              rows={4}
-              maxLength={2000}
-              placeholder="Optional — why you are a good fit for this role."
-              className="mt-3 border-gray-200 bg-white"
-            />
-            <Button
-              onClick={apply}
-              disabled={applying}
-              className="mt-3 h-12 w-full gap-2 bg-yellow-400 text-base font-bold text-gray-900 hover:bg-yellow-300"
-            >
-              {applying ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
-              Apply with my profile
-            </Button>
-          </div>
-        )}
-      </div>
-    </div>
+    <>
+      {isPublic(view) && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: structuredData(view) }} />
+      )}
+      <JobPageClient view={view} />
+    </>
   );
 }

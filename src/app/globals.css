@@ -425,3 +425,27 @@ nav button,
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgba(148, 163, 184, 0.9);
 }
+
+/*
+ * Reduced motion.
+ *
+ * Someone who has asked their device to reduce motion — because movement
+ * makes them unwell, or simply to save battery on an older phone — gets the
+ * finished state of every animation without the travel. The endless
+ * decorative ones above (glow, float, shimmer) stop entirely, which also
+ * frees the device from repainting them for as long as the page is open.
+ *
+ * Spinners are left alone: a frozen loading spinner reads as "stuck".
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *:not(.animate-spin),
+  *:not(.animate-spin)::before,
+  *:not(.animate-spin)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose/jwt/verify';
 import { REQUIRE_EMAIL_VERIFICATION } from '@/lib/feature-flags';
 import { STAFF_ROLES, AGENT_PORTAL_ROLES, ROLES } from '@/lib/roles';
+import { BARE_HOST, CANONICAL_ORIGIN } from '@/lib/site-url';
 
 // Lazy, like lib/auth's copy. Encoding at module scope with the variable
 // unset silently produced a key from the literal string "undefined", which
@@ -133,6 +134,23 @@ const VERIFICATION_EXEMPT_PATHS = [
 const PUBLIC_BUSINESS_PROFILE = new RegExp(`^/business/${UUID}$`, 'i');
 const PUBLIC_BUSINESS_API = new RegExp(`^/api/businesses/${UUID}(/reviews(/${UUID}/helpful)?|/gallery|/view)?$`, 'i');
 
+// A job listing gets pasted into WhatsApp groups and onto LinkedIn. The link
+// has to open for someone with no account, and the preview robots those apps
+// send have no cookie at all — behind the login redirect every shared job
+// would preview as "Sign in". The page and the one read-only lookup behind it
+// are public; applying, saving and everything an employer does still are not.
+// Only published roles from verified businesses are served to the public (see
+// loadJobView), so a draft's address reveals nothing. "applications" is the
+// candidate's own tracker and "suggest" the feed's search box, not listings.
+const PUBLIC_JOB_PAGE = /^\/jobs\/(?!applications$)[a-z0-9][a-z0-9-]*(\/opengraph-image[a-z0-9-]*)?$/i;
+const PUBLIC_JOB_API = /^\/api\/jobs\/(?!suggest$)[a-z0-9][a-z0-9-]*$/i;
+
+// The bare domain is only a forwarder to www today, and one that drops the
+// path. If its DNS is ever pointed straight at the app, every page would be
+// served on two hosts — two sets of cookies, two addresses for each share
+// link. Sending it to www (see lib/site-url) keeps one canonical address,
+// path included.
+
 // Pages an unverified account can still reach — everything needed to finish
 // verifying (settings to resend/manage the account, onboarding, and the
 // Vetting Hub to actually submit business documents) without being able to
@@ -149,12 +167,22 @@ const UNVERIFIED_ALLOWED_PREFIXES = ['/settings', '/onboarding', '/vetting', '/b
 const BASIC_ACCOUNT_ALLOWED = [
   new RegExp(`^/api/businesses/${UUID}/reviews$`, 'i'),
   new RegExp(`^/api/jobs/${UUID}/apply$`, 'i'),
+  new RegExp(`^/api/jobs/${UUID}/save$`, 'i'),
   /^\/api\/talent(\/|$)/,
   /^\/api\/applications(\/|$)/,
 ];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // GET/HEAD only: a redirected POST would be replayed (or dropped) by the
+  // caller, and nothing posts to the bare host on purpose.
+  if (
+    (request.method === 'GET' || request.method === 'HEAD') &&
+    (request.headers.get('x-forwarded-host') || request.headers.get('host') || '').toLowerCase() === BARE_HOST
+  ) {
+    return NextResponse.redirect(new URL(pathname + request.nextUrl.search, CANONICAL_ORIGIN), 308);
+  }
 
   // Static files (manifest.json, sw.js, icons, robots.txt, …) must be public:
   // the browser fetches the web-app manifest and service worker WITHOUT
@@ -169,7 +197,9 @@ export async function middleware(request: NextRequest) {
     PUBLIC_PATHS.includes(pathname) ||
     PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
     PUBLIC_BUSINESS_PROFILE.test(pathname) ||
-    PUBLIC_BUSINESS_API.test(pathname)
+    PUBLIC_BUSINESS_API.test(pathname) ||
+    PUBLIC_JOB_PAGE.test(pathname) ||
+    (request.method === 'GET' && PUBLIC_JOB_API.test(pathname))
   ) {
     return NextResponse.next();
   }

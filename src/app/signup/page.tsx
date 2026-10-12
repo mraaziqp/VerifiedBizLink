@@ -40,6 +40,17 @@ function getStrength(pw: string) {
   return score; // 0-5
 }
 
+/**
+ * Someone who opened a shared job link and signed up to apply goes back to
+ * that job, not to a generic landing page they then have to search from.
+ * Only a job path is accepted, so ?from= can never be used to bounce a new
+ * account to another site.
+ */
+function jobToReturnTo(): string | null {
+  const from = new URLSearchParams(window.location.search).get("from");
+  return from && /^\/jobs\/[a-z0-9][a-z0-9-]*$/i.test(from) ? from : null;
+}
+
 const strengthLabel = ["", "Very Weak", "Weak", "Fair", "Good", "Strong"];
 const strengthColor = ["", "bg-red-500", "bg-orange-400", "bg-yellow-400", "bg-lime-500", "bg-green-500"];
 
@@ -70,6 +81,11 @@ export default function SignupPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [agents, setAgents] = useState<{ id: string; name: string }[]>([]);
   const [referral, setReferral] = useState<{ code: string; agentName: string } | null>(null);
+
+  // Arriving from a job listing means they are here to find work.
+  useEffect(() => {
+    if (jobToReturnTo()) setChoice("work");
+  }, []);
 
   /**
    * Picks up ?ref=CODE from an agent's referral link or QR code.
@@ -127,7 +143,7 @@ export default function SignupPage() {
         if (result.success) {
           await refresh();
           toast({ title: "Welcome to VerifiedBizLink!", description: "We've emailed you a link to confirm your address — you can start right away." });
-          window.location.href = result.redirectTo;
+          window.location.href = jobToReturnTo() ?? result.redirectTo;
         } else {
           toast({ title: "Signup Failed", description: result.error, variant: "destructive" });
         }

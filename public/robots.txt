@@ -29,5 +29,7 @@ Disallow: /dashboard/
 # Crawl delay (in seconds)
 Crawl-delay: 1
 
-# Sitemap
+# Sitemaps
 Sitemap: https://www.verifiedbizlink.co.za/sitemap.xml
+# Published job listings, generated live from the database.
+Sitemap: https://www.verifiedbizlink.co.za/jobs/sitemap.xml
