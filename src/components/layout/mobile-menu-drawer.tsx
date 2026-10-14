@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FileText, MessageSquare,
   X, Home, Users, MapPin, ShieldCheck, BarChart3,
-  Settings, Shield, LogOut, Building2, Megaphone, Zap, QrCode, Briefcase, PlusCircle
+  Settings, Shield, LogOut, Building2, Megaphone, Zap, QrCode, Briefcase, PlusCircle, Sparkles
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useMobileMenu } from "@/contexts/mobile-menu-context";
@@ -237,6 +237,22 @@ export function MobileMenuDrawer() {
                     Vetting Hub
                   </Link>
                 </>
+              )}
+
+              {user && (
+                <Link
+                  href="/business/studio"
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition-all ${
+                    pathname.startsWith("/business/studio")
+                      ? "bg-amber-400 text-slate-950 font-bold shadow-sm shadow-amber-400/20"
+                      : "text-white/80 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <Sparkles size={18} className="text-amber-400" />
+                  Build Studio
+                  <span className="ml-auto rounded-full bg-amber-400/20 px-1.5 text-[10px] font-black text-amber-300">NEW</span>
+                </Link>
               )}
 
               {isStaff && (
