@@ -62,14 +62,14 @@ function BuildStudio() {
   const [ordering, setOrdering] = useState<StudioItem | null>(null);
 
   const load = useCallback(async () => {
-    const res = await fetch('/api/studio', { cache: 'no-store' }).catch(() => null);
-    const data = (await res?.json().catch(() => null)) as StudioState | null;
-    setState(data ?? { access: { allowed: false, tier: null, businessName: null, reason: null, staff: false }, configured: true, error: 'The studio could not be reached. Please refresh in a moment.' });
-    if (data?.access.allowed && data.configured && !data.error) {
-      const mine = await fetch('/api/studio/orders', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-      setOrders(mine?.orders ?? []);
-      if (mine?.credits) setState((s) => (s ? { ...s, credits: mine.credits } : s));
-    }
+    // Both at once: the projects list answers 403 for non-members, which is simply no projects.
+    const [data, mine] = await Promise.all([
+      fetch('/api/studio', { cache: 'no-store' }).then((r) => r.json() as Promise<StudioState>).catch(() => null),
+      fetch('/api/studio/orders', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null)).catch(() => null) as Promise<{ orders?: StudioOrder[]; credits?: StudioCredits | null } | null>,
+    ]);
+    const base = data ?? { access: { allowed: false, tier: null, businessName: null, reason: null, staff: false }, configured: true, error: 'The studio could not be reached. Please refresh in a moment.' };
+    setState(mine?.credits ? { ...base, credits: mine.credits } : base);
+    setOrders(base.access.allowed ? mine?.orders ?? [] : []);
   }, []);
 
   useEffect(() => {
@@ -98,34 +98,34 @@ function BuildStudio() {
 
   return (
     <GlassBackground>
-      <div className="mx-auto max-w-7xl space-y-8 px-4 py-6 sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-7xl space-y-6 px-4 py-5 sm:space-y-8 sm:px-6 sm:py-8">
         {/* Hero */}
-        <section className="relative overflow-hidden rounded-3xl bg-slate-950 px-6 py-8 text-white shadow-xl sm:px-10 sm:py-12">
+        <section className="relative overflow-hidden rounded-3xl bg-slate-950 px-5 py-6 text-white shadow-xl sm:px-10 sm:py-12">
           <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-amber-400/25 blur-3xl" />
           <div aria-hidden className="pointer-events-none absolute -bottom-32 left-1/3 h-80 w-80 rounded-full bg-cyan-400/10 blur-3xl" />
-          <div className="relative grid gap-8 lg:grid-cols-[1.4fr_1fr] lg:items-end">
-            <div className="space-y-4">
+          <div className="relative grid gap-5 sm:gap-8 lg:grid-cols-[1.4fr_1fr] lg:items-end">
+            <div className="space-y-3 sm:space-y-4">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-300">
-                <Sparkles className="h-3.5 w-3.5" /> Build Studio · for VerifiedBizLink members
+                <Sparkles className="h-3.5 w-3.5" /> Build Studio<span className="hidden sm:inline"> · for VerifiedBizLink members</span>
               </span>
-              <h1 className="text-3xl font-black leading-tight tracking-tight sm:text-5xl">
+              <h1 className="text-[26px] font-black leading-[1.15] tracking-tight min-[400px]:text-3xl sm:text-5xl">
                 Your website, app or online shop,
                 <span className="block bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-200 bg-clip-text text-transparent">built for you.</span>
               </h1>
               <p className="max-w-xl text-sm text-slate-300 sm:text-base">
                 Pick a design, tell us about your business, and our studio builds it — hosted, live and yours to edit from here. Member pricing on every plan.
               </p>
-              <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1 text-xs font-semibold text-slate-300">
+              <div className="hidden flex-wrap gap-x-5 gap-y-2 pt-1 text-xs font-semibold text-slate-300 min-[480px]:flex">
                 <span className="flex items-center gap-1.5"><Rocket className="h-4 w-4 text-amber-400" /> First version in days</span>
                 <span className="flex items-center gap-1.5"><Wand2 className="h-4 w-4 text-amber-400" /> Edit words, colours &amp; sections yourself</span>
                 <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4 text-amber-400" /> Secure PayFast checkout</span>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur sm:p-5">
               {canOrder ? (
                 <>
                   <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Your studio credit</p>
-                  <p className="mt-1 flex items-center gap-2 text-3xl font-black">
+                  <p className="mt-1 flex items-center gap-2 text-2xl font-black sm:text-3xl">
                     <Coins className="h-7 w-7 text-amber-400" />
                     {credits?.unlimited ? 'Unlimited' : rand(credits?.total ?? 0)}
                   </p>
@@ -191,8 +191,12 @@ function BuildStudio() {
                     </div>
                     <StageBadge stage={order.stage} />
                   </div>
-                  <ProgressBar value={order.progress} stage={order.stage} className="mt-4" />
-                  <p className="mt-2 line-clamp-1 text-xs text-slate-500">{order.latestNote ?? 'Open to see progress, preview and changes.'}</p>
+                  {order.stage === 'awaiting_payment' ? (
+                    <p className="mt-4 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">{rand(order.amount - order.creditUsed)} to pay — open to finish and start the build</p>
+                  ) : order.stage === 'cancelled' ? null : (
+                    <ProgressBar value={order.progress} stage={order.stage} className="mt-4" />
+                  )}
+                  {order.stage !== 'awaiting_payment' && <p className="mt-2 line-clamp-1 text-xs text-slate-500">{order.latestNote ?? (order.previewUrl ? 'Your site is live — open to see it and make changes.' : 'Open to see progress, preview and changes.')}</p>}
                 </Link>
               ))}
             </div>
@@ -209,7 +213,7 @@ function BuildStudio() {
                 <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search designs…" className="rounded-xl bg-white pl-9" />
               </div>
             </div>
-            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+            <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
               {categories.map((category) => (
                 <button
                   key={category}

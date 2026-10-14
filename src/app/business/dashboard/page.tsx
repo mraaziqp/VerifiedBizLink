@@ -776,6 +776,21 @@ export default function BusinessDashboard() {
                   </Card>
                 </Link>
 
+                <Link href="/business/studio">
+                  <Card className="h-full bg-white/80 backdrop-blur-xl border-gray-200 hover:border-yellow-500/30 hover:shadow-lg transition-colors cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="p-3 bg-slate-900 rounded-lg">
+                          <Sparkles className="h-5 w-5 text-amber-400" />
+                        </div>
+                        <Badge className="bg-amber-100 text-amber-900 border-amber-200">New</Badge>
+                      </div>
+                      <h3 className="font-semibold text-gray-900 mb-2">Build Studio</h3>
+                      <p className="text-gray-500 text-sm">Your website or app, at member prices</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+
                 <Link href="/business/analytics">
                   <Card className="h-full bg-white/80 backdrop-blur-xl border-gray-200 hover:border-yellow-500/30 hover:shadow-lg transition-colors cursor-pointer">
                     <CardContent className="p-6">

@@ -68,8 +68,16 @@ export default function StudioOrderPage() {
   // While it is moving, keep it fresh.
   useEffect(() => {
     if (!order || order.stage === 'delivered' || order.stage === 'cancelled') return;
-    const timer = setInterval(load, order.stage === 'awaiting_payment' ? 8000 : 20000);
-    return () => clearInterval(timer);
+    // Only while the page is being looked at; coming back to it refreshes at once.
+    const tick = () => {
+      if (document.visibilityState === 'visible') void load();
+    };
+    const timer = setInterval(tick, order.stage === 'awaiting_payment' ? 8000 : 20000);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', tick);
+    };
   }, [order, load]);
 
   const send = async () => {
@@ -99,11 +107,17 @@ export default function StudioOrderPage() {
     load();
   };
 
+  // The window opens on the tap itself: phone browsers block one opened after a network call.
   const openReceipt = async (receiptId: string) => {
-    const res = await fetch(`/api/studio/receipts/${encodeURIComponent(receiptId)}`);
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || !data.receipt) return toast({ title: 'Receipt unavailable', description: data.error, variant: 'destructive' });
-    printReceipt(data.receipt);
+    const win = window.open('', '_blank');
+    win?.document.write('<p style="font-family:system-ui;padding:24px;color:#475569">Loading your receipt…</p>');
+    const res = await fetch(`/api/studio/receipts/${encodeURIComponent(receiptId)}`).catch(() => null);
+    const data = (await res?.json().catch(() => ({}))) ?? {};
+    if (!res?.ok || !data.receipt) {
+      win?.close();
+      return toast({ title: 'Receipt unavailable', description: data.error, variant: 'destructive' });
+    }
+    if (win) printReceipt(win, data.receipt);
   };
 
   if (error && !order) {
@@ -148,7 +162,7 @@ export default function StudioOrderPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700">{order.itemName}</p>
-              <h1 className="mt-0.5 truncate text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">{order.businessName}</h1>
+              <h1 className="mt-0.5 break-words text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">{order.businessName}</h1>
               <p className="mt-1 text-xs text-slate-500">
                 Ordered {when(order.createdAt)}
                 {order.orderRef ? ` · Ref ${order.orderRef}` : ''}
@@ -415,12 +429,11 @@ interface Receipt {
 }
 
 /** A clean printable receipt in a new window (save as PDF from the print dialog). */
-function printReceipt(receipt: Receipt) {
-  const win = window.open('', '_blank', 'width=720,height=900');
-  if (!win) return;
+function printReceipt(win: Window, receipt: Receipt) {
+  win.document.open();
   const esc = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
   win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Receipt ${esc(receipt.receiptNumber)}</title>
-<style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:600px;margin:40px auto;padding:0 24px}
+<meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#0f172a;max-width:600px;margin:40px auto;padding:0 20px}td{word-break:break-word}
 h1{font-size:22px;margin:0}.muted{color:#64748b;font-size:13px}table{width:100%;border-collapse:collapse;margin-top:24px}
 td{padding:10px 0;border-bottom:1px solid #e2e8f0;font-size:14px}td:last-child{text-align:right;font-weight:600}
 .total td{font-size:18px;border-bottom:0}.hash{font-family:monospace;font-size:10px;color:#94a3b8;word-break:break-all;margin-top:32px}</style></head>

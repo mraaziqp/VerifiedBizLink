@@ -162,7 +162,8 @@ export async function grantMonthlyCredits(now = new Date()): Promise<{ granted: 
   let granted = 0;
   let skipped = 0;
   let failed = 0;
-  for (const row of rows) {
+  // A few members at a time: one by one, a big month could outrun the job's minute.
+  const giveOne = async (row: DbRow) => {
     const amount = monthlyCredits[String(row.package_type)] ?? 0;
     try {
       await hub('/customers', { method: 'POST', body: { externalId: String(row.user_id), email: String(row.email), name: String(row.full_name || row.business_name || row.email), phone: String(row.phone ?? '') } });
@@ -176,7 +177,8 @@ export async function grantMonthlyCredits(now = new Date()): Promise<{ granted: 
       failed += 1;
       console.error('Monthly studio credit not granted', row.user_id, error);
     }
-  }
+  };
+  for (let i = 0; i < rows.length; i += 5) await Promise.all(rows.slice(i, i + 5).map(giveOne));
   return { granted, skipped, failed, month };
 }
 
