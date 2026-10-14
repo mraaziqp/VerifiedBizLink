@@ -56,6 +56,9 @@ const PUBLIC_PREFIXES = [
   // The routes authenticate themselves against CRON_SECRET and refuse to run
   // at all when it is unset, so they are not open by being listed here.
   '/api/cron/',
+  // Jarvis (the owner's assistant) calls with his key and no session cookie;
+  // the routes refuse anything without JARVIS_API_KEY, and answer 503 while it is unset.
+  '/api/jarvis/',
   // A hired marketer opens their invite link before they have an account, so
   // both the page and the endpoint behind it must be reachable logged out.
   // The token is the credential, and only its hash is stored.

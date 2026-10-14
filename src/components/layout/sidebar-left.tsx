@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { FileText,
   Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell,
-  MapPin, Building2, Zap, Megaphone, CheckCheck, Trash2, X, Briefcase, QrCode, PlusCircle, MessageSquare
+  MapPin, Building2, Zap, Megaphone, CheckCheck, Trash2, X, Briefcase, QrCode, PlusCircle, MessageSquare, Sparkles
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
@@ -41,6 +41,7 @@ const navigation = [
   { name: "Jobs", href: "/jobs", icon: Briefcase },
   { name: "My Business", href: "/business/dashboard", icon: Building2 },
   { name: "Ad Manager", href: "/business/ads", icon: Megaphone },
+  { name: "Build Studio", href: "/business/studio", icon: Sparkles },
   { name: "Vetting Hub", href: "/vetting", icon: ShieldCheck },
   { name: "Verify Certificate", href: "/verify", icon: QrCode },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
@@ -178,7 +179,7 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
           if ((item.name === "My Business" || item.name === "Ad Manager" || item.name === "Vetting Hub") && !canManageBusiness) {
             return null;
           }
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || (item.href === "/business/studio" && pathname.startsWith("/business/studio"));
           const isJobs = item.name === "Jobs";
           const isPostJobActive = pathname === "/jobs/post" || pathname === "/business/jobs";
 
