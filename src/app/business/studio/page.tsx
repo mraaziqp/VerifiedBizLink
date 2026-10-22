@@ -155,13 +155,25 @@ function BuildStudio() {
           </div>
         </section>
 
+        {access.staff && (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-blue-300 bg-blue-50/90 p-4 text-xs font-semibold text-blue-950">
+            <span className="flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-blue-600 animate-pulse shrink-0" />
+              Staff Preview Mode: You are previewing Build Studio. Use the Live Switch in the Admin tab when ready to launch to all members.
+            </span>
+            <Button size="sm" variant="outline" className="h-7 text-xs border-blue-300 bg-white hover:bg-blue-100" asChild>
+              <Link href="/admin/studio">Admin Studio Controls</Link>
+            </Button>
+          </div>
+        )}
+
         {state.error && (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-900">{state.error}</div>
         )}
         {!state.configured && (
           <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-950">
-            <p className="font-bold">The studio is being connected.</p>
-            <p className="mt-1">Everything opens here shortly. Check back soon.</p>
+            <p className="font-bold">Build Studio is in development &amp; final verification.</p>
+            <p className="mt-1">Everything opens here shortly. Staff and admins can configure templates and toggle live mode from the Admin dashboard.</p>
           </div>
         )}
         {canOrder && state.ordersOpen === false && (

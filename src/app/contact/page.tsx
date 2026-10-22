@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Send } from "lucide-react";
 import { SidebarLeft } from "@/components/layout/sidebar-left";
 import { SubpageNav } from "@/components/layout/subpage-nav";
+import { VerifiedCaptcha } from "@/components/security/verified-captcha";
 
 export default function ContactPage() {
   const { toast } = useToast();
@@ -18,6 +19,7 @@ export default function ContactPage() {
     subject: "",
     message: "",
   });
+  const [botToken, setBotToken] = useState("");
   const [aiResponse, setAiResponse] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,7 +30,7 @@ export default function ContactPage() {
       const res = await fetch("/api/contact", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, vbl_bot_token: botToken }),
       });
 
       if (res.ok) {
@@ -131,10 +133,14 @@ export default function ContactPage() {
                   />
                 </div>
 
+                <div className="pt-1">
+                  <VerifiedCaptcha onVerify={(tok) => setBotToken(tok)} label="VerifiedBizLink Security Check" />
+                </div>
+
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold px-8 h-11 rounded-xl gap-2 w-full md:w-auto"
+                  className="bg-amber-400 text-slate-900 hover:bg-yellow-400 font-bold px-8 h-11 rounded-xl gap-2 w-full md:w-auto shadow-xs"
                 >
                   {loading ? (
                     <>

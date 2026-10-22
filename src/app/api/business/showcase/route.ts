@@ -3,6 +3,8 @@ import { getSession } from '@/lib/auth';
 import { ensureShowcaseSchema } from '@/lib/showcase-schema';
 import db from '@/lib/db';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(request: NextRequest) {
   try {
     await ensureShowcaseSchema();
@@ -10,9 +12,9 @@ export async function GET(request: NextRequest) {
     const businessId = searchParams.get('businessId');
     const session = await getSession();
 
-    let targetBusinessId = businessId;
+    let targetBusinessId = businessId && UUID_REGEX.test(businessId) ? businessId : null;
 
-    // If no businessId provided, try to find the current user's business
+    // If no valid businessId provided, try to find the current user's business
     if (!targetBusinessId && session) {
       const [b] = await db`
         SELECT id FROM businesses WHERE user_id = ${session.id} LIMIT 1
@@ -20,8 +22,8 @@ export async function GET(request: NextRequest) {
       targetBusinessId = b?.id ? String(b.id) : null;
     }
 
-    if (!targetBusinessId) {
-      return NextResponse.json({ error: 'Business ID required' }, { status: 400 });
+    if (!targetBusinessId || !UUID_REGEX.test(targetBusinessId)) {
+      return NextResponse.json({ error: 'Valid business ID required' }, { status: 400 });
     }
 
     const [business] = await db`
@@ -91,12 +93,21 @@ export async function POST(request: NextRequest) {
     const { action, businessId, item, template, itemId } = body;
 
     // Verify ownership
-    let targetBizId = businessId;
-    const [biz] = await db`
-      SELECT id, user_id FROM businesses
-      WHERE id = ${targetBizId}::uuid OR user_id = ${session.id}
-      LIMIT 1
-    `;
+    let targetBizId = businessId && UUID_REGEX.test(businessId) ? businessId : null;
+    let biz;
+    if (targetBizId) {
+      [biz] = await db`
+        SELECT id, user_id FROM businesses
+        WHERE id = ${targetBizId}::uuid
+        LIMIT 1
+      `;
+    } else {
+      [biz] = await db`
+        SELECT id, user_id FROM businesses
+        WHERE user_id = ${session.id}
+        LIMIT 1
+      `;
+    }
 
     if (!biz || (biz.user_id !== session.id && !['admin', 'banker', 'lawyer'].includes(session.role))) {
       return NextResponse.json({ error: 'Forbidden. You do not own this business.' }, { status: 403 });

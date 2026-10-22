@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowRight, Bookmark, BookmarkCheck, Briefcase, Building2, ClipboardList, FileText, Loader2, MapPin,
-  Search, ShieldCheck, SlidersHorizontal, Tag, UserRound, X,
+  Search, ShieldCheck, SlidersHorizontal, Tag, UserRound, Users, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
@@ -326,14 +326,17 @@ export function JobBrowseFeed() {
 
           <div className="flex shrink-0 flex-wrap gap-2">
             <Button asChild variant="outline" className="gap-2 border-slate-300 font-bold text-slate-800 hover:bg-slate-100">
+              <Link href="/talent"><Users className="h-4 w-4 text-amber-600" /> Browse Talent</Link>
+            </Button>
+            <Button asChild variant="outline" className="gap-2 border-slate-300 font-bold text-slate-800 hover:bg-slate-100">
               <Link href="/jobs/applications"><ClipboardList className="h-4 w-4" /> My applications</Link>
             </Button>
             <Button asChild variant="outline" className="gap-2 border-slate-300 font-bold text-slate-800 hover:bg-slate-100">
               <Link href="/talent/profile"><UserRound className="h-4 w-4" /> My profile</Link>
             </Button>
             {isBusiness && (
-              <Button asChild className="gap-2 bg-slate-900 font-bold text-white hover:bg-slate-800">
-                <Link href="/business/jobs"><Briefcase className="h-4 w-4" /> Manage job posts</Link>
+              <Button asChild className="gap-2 bg-yellow-400 font-bold text-slate-900 hover:bg-yellow-300 shadow-xs">
+                <Link href="/business/jobs"><Briefcase className="h-4 w-4" /> Post a Job</Link>
               </Button>
             )}
           </div>

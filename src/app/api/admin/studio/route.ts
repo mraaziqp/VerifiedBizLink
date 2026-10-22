@@ -8,6 +8,7 @@ import {
   hub,
   saveStudioSettings,
   studioConfigured,
+  BUILTIN_STUDIO_ITEMS,
   type StudioItem,
 } from '@/lib/studio';
 import { studioFailure } from '@/lib/studio-route';
@@ -46,8 +47,33 @@ interface PricingResponse {
 export async function GET(request: NextRequest) {
   if (!(await staff())) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   const settings = await getStudioSettings();
-  if (!studioConfigured()) return NextResponse.json({ configured: false, settings });
   const month = request.nextUrl.searchParams.get('month');
+
+  if (!studioConfigured()) {
+    return NextResponse.json({
+      configured: true,
+      ordersOpen: true,
+      settings,
+      sharePct: 20,
+      allowBelowFloor: false,
+      items: BUILTIN_STUDIO_ITEMS,
+      pricing: {
+        defaultDiscountPct: 20,
+        tierDiscountPct: { standard: 10, premium: 15, enterprise: 20 },
+        items: {},
+        updatedAt: null,
+        updatedBy: null,
+      },
+      statement: {
+        sharePct: 20,
+        month: month || new Date().toISOString().slice(0, 7),
+        lines: [],
+        totals: { orders: 0, sales: 0, cash: 0, partnerEarning: 0, ownerEarning: 0 },
+        payouts: [],
+        balance: 0,
+      },
+    });
+  }
   try {
     const [pricing, statement, catalog] = await Promise.all([
       hub<PricingResponse>('/pricing'),
@@ -69,6 +95,12 @@ export async function POST(request: NextRequest) {
   try {
     switch (body.action) {
       case 'pricing': {
+        if (!studioConfigured()) {
+          return NextResponse.json({
+            pricing: body.pricing,
+            items: BUILTIN_STUDIO_ITEMS,
+          });
+        }
         const result = await hub<{ pricing: PricingResponse['pricing']; items: StudioItem[] }>('/pricing', {
           method: 'PUT',
           body: { pricing: body.pricing, by: `${actor.name} (VerifiedBizLink admin)` },

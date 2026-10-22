@@ -7,7 +7,7 @@ import {
   Shield, Phone, Building2, Users,
   Star, CalendarCheck, ArrowLeft, Loader2, BadgeCheck, MessageCircle,
   Facebook, Instagram, Linkedin, Youtube, ChevronLeft, ChevronRight, X, Eye,
-  Video, Play,
+  Video, Play, ShoppingBag, Sparkles,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -229,7 +229,17 @@ export function BusinessProfileClient({ contactCard }: { contactCard?: ReactNode
               </Avatar>
 
               {/* Actions */}
-              <div className="flex items-center gap-2 mt-2">
+              <div className="flex items-center gap-2 mt-2 flex-wrap">
+                <Button
+                  variant="outline"
+                  className="font-bold gap-2 border-amber-300/80 bg-amber-50/70 text-amber-950 hover:bg-amber-100"
+                  asChild
+                >
+                  <Link href={`/business/${business.id}/specials`}>
+                    <ShoppingBag className="h-4 w-4 text-amber-600" />
+                    Specials &amp; Products
+                  </Link>
+                </Button>
                 {!isOwnBusiness && user && (
                   <>
                     <Button
@@ -323,6 +333,29 @@ export function BusinessProfileClient({ contactCard }: { contactCard?: ReactNode
                 </CardContent>
               </Card>
             )}
+
+            {/* Specials & Products Showcase Preview Card */}
+            <Card className="border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-yellow-50/40 shadow-xs">
+              <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3.5">
+                  <div className="h-10 w-10 rounded-xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center shrink-0">
+                    <ShoppingBag className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="font-black text-slate-900 text-base">Products, Pricing &amp; Specials</h2>
+                      <Badge className="bg-amber-500 text-white font-extrabold text-[10px] uppercase tracking-wider">Live Storefront</Badge>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-0.5">Browse current specials, packages, pricing, and order direct via WhatsApp.</p>
+                  </div>
+                </div>
+                <Button className="shrink-0 bg-yellow-400 font-bold text-slate-900 hover:bg-yellow-300 gap-1.5 rounded-xl shadow-xs" asChild>
+                  <Link href={`/business/${business.id}/specials`}>
+                    <Sparkles className="h-4 w-4" /> View Storefront
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
 
             {/* Gallery */}
             {gallery.length > 0 && (
