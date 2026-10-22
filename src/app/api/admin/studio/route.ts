@@ -77,9 +77,26 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(result);
       }
       case 'settings': {
-        const settings = await saveStudioSettings({ monthlyCredits: body.monthlyCredits }, actor);
+        const current = await getStudioSettings();
+        const settings = await saveStudioSettings({
+          monthlyCredits: body.monthlyCredits ?? current.monthlyCredits,
+          isLive: typeof body.isLive === 'boolean' ? body.isLive : current.isLive,
+        }, actor);
         await notifyJarvis({ type: 'studio.monthly_credits', title: `Monthly studio credit changed by ${actor.name}`, body: Object.entries(settings.monthlyCredits).map(([tier, amount]) => `${tier} R${amount}`).join(', ') });
         return NextResponse.json({ settings });
+      }
+      case 'toggle_live': {
+        const current = await getStudioSettings();
+        const settings = await saveStudioSettings({
+          ...current,
+          isLive: Boolean(body.isLive),
+        }, actor);
+        await notifyJarvis({
+          type: 'studio.status',
+          title: `Build Studio live switch set to ${settings.isLive ? 'LIVE' : 'MAINTENANCE'} by ${actor.name}`,
+          body: `Studio is now ${settings.isLive ? 'publicly accessible to verified members' : 'in maintenance mode'}`,
+        });
+        return NextResponse.json({ settings, isLive: settings.isLive });
       }
       case 'grant': {
         const result = await giveMemberCredit({ email: String(body.email ?? ''), amount: Number(body.amount), note: String(body.note ?? ''), by: actor });

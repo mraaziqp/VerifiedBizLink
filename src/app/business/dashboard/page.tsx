@@ -10,7 +10,7 @@ import {
   Zap, Award, Globe, MessageSquare, ArrowRight, CheckCircle2,
   AlertTriangle, Activity, Clock, Star, Sparkles, Target,
   Lightbulb, CheckSquare, Flame, Radio,
-  BarChart, Bell, Home, Shield
+  BarChart, Bell, Home, Shield, ShoppingBag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -816,6 +816,21 @@ export default function BusinessDashboard() {
                       </div>
                       <h3 className="font-semibold text-gray-900 mb-2">Documents</h3>
                       <p className="text-gray-500 text-sm">Verification document status</p>
+                    </CardContent>
+                  </Card>
+                </Link>
+
+                <Link href={business?.id ? `/business/${business.id}/specials` : '/business/studio'}>
+                  <Card className="h-full bg-white/80 backdrop-blur-xl border-gray-200 hover:border-yellow-500/30 hover:shadow-lg transition-colors cursor-pointer">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                          <ShoppingBag className="h-5 w-5 text-amber-500" />
+                        </div>
+                        <Badge className="bg-amber-100 text-amber-800 border-amber-300">Live</Badge>
+                      </div>
+                      <h3 className="font-semibold text-gray-900 mb-2">Specials & Showcase</h3>
+                      <p className="text-gray-500 text-sm">Post products, prices & deals</p>
                     </CardContent>
                   </Card>
                 </Link>

@@ -108,6 +108,7 @@ export default function AdminDashboard() {
   const isAdmin = isSuperAdmin;
 
   const adminTools: AdminTool[] = [
+    { id: 'company-hiring', name: 'VerifiedBizLink Applicants', description: 'Candidates who applied for our posted roles (e.g. Independent Marketers), review CVs, shortlist and message candidates', icon: UserCheck, href: '/admin/hiring', color: 'from-amber-400 to-yellow-500', badge: 'Company Hiring' },
     { id: 'business-vetting', name: 'Business Vetting Desk', description: 'Review and grade business documents, manage verification status', icon: FileText, href: '/admin/vetting', color: 'from-blue-500 to-cyan-500', badge: statsLoading ? undefined : `${stats?.pendingBusinesses ?? 0} pending` },
     { id: 'payment-gateway', name: 'Payment Gateway', description: 'PayFast transactions, revenue, and payment status', icon: CreditCard, href: '/admin/payments', color: 'from-yellow-500 to-amber-500' },
     { id: 'user-management', name: 'User Management', description: 'Manage all users, roles, permissions, and access', icon: Users, href: '/admin/users', color: 'from-purple-500 to-pink-500', badge: statsLoading ? undefined : `${fmt(stats?.totalUsers)} users` },

@@ -241,9 +241,27 @@ export function TalentProfileForm() {
                 value={profile.headline}
                 onChange={(e) => set('headline', e.target.value)}
                 maxLength={160}
-                placeholder="e.g. Qualified electrician, 8 years on commercial sites"
+                placeholder="e.g. Field Marketer & Sales Representative"
                 className="mt-1 border-gray-200 bg-white"
               />
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-bold text-slate-500">Quick ideas:</span>
+                {[
+                  'Field Marketer & Sales Representative',
+                  'Customer Support & Member Operations',
+                  'Administrative Assistant & Data Capture',
+                  'Grade 12 Graduate · Eager to Learn',
+                ].map((idea) => (
+                  <button
+                    key={idea}
+                    type="button"
+                    onClick={() => set('headline', idea)}
+                    className="rounded-lg bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-900 border border-amber-200/60 hover:bg-amber-100"
+                  >
+                    + {idea}
+                  </button>
+                ))}
+              </div>
               <p className="mt-1 text-xs text-gray-500">The one line an employer reads first.</p>
             </div>
 
@@ -286,6 +304,23 @@ export function TalentProfileForm() {
                 placeholder="What you do, what you are good at, and what you are looking for."
                 className="mt-1 border-gray-200 bg-white"
               />
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-bold text-slate-500">Quick bio starters:</span>
+                {[
+                  'Motivated individual with strong work ethic and high dedication. Quick learner looking for growth opportunities.',
+                  'Customer-focused professional with experience in client relations, clear communication, and problem resolution.',
+                  'Results-driven sales and marketing enthusiast who enjoys connecting with people and representing top businesses.',
+                ].map((starter, sIdx) => (
+                  <button
+                    key={sIdx}
+                    type="button"
+                    onClick={() => set('summary', profile.summary ? `${profile.summary}\n\n${starter}` : starter)}
+                    className="rounded-lg bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700 hover:bg-slate-200"
+                  >
+                    + Starter {sIdx + 1}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </section>

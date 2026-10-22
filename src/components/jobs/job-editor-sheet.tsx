@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Check, Loader2, Save, Send, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Save, Send, ShieldAlert, Sparkles, Wand2 } from 'lucide-react';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -46,6 +46,51 @@ const EMPTY: FormState = {
   description: '', requirements: '', benefits: '',
   salaryMin: '', salaryMax: '', salaryPeriod: 'month', salaryVisible: true, applicationDeadline: '',
 };
+
+const JOB_PRESETS = [
+  {
+    name: 'Field Marketer (Commission)',
+    title: 'Independent Marketers - Commission based pay',
+    employmentType: 'contract',
+    locationType: 'hybrid',
+    location: 'Cape Town',
+    skills: ['Sales', 'Customer Service', 'Negotiation', 'Communication', 'B2B Sales'],
+    description: `Location: Cape Town\nPosition Type: Independent Contractor | Commission-Based\nIndustry: Technology / Business Services / Sales\nExperience: Sales experience advantageous, but not essential\n\nAbout VerifiedBizLink\nVerifiedBizLink is a growing South African platform designed to connect customers with trusted businesses. We are expanding our national sales network and looking for driven, entrepreneurial individuals to join us as Independent Field Marketers.\n\nThe Opportunity\nThis is an opportunity for individuals who enjoy sales, networking, and working independently.\n\nYou will be responsible for:\n- Visiting businesses in your allocated territory\n- Introducing them to VerifiedBizLink and the Gold Verification Badge\n- Helping business owners get listed and verified\n- Building long-term client relationships\n\nCompensation & Perks:\n- High commission earnings on every verified signup\n- Immediate payout structure\n- Full marketing kit and training provided\n- Flexible working hours and independence`,
+    requirements: `- Driven, self-motivated with an entrepreneurial mindset\n- Strong verbal communication and interpersonal skills\n- Smartphone with internet connectivity\n- Prior sales or promotion experience advantageous but not required`,
+    benefits: `- High commission rates with no earnings ceiling\n- Flexible work schedule\n- Growth opportunities into regional leadership\n- Direct training and platform support`,
+    salaryMin: '15000',
+    salaryMax: '45000',
+    salaryPeriod: 'month',
+  },
+  {
+    name: 'Customer Support & Ops',
+    title: 'Customer Support & Member Operations Specialist',
+    employmentType: 'full_time',
+    locationType: 'remote',
+    location: 'South Africa',
+    skills: ['Customer Support', 'Communication', 'Problem Solving', 'Email Etiquette'],
+    description: `Location: Remote (South Africa)\nPosition Type: Full-Time Permanent\nIndustry: Operations / Customer Success\nExperience: 1-2 years experience in customer support\n\nThe Opportunity\nJoin our core operations team assisting South African business owners and job seekers.\n\nYou will be responsible for:\n- Responding promptly to member inquiries via email, chat, and phone\n- Assisting businesses through document upload and CIPC verification steps\n- Resolving technical and account questions with empathy and speed\n\nCompensation & Perks:\n- Market-related salary with annual performance bonus\n- Fully remote work with home office stipend\n- Paid time off and comprehensive wellness support`,
+    requirements: `- Excellent written and spoken English communication\n- Empathetic problem-solving attitude\n- Reliable laptop and fiber internet connection`,
+    benefits: `- 100% remote working\n- Equipment and data allowance\n- Career growth into team leadership`,
+    salaryMin: '18000',
+    salaryMax: '28000',
+    salaryPeriod: 'month',
+  },
+  {
+    name: 'Digital & Web Specialist',
+    title: 'Digital Specialist & Storefront Designer',
+    employmentType: 'contract',
+    locationType: 'remote',
+    location: 'South Africa',
+    skills: ['Web Design', 'Shopify', 'WordPress', 'Graphic Design', 'E-commerce'],
+    description: `Location: Remote (South Africa)\nPosition Type: Contract / Project-Based\nIndustry: Digital Solutions / Build Studio\nExperience: Proven portfolio building websites, online shops, or digital catalogs\n\nThe Opportunity\nBuild Studio is expanding! We are looking for skilled digital builders to craft online stores, restaurant menus, and product catalogs for verified members.\n\nYou will be responsible for:\n- Setting up branded digital storefronts and catalog showcases\n- Customizing themes, banners, and product pricing tables\n- Delivering high-quality customer revisions on schedule\n\nCompensation & Perks:\n- Generous per-project compensation (keep 80% of project price)\n- Consistent flow of verified business clients`,
+    requirements: `- Strong eye for UI, typography, and responsive layouts\n- Proficiency with web platforms, HTML/CSS or modern site builders\n- Ability to deliver projects on tight turnaround times`,
+    benefits: `- Direct client stream from VerifiedBizLink\n- Fast payment upon project completion\n- Flexible hours`,
+    salaryMin: '20000',
+    salaryMax: '50000',
+    salaryPeriod: 'month',
+  },
+];
 
 const rand = (cents: number | null) => (cents ? String(Math.round(cents) / 100) : '');
 
@@ -200,6 +245,44 @@ export function JobEditorSheet({ open, onOpenChange, job, businessVerified, onSa
         <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-6">
           {step === 0 && (
             <>
+              {/* Quick Template Assistant */}
+              <div className="rounded-2xl border border-amber-300/80 bg-gradient-to-r from-amber-50/70 via-white to-amber-50/40 p-4 shadow-xs">
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-amber-900">
+                  <Sparkles className="h-4 w-4 text-amber-600" /> Quick-Start Templates
+                </div>
+                <p className="mt-1 text-xs text-slate-600">
+                  Save time typing! Pick a pre-structured template designed to stand out to candidates:
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {JOB_PRESETS.map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => {
+                        setForm((f) => ({
+                          ...f,
+                          title: preset.title,
+                          employmentType: preset.employmentType,
+                          locationType: preset.locationType,
+                          location: preset.location,
+                          requiredSkills: preset.skills,
+                          description: preset.description,
+                          requirements: preset.requirements,
+                          benefits: preset.benefits,
+                          salaryMin: preset.salaryMin,
+                          salaryMax: preset.salaryMax,
+                          salaryPeriod: preset.salaryPeriod,
+                        }));
+                        toast({ title: `Loaded "${preset.name}" template!`, description: 'Title, skills, and structured sections prefilled.' });
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300/70 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-800 shadow-xs transition hover:border-amber-400 hover:bg-amber-100/60 active:scale-95"
+                    >
+                      <Wand2 className="h-3.5 w-3.5 text-amber-600" /> {preset.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <Label htmlFor="job-title" className="text-sm font-semibold text-slate-700">Job title</Label>
                 <Input

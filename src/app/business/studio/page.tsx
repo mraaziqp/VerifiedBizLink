@@ -20,6 +20,7 @@ import type { StudioCredits, StudioItem, StudioOrder } from '@/lib/studio';
 interface Access {
   allowed: boolean;
   tier: string | null;
+  businessId?: string | null;
   businessName: string | null;
   reason: 'signed_out' | 'no_business' | 'not_subscribed' | null;
   staff: boolean;
@@ -199,6 +200,33 @@ function BuildStudio() {
           </section>
         )}
 
+        {/* Hosted Products, Prices & Specials Showcase Banner */}
+        <section className="relative overflow-hidden rounded-3xl border border-amber-300/90 bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-300 p-6 sm:p-8 text-slate-950 shadow-md">
+          <div aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-60 w-60 rounded-full bg-white/20 blur-2xl" />
+          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-950 px-3 py-1 text-[11px] font-black uppercase tracking-wider text-amber-300">
+                <Sparkles className="h-3.5 w-3.5" /> Instant Digital Storefront
+              </span>
+              <h2 className="text-2xl font-black text-slate-950 sm:text-3xl">
+                Post your products, prices &amp; specials online.
+              </h2>
+              <p className="max-w-2xl text-xs sm:text-sm font-semibold text-slate-900/80 leading-relaxed">
+                Pick a template (Retail Catalog, Restaurant Menu, Service Packages or Flash Deals), have it hosted live on VerifiedBizLink, and start taking WhatsApp orders. You keep 80% — VerifiedBizLink handles the verified hosting and trust verification.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <Button asChild className="rounded-xl bg-slate-950 font-black text-white hover:bg-slate-900 shadow-md px-6 h-11">
+                <Link href={access.businessId ? `/business/${access.businessId}/specials` : '/business/create'}>
+                  <Sparkles className="h-4 w-4 mr-1.5 text-amber-400" />
+                  {access.businessId ? 'Open My Specials Showcase' : 'List Business to Launch'}
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
         {/* Catalogue */}
         {items.length > 0 && (
           <section className="space-y-4">
@@ -230,6 +258,7 @@ function BuildStudio() {
                   <ItemCard
                     key={item.id}
                     item={item}
+                    businessId={access.businessId}
                     member={access.allowed}
                     canOrder={canOrder && state.ordersOpen !== false}
                     onOrder={() => setOrdering(item)}
@@ -262,9 +291,22 @@ function BuildStudio() {
   );
 }
 
-function ItemCard({ item, member, canOrder, onOrder }: { item: StudioItem; member: boolean; canOrder: boolean; onOrder: () => void }) {
+function ItemCard({
+  item,
+  businessId,
+  member,
+  canOrder,
+  onOrder,
+}: {
+  item: StudioItem;
+  businessId?: string | null;
+  member: boolean;
+  canOrder: boolean;
+  onOrder: () => void;
+}) {
   const [imageOk, setImageOk] = useState(Boolean(item.coverUrl));
   const saving = item.listPrice - item.price;
+  const isShowcase = item.id.startsWith('vbl-showcase');
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs transition hover:-translate-y-0.5 hover:shadow-lg">
       <div className="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-amber-900">
@@ -321,7 +363,13 @@ function ItemCard({ item, member, canOrder, onOrder }: { item: StudioItem; membe
               </a>
             )}
           </div>
-          {member ? (
+          {isShowcase ? (
+            <Button asChild className="mt-4 w-full rounded-xl bg-amber-400 font-extrabold text-slate-950 hover:bg-amber-300 shadow-xs">
+              <Link href={businessId ? `/business/${businessId}/specials` : '/business/create'}>
+                <Sparkles className="mr-1.5 h-4 w-4" /> Launch My Showcase
+              </Link>
+            </Button>
+          ) : member ? (
             <Button onClick={onOrder} disabled={!canOrder} className="mt-4 w-full rounded-xl bg-slate-900 font-bold text-white hover:bg-slate-800">
               {canOrder ? <>Start this build <ArrowRight className="ml-1.5 h-4 w-4" /></> : <><Clock className="mr-1.5 h-4 w-4" /> Opening soon</>}
             </Button>

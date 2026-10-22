@@ -12,6 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { TagInput } from '@/components/ui/tag-input';
 import { useToast } from '@/hooks/use-toast';
 import { cleanSkills } from '@/lib/talent';
+import { VerifiedCaptcha } from '@/components/security/verified-captcha';
 
 interface QuickApplyModalProps {
   job: { id: string; title: string; companyName: string; requiredSkills: string[] } | null;
@@ -45,6 +46,7 @@ export function QuickApplyModal({ job, open, onOpenChange, mode, onApplied }: Qu
   const [skills, setSkills] = useState<string[]>([]);
   const [coverNote, setCoverNote] = useState('');
   const [cvName, setCvName] = useState<string | null>(null);
+  const [botToken, setBotToken] = useState<string>('');
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(false);
@@ -114,7 +116,7 @@ export function QuickApplyModal({ job, open, onOpenChange, mode, onApplied }: Qu
       const res = await fetch(`/api/jobs/${job.id}/apply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mode === 'fresh' ? { coverNote, headline, skills } : { coverNote }),
+        body: JSON.stringify(mode === 'fresh' ? { coverNote, headline, skills, vbl_bot_token: botToken } : { coverNote, vbl_bot_token: botToken }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -219,6 +221,8 @@ export function QuickApplyModal({ job, open, onOpenChange, mode, onApplied }: Qu
             className="mt-1 border-slate-200 bg-white text-slate-900"
           />
         </div>
+
+        <VerifiedCaptcha onVerify={setBotToken} className="my-2" />
 
         <Button
           type="button"

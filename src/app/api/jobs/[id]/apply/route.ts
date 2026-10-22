@@ -6,6 +6,7 @@ import { canonicalOrigin } from '@/lib/site-url';
 import { findJob, logApplicationEvent } from '@/lib/jobs-server';
 import { sendJobEmail } from '@/lib/jobs-email';
 import { rateLimit, tooManyRequests } from '@/lib/rate-limit';
+import { inspectRequestForBots } from '@/lib/bot-protection';
 import db from '@/lib/db';
 
 /**
@@ -54,6 +55,12 @@ export async function POST(
     }
 
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+
+    const botCheck = inspectRequestForBots(request, body);
+    if (botCheck.isBot) {
+      return NextResponse.json({ error: 'Automated submission blocked by VerifiedBizLink Bot Shield.' }, { status: 400 });
+    }
+
     const coverNote = String(body.coverNote ?? '').trim().slice(0, 2000);
 
     const [existing] = await db`

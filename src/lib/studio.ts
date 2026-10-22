@@ -66,6 +66,7 @@ export interface StudioAccess {
   allowed: boolean;
   /** The subscriber's tier key ("verified", "standard", "premium", "enterprise"), for their price. */
   tier: string | null;
+  businessId: string | null;
   businessName: string | null;
   businessPhone: string | null;
   /** Why not, for the upgrade prompt. */
@@ -75,10 +76,10 @@ export interface StudioAccess {
 }
 
 export async function studioAccess(session: SessionUser | null): Promise<StudioAccess> {
-  if (!session) return { allowed: false, tier: null, businessName: null, businessPhone: null, reason: 'signed_out', staff: false };
+  if (!session) return { allowed: false, tier: null, businessId: null, businessName: null, businessPhone: null, reason: 'signed_out', staff: false };
   const staff = ['admin', 'banker', 'lawyer'].includes(session.role);
   const [business] = await read(() => db`
-    SELECT COALESCE(company_name, name) AS business_name, phone, package_type, subscription_status
+    SELECT id, COALESCE(company_name, name) AS business_name, phone, package_type, subscription_status
     FROM businesses WHERE user_id = ${session.id}
     ORDER BY updated_at DESC NULLS LAST LIMIT 1
   `);
@@ -87,6 +88,7 @@ export async function studioAccess(session: SessionUser | null): Promise<StudioA
   return {
     allowed: subscribed || staff,
     tier: subscribed ? tier : staff ? tier ?? 'premium' : null,
+    businessId: business?.id ? String(business.id) : null,
     businessName: business?.business_name ? String(business.business_name) : null,
     businessPhone: business?.phone ? String(business.phone) : null,
     reason: subscribed || staff ? null : business ? 'not_subscribed' : 'no_business',
@@ -105,14 +107,20 @@ export async function linkCustomer(session: SessionUser, access: StudioAccess) {
 /* ─── settings: monthly credit for subscribers ─── */
 
 export interface StudioSettings {
+  /** Master switch: whether Build Studio is live for all paying members or in maintenance/coming soon mode */
+  isLive: boolean;
   /** Rand of studio credit each paid tier gets every month (paid for out of VerifiedBizLink's share). */
   monthlyCredits: Record<string, number>;
 }
 
-export const STUDIO_DEFAULTS: StudioSettings = { monthlyCredits: { verified: 0, standard: 0, premium: 0, enterprise: 0 } };
+export const STUDIO_DEFAULTS: StudioSettings = {
+  isLive: false,
+  monthlyCredits: { verified: 0, standard: 0, premium: 0, enterprise: 0 },
+};
 
 export function normaliseStudioSettings(raw: unknown): StudioSettings {
   const value = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const isLive = typeof value.isLive === 'boolean' ? value.isLive : false;
   const credits = (value.monthlyCredits && typeof value.monthlyCredits === 'object' ? value.monthlyCredits : {}) as Record<string, unknown>;
   const monthlyCredits: Record<string, number> = { ...STUDIO_DEFAULTS.monthlyCredits };
   for (const [tier, amount] of Object.entries(credits)) {
@@ -120,7 +128,7 @@ export function normaliseStudioSettings(raw: unknown): StudioSettings {
     const n = Math.round(Number(amount));
     monthlyCredits[tier] = Number.isFinite(n) ? Math.min(20_000, Math.max(0, n)) : 0;
   }
-  return { monthlyCredits };
+  return { isLive, monthlyCredits };
 }
 
 export async function getStudioSettings(): Promise<StudioSettings> {

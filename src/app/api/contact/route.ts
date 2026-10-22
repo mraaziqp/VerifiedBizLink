@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getSession } from '@/lib/auth';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { sendRawEmail } from '@/lib/email';
+import { inspectRequestForBots } from '@/lib/bot-protection';
 import db from '@/lib/db';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '');
@@ -18,7 +19,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { name, email, subject, message } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const botCheck = inspectRequestForBots(request, body);
+    if (botCheck.isBot) {
+      return NextResponse.json({ error: 'Automated contact submission blocked by VerifiedBizLink Bot Shield.' }, { status: 400 });
+    }
+    const { name, email, subject, message } = body;
 
     if (!name || !email || !message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });

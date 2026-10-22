@@ -3,6 +3,7 @@ import { jwtVerify } from 'jose/jwt/verify';
 import { REQUIRE_EMAIL_VERIFICATION } from '@/lib/feature-flags';
 import { STAFF_ROLES, AGENT_PORTAL_ROLES, ROLES } from '@/lib/roles';
 import { BARE_HOST, CANONICAL_ORIGIN } from '@/lib/site-url';
+import { isAiScraper } from '@/lib/ai-scraper-detector';
 
 // Lazy, like lib/auth's copy. Encoding at module scope with the variable
 // unset silently produced a key from the literal string "undefined", which
@@ -47,6 +48,7 @@ const PUBLIC_PREFIXES = [
   '/api/chat',
   '/api/contact', // the /contact page is public — the route itself handles anonymous submitters (userId is nullable)
   '/api/explore/',
+  '/api/business/showcase', // Showcase specials and products page is public for visitors
   '/api/ads', // AdBanner renders on every page, including public ones for anonymous visitors
   '/api/payfast/notify', // PayFast's server calls this webhook directly — it has no user session cookie
   // Scheduled jobs are called by EventBridge (or Vercel Cron), which carry a
@@ -134,7 +136,7 @@ const VERIFICATION_EXEMPT_PATHS = [
 // a trust score to prospective customers. Owner-management routes like
 // /business/dashboard, /business/posts, etc. are plain words, not UUIDs,
 // so this only opens the read-only profile paths.
-const PUBLIC_BUSINESS_PROFILE = new RegExp(`^/business/${UUID}$`, 'i');
+const PUBLIC_BUSINESS_PROFILE = new RegExp(`^/business/${UUID}(/specials)?$`, 'i');
 const PUBLIC_BUSINESS_API = new RegExp(`^/api/businesses/${UUID}(/reviews(/${UUID}/helpful)?|/gallery|/view)?$`, 'i');
 
 // A job listing gets pasted into WhatsApp groups and onto LinkedIn. The link
@@ -177,6 +179,14 @@ const BASIC_ACCOUNT_ALLOWED = [
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Block aggressive AI crawlers from scraping private paths and submitting API mutations
+  const userAgent = request.headers.get('user-agent');
+  if (isAiScraper(userAgent)) {
+    if (MUTATING_METHODS.includes(request.method) || pathname.startsWith('/api/') || pathname.startsWith('/dashboard/') || pathname.startsWith('/talent/profile')) {
+      return NextResponse.json({ error: 'Automated AI scraping and bot actions are prohibited on VerifiedBizLink.' }, { status: 403 });
+    }
+  }
 
   // GET/HEAD only: a redirected POST would be replayed (or dropped) by the
   // caller, and nothing posts to the bare host on purpose.

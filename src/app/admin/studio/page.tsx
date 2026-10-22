@@ -12,6 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { GlassBackground, GlassCard, GlassPageHeader, SectionTitle, StatCard } from '@/components/shared/glass-ui';
 import { rand } from '@/components/studio/studio-ui';
+import { cn } from '@/lib/utils';
 import type { StudioItem } from '@/lib/studio';
 
 interface ItemRule { price?: number | null; discountPct?: number | null; hidden?: boolean }
@@ -28,7 +29,7 @@ interface Statement {
 interface AdminState {
   configured: boolean;
   ordersOpen?: boolean;
-  settings: { monthlyCredits: Record<string, number> };
+  settings: { isLive?: boolean; monthlyCredits: Record<string, number> };
   sharePct?: number;
   allowBelowFloor?: boolean;
   pricing?: Pricing;
@@ -63,6 +64,7 @@ export default function AdminStudioPage() {
   const [state, setState] = useState<AdminState | null>(null);
   const [pricing, setPricing] = useState<Pricing | null>(null);
   const [credits, setCredits] = useState<Record<string, number>>({});
+  const [isLive, setIsLive] = useState<boolean>(false);
   const [month, setMonth] = useState<string>(thisMonth());
   const [busy, setBusy] = useState<string | null>(null);
   const [grant, setGrant] = useState({ email: '', amount: '', note: '' });
@@ -76,7 +78,8 @@ export default function AdminStudioPage() {
       return;
     }
     setState(data);
-    setCredits(data.settings.monthlyCredits);
+    setIsLive(Boolean(data.settings?.isLive));
+    setCredits(data.settings?.monthlyCredits || {});
     if (data.pricing) setPricing(data.pricing);
   }, []);
 
@@ -96,6 +99,18 @@ export default function AdminStudioPage() {
       return data;
     } finally {
       setBusy(null);
+    }
+  };
+
+  const toggleLive = async (checked: boolean) => {
+    setIsLive(checked);
+    const data = await post('toggle_live', { isLive: checked });
+    if (data) {
+      toast({
+        title: checked ? 'Build Studio is now LIVE!' : 'Build Studio switched to Maintenance',
+        description: checked ? 'VerifiedBizLink members can now view and access Build Studio.' : 'Members will see the "being connected / opening shortly" notice.',
+      });
+      load(month);
     }
   };
 
@@ -170,6 +185,35 @@ export default function AdminStudioPage() {
       </GlassPageHeader>
 
       <div className="mx-auto max-w-7xl space-y-6 px-4 py-8">
+        {/* Master Live Switch */}
+        <div className="overflow-hidden rounded-3xl border border-amber-300/90 bg-gradient-to-r from-amber-50 via-white to-amber-50/50 p-6 shadow-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className={isLive ? 'h-3 w-3 rounded-full bg-emerald-500 animate-pulse' : 'h-3 w-3 rounded-full bg-amber-500'} />
+                <h3 className="text-base font-black text-slate-900">
+                  Build Studio Member Availability Switch
+                </h3>
+                <span className={cn('rounded-full px-2.5 py-0.5 text-[11px] font-extrabold uppercase border', isLive ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300')}>
+                  {isLive ? 'Currently Live' : 'Maintenance / Coming Soon'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 max-w-2xl">
+                Switch ON to open Build Studio for all verified members. Switch OFF to display the &ldquo;The studio is being connected&rdquo; notice. Staff accounts can preview anytime. VerifiedBizLink retains 20% of list price.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold text-slate-700">Make Live</span>
+              <Switch
+                checked={isLive}
+                onCheckedChange={toggleLive}
+                disabled={busy === 'toggle_live'}
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Connection */}
         {!state.configured ? (
           <GlassCard>
