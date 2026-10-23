@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileText,
   Home, Users, ShieldCheck, BarChart3, Settings, LogOut, Shield, Bell,
   MapPin, Building2, Zap, Megaphone, CheckCheck, Trash2, X, Briefcase, QrCode, PlusCircle, MessageSquare, Sparkles
@@ -86,6 +86,20 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
 
   const isAdmin = user && ['admin', 'banker', 'lawyer'].includes(user.role);
   const canManageBusiness = user && (user.role === 'business' || isAdmin);
+  const [canViewStudio, setCanViewStudio] = useState<boolean>(Boolean(isAdmin));
+
+  useEffect(() => {
+    if (isAdmin) {
+      setCanViewStudio(true);
+      return;
+    }
+    fetch('/api/studio/status', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((data) => {
+        setCanViewStudio(Boolean(data?.canView));
+      })
+      .catch(() => setCanViewStudio(false));
+  }, [isAdmin]);
 
   return (
     // [&>*]:shrink-0 — when the sidebar is taller than the screen (short
@@ -179,6 +193,9 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
           if ((item.name === "My Business" || item.name === "Ad Manager" || item.name === "Vetting Hub") && !canManageBusiness) {
             return null;
           }
+          if (item.name === "Build Studio" && !canViewStudio) {
+            return null;
+          }
           const isActive = pathname === item.href || (item.href === "/business/studio" && pathname.startsWith("/business/studio"));
           const isJobs = item.name === "Jobs";
           const isPostJobActive = pathname === "/jobs/post" || pathname === "/business/jobs";
@@ -199,6 +216,11 @@ export function SidebarLeft({ className }: SidebarLeftProps = {}) {
                   isActive ? "text-amber-400" : "text-slate-400 group-hover:text-slate-700"
                 )} />
                 <span>{item.name}</span>
+                {item.name === "Build Studio" && isAdmin && (
+                  <span className="ml-auto rounded-full bg-slate-800 text-amber-300 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider">
+                    Staff
+                  </span>
+                )}
                 {item.name === "Messages" && unreadMessages > 0 && (
                   <span className="ml-auto rounded-full bg-amber-400 px-1.5 text-[10px] font-black text-slate-900">{unreadMessages > 99 ? "99+" : unreadMessages}</span>
                 )}

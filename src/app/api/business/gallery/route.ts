@@ -35,14 +35,14 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ images });
 }
 
-// POST /api/business/gallery — add an image (already uploaded via /api/media/upload)
+// POST /api/business/gallery — add single or multiple images (already uploaded via /api/media/upload)
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const staffUser = isStaff(session.role);
-  const { imageUrl, title, bizId: targetBizId } = await request.json();
-  if (!imageUrl) return NextResponse.json({ error: 'imageUrl is required' }, { status: 400 });
+  const body = await request.json().catch(() => ({}));
+  const { imageUrl, title, images: batchImages, imageUrls, bizId: targetBizId } = body;
 
   let bizId: string | null = null;
   if (staffUser && targetBizId) {
@@ -60,6 +60,38 @@ export async function POST(request: NextRequest) {
   if (!bizId) {
     return NextResponse.json({ error: 'Create your business profile first' }, { status: 400 });
   }
+
+  // Handle batch of images
+  if (Array.isArray(batchImages) && batchImages.length > 0) {
+    const insertedList: Array<{ id: string; image_url: string; title: string; created_at: string }> = [];
+    for (const img of batchImages) {
+      if (!img.imageUrl) continue;
+      const [inserted] = await db`
+        INSERT INTO business_gallery (business_id, image_url, title)
+        VALUES (${bizId}, ${img.imageUrl}, ${img.title || ''})
+        RETURNING id, image_url, title, created_at
+      `;
+      if (inserted) insertedList.push(inserted as { id: string; image_url: string; title: string; created_at: string });
+    }
+    return NextResponse.json({ success: true, count: insertedList.length, images: insertedList }, { status: 201 });
+  }
+
+  if (Array.isArray(imageUrls) && imageUrls.length > 0) {
+    const insertedList: Array<{ id: string; image_url: string; title: string; created_at: string }> = [];
+    for (const url of imageUrls) {
+      if (!url) continue;
+      const [inserted] = await db`
+        INSERT INTO business_gallery (business_id, image_url, title)
+        VALUES (${bizId}, ${url}, ${title || ''})
+        RETURNING id, image_url, title, created_at
+      `;
+      if (inserted) insertedList.push(inserted as { id: string; image_url: string; title: string; created_at: string });
+    }
+    return NextResponse.json({ success: true, count: insertedList.length, images: insertedList }, { status: 201 });
+  }
+
+  // Handle single image
+  if (!imageUrl) return NextResponse.json({ error: 'imageUrl is required' }, { status: 400 });
 
   const [image] = await db`
     INSERT INTO business_gallery (business_id, image_url, title)

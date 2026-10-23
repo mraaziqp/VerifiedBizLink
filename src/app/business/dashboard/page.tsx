@@ -820,7 +820,7 @@ export default function BusinessDashboard() {
                   </Card>
                 </Link>
 
-                <Link href={business?.id ? `/business/${business.id}/specials` : '/business/studio'}>
+                <Link href={business?.id ? `/business/${business.id}/specials` : '/business/create'}>
                   <Card className="h-full bg-white/80 backdrop-blur-xl border-gray-200 hover:border-yellow-500/30 hover:shadow-lg transition-colors cursor-pointer">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-4">

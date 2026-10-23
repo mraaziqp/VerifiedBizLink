@@ -4,11 +4,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   ArrowLeft, Loader2, Trash2, Image as ImageIcon, Camera, Download, Copy, Check, ChevronLeft, ChevronRight, X, Sparkles,
-  Video, Film, Play
+  Video, Film, Play, UploadCloud
 } from 'lucide-react';
 import Link from 'next/link';
 import { ImageUploader } from '@/components/media/image-uploader';
 import { VideoUploader } from '@/components/media/video-uploader';
+import { MultiImageUploader, type UploadedMediaItem } from '@/components/media/multi-image-uploader';
 import { useToast } from '@/hooks/use-toast';
 import { GlassBackground } from '@/components/shared/glass-ui';
 import { format } from 'date-fns';
@@ -52,6 +53,7 @@ export default function BusinessGalleryPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('All Media');
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [isMultiUploadOpen, setIsMultiUploadOpen] = useState(false);
 
   // Lightbox State
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -73,6 +75,37 @@ export default function BusinessGalleryPage() {
   useEffect(() => {
     fetchGallery();
   }, [fetchGallery]);
+
+  const handleBatchUploadComplete = async (uploadedItems: UploadedMediaItem[]) => {
+    try {
+      const res = await fetch('/api/business/gallery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          images: uploadedItems.map((u) => ({
+            imageUrl: u.url,
+            title: u.fileName.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ') || 'Business Photo',
+          })),
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const newImages = data.images || [];
+        setItems((prev) => [...newImages, ...prev]);
+        toast({
+          title: `🎉 ${uploadedItems.length} photo${uploadedItems.length === 1 ? '' : 's'} added!`,
+          description: 'Your public gallery has been updated instantly.',
+        });
+        setIsMultiUploadOpen(false);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: 'Could not save photos', description: err.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not save photos to gallery', variant: 'destructive' });
+    }
+  };
 
   // Keyboard navigation for lightbox
   const handleMediaUpload = async (url: string, title?: string) => {
@@ -202,10 +235,22 @@ export default function BusinessGalleryPage() {
           </div>
 
           <div className="flex items-center gap-3 shrink-0 flex-wrap">
+            <Button
+              onClick={() => setIsMultiUploadOpen(true)}
+              className="px-5 h-11 font-bold bg-amber-400 text-slate-950 hover:bg-amber-300 shadow-md shadow-amber-400/20 rounded-xl transition-all flex items-center gap-2 text-sm"
+            >
+              <UploadCloud className="h-4 w-4" />
+              Upload Multiple Photos
+            </Button>
             <ImageUploader
-              onImageSelect={handleMediaUpload}
-              label="Upload Photo"
-              buttonClassName="px-5 h-11 font-bold bg-amber-400 text-slate-950 hover:bg-amber-300 shadow-md shadow-amber-400/20 rounded-xl transition-all flex items-center gap-2 text-sm"
+              multiple={true}
+              onImagesSelect={(urls) => {
+                if (urls.length > 0) {
+                  void handleBatchUploadComplete(urls.map((u, i) => ({ url: u, fileName: `Photo ${i + 1}`, size: 0 })));
+                }
+              }}
+              label="Quick Upload"
+              buttonClassName="px-4 h-11 font-bold bg-white border border-slate-200 text-slate-700 hover:border-amber-400 hover:text-slate-900 shadow-xs rounded-xl transition-all flex items-center gap-2 text-sm"
             />
             <Button
               onClick={() => setIsVideoModalOpen(true)}
@@ -263,27 +308,30 @@ export default function BusinessGalleryPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredItems.length === 0 ? (
-              <div className="col-span-full py-20 px-4 text-center border-2 border-dashed border-slate-200 rounded-3xl bg-white/70 space-y-4">
-                <div className="mx-auto w-20 h-20 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center shadow-xs">
-                  <ImageIcon className="h-10 w-10 text-amber-500" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">No media uploaded yet</h3>
-                  <p className="text-slate-500 text-sm max-w-sm mx-auto mt-1">
-                    Upload photos and video showcases of your storefront, team, or products.
+              <div className="col-span-full py-12 px-6 border-2 border-dashed border-slate-200 rounded-3xl bg-white/70 space-y-6">
+                <div className="text-center space-y-2">
+                  <div className="mx-auto w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center shadow-xs">
+                    <ImageIcon className="h-8 w-8 text-amber-500" />
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900">Your media showcase is empty</h3>
+                  <p className="text-slate-500 text-xs sm:text-sm max-w-md mx-auto">
+                    Upload multiple high-resolution photos or video demonstrations of your storefront, team, and products.
                   </p>
                 </div>
-                <div className="flex justify-center gap-3 pt-2">
-                  <ImageUploader
-                    onImageSelect={handleMediaUpload}
-                    label="Upload Photo"
-                    buttonClassName="px-5 h-10 font-bold bg-amber-400 text-slate-950 hover:bg-amber-300 shadow-md shadow-amber-400/20 rounded-xl transition-all text-xs"
+                <div className="max-w-2xl mx-auto">
+                  <MultiImageUploader
+                    onUploadsComplete={handleBatchUploadComplete}
+                    label="Drop or select multiple photos here"
+                    description="Upload up to 20 photos at once. Each photo is automatically optimized."
                   />
+                </div>
+                <div className="flex justify-center pt-2">
                   <Button
                     onClick={() => setIsVideoModalOpen(true)}
-                    className="px-5 h-10 font-bold bg-slate-900 text-amber-400 hover:bg-slate-800 rounded-xl transition-all text-xs flex items-center gap-1.5"
+                    variant="outline"
+                    className="border-slate-300 font-bold text-slate-800 gap-2"
                   >
-                    <Video className="h-3.5 w-3.5" /> Upload Video
+                    <Video className="h-4 w-4 text-amber-500" /> Or Upload a Video
                   </Button>
                 </div>
               </div>
@@ -314,17 +362,34 @@ export default function BusinessGalleryPage() {
                           </span>
                         </>
                       ) : (
-                        <img
-                          src={item.image_url}
-                          loading="lazy"
-                          decoding="async"
-                          alt={item.title || 'Business photo'}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
+                        <>
+                          <img
+                            src={item.image_url}
+                            loading="lazy"
+                            decoding="async"
+                            alt={item.title || 'Business photo'}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          />
+                          <span className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-sm text-slate-200 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 opacity-90 group-hover:opacity-100 transition-opacity">
+                            <ImageIcon className="h-3 w-3 text-amber-400" /> PHOTO
+                          </span>
+                        </>
                       )}
 
                       {/* Top right action buttons */}
-                      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute top-2.5 right-2.5 flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                        <a
+                          href={item.image_url}
+                          download={item.title || 'business-photo'}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="bg-white/90 text-slate-700 hover:text-slate-900 p-2 rounded-xl border border-slate-200 hover:bg-white shadow-xs transition-colors"
+                          title="Download high-res image"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </a>
+
                         <button
                           onClick={(e) => handleCopyLink(item.image_url, item.id, e)}
                           className="bg-white/90 text-slate-700 hover:text-slate-900 p-2 rounded-xl border border-slate-200 hover:bg-white shadow-xs transition-colors"
@@ -368,6 +433,28 @@ export default function BusinessGalleryPage() {
             )}
           </div>
         )}
+
+        {/* Multi-Photo Upload Modal */}
+        <Dialog open={isMultiUploadOpen} onOpenChange={setIsMultiUploadOpen}>
+          <DialogContent className="bg-white border-slate-200 text-slate-900 sm:max-w-2xl rounded-3xl shadow-2xl p-6">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-slate-900 font-extrabold text-xl">
+                <UploadCloud className="h-6 w-6 text-amber-500" /> Upload Multiple Photos at Once
+              </DialogTitle>
+              <DialogDescription className="text-slate-500 text-xs">
+                Select or drag multiple photos together. All images are compressed in-browser and added to your showcase with one tap.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="py-2">
+              <MultiImageUploader
+                onUploadsComplete={handleBatchUploadComplete}
+                autoUpload={true}
+                maxFiles={20}
+              />
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Video Upload Modal */}
         <Dialog open={isVideoModalOpen} onOpenChange={setIsVideoModalOpen}>

@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/auth-context";
 import { ImageUploader } from "@/components/media/image-uploader";
 import { VideoUploader } from "@/components/media/video-uploader";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,7 @@ import {
 
 export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
   const [content, setContent] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [videoMeta, setVideoMeta] = useState<{ name: string; size: number } | null>(null);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
@@ -34,27 +35,42 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
   const { user } = useAuth();
 
   const handleAttachFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) e.target.value = "";
-    if (!file) return;
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (e.target) e.target.value = "";
+    if (files.length === 0) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      toast({ title: "File too large", description: "Maximum size is 10MB.", variant: "destructive" });
+    const remainingSlots = Math.max(0, 4 - imageUrls.length);
+    if (remainingSlots === 0) {
+      toast({ title: "Limit reached", description: "You can attach up to 4 photos per post.", variant: "destructive" });
       return;
     }
 
     setIsAttaching(true);
     try {
-      const compressed = await compressImage(file, { maxDim: 1600, quality: 0.82 });
-      const formData = new FormData();
-      formData.append("file", compressed);
-      const res = await fetchWithTimeout("/api/media/upload", { method: "POST", body: formData }, 45000);
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setImageUrl(data.url);
-        toast({ title: "Photo attached", description: "It will be included with your post." });
+      const toUpload = files.slice(0, remainingSlots);
+      const uploaded: string[] = [];
+
+      for (const file of toUpload) {
+        if (file.size > 10 * 1024 * 1024) continue;
+        const compressed = await compressImage(file, { maxDim: 1600, quality: 0.82 });
+        const formData = new FormData();
+        formData.append("file", compressed);
+        formData.append("bucket", "posts");
+        const res = await fetchWithTimeout("/api/media/upload", { method: "POST", body: formData }, 45000);
+        const data = await res.json();
+        if (res.ok && data.success && data.url) {
+          uploaded.push(data.url);
+        }
+      }
+
+      if (uploaded.length > 0) {
+        setImageUrls((prev) => [...prev, ...uploaded].slice(0, 4));
+        toast({
+          title: `${uploaded.length} photo${uploaded.length === 1 ? '' : 's'} attached`,
+          description: "Will be included in your post collage.",
+        });
       } else {
-        throw new Error(data.error || "Upload failed");
+        throw new Error("Could not upload selected files");
       }
     } catch (err) {
       toast({
@@ -109,7 +125,7 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
   };
 
   const handlePost = async () => {
-    if (!content.trim() && !imageUrl && !videoUrl) return;
+    if (!content.trim() && imageUrls.length === 0 && !videoUrl) return;
     if (!user) {
       toast({ title: "Please sign in to post", variant: "destructive" });
       return;
@@ -117,19 +133,25 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
 
     setIsPosting(true);
     try {
+      const imagePayload = imageUrls.length === 0
+        ? undefined
+        : imageUrls.length === 1
+          ? imageUrls[0]
+          : JSON.stringify(imageUrls);
+
       const res = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: content.trim() || 'Shared a video update',
-          ...(imageUrl && { image_url: imageUrl }),
+          content: content.trim() || (videoUrl ? 'Shared a video update' : 'Shared photos'),
+          ...(imagePayload && { image_url: imagePayload }),
           ...(videoUrl && { video_url: videoUrl }),
         }),
       });
 
       if (res.ok) {
         setContent("");
-        setImageUrl(null);
+        setImageUrls([]);
         setVideoUrl(null);
         setVideoMeta(null);
         toast({ title: "Post published!", description: "Your update has been shared with your network." });
@@ -154,21 +176,41 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
             <AvatarFallback className="bg-amber-100 text-amber-900 font-bold text-sm">{initials}</AvatarFallback>
           </Avatar>
           <div className="flex-1 relative flex flex-col gap-3 min-w-0">
-            {/* Attached Image Preview */}
-            {imageUrl && !videoUrl && (
-              <div className="relative w-full max-h-[260px] bg-slate-100 rounded-xl overflow-hidden border border-slate-200">
-                <img
-                  src={imageUrl}
-                  alt="Selected"
-                  className="w-full h-48 object-cover rounded-lg"
-                />
-                <button
-                  onClick={() => setImageUrl(null)}
-                  className="absolute top-2 right-2 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full shadow-md transition-all active:scale-95"
-                  title="Remove image"
-                >
-                  <X size={14} />
-                </button>
+            {/* Attached Images Preview Grid */}
+            {imageUrls.length > 0 && !videoUrl && (
+              <div className="space-y-1.5">
+                <div className={cn(
+                  "grid gap-2 w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 p-2",
+                  imageUrls.length === 1 ? "grid-cols-1" : imageUrls.length === 2 ? "grid-cols-2" : "grid-cols-3 sm:grid-cols-4"
+                )}>
+                  {imageUrls.map((url, idx) => (
+                    <div key={idx} className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-100 group">
+                      <img
+                        src={url}
+                        alt={`Attachment ${idx + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setImageUrls((prev) => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-rose-600 text-white p-1 rounded-full shadow-md transition-colors"
+                        title="Remove photo"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-between px-1 text-[11px] font-bold text-slate-500">
+                  <span>{imageUrls.length} of 4 photos attached</span>
+                  <button
+                    type="button"
+                    onClick={() => setImageUrls([])}
+                    className="text-rose-600 hover:underline"
+                  >
+                    Clear all
+                  </button>
+                </div>
               </div>
             )}
 
@@ -205,11 +247,12 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
               <div className="flex gap-1 items-center">
                 {/* Photo uploader */}
                 <ImageUploader
-                  onImageSelect={(url) => {
-                    setImageUrl(url);
+                  multiple={true}
+                  onImagesSelect={(urls) => {
+                    setImageUrls((prev) => [...prev, ...urls].slice(0, 4));
                     toast({
-                      title: "Photo attached",
-                      description: "Your photo will be included with the post.",
+                      title: `${urls.length} photo${urls.length === 1 ? '' : 's'} attached`,
+                      description: "Photos will be displayed in your post collage.",
                     });
                   }}
                   buttonClassName="text-slate-500 hover:text-amber-800 hover:bg-amber-100/60 rounded-xl p-2 transition-colors"
@@ -229,6 +272,7 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
                 <input
                   ref={attachInputRef}
                   type="file"
+                  multiple
                   accept="image/jpeg,image/png,image/webp,image/gif"
                   className="hidden"
                   onChange={handleAttachFile}
@@ -270,7 +314,7 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
                 </Button>
                 <Button
                   className="bg-amber-400 text-slate-950 hover:bg-amber-500 rounded-xl px-6 font-bold gap-2 shadow-md shadow-amber-400/25 h-10 transition-all active:scale-[0.98]"
-                  disabled={(!content.trim() && !imageUrl && !videoUrl) || isPosting}
+                  disabled={(!content.trim() && imageUrls.length === 0 && !videoUrl) || isPosting}
                   onClick={handlePost}
                 >
                   {isPosting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -301,7 +345,7 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
               onUploadComplete={(url, meta) => {
                 setVideoUrl(url);
                 setVideoMeta(meta);
-                if (meta.thumbnailUrl) setImageUrl(meta.thumbnailUrl);
+                if (meta.thumbnailUrl) setImageUrls([meta.thumbnailUrl]);
                 setIsVideoModalOpen(false);
                 toast({ title: 'Video attached successfully!' });
               }}

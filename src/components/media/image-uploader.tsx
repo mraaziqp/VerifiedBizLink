@@ -6,9 +6,11 @@ import { compressImage, fetchWithTimeout } from '@/lib/image-compress';
 
 interface ImageUploaderProps {
   onImageSelect?: (imageUrl: string) => void;
+  onImagesSelect?: (imageUrls: string[]) => void;
   onUploadStateChange?: (uploading: boolean) => void;
   maxSize?: number;
   buttonClassName?: string;
+  multiple?: boolean;
   /** Optional visible text next to the icon — without it this is an
    * icon-only control, which is easy to lose against a custom background
    * if buttonClassName doesn't also set a color (see gallery page fix). */
@@ -17,74 +19,98 @@ interface ImageUploaderProps {
 
 export function ImageUploader({
   onImageSelect,
+  onImagesSelect,
   onUploadStateChange,
   maxSize = 10 * 1024 * 1024,
   buttonClassName = 'text-gray-500 hover:text-gray-700',
+  multiple = false,
   label,
 }: ImageUploaderProps) {
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length === 0) return;
 
     setError(null);
     setSuccess(false);
 
-    // Validate file size
-    if (file.size > maxSize) {
-      setError(`File size exceeds ${maxSize / 1024 / 1024}MB limit`);
-      return;
+    // Validate file sizes and types
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const validFiles: File[] = [];
+
+    for (const f of files) {
+      if (f.size > maxSize) {
+        setError(`"${f.name}" exceeds ${maxSize / 1024 / 1024}MB limit`);
+        return;
+      }
+      if (!allowedTypes.includes(f.type)) {
+        setError(`"${f.name}" has invalid type. Allowed: JPEG, PNG, WebP, GIF`);
+        return;
+      }
+      validFiles.push(f);
     }
 
-    // Validate file type
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      setError('Invalid file type. Allowed: JPEG, PNG, WebP, GIF');
-      return;
-    }
+    if (validFiles.length === 0) return;
 
     setUploading(true);
     onUploadStateChange?.(true);
 
     try {
-      // Create preview
+      // Preview the first file
+      const first = validFiles[0];
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreview(e.target?.result as string);
+      reader.onload = (ev) => {
+        setPreview(ev.target?.result as string);
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(first);
 
-      // Compress/resize before upload — fast, smooth, never gets stuck on big photos
-      const compressed = await compressImage(file, { maxDim: 1600, quality: 0.82 });
+      const uploadedUrls: string[] = [];
 
-      const formData = new FormData();
-      formData.append('file', compressed);
-      formData.append('bucket', 'posts');
+      for (let i = 0; i < validFiles.length; i++) {
+        const file = validFiles[i];
+        if (validFiles.length > 1) {
+          setUploadProgress(`${i + 1}/${validFiles.length}`);
+        }
 
-      const response = await fetchWithTimeout('/api/media/upload', {
-        method: 'POST',
-        body: formData,
-      }, 45000);
+        // Compress/resize before upload — fast, smooth, never gets stuck on big photos
+        const compressed = await compressImage(file, { maxDim: 1600, quality: 0.82 });
 
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.error || 'Upload failed');
+        const formData = new FormData();
+        formData.append('file', compressed);
+        formData.append('bucket', 'posts');
+
+        const response = await fetchWithTimeout('/api/media/upload', {
+          method: 'POST',
+          body: formData,
+        }, 45000);
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `Upload failed for ${file.name}`);
+        }
+
+        const data = await response.json();
+        if (data.success && data.url) {
+          uploadedUrls.push(data.url);
+        }
       }
 
-      const data = await response.json();
-
-      if (data.success) {
+      if (uploadedUrls.length > 0) {
         setSuccess(true);
-        onImageSelect?.(data.url);
+        if (uploadedUrls[0]) onImageSelect?.(uploadedUrls[0]);
+        onImagesSelect?.(uploadedUrls);
 
         // Reset after 2 seconds
         setTimeout(() => {
           setSuccess(false);
+          setUploadProgress(null);
+          setPreview(null);
           if (fileInputRef.current) {
             fileInputRef.current.value = '';
           }
@@ -99,6 +125,7 @@ export function ImageUploader({
       setPreview(null);
     } finally {
       setUploading(false);
+      setUploadProgress(null);
       onUploadStateChange?.(false);
     }
   };
@@ -108,6 +135,7 @@ export function ImageUploader({
       <input
         ref={fileInputRef}
         type="file"
+        multiple={multiple}
         accept="image/*"
         onChange={handleFileSelect}
         disabled={uploading}
@@ -132,7 +160,11 @@ export function ImageUploader({
         ) : (
           <Upload size={20} />
         )}
-        {label && <span className="font-medium">{uploading ? 'Uploading…' : success ? 'Uploaded' : label}</span>}
+        {label && (
+          <span className="font-medium">
+            {uploading ? (uploadProgress ? `Uploading (${uploadProgress})…` : 'Uploading…') : success ? 'Uploaded' : label}
+          </span>
+        )}
       </button>
 
       {/* Error message */}

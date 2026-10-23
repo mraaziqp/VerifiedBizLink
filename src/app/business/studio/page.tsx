@@ -29,6 +29,7 @@ interface Access {
 interface StudioState {
   access: Access;
   configured: boolean;
+  isLive?: boolean;
   ordersOpen?: boolean;
   items?: StudioItem[];
   credits?: StudioCredits | null;
@@ -93,6 +94,36 @@ function BuildStudio() {
 
   if (!state) return <StudioSkeleton />;
   const { access } = state;
+
+  // When offline and visitor is NOT staff: only admins can see Build Studio
+  if (state.isLive === false && !access.staff) {
+    return (
+      <GlassBackground>
+        <div className="mx-auto max-w-3xl px-4 py-20 text-center space-y-6">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-amber-500/10 border border-amber-500/20 text-amber-600 shadow-lg">
+            <Lock className="h-10 w-10" />
+          </div>
+          <div className="space-y-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3.5 py-1 text-xs font-bold text-amber-900">
+              <Sparkles className="h-3.5 w-3.5 text-amber-600" /> Private Admin Testing Mode
+            </span>
+            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl">
+              Build Studio is Opening Soon
+            </h1>
+            <p className="mx-auto max-w-lg text-sm text-slate-600 leading-relaxed">
+              Build Studio is currently undergoing final verification by platform administrators. Custom websites, mobile apps, and ready-made showcase templates will be unlocked for all members shortly.
+            </p>
+          </div>
+          <div className="pt-2 flex justify-center gap-3">
+            <Button asChild className="rounded-xl bg-slate-900 text-white hover:bg-slate-800 font-bold px-6 h-11">
+              <Link href="/business/dashboard">Back to Dashboard</Link>
+            </Button>
+          </div>
+        </div>
+      </GlassBackground>
+    );
+  }
+
   const canOrder = access.allowed && state.configured && !state.error;
   const credits = state.credits;
   const bestSaving = items.reduce((max, item) => Math.max(max, item.listPrice - item.price), 0);

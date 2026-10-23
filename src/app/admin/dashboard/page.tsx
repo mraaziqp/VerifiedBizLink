@@ -8,6 +8,7 @@ import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings,
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import { Switch } from '@/components/ui/switch';
 import { AdminBackground, AdminCard, AdminPageHeader, StatCard } from '@/components/admin/ui';
 import { EmailTestSandbox } from '@/components/admin/email-test-sandbox';
 
@@ -39,6 +40,46 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
   const [exportingEmail, setExportingEmail] = useState(false);
+  const [studioLive, setStudioLive] = useState<boolean | null>(null);
+  const [togglingStudio, setTogglingStudio] = useState(false);
+
+  useEffect(() => {
+    if (user?.role === 'admin') {
+      fetch('/api/admin/studio', { cache: 'no-store' })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.settings) setStudioLive(Boolean(data.settings.isLive));
+        })
+        .catch(() => {});
+    }
+  }, [user?.role]);
+
+  const handleToggleStudio = async (checked: boolean) => {
+    setTogglingStudio(true);
+    try {
+      const res = await fetch('/api/admin/studio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle_live', isLive: checked }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStudioLive(checked);
+        toast({
+          title: checked ? '🟢 Build Studio is now LIVE to Everyone!' : '🔒 Build Studio set to Admin-Only',
+          description: checked
+            ? 'All members can now view and access Build Studio templates.'
+            : 'Build Studio is now private. Only you (Admin) and staff can see it.',
+        });
+      } else {
+        toast({ title: 'Update failed', description: data.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Could not update studio visibility', variant: 'destructive' });
+    } finally {
+      setTogglingStudio(false);
+    }
+  };
 
   const handleExportUsersEmail = async () => {
     setExportingEmail(true);
@@ -175,6 +216,64 @@ export default function AdminDashboard() {
             </div>
           </div>
         </AdminCard>
+
+        {isSuperAdmin && (
+          <div className="mb-8 rounded-3xl border border-amber-300/80 bg-gradient-to-r from-slate-950 via-slate-900 to-amber-950 p-6 text-white shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-black">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-white text-lg">Build Studio Public Visibility</h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {studioLive ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2.5 py-0.5 text-xs font-black uppercase tracking-wider">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> LIVE TO EVERYONE
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 px-2.5 py-0.5 text-xs font-black uppercase tracking-wider">
+                        <Clock className="h-3.5 w-3.5" /> ADMIN ONLY (HIDDEN FROM PUBLIC)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
+                {studioLive
+                  ? 'Build Studio is currently visible and accessible to all verified members. They can pick templates, order websites, and set up hosted showcases.'
+                  : 'Build Studio is currently hidden from public members and regular users. Only you (Admin) and staff can see and test Build Studio things.'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-4 shrink-0 bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm self-stretch sm:self-auto justify-between sm:justify-end">
+              <div className="text-right">
+                <p className="text-xs font-bold text-white">Public Visibility</p>
+                <p className="text-[11px] text-slate-400">
+                  {studioLive ? 'Everyone can view' : 'Only you can view'}
+                </p>
+              </div>
+
+              <Switch
+                checked={Boolean(studioLive)}
+                disabled={togglingStudio || studioLive === null}
+                onCheckedChange={handleToggleStudio}
+                className="data-[state=checked]:bg-emerald-500"
+              />
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="ml-2 h-9 text-xs font-bold bg-white/10 border-white/20 text-white hover:bg-white/20"
+                asChild
+              >
+                <Link href="/business/studio">
+                  Preview Studio <ArrowRight className="h-3.5 w-3.5 ml-1 text-amber-400" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {isSuperAdmin && (
           <div className="mb-8 rounded-2xl border border-amber-300/60 bg-gradient-to-r from-amber-50 via-yellow-50 to-white p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

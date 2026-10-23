@@ -44,6 +44,10 @@ export function MobileMenuDrawer() {
   // Shared with the desktop sidebar, so the two make one request between them.
   const { verified: businessVerified } = useBusinessVerified(user);
 
+  const isStaff = user ? ["admin", "banker", "lawyer"].includes(user.role) : false;
+  const isBusiness = user ? user.role === "business" || isStaff : false;
+  const [canViewStudio, setCanViewStudio] = useState<boolean>(isStaff);
+
   useEffect(() => {
     if (!open) {
       setSlidIn(false);
@@ -53,10 +57,20 @@ export function MobileMenuDrawer() {
     return () => clearTimeout(timer);
   }, [open]);
 
-  if (pathname === "/login" || pathname === "/signup" || !user) return null;
+  useEffect(() => {
+    if (isStaff) {
+      setCanViewStudio(true);
+      return;
+    }
+    fetch('/api/studio/status', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((data) => {
+        setCanViewStudio(Boolean(data?.canView));
+      })
+      .catch(() => setCanViewStudio(false));
+  }, [isStaff]);
 
-  const isStaff = ["admin", "banker", "lawyer"].includes(user.role);
-  const isBusiness = user.role === "business" || isStaff;
+  if (pathname === "/login" || pathname === "/signup" || !user) return null;
 
   const initials = user?.fullName
     ? user.fullName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
@@ -239,7 +253,7 @@ export function MobileMenuDrawer() {
                 </>
               )}
 
-              {user && (
+              {canViewStudio && (
                 <Link
                   href="/business/studio"
                   onClick={() => setOpen(false)}
@@ -251,7 +265,11 @@ export function MobileMenuDrawer() {
                 >
                   <Sparkles size={18} className="text-amber-400" />
                   Build Studio
-                  <span className="ml-auto rounded-full bg-amber-400/20 px-1.5 text-[10px] font-black text-amber-300">NEW</span>
+                  {isStaff ? (
+                    <span className="ml-auto rounded-full bg-slate-800 text-amber-300 px-1.5 text-[9px] font-black uppercase tracking-wider">PREVIEW</span>
+                  ) : (
+                    <span className="ml-auto rounded-full bg-amber-400/20 px-1.5 text-[10px] font-black text-amber-300">NEW</span>
+                  )}
                 </Link>
               )}
 
