@@ -16,6 +16,7 @@ import {
   Sparkles,
   ChevronRight,
   Grid3X3,
+  X,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -178,8 +179,11 @@ function ExploreContent() {
   const filteredBusinesses = useMemo(() => {
     let filtered = businesses.filter((b) => {
       if (selectedIndustry !== 'all' && b.industry.toLowerCase() !== selectedIndustry.toLowerCase()) return false;
-      if (searchQuery && !matchesQuery(b.company_name, searchQuery)) {
-        return false;
+      if (searchQuery) {
+        const fullSearchTarget = `${b.company_name} ${b.industry || ''} ${b.address || ''}`;
+        if (!matchesQuery(fullSearchTarget, searchQuery)) {
+          return false;
+        }
       }
       return true;
     });
@@ -274,11 +278,21 @@ function ExploreContent() {
             <div className="relative">
               <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-500" />
               <Input
-                placeholder="Search by business name..."
+                placeholder="Search by business name, trade, or location (e.g. Cape Town, Plumbing)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 h-12 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-yellow-400 transition-colors"
+                className="pl-12 pr-10 h-12 bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:border-yellow-400 transition-colors"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3.5 top-3.5 p-0.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                  title="Clear search"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

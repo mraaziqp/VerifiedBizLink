@@ -30,24 +30,35 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
   const [isDrafting, setIsDrafting] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [isAttaching, setIsAttaching] = useState(false);
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
   const attachInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const handleAttachFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files ? Array.from(e.target.files) : [];
-    if (e.target) e.target.value = "";
-    if (files.length === 0) return;
+  const uploadFiles = async (files: File[]) => {
+    const imageFiles = files.filter((f) => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      toast({
+        title: "Invalid file",
+        description: "Please upload image files (JPEG, PNG, WebP, GIF).",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const remainingSlots = Math.max(0, 4 - imageUrls.length);
     if (remainingSlots === 0) {
-      toast({ title: "Limit reached", description: "You can attach up to 4 photos per post.", variant: "destructive" });
+      toast({
+        title: "Limit reached",
+        description: "You can attach up to 4 photos per post.",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsAttaching(true);
     try {
-      const toUpload = files.slice(0, remainingSlots);
+      const toUpload = imageFiles.slice(0, remainingSlots);
       const uploaded: string[] = [];
 
       for (const file of toUpload) {
@@ -66,7 +77,7 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
       if (uploaded.length > 0) {
         setImageUrls((prev) => [...prev, ...uploaded].slice(0, 4));
         toast({
-          title: `${uploaded.length} photo${uploaded.length === 1 ? '' : 's'} attached`,
+          title: `${uploaded.length} photo${uploaded.length === 1 ? "" : "s"} attached`,
           description: "Will be included in your post collage.",
         });
       } else {
@@ -81,6 +92,13 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
     } finally {
       setIsAttaching(false);
     }
+  };
+
+  const handleAttachFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (e.target) e.target.value = "";
+    if (files.length === 0) return;
+    await uploadFiles(files);
   };
 
   const handleInsertLink = () => {
@@ -169,7 +187,37 @@ export function PostCreator({ onPostCreated }: { onPostCreated?: () => void }) {
 
   return (
     <>
-      <Card className="p-4 sm:p-5 shadow-sm border border-slate-200/90 bg-white/95 backdrop-blur-md rounded-2xl">
+      <Card
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDraggingOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+          setIsDraggingOver(false);
+        }}
+        onDrop={async (e) => {
+          e.preventDefault();
+          setIsDraggingOver(false);
+          const droppedFiles = e.dataTransfer.files ? Array.from(e.dataTransfer.files) : [];
+          if (droppedFiles.length > 0) {
+            await uploadFiles(droppedFiles);
+          }
+        }}
+        className={cn(
+          "relative p-4 sm:p-5 shadow-sm border bg-white/95 backdrop-blur-md rounded-2xl transition-all",
+          isDraggingOver
+            ? "border-amber-400 ring-2 ring-amber-400/30 bg-amber-50/40"
+            : "border-slate-200/90"
+        )}
+      >
+        {isDraggingOver && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center rounded-2xl bg-amber-50/90 backdrop-blur-xs border-2 border-dashed border-amber-400 pointer-events-none">
+            <Paperclip className="h-8 w-8 text-amber-600 animate-bounce mb-2" />
+            <p className="text-sm font-bold text-amber-950">Drop photos here to attach</p>
+            <p className="text-xs text-amber-800">Attach up to 4 photos per post</p>
+          </div>
+        )}
         <div className="flex gap-3.5">
           <Avatar className="h-10 w-10 border-2 border-amber-300 shadow-xs shrink-0 mt-0.5">
             <AvatarImage src={user?.avatarUrl || undefined} />

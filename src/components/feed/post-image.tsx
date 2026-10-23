@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, X, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -221,6 +221,20 @@ function LightboxModal({
   onNavigate: (i: number) => void;
 }) {
   const current = urls[index];
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      } else if (e.key === "ArrowLeft" && urls.length > 1) {
+        onNavigate((index - 1 + urls.length) % urls.length);
+      } else if (e.key === "ArrowRight" && urls.length > 1) {
+        onNavigate((index + 1) % urls.length);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [index, urls.length, onClose, onNavigate]);
 
   return (
     <div

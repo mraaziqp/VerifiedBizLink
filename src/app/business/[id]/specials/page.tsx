@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   ArrowLeft, Loader2,
   MapPin, MessageSquare, Plus, Share2, ShieldCheck, Sparkles,
-  Trash2, Edit3, ShoppingBag, Utensils, Briefcase, Zap
+  Trash2, Edit3, ShoppingBag, Utensils, Briefcase, Zap, X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ImageUploader } from '@/components/media/image-uploader';
 import { useToast } from '@/hooks/use-toast';
 import { GlassBackground } from '@/components/shared/glass-ui';
 import { cn } from '@/lib/utils';
@@ -596,13 +597,43 @@ export default function BusinessSpecialsPage({ params }: { params: Promise<{ id:
               </div>
 
               <div>
-                <Label className="text-xs font-bold text-slate-700">Image URL (Optional)</Label>
-                <Input
-                  value={editingItem?.imageUrl || ''}
-                  onChange={(e) => setEditingItem((it) => ({ ...it, imageUrl: e.target.value }))}
-                  placeholder="https://example.com/product.jpg"
-                  className="mt-1 rounded-xl border-slate-200"
-                />
+                <Label className="text-xs font-bold text-slate-700">Product / Special Photo</Label>
+                {editingItem?.imageUrl ? (
+                  <div className="relative mt-1.5 aspect-video w-full rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 group">
+                    <img
+                      src={editingItem.imageUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setEditingItem((it) => ({ ...it, imageUrl: '' }))}
+                      className="absolute top-2 right-2 rounded-full bg-slate-950/75 p-1.5 text-white hover:bg-rose-600 transition-colors shadow-md"
+                      title="Remove image"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-1.5 space-y-2">
+                    <ImageUploader
+                      onImageSelect={(url) => setEditingItem((it) => ({ ...it, imageUrl: url }))}
+                      label="Upload photo from device"
+                      buttonClassName="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-dashed border-amber-300 bg-amber-50/70 hover:bg-amber-100 text-xs font-bold text-amber-950 transition-colors cursor-pointer"
+                    />
+                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                      <span className="flex-1 border-t border-slate-200" />
+                      <span>or paste image URL</span>
+                      <span className="flex-1 border-t border-slate-200" />
+                    </div>
+                    <Input
+                      value={editingItem?.imageUrl || ''}
+                      onChange={(e) => setEditingItem((it) => ({ ...it, imageUrl: e.target.value }))}
+                      placeholder="https://example.com/product.jpg"
+                      className="rounded-xl border-slate-200 text-xs"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between border-t border-slate-100 pt-3">
