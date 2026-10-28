@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { GlassBackground } from '@/components/shared/glass-ui';
 import { StageBadge, ProgressBar, rand } from '@/components/studio/studio-ui';
 import type { StudioCredits, StudioItem, StudioOrder } from '@/lib/studio';
+import { DB_PLATFORMS, dbPlatform } from '@/lib/db-platforms';
 
 interface Access {
   allowed: boolean;
@@ -447,6 +448,8 @@ function OrderDialog({
   const [name, setName] = useState(businessName);
   const [brief, setBrief] = useState('');
   const [useCredits, setUseCredits] = useState(true);
+  // Where the app keeps its data: built around it, connected later with the member's own keys.
+  const [database, setDatabase] = useState('local');
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [placing, setPlacing] = useState(false);
@@ -477,7 +480,7 @@ function OrderDialog({
       const res = await fetch('/api/studio/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ itemId: item.id, businessName: name, brief, useCredits }),
+        body: JSON.stringify({ itemId: item.id, businessName: name, brief, useCredits, database }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -521,6 +524,23 @@ function OrderDialog({
                   className="rounded-xl"
                 />
                 <p className="text-right text-[11px] text-slate-400">{brief.trim().length < 20 ? `${20 - brief.trim().length} more characters` : 'Looks good'}</p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-700" htmlFor="studio-database">Where should it keep its data?</label>
+                <select
+                  id="studio-database"
+                  value={database}
+                  onChange={(e) => setDatabase(e.target.value)}
+                  className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+                >
+                  {DB_PLATFORMS.map((platform) => (
+                    <option key={platform.id} value={platform.id}>
+                      {platform.name}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-slate-500">{dbPlatform(database)?.pitch} You connect it with your own keys once it is built.</p>
               </div>
 
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">

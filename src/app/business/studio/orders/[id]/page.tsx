@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft, CheckCircle2, CreditCard, ExternalLink, FileText, Gift, Loader2, MessageSquare, Palette, PartyPopper, Send,
+  ArrowLeft, CheckCircle2, CreditCard, Database, ExternalLink, FileText, Gift, Loader2, MessageSquare, Palette, PartyPopper, Send,
   Sparkles, Wand2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { GlassBackground } from '@/components/shared/glass-ui';
 import { ProgressBar, StageBadge, rand } from '@/components/studio/studio-ui';
 import type { StudioOrder } from '@/lib/studio';
+import { DB_PLATFORMS, cleanDbKeys, dbPlatform } from '@/lib/db-platforms';
 
 const STEPS: Array<{ key: StudioOrder['stage'][]; label: string }> = [
   { key: ['awaiting_payment'], label: 'Ordered' },
@@ -274,6 +275,7 @@ export default function StudioOrderPage() {
             )}
 
             {order.canEdit && <EditPanel orderId={order.id} onSent={load} />}
+            {order.canEdit && <DatabasePanel orderId={order.id} onSent={load} />}
 
             {order.edits.length > 0 && (
               <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
@@ -371,6 +373,92 @@ export default function StudioOrderPage() {
         </div>
       </div>
     </GlassBackground>
+  );
+}
+
+/**
+ * Connect the finished app to the member's own database: choose the platform,
+ * follow its steps, paste its public keys. The studio puts them in the app and
+ * rebuilds it; from then on everyone's data is saved there.
+ */
+function DatabasePanel({ orderId, onSent }: { orderId: string; onSent: () => void }) {
+  const { toast } = useToast();
+  const [platformId, setPlatformId] = useState('supabase');
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const platform = dbPlatform(platformId)!;
+
+  const submit = async () => {
+    const clean = cleanDbKeys(platformId, values);
+    if (!clean.ok) return toast({ title: 'Check the keys', description: clean.error, variant: 'destructive' });
+    setSaving(true);
+    const res = await fetch(`/api/studio/orders/${encodeURIComponent(orderId)}/database`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform: clean.platform, values: clean.values }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (!res.ok) return toast({ title: 'Not connected', description: data.error, variant: 'destructive' });
+    setValues({});
+    toast({ title: `${platform.name} is being connected`, description: 'Your app is rebuilt with it in a few minutes.' });
+    onSent();
+  };
+
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs">
+      <h2 className="flex items-center gap-2 text-sm font-extrabold text-slate-900"><Database className="h-4 w-4 text-amber-500" /> Connect your database</h2>
+      <p className="mt-1 text-xs text-slate-500">Your app saves its data in your own database: we never hold it. Until you connect one, data stays in each visitor’s browser.</p>
+      <div className="mt-4 space-y-3">
+        <div className="space-y-1">
+          <label className="text-xs font-bold text-slate-700" htmlFor="db-platform">Platform</label>
+          <select
+            id="db-platform"
+            value={platformId}
+            onChange={(e) => {
+              setPlatformId(e.target.value);
+              setValues({});
+            }}
+            className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm"
+          >
+            {DB_PLATFORMS.filter((p) => p.id !== 'local').map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] text-slate-500">
+            {platform.howTo}{' '}
+            {platform.signUpUrl && (
+              <a href={platform.signUpUrl} target="_blank" rel="noopener noreferrer" className="font-semibold text-amber-700 hover:underline">
+                Open {platform.name}
+              </a>
+            )}
+          </p>
+        </div>
+        {platform.fields.map((field) => (
+          <div key={field.key} className="space-y-1">
+            <label className="text-xs font-bold text-slate-700" htmlFor={`db-${field.key}`}>
+              {field.label}
+              {field.optional ? <span className="font-normal text-slate-400"> (optional)</span> : null}
+            </label>
+            <Input
+              id={`db-${field.key}`}
+              value={values[field.key] ?? ''}
+              onChange={(e) => setValues({ ...values, [field.key]: e.target.value })}
+              placeholder={field.placeholder}
+              autoComplete="off"
+              spellCheck={false}
+              className="rounded-xl font-mono text-xs"
+            />
+          </div>
+        ))}
+        <Button onClick={submit} disabled={saving} className="w-full rounded-xl bg-slate-900 font-bold text-white hover:bg-slate-800">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : `Connect ${platform.name}`}
+        </Button>
+        <p className="text-[11px] text-slate-500">Only public keys go here: anything in a web app can be read by its visitors. Secret keys are refused.</p>
+      </div>
+    </section>
   );
 }
 

@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
         brief,
         tier: member.access.tier,
         useCredits: body.useCredits !== false,
+        // The database the member plans to use: the app is built around it.
+        database: typeof body.database === 'string' ? body.database : null,
         returnUrl: `${CANONICAL_ORIGIN}/business/studio?order=`,
       },
       timeoutMs: 30_000,
