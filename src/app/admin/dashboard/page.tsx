@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/contexts/auth-context';
+import { AccountSwitchButton } from '@/components/auth/account-switcher';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -189,6 +190,7 @@ export default function AdminDashboard() {
   return (
     <AdminBackground>
       <AdminPageHeader title={dashboardTitle} subtitle={dashboardDescription}>
+        <AccountSwitchButton className="h-9 rounded-md border-amber-400/50 text-xs font-bold text-amber-800 hover:bg-amber-50" />
         <Button variant="outline" size="sm" className="border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10" asChild><Link href="/admin/orchestrator">
             Orchestrator
           </Link></Button>

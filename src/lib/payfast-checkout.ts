@@ -28,7 +28,7 @@ export interface CheckoutFailure {
  * callers should leave their loading state on and let the redirect happen.
  */
 export async function startPayfastCheckout(
-  payload: CheckoutRequest | Record<string, never>,
+  payload: CheckoutRequest | Record<string, unknown>,
   endpoint = '/api/payfast/init',
 ): Promise<CheckoutFailure> {
   let data: {

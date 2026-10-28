@@ -1,4 +1,5 @@
 import db from '@/lib/db';
+import { isStaffRole } from '@/lib/roles';
 
 /**
  * Ad credits: one balance, one ledger, one way to change them.
@@ -69,6 +70,7 @@ export function ensureCreditLedger(): Promise<void> {
       `;
       await db`CREATE UNIQUE INDEX IF NOT EXISTS ad_credit_tx_reference_idx ON ad_credit_transactions (reference) WHERE reference IS NOT NULL`;
       await db`CREATE INDEX IF NOT EXISTS ad_credit_tx_business_idx ON ad_credit_transactions (business_id, seq DESC)`;
+      await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS unlimited_ad_credits BOOLEAN NOT NULL DEFAULT false`;
     })().catch((error) => {
       ready = null;
       throw error;
@@ -177,6 +179,45 @@ export async function ensureMonthlyAdCredits(businessId: string): Promise<void> 
     WHERE (SELECT n FROM amt) > 0
     ON CONFLICT DO NOTHING
   `;
+}
+
+/**
+ * VerifiedBizLink's own accounts, by owner email: its official business
+ * (HOUSE_ACCOUNT_EMAILS, default info@verifiedbizlink.co.za).
+ */
+export function isHouseEmail(email: unknown): boolean {
+  const house = (process.env.HOUSE_ACCOUNT_EMAILS ?? 'info@verifiedbizlink.co.za')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  return typeof email === 'string' && house.includes(email.trim().toLowerCase());
+}
+
+/**
+ * Unlimited ad credits: for testing and running the ad system without buying
+ * credits. A business has them when its owner is staff, when it is
+ * VerifiedBizLink's own (isHouseEmail), or when staff switched them on for it
+ * in Admin -> Ads. Unlimited campaigns are not charged and are not held to
+ * the plan's active-ad cap.
+ */
+export async function hasUnlimitedAdCredits(businessId: string): Promise<boolean> {
+  await ensureCreditLedger();
+  const [row] = await db`
+    SELECT b.unlimited_ad_credits, u.role, u.email
+    FROM businesses b LEFT JOIN users u ON u.id = b.user_id
+    WHERE b.id = ${businessId} LIMIT 1
+  `;
+  return Boolean(row && (row.unlimited_ad_credits === true || isStaffRole(row.role as string) || isHouseEmail(row.email)));
+}
+
+/** Switch a business's unlimited ad credits on or off (staff only, from Admin -> Ads). */
+export async function setUnlimitedAdCredits(businessId: string, on: boolean): Promise<boolean> {
+  await ensureCreditLedger();
+  const rows = await db`
+    UPDATE businesses SET unlimited_ad_credits = ${on}, updated_at = NOW()
+    WHERE id = ${businessId} RETURNING id
+  `;
+  return rows.length > 0;
 }
 
 export interface CreditTransaction {

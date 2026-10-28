@@ -69,7 +69,8 @@ export async function GET(request: NextRequest) {
       emailVerified: u.email_verified === true,
     };
 
-    return NextResponse.json({ user: liveUser });
+    // actor: the developer account that switched into this one, for the "switch back" banner.
+    return NextResponse.json({ user: liveUser, actor: session.actor ?? null });
   } catch (error) {
     console.error('/api/auth/me error:', error);
     // Fallback to session from cookie if DB is temporarily unreachable

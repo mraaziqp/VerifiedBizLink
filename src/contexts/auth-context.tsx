@@ -12,8 +12,16 @@ export interface AuthUser {
   emailVerified: boolean;
 }
 
+/** The developer account that switched into this one (see lib/account-switch). */
+export interface AuthActor {
+  id: string;
+  email: string;
+  fullName: string;
+}
+
 interface AuthContextType {
   user: AuthUser | null;
+  actor: AuthActor | null;
   loading: boolean;
   refresh: () => Promise<void>;
   logout: () => Promise<void>;
@@ -21,6 +29,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  actor: null,
   loading: true,
   refresh: async () => {},
   logout: async () => {},
@@ -28,6 +37,7 @@ const AuthContext = createContext<AuthContextType>({
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [actor, setActor] = useState<AuthActor | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchMe = useCallback(async () => {
@@ -40,8 +50,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // (hydration error #418, plus a visible flash). Transitions wait for
       // hydration to finish first.
       startTransition(() => {
-        if (data) setUser(data.user);
-        else if (res.status === 401 || res.status === 403) setUser(null);
+        if (data) {
+          setUser(data.user);
+          setActor(data.actor ?? null);
+        } else if (res.status === 401 || res.status === 403) {
+          setUser(null);
+          setActor(null);
+        }
         setLoading(false);
       });
     } catch {
@@ -57,11 +72,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
     setUser(null);
+    setActor(null);
     window.location.href = '/login';
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, refresh: fetchMe, logout }}>
+    <AuthContext.Provider value={{ user, actor, loading, refresh: fetchMe, logout }}>
       {children}
     </AuthContext.Provider>
   );

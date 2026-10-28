@@ -9,6 +9,7 @@ import { DeferredTopBanners, DeferredWidgets } from '@/components/layout/deferre
 import { CANONICAL_ORIGIN } from '@/lib/site-url';
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register';
 import { PwaInstallPrompt } from '@/components/pwa/install-prompt';
+import { SwitchedAccountBanner } from '@/components/auth/account-switcher';
 
 // Self-hosted by Next at build time: no render-blocking request to Google
 // Fonts on every page load, and no layout shift while the font swaps in.
@@ -57,6 +58,8 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background text-foreground overflow-x-hidden">
         <AuthProvider>
           <MobileMenuProvider>
+            {/* Only while the developer account is switched into another one. */}
+            <SwitchedAccountBanner />
             <ServiceWorkerRegister />
             <DeferredTopBanners />
             {/* Stays in the first load: it has to be listening when the

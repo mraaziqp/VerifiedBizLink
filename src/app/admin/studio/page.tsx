@@ -68,6 +68,7 @@ export default function AdminStudioPage() {
   const [month, setMonth] = useState<string>(thisMonth());
   const [busy, setBusy] = useState<string | null>(null);
   const [grant, setGrant] = useState({ email: '', amount: '', note: '' });
+  const [templateGrant, setTemplateGrant] = useState({ email: '', template: 'retail' });
   const [previewTier, setPreviewTier] = useState<string>('standard');
 
   const load = useCallback(async (m: string) => {
@@ -160,6 +161,27 @@ export default function AdminStudioPage() {
     if (data) {
       toast({ title: Number(grant.amount) > 0 ? 'Credit given' : 'Credit taken back', description: `${data.name} now has ${rand(data.credits?.total ?? 0)} of studio credit.` });
       setGrant({ email: '', amount: '', note: '' });
+    }
+  };
+
+  // A storefront template for a member's business, without payment (testing, a promotion).
+  const giveTemplate = async () => {
+    setBusy('template');
+    try {
+      const res = await fetch('/api/business/storefront', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'grant', email: templateGrant.email, template: templateGrant.template }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({ title: 'Could not give the template', description: data.error, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Template given', description: data.message });
+      setTemplateGrant({ ...templateGrant, email: '' });
+    } finally {
+      setBusy(null);
     }
   };
 
@@ -476,6 +498,30 @@ export default function AdminStudioPage() {
               </div>
               <Button onClick={giveCredit} disabled={busy === 'grant' || !grant.email || !Number(grant.amount) || !state.configured} className="w-full gap-1.5 bg-amber-400 font-bold text-slate-950 hover:bg-amber-300">
                 {busy === 'grant' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />} {Number(grant.amount) < 0 ? 'Take back credit' : 'Give credit'}
+              </Button>
+            </div>
+          </GlassCard>
+
+          {/* Storefront template, free */}
+          <GlassCard>
+            <SectionTitle icon={Sparkles}>Give a storefront template</SectionTitle>
+            <p className="-mt-2 mb-4 text-xs text-gray-500">
+              Adds a template to the member&apos;s business without payment. Staff-owned businesses and VerifiedBizLink&apos;s own account already get every template free.
+            </p>
+            <div className="space-y-3">
+              <Input type="email" placeholder="Business owner's email" value={templateGrant.email} onChange={(e) => setTemplateGrant({ ...templateGrant, email: e.target.value })} className="rounded-xl" />
+              <select
+                value={templateGrant.template}
+                onChange={(e) => setTemplateGrant({ ...templateGrant, template: e.target.value })}
+                className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+              >
+                <option value="retail">Product Catalogue</option>
+                <option value="food">Restaurant Menu</option>
+                <option value="services">Service Packages</option>
+                <option value="deals">Flash Deals</option>
+              </select>
+              <Button onClick={giveTemplate} disabled={busy === 'template' || !templateGrant.email} className="w-full gap-1.5 bg-slate-900 font-bold text-white hover:bg-slate-800">
+                {busy === 'template' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />} Give template
               </Button>
             </div>
           </GlassCard>

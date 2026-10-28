@@ -7,7 +7,7 @@ import {
   Shield, Phone, Building2, Users,
   Star, CalendarCheck, ArrowLeft, Loader2, BadgeCheck, MessageCircle,
   Facebook, Instagram, Linkedin, Youtube, ChevronLeft, ChevronRight, X, Eye,
-  Video, Play, ShoppingBag, Sparkles,
+  Video, Play, ShoppingBag, Sparkles, Globe,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -87,6 +87,8 @@ export function BusinessProfileClient({ contactCard }: { contactCard?: ReactNode
   const [showCelebration, setShowCelebration] = useState(false);
   const [previousStatus, setPreviousStatus] = useState<string | null>(null);
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  // The storefront and studio website, when this visitor may see them (staff-only until Build Studio is live).
+  const [storefront, setStorefront] = useState<{ visible: boolean; published: boolean; siteUrl: string | null; siteTitle: string | null; canManage: boolean } | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -124,6 +126,14 @@ export function BusinessProfileClient({ contactCard }: { contactCard?: ReactNode
     if (!id) return;
     fetch(`/api/businesses/${id}/view`, { method: 'POST' }).catch(() => {});
   }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    fetch(`/api/business/storefront?businessId=${encodeURIComponent(id)}&summary=1`, { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then(setStorefront)
+      .catch(() => setStorefront(null));
+  }, [id, user?.id]);
 
   useEffect(() => {
     if (!id) return;
@@ -230,16 +240,26 @@ export function BusinessProfileClient({ contactCard }: { contactCard?: ReactNode
 
               {/* Actions */}
               <div className="flex items-center gap-2 mt-2 flex-wrap">
-                <Button
-                  variant="outline"
-                  className="font-bold gap-2 border-amber-300/80 bg-amber-50/70 text-amber-950 hover:bg-amber-100"
-                  asChild
-                >
-                  <Link href={`/business/${business.id}/specials`}>
-                    <ShoppingBag className="h-4 w-4 text-amber-600" />
-                    Specials &amp; Products
-                  </Link>
-                </Button>
+                {storefront?.visible && (
+                  <Button
+                    variant="outline"
+                    className="font-bold gap-2 border-amber-300/80 bg-amber-50/70 text-amber-950 hover:bg-amber-100"
+                    asChild
+                  >
+                    <Link href={`/business/${business.id}/specials`}>
+                      <ShoppingBag className="h-4 w-4 text-amber-600" />
+                      {storefront.published ? 'Products & Specials' : 'Storefront (draft)'}
+                    </Link>
+                  </Button>
+                )}
+                {storefront?.siteUrl && (
+                  <Button variant="outline" className="font-bold gap-2" asChild>
+                    <a href={storefront.siteUrl} target="_blank" rel="noopener noreferrer">
+                      <Globe className="h-4 w-4" />
+                      Website
+                    </a>
+                  </Button>
+                )}
                 {!isOwnBusiness && user && (
                   <>
                     <Button
@@ -335,6 +355,7 @@ export function BusinessProfileClient({ contactCard }: { contactCard?: ReactNode
             )}
 
             {/* Specials & Products Showcase Preview Card */}
+            {storefront?.visible && (
             <Card className="border-amber-200/90 bg-gradient-to-br from-amber-50/70 via-white to-yellow-50/40 shadow-xs">
               <CardContent className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-start gap-3.5">
@@ -344,9 +365,11 @@ export function BusinessProfileClient({ contactCard }: { contactCard?: ReactNode
                   <div>
                     <div className="flex items-center gap-2">
                       <h2 className="font-black text-slate-900 text-base">Products, Pricing &amp; Specials</h2>
-                      <Badge className="bg-amber-500 text-white font-extrabold text-[10px] uppercase tracking-wider">Live Storefront</Badge>
+                      <Badge className="bg-amber-500 text-white font-extrabold text-[10px] uppercase tracking-wider">{storefront.published ? 'Live Storefront' : 'Draft'}</Badge>
                     </div>
-                    <p className="text-xs text-slate-600 mt-0.5">Browse current specials, packages, pricing, and order direct via WhatsApp.</p>
+                    <p className="text-xs text-slate-600 mt-0.5">
+                      {storefront.published ? 'Browse current specials, packages and prices, and order direct on WhatsApp.' : 'Only you and VerifiedBizLink staff can see it until you publish it.'}
+                    </p>
                   </div>
                 </div>
                 <Button className="shrink-0 bg-yellow-400 font-bold text-slate-900 hover:bg-yellow-300 gap-1.5 rounded-xl shadow-xs" asChild>
@@ -356,6 +379,7 @@ export function BusinessProfileClient({ contactCard }: { contactCard?: ReactNode
                 </Button>
               </CardContent>
             </Card>
+            )}
 
             {/* Gallery */}
             {gallery.length > 0 && (

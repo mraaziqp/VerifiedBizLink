@@ -50,6 +50,9 @@ export default function StudioOrderPage() {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  // Whether this site is the one shown on the business's VerifiedBizLink profile.
+  const [onProfile, setOnProfile] = useState<boolean | null>(null);
+  const [linking, setLinking] = useState(false);
   const welcome = params.get('welcome') === '1';
 
   const load = useCallback(async () => {
@@ -64,6 +67,37 @@ export default function StudioOrderPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!order?.previewUrl) return;
+    fetch('/api/studio', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((studio: { access?: { businessId?: string | null } }) =>
+        studio.access?.businessId
+          ? fetch(`/api/business/storefront?businessId=${encodeURIComponent(studio.access.businessId)}&summary=1`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : null))
+          : null,
+      )
+      .then((summary: { siteUrl?: string | null } | null) => setOnProfile(Boolean(summary?.siteUrl && summary.siteUrl === order.previewUrl)))
+      .catch(() => setOnProfile(null));
+  }, [order?.previewUrl]);
+
+  const toggleProfile = async () => {
+    if (!order) return;
+    setLinking(true);
+    const res = await fetch('/api/business/storefront', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(onProfile ? { action: 'unlink_site' } : { action: 'link_site', orderId: order.id }),
+    }).catch(() => null);
+    const data = await res?.json().catch(() => ({}));
+    setLinking(false);
+    if (!res?.ok) {
+      toast({ title: 'Could not change your profile', description: data?.error, variant: 'destructive' });
+      return;
+    }
+    setOnProfile(!onProfile);
+    toast({ title: onProfile ? 'Removed from your profile' : 'Now on your VerifiedBizLink profile', description: onProfile ? undefined : 'Visitors see a Website button on your profile.' });
+  };
 
   // While it is moving, keep it fresh.
   useEffect(() => {
@@ -185,6 +219,11 @@ export default function StudioOrderPage() {
                 <a href={order.previewUrl} target="_blank" rel="noopener noreferrer">
                   <Sparkles className="mr-1.5 h-4 w-4 text-amber-400" /> Open your site <ExternalLink className="ml-1.5 h-3.5 w-3.5" />
                 </a>
+              </Button>
+            )}
+            {order.previewUrl && ['ready', 'delivered'].includes(order.stage) && onProfile !== null && (
+              <Button variant="outline" onClick={toggleProfile} disabled={linking} className="rounded-xl">
+                {linking ? <Loader2 className="h-4 w-4 animate-spin" /> : onProfile ? 'Remove from my profile' : 'Show on my VerifiedBizLink profile'}
               </Button>
             )}
             {order.stage === 'awaiting_payment' && (

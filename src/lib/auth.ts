@@ -81,6 +81,11 @@ export interface SessionUser {
    */
   requiresVerification?: boolean;
   sid?: string;
+  /**
+   * Set when the developer account switched into this one (lib/account-switch):
+   * who is really signed in. Signed with the token, so it cannot be forged.
+   */
+  actor?: { id: string; email: string; fullName: string };
 }
 
 /**

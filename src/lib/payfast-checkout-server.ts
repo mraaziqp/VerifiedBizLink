@@ -17,6 +17,8 @@ export interface CreateCheckoutInput {
   packId?: string | null;
   /** Marks a Pay now after a failed renewal (custom_str5 = 'resume'). */
   resume?: boolean;
+  /** Where PayFast sends the buyer back to (a path on this site); the ads payment pages by default. */
+  returnPath?: string | null;
 }
 
 export type CreateCheckoutResult =
@@ -31,7 +33,7 @@ export type CreateCheckoutResult =
  * payment with an unhelpful signature error if two copies ever drift.
  */
 export async function createPayfastCheckout(input: CreateCheckoutInput): Promise<CreateCheckoutResult> {
-  const { session, amount, description, purchaseType, adId = null, packId = null, resume = false } = input;
+  const { session, amount, description, purchaseType, adId = null, packId = null, resume = false, returnPath = null } = input;
 
   const paymentRef = `VBL-${Date.now()}-${session.id.substring(0, 8)}`;
   const amountCents = Math.round(amount * 100);
@@ -88,8 +90,12 @@ export async function createPayfastCheckout(input: CreateCheckoutInput): Promise
   const data = orderPayfastFields({
     merchant_id: PAYFAST_MERCHANT_ID,
     merchant_key: PAYFAST_MERCHANT_KEY,
-    return_url: `${APP_URL}/ads/payment-success?ref=${encodeURIComponent(paymentRef)}`,
-    cancel_url: `${APP_URL}/ads/payment-cancel?ref=${encodeURIComponent(paymentRef)}`,
+    return_url: returnPath
+      ? `${APP_URL}${returnPath}${returnPath.includes('?') ? '&' : '?'}paid=${encodeURIComponent(paymentRef)}`
+      : `${APP_URL}/ads/payment-success?ref=${encodeURIComponent(paymentRef)}`,
+    cancel_url: returnPath
+      ? `${APP_URL}${returnPath}${returnPath.includes('?') ? '&' : '?'}cancelled=1`
+      : `${APP_URL}/ads/payment-cancel?ref=${encodeURIComponent(paymentRef)}`,
     notify_url: `${APP_URL}/api/payfast/notify`,
     name_first: session.fullName?.split(' ')[0] || 'User',
     name_last: session.fullName?.split(' ')[1] || 'Account',

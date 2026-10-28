@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import { isStaff } from '@/lib/roles';
 import db from '@/lib/db';
-import { changeCredits } from '@/lib/ad-credits';
+import { changeCredits, ensureCreditLedger, isHouseEmail, setUnlimitedAdCredits } from '@/lib/ad-credits';
+import { isStaffRole } from '@/lib/roles';
 
 type Row = Record<string, unknown>;
 
@@ -20,10 +21,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get('q')?.trim().toLowerCase();
 
+    await ensureCreditLedger();
     const businesses = (await db`
       SELECT
         b.id, b.company_name, b.status, b.package_type,
         COALESCE(b.ad_credits, 0) AS ad_credits,
+        b.unlimited_ad_credits, u.role AS owner_role,
         b.credits_last_topped_up_at,
         u.id AS user_id, u.email, u.full_name,
         (SELECT COUNT(*)::int FROM ads a WHERE a.business_id = b.id) AS total_ads,
@@ -33,7 +36,11 @@ export async function GET(request: NextRequest) {
       ORDER BY b.company_name ASC
     `) as unknown as Row[];
 
-    let filtered = businesses;
+    // Unlimited because staff own it or it is VerifiedBizLink's own (fixed), or switched on for this business.
+    let filtered: Row[] = businesses.map((b) => {
+      const fixed = isStaffRole(b.owner_role as string) || isHouseEmail(b.email);
+      return { ...b, unlimited: b.unlimited_ad_credits === true || fixed, unlimited_by_role: fixed };
+    });
     if (search) {
       filtered = filtered.filter((b) =>
         String(b.company_name || '').toLowerCase().includes(search) ||
@@ -119,5 +126,38 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Admin ad credits POST error:', error);
     return NextResponse.json({ error: 'Failed to update credits' }, { status: 500 });
+  }
+}
+
+/**
+ * PATCH /api/admin/ads/credits { businessId, unlimited }
+ * Switch a business's unlimited ad credits on or off.
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getSession();
+    if (!session || !isStaff(session.role)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const body = await request.json().catch(() => ({}));
+    const businessId = typeof body.businessId === 'string' ? body.businessId : '';
+    if (!businessId || typeof body.unlimited !== 'boolean') {
+      return NextResponse.json({ error: 'Name the business and whether its credits are unlimited.' }, { status: 400 });
+    }
+    const [biz] = await db`SELECT company_name FROM businesses WHERE id = ${businessId} LIMIT 1`;
+    if (!biz || !(await setUnlimitedAdCredits(businessId, body.unlimited))) {
+      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+    }
+    await db`
+      INSERT INTO audit_logs (admin_id, admin_name, action, target_type, target_id, target_name)
+      VALUES (${session.id}, ${session.fullName}, ${body.unlimited ? 'Gave unlimited ad credits' : 'Took away unlimited ad credits'}, 'business', ${businessId}, ${biz.company_name})
+    `.catch((err) => console.error('Audit log write failed:', err));
+    return NextResponse.json({
+      success: true,
+      message: `${biz.company_name} ${body.unlimited ? 'now has unlimited ad credits' : 'is back on its credit balance'}.`,
+    });
+  } catch (error) {
+    console.error('Admin ad credits PATCH error:', error);
+    return NextResponse.json({ error: 'Failed to update unlimited credits' }, { status: 500 });
   }
 }

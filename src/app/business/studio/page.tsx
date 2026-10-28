@@ -34,6 +34,8 @@ interface StudioState {
   items?: StudioItem[];
   credits?: StudioCredits | null;
   error?: string;
+  /** Websites and apps could not be loaded; the storefront templates still can. */
+  notice?: string;
 }
 
 interface Quote {
@@ -198,6 +200,9 @@ function BuildStudio() {
           </div>
         )}
 
+        {state.notice && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-900">{state.notice}</div>
+        )}
         {state.error && (
           <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-medium text-rose-900">{state.error}</div>
         )}
@@ -255,7 +260,7 @@ function BuildStudio() {
                 Post your products, prices &amp; specials online.
               </h2>
               <p className="max-w-2xl text-xs sm:text-sm font-semibold text-slate-900/80 leading-relaxed">
-                Pick a template (Retail Catalog, Restaurant Menu, Service Packages or Flash Deals), have it hosted live on VerifiedBizLink, and start taking WhatsApp orders. You keep 80% — VerifiedBizLink handles the verified hosting and trust verification.
+                Pick a template (Product Catalogue, Restaurant Menu, Service Packages or Flash Deals), add your products and prices, and publish. It is hosted on VerifiedBizLink, linked from your profile, and every order comes straight to your WhatsApp.
               </p>
             </div>
 
@@ -263,7 +268,7 @@ function BuildStudio() {
               <Button asChild className="rounded-xl bg-slate-950 font-black text-white hover:bg-slate-900 shadow-md px-6 h-11">
                 <Link href={access.businessId ? `/business/${access.businessId}/specials` : '/business/create'}>
                   <Sparkles className="h-4 w-4 mr-1.5 text-amber-400" />
-                  {access.businessId ? 'Open My Specials Showcase' : 'List Business to Launch'}
+                  {access.businessId ? 'Open my storefront' : 'List your business first'}
                 </Link>
               </Button>
             </div>
@@ -408,8 +413,8 @@ function ItemCard({
           </div>
           {isShowcase ? (
             <Button asChild className="mt-4 w-full rounded-xl bg-amber-400 font-extrabold text-slate-950 hover:bg-amber-300 shadow-xs">
-              <Link href={businessId ? `/business/${businessId}/specials` : '/business/create'}>
-                <Sparkles className="mr-1.5 h-4 w-4" /> Launch My Showcase
+              <Link href={businessId ? `/business/${businessId}/specials?template=${item.id.replace('vbl-showcase-', '')}` : '/business/create'}>
+                <Sparkles className="mr-1.5 h-4 w-4" /> {businessId ? 'Set up this storefront' : 'List your business first'}
               </Link>
             </Button>
           ) : member ? (

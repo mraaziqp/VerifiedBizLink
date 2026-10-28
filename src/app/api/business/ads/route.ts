@@ -4,7 +4,7 @@ import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 import { getAdLimit, getEffectivePackage } from '@/lib/tiers';
 import { AD_TEXT_LIMITS, cleanAdImage, cleanAdLink, getAdSettings, isAdSlot, type AdSlot } from '@/lib/ads';
-import { AD_CREDIT_PACKS, changeCredits, creditHistory, ensureMonthlyAdCredits } from '@/lib/ad-credits';
+import { AD_CREDIT_PACKS, changeCredits, creditHistory, ensureMonthlyAdCredits, hasUnlimitedAdCredits } from '@/lib/ad-credits';
 
 const MIN_DURATION_DAYS = 1;
 const MAX_DURATION_DAYS = 90;
@@ -37,7 +37,7 @@ export async function GET() {
     const settings = await getAdSettings();
     if (!biz) {
       return NextResponse.json({
-        ads: [], limit: 0, active: 0, adCredits: 0, hasBusiness: false,
+        ads: [], limit: 0, active: 0, adCredits: 0, unlimitedCredits: false, hasBusiness: false,
         rates: settings.rates, packs: AD_CREDIT_PACKS, history: [], adsEnabled: settings.enabled,
       });
     }
@@ -50,7 +50,7 @@ export async function GET() {
         AND expires_at IS NOT NULL AND expires_at < NOW()
     `;
 
-    const [ads, [balanceRow], history] = await Promise.all([
+    const [ads, [balanceRow], history, unlimitedCredits] = await Promise.all([
       db`
         SELECT id, title, description, cta_text, cta_url, badge, is_boosted, is_active, boost_expires_at,
                created_at, expires_at, duration_days, impressions, clicks,
@@ -61,13 +61,15 @@ export async function GET() {
       `,
       db`SELECT COALESCE(ad_credits, 0) AS ad_credits FROM businesses WHERE id = ${biz.id}`,
       creditHistory(biz.id, 25),
+      hasUnlimitedAdCredits(biz.id),
     ]);
-    const limit = await getAdLimit(getEffectivePackage(biz));
+    const limit = unlimitedCredits ? 0 : await getAdLimit(getEffectivePackage(biz));
     const active = ads.filter((a) => a.is_active).length;
 
     return NextResponse.json({
       ads, limit, active, hasBusiness: true,
       adCredits: Number(balanceRow?.ad_credits ?? 0),
+      unlimitedCredits,
       packageType: biz.package_type,
       rates: settings.rates,
       adsEnabled: settings.enabled,
@@ -119,7 +121,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Choose a duration between ${MIN_DURATION_DAYS} and ${MAX_DURATION_DAYS} days` }, { status: 400 });
     }
 
-    const limit = await getAdLimit(getEffectivePackage(biz));
+    const unlimited = await hasUnlimitedAdCredits(biz.id);
+    const limit = unlimited ? 0 : await getAdLimit(getEffectivePackage(biz));
     const [{ count }] = await db`
       SELECT COUNT(*)::int AS count FROM ads WHERE business_id = ${biz.id} AND is_active = true
     `;
@@ -148,14 +151,17 @@ export async function POST(request: NextRequest) {
     // The ad's id is chosen first so the charge, the ad and any refund all
     // point at the same thing in the credit history.
     const adId = crypto.randomUUID();
-    const charge = await changeCredits({
-      businessId: biz.id,
-      delta: -totalCost,
-      kind: 'ad_spend',
-      note: `"${title.slice(0, 60)}" — ${duration} day${duration === 1 ? '' : 's'} × ${costPerDay} credits`,
-      reference: `ad:${adId}`,
-      actorId: session.id,
-    });
+    // Unlimited credits: nothing to charge, so nothing to refund either.
+    const charge = unlimited
+      ? ({ applied: true, balance: Number(biz.ad_credits ?? 0) } as const)
+      : await changeCredits({
+          businessId: biz.id,
+          delta: -totalCost,
+          kind: 'ad_spend',
+          note: `"${title.slice(0, 60)}" — ${duration} day${duration === 1 ? '' : 's'} × ${costPerDay} credits`,
+          reference: `ad:${adId}`,
+          actorId: session.id,
+        });
     if (!charge.applied) {
       return NextResponse.json(
         { error: `Not enough ad credits — you have ${charge.balance ?? 0}, this placement needs ${totalCost} (${costPerDay} credits/day × ${duration} days). Buy more credits to launch.` },
@@ -173,12 +179,16 @@ export async function POST(request: NextRequest) {
           ${adId}, ${biz.id}, ${title}, ${description}, ${biz.company_name},
           ${ctaText}, ${ctaUrl}, ${badge},
           true, ${duration}, NOW() + make_interval(days => ${duration}),
-          ${slot}, ${imageUrl || null}, ${totalCost}, 'active'
+          ${slot}, ${imageUrl || null}, ${unlimited ? 0 : totalCost}, 'active'
         )
         RETURNING id, title, description, cta_text, cta_url, badge, is_boosted, is_active, created_at, expires_at, duration_days, slot_placement, image_url, credits_spent, status
       `;
-      return NextResponse.json({ ad, adCredits: charge.balance }, { status: 201 });
+      return NextResponse.json({ ad, adCredits: charge.balance, unlimitedCredits: unlimited }, { status: 201 });
     } catch (error) {
+      if (unlimited) {
+        console.error('Ad insert failed (unlimited credits, nothing charged)', error);
+        return NextResponse.json({ error: 'Your ad could not be created. Please try again.' }, { status: 500 });
+      }
       // The charge went through but the ad did not: give the credits back.
       console.error('Ad insert failed after charging; refunding', error);
       const refund = await changeCredits({

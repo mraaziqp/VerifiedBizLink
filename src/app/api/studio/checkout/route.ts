@@ -21,6 +21,10 @@ export async function POST(request: NextRequest) {
   if (!limited.allowed) return NextResponse.json({ error: 'That is a lot of orders in an hour. Please try again later.' }, { status: 429 });
 
   const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
+  // Storefront templates are VerifiedBizLink's own and are bought on the storefront page.
+  if (String(body.itemId ?? '').startsWith('vbl-showcase')) {
+    return NextResponse.json({ error: 'Set up storefront templates from your storefront page.' }, { status: 400 });
+  }
   const businessName = String(body.businessName ?? '').trim().slice(0, 120);
   const brief = String(body.brief ?? '').trim().slice(0, 4000);
   if (businessName.length < 2) return NextResponse.json({ error: 'Tell us the name of the business or project.' }, { status: 400 });

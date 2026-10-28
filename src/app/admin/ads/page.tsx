@@ -57,6 +57,9 @@ interface BizCreditInfo {
   status: string;
   package_type: string;
   ad_credits: number;
+  /** Not charged for ads: switched on for the business, or its owner is staff. */
+  unlimited?: boolean;
+  unlimited_by_role?: boolean;
   email: string;
   full_name: string;
   total_ads: number;
@@ -231,6 +234,25 @@ export default function AdminAdsManagerPage() {
       toast({ title: 'Failed to update credits', variant: 'destructive' });
     } finally {
       setGranting(false);
+    }
+  };
+
+  const handleToggleUnlimited = async (biz: BizCreditInfo, unlimited: boolean) => {
+    try {
+      const res = await fetch('/api/admin/ads/credits', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessId: biz.id, unlimited }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        toast({ title: data.message });
+        loadBusinesses();
+      } else {
+        toast({ title: 'Could not change unlimited credits', description: data.error, variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Could not change unlimited credits', variant: 'destructive' });
     }
   };
 
@@ -615,14 +637,30 @@ export default function AdminAdsManagerPage() {
                           </Badge>
                         </td>
                         <td className="px-5 py-4">
-                          <span className="font-black text-amber-900 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full text-xs">
-                            {b.ad_credits} Credits
-                          </span>
+                          {b.unlimited ? (
+                            <span className="font-black text-emerald-900 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full text-xs">
+                              Unlimited{b.unlimited_by_role ? ' (VerifiedBizLink)' : ''}
+                            </span>
+                          ) : (
+                            <span className="font-black text-amber-900 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full text-xs">
+                              {b.ad_credits} Credits
+                            </span>
+                          )}
                         </td>
                         <td className="px-5 py-4 text-xs font-semibold text-slate-600">
                           {b.active_ads} live / {b.total_ads} total
                         </td>
-                        <td className="px-5 py-4 text-right">
+                        <td className="px-5 py-4 text-right space-x-2 whitespace-nowrap">
+                          {!b.unlimited_by_role && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="rounded-xl text-xs font-bold"
+                              onClick={() => handleToggleUnlimited(b, !b.unlimited)}
+                            >
+                              {b.unlimited ? 'Use balance' : 'Make unlimited'}
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold rounded-xl text-xs gap-1.5 shadow-xs"

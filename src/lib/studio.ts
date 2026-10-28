@@ -272,7 +272,12 @@ export async function giveMemberCredit(input: { email: string; amount: number; n
   return { name, email, amount, credits: result.credits };
 }
 
-/* ─── built-in showcase & templates ─── */
+/* ─── VerifiedBizLink's own storefront templates (lib/storefront) ─── */
+
+/**
+ * Sold by VerifiedBizLink itself and hosted here, so they sit beside the hub's
+ * catalogue but are bought on the storefront page, not through the hub.
+ */
 
 export const BUILTIN_STUDIO_ITEMS: StudioItem[] = [
   {
@@ -285,8 +290,8 @@ export const BUILTIN_STUDIO_ITEMS: StudioItem[] = [
       'Hosted on VerifiedBizLink directly',
       'Unlimited products, prices & sale tags',
       'Direct WhatsApp 1-tap customer ordering',
-      'CIPC Gold Trust Badge embedded',
-      '20% platform share model (keep 80%)',
+      'Your verified badge on the page (once verified)',
+      'Your own headline, colours and cover photo',
     ],
     timeframe: 'Instant — live in minutes',
     previewUrl: null,
@@ -327,8 +332,8 @@ export const BUILTIN_STUDIO_ITEMS: StudioItem[] = [
     features: [
       'Tiered pricing packages (Basic, Pro, VIP)',
       'Deliverables checklist per tier',
-      'Direct WhatsApp & email booking',
-      'Verified Trust seal & guarantees',
+      'Direct WhatsApp booking',
+      'Your verified badge on the page (once verified)',
     ],
     timeframe: 'Instant — live in minutes',
     previewUrl: null,
@@ -358,48 +363,6 @@ export const BUILTIN_STUDIO_ITEMS: StudioItem[] = [
     price: 319,
     discountPct: 20,
     floor: 319,
-    hidden: false,
-  },
-  {
-    id: 'vbl-custom-website',
-    name: 'Custom Verified Business Website',
-    kind: 'website',
-    category: 'Website',
-    summary: 'A complete bespoke business website built for you by ARP Cloud Solutions & VerifiedBizLink, connected to Google and PayFast.',
-    features: [
-      '5-8 Custom pages with luxury branding',
-      'PayFast checkout & contact forms',
-      'SEO & Google Maps local ranking setup',
-      'Edit words & sections yourself anytime',
-    ],
-    timeframe: '5 - 7 business days',
-    previewUrl: null,
-    coverUrl: null,
-    listPrice: 4999,
-    price: 3999,
-    discountPct: 20,
-    floor: 3999,
-    hidden: false,
-  },
-  {
-    id: 'vbl-mobile-app',
-    name: 'PWA Mobile App & Member Portal',
-    kind: 'app',
-    category: 'App',
-    summary: 'Installable mobile app for iOS and Android with push notifications, client appointments, and customer loyalty rewards.',
-    features: [
-      'Installable on iPhone & Android',
-      'Push notification broadcast tool',
-      'Member loyalty & rewards system',
-      'Full source code access',
-    ],
-    timeframe: '7 - 10 business days',
-    previewUrl: null,
-    coverUrl: null,
-    listPrice: 8999,
-    price: 7199,
-    discountPct: 20,
-    floor: 7199,
     hidden: false,
   },
 ];

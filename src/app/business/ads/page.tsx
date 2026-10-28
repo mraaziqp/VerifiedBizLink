@@ -83,6 +83,8 @@ export default function BusinessAdsPage() {
   });
 
   const [adCredits, setAdCredits] = useState(0);
+  // VerifiedBizLink's own business and staff-owned businesses run ads without spending credits.
+  const [unlimitedCredits, setUnlimitedCredits] = useState(false);
   const [buyingCredits, setBuyingCredits] = useState<string | null>(null);
   const [rates, setRates] = useState<Record<string, number> | null>(null);
   const [packs, setPacks] = useState<CreditPack[]>(DEFAULT_PACKS);
@@ -97,6 +99,7 @@ export default function BusinessAdsPage() {
         const data = await res.json();
         setAds(data.ads || []);
         setAdCredits(Number(data.adCredits) || 0);
+        setUnlimitedCredits(data.unlimitedCredits === true);
         if (data.rates) setRates(data.rates);
         if (Array.isArray(data.packs) && data.packs.length) setPacks(data.packs);
         setHistory(Array.isArray(data.history) ? data.history : []);
@@ -115,7 +118,7 @@ export default function BusinessAdsPage() {
 
   const selectedSlot = slotOptions.find((s) => s.id === formData.slotPlacement) || slotOptions[0];
   const totalRequiredCredits = formData.durationDays * selectedSlot.cost;
-  const hasEnoughCredits = adCredits >= totalRequiredCredits;
+  const hasEnoughCredits = unlimitedCredits || adCredits >= totalRequiredCredits;
 
   const handleCreateAd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -274,12 +277,19 @@ export default function BusinessAdsPage() {
             </div>
             <div>
               <span className="text-[10px] uppercase font-bold text-slate-500 block">AVAILABLE BALANCE</span>
-              <p className="text-xl font-black text-amber-950">{adCredits} Credits</p>
+              <p className="text-xl font-black text-amber-950">{unlimitedCredits ? 'Unlimited' : `${adCredits} Credits`}</p>
             </div>
           </div>
         </div>
 
+        {unlimitedCredits && (
+          <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-950">
+            <span className="font-bold">Unlimited ad credits.</span> Campaigns on this account are not charged and have no active-ad limit.
+          </div>
+        )}
+
         {/* Credit Top-up Row */}
+        {!unlimitedCredits && (
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
@@ -314,6 +324,7 @@ export default function BusinessAdsPage() {
             ))}
           </div>
         </div>
+        )}
 
         {!loading && !hasBusiness && (
           <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
@@ -503,7 +514,7 @@ export default function BusinessAdsPage() {
                     Duration: <strong className="text-slate-900">{formData.durationDays} Days</strong> × {selectedSlot.cost} credits/day ({selectedSlot.label})
                   </span>
                   <p className="text-[11px] text-slate-500 mt-0.5">
-                    Your balance: <strong className="text-slate-900">{adCredits} credits</strong> · Required: <strong className="text-amber-950">{totalRequiredCredits} credits</strong>
+                    Your balance: <strong className="text-slate-900">{unlimitedCredits ? 'Unlimited' : `${adCredits} credits`}</strong> · Required: <strong className="text-amber-950">{unlimitedCredits ? 'none (not charged)' : `${totalRequiredCredits} credits`}</strong>
                   </p>
                 </div>
 

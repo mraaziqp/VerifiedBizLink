@@ -55,8 +55,8 @@ export async function GET() {
         items,
         credits,
       });
-    } catch (_error) {
-      // Fallback gracefully to built-in templates
+    } catch {
+      // The hub is unreachable: the storefront templates still work (they are ours).
       return NextResponse.json({
         access,
         configured: true,
@@ -64,6 +64,7 @@ export async function GET() {
         ordersOpen: true,
         items: BUILTIN_STUDIO_ITEMS,
         credits: null,
+        notice: 'Websites and apps could not be loaded just now. Storefront templates are available below.',
       });
     }
   }
