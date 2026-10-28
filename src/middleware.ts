@@ -49,6 +49,8 @@ const PUBLIC_PREFIXES = [
   '/api/contact', // the /contact page is public — the route itself handles anonymous submitters (userId is nullable)
   '/api/explore/',
   '/api/business/showcase', // Showcase specials and products page is public for visitors
+  // The storefront and its profile links. The routes decide who sees what (staff only until Build Studio is live).
+  '/api/business/storefront',
   '/api/ads', // AdBanner renders on every page, including public ones for anonymous visitors
   '/api/payfast/notify', // PayFast's server calls this webhook directly — it has no user session cookie
   // Scheduled jobs are called by EventBridge (or Vercel Cron), which carry a
