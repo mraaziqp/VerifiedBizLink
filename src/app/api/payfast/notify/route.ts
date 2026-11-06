@@ -133,6 +133,95 @@ export async function POST(request: NextRequest) {
     const paymentRef = payfastData.m_payment_id as string;
     const normalizedStatus = String(paymentStatus || '').trim().toUpperCase();
 
+    // POS Checkout ITN Handling (QR / Online Fallback)
+    if (payfastData.custom_str3 === 'pos_checkout') {
+      const saleId = (payfastData.custom_str1 || '').trim();
+      const businessId = (payfastData.custom_str2 || '').trim();
+      const pfReference = String(payfastData.pf_payment_id || '').trim();
+
+      if (!saleId || !businessId) {
+        console.error('POS Checkout ITN missing saleId or businessId:', payfastData);
+        return NextResponse.json({ error: 'Missing POS sale metadata' }, { status: 400 });
+      }
+
+      if (normalizedStatus === 'COMPLETE') {
+        const [sale] = await db`
+          SELECT * FROM pos_sales WHERE id = ${saleId} AND business_id = ${businessId} LIMIT 1
+        `;
+
+        if (sale && sale.payment_status !== 'completed') {
+          // 1. Mark sale as completed
+          await db`
+            UPDATE pos_sales
+            SET payment_status = 'completed', updated_at = NOW()
+            WHERE id = ${saleId}
+          `;
+
+          // 2. Mark payment as approved
+          await db`
+            UPDATE pos_payments
+            SET status = 'approved', provider_tx_id = ${pfReference}, auth_code = ${pfReference}
+            WHERE sale_id = ${saleId}
+          `;
+
+          // 3. Deduct stock for all line items
+          const items = await db`SELECT * FROM pos_sale_items WHERE sale_id = ${saleId}`;
+          const { adjustPosStock, postPosSaleLedgerEntries } = await import('@/lib/pos/pos-service');
+          for (const it of items) {
+            if (it.product_id) {
+              await adjustPosStock(
+                businessId,
+                it.product_id,
+                -Number(it.quantity),
+                'sale',
+                `Sold on Receipt #${sale.receipt_number} via PayFast`,
+                sale.cashier_id,
+                sale.id
+              ).catch(() => {});
+            }
+          }
+
+          // 4. Post double-entry financial ledger entries
+          const [payment] = await db`SELECT id FROM pos_payments WHERE sale_id = ${saleId} LIMIT 1`;
+          await postPosSaleLedgerEntries(
+            businessId,
+            sale.id,
+            payment?.id || sale.id,
+            Number(sale.total_cents),
+            Number(sale.platform_fee_cents),
+            Number(sale.merchant_net_cents),
+            'qr_online',
+            sale.receipt_number
+          );
+
+          await logBillingEvent({
+            event: 'charge_succeeded',
+            severity: 'info',
+            businessId,
+            amountCents: Number(sale.total_cents),
+            reference: pfReference || sale.receipt_number,
+            detail: `POS Sale Receipt #${sale.receipt_number} paid via PayFast QR (R${(Number(sale.total_cents) / 100).toFixed(2)}).`,
+          });
+        }
+
+        return NextResponse.json({ success: true }, { status: 200 });
+      } else if (normalizedStatus === 'FAILED' || normalizedStatus === 'CANCELLED') {
+        await db`
+          UPDATE pos_sales
+          SET payment_status = ${normalizedStatus.toLowerCase()}, updated_at = NOW()
+          WHERE id = ${saleId}
+        `;
+        await db`
+          UPDATE pos_payments
+          SET status = 'declined'
+          WHERE sale_id = ${saleId}
+        `;
+        return NextResponse.json({ success: true }, { status: 200 });
+      }
+
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
     // A refund, reversal or chargeback is not a status update — it undoes a
     // payment that has already earned an advisor commission, so it goes
     // through the clawback path (Commission Policy §12) instead of falling

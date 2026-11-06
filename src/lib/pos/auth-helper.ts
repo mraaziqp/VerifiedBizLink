@@ -45,8 +45,24 @@ export async function getPosAuth(req: NextRequest): Promise<PosAuthContext | nul
   }
 
   // 2. Direct business owner
+  if (requestedBizId) {
+    const [requestedOwnBiz] = await db`
+      SELECT id, company_name FROM businesses WHERE id = ${requestedBizId} AND user_id = ${session.id} LIMIT 1
+    `;
+    if (requestedOwnBiz) {
+      return {
+        session,
+        businessId: requestedOwnBiz.id,
+        businessName: requestedOwnBiz.company_name,
+        isOwner: true,
+        isStaffUser: staffUser,
+        posRole: 'owner',
+      };
+    }
+  }
+
   const [ownBiz] = await db`
-    SELECT id, company_name FROM businesses WHERE user_id = ${session.id} LIMIT 1
+    SELECT id, company_name FROM businesses WHERE user_id = ${session.id} ORDER BY created_at DESC LIMIT 1
   `;
   if (ownBiz) {
     return {

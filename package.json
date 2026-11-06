@@ -10,7 +10,9 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:pos": "tsx scripts/run-pos-tests.ts"
+    "test:pos": "tsx scripts/run-pos-tests.ts",
+    "test:pos:e2e": "tsx scripts/verify-pos-end-to-end.ts",
+    "test:pos:all": "tsx scripts/run-pos-tests.ts && tsx scripts/verify-pos-end-to-end.ts"
   },
   "dependencies": {
     "@capacitor/cli": "^8.4.0",

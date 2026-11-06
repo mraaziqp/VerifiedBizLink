@@ -553,26 +553,56 @@ export async function processPosSale(input: ProcessSaleInput) {
   const randCode = Math.floor(1000 + Math.random() * 9000);
   const receiptNumber = `VBL-${dateStr}-${randCode}`;
 
-  // 4. Create Sale Record
+  // 4. Determine initial payment status and execute payment adapter
+  const adapter = resolveAdapterForMethod(input.paymentMethod, {
+    isAndroid: input.devicePlatform === 'android',
+    isIos: input.devicePlatform === 'ios',
+    useSandbox: input.useSandbox,
+  });
+
+  const tempSaleId = crypto.randomUUID();
+  const payResult = await adapter.initiate({
+    saleId: tempSaleId,
+    businessId: input.businessId,
+    amountCents: totalCents,
+    currency: 'ZAR',
+    method: input.paymentMethod,
+    tenderAmountCents: input.tenderAmountCents,
+    idempotencyKey: input.idempotencyKey || `pay_${tempSaleId}`,
+    customerDetails: {
+      name: input.customerName,
+      phone: input.customerPhone,
+      email: input.customerEmail,
+    },
+  });
+
+  const paymentStatus =
+    input.paymentMethod === 'qr_online'
+      ? 'pending'
+      : payResult.status === 'approved'
+      ? 'completed'
+      : 'failed';
+
+  // 5. Create Sale Record
   const [sale] = await db`
     INSERT INTO pos_sales (
-      business_id, till_id, cashier_id, receipt_number, subtotal_cents, tax_cents,
+      id, business_id, till_id, cashier_id, receipt_number, subtotal_cents, tax_cents,
       discount_cents, total_cents, platform_fee_cents, merchant_net_cents,
       payment_method, payment_status, customer_name, customer_phone, customer_email,
       notes, idempotency_key, is_offline_sync, offline_created_at
     )
     VALUES (
-      ${input.businessId}, ${input.tillId || null}, ${input.cashierId || null},
+      ${tempSaleId}, ${input.businessId}, ${input.tillId || null}, ${input.cashierId || null},
       ${receiptNumber}, ${subtotalCents}, ${taxCents}, ${totalDiscountCents},
       ${totalCents}, ${platformFeeCents}, ${merchantNetCents}, ${input.paymentMethod},
-      'completed', ${input.customerName || null}, ${input.customerPhone || null},
+      ${paymentStatus}, ${input.customerName || null}, ${input.customerPhone || null},
       ${input.customerEmail || null}, ${input.notes || null}, ${input.idempotencyKey || null},
       ${Boolean(input.isOfflineSync)}, ${input.offlineCreatedAt ? new Date(input.offlineCreatedAt) : null}
     )
     RETURNING *
   `;
 
-  // 5. Insert Sale Items & Deduct Stock
+  // 6. Insert Sale Items & Deduct Stock if payment is completed
   const createdItems = [];
   for (const it of input.items) {
     const lineTotal = it.quantity * it.unitPriceCents - (it.discountCents || 0);
@@ -589,8 +619,8 @@ export async function processPosSale(input: ProcessSaleInput) {
     `;
     createdItems.push(line);
 
-    // If item links to product catalog, adjust stock
-    if (it.productId) {
+    // If item links to product catalog and payment completed, adjust stock
+    if (it.productId && paymentStatus === 'completed') {
       await adjustPosStock(
         input.businessId,
         it.productId,
@@ -605,28 +635,6 @@ export async function processPosSale(input: ProcessSaleInput) {
     }
   }
 
-  // 6. Execute Payment via Adapter
-  const adapter = resolveAdapterForMethod(input.paymentMethod, {
-    isAndroid: input.devicePlatform === 'android',
-    isIos: input.devicePlatform === 'ios',
-    useSandbox: input.useSandbox,
-  });
-
-  const payResult = await adapter.initiate({
-    saleId: sale.id,
-    businessId: input.businessId,
-    amountCents: totalCents,
-    currency: 'ZAR',
-    method: input.paymentMethod,
-    tenderAmountCents: input.tenderAmountCents,
-    idempotencyKey: input.idempotencyKey || `pay_${sale.id}`,
-    customerDetails: {
-      name: input.customerName,
-      phone: input.customerPhone,
-      email: input.customerEmail,
-    },
-  });
-
   // 7. Record Payment Entry
   const [payment] = await db`
     INSERT INTO pos_payments (
@@ -639,37 +647,24 @@ export async function processPosSale(input: ProcessSaleInput) {
       ${input.tenderAmountCents || totalCents}, ${payResult.changeAmountCents || 0},
       ${payResult.cardLast4 || null}, ${payResult.cardBrand || null},
       ${payResult.provider}, ${payResult.providerTxId || null},
-      ${payResult.authCode || null}, ${payResult.status === 'approved' ? 'approved' : 'declined'},
+      ${payResult.authCode || null}, ${payResult.status === 'approved' ? 'approved' : payResult.status === 'pending' ? 'pending' : 'declined'},
       ${JSON.stringify(payResult.rawResponse || {})}
     )
     RETURNING *
   `;
 
-  // 8. Auditable Double-Entry Ledger Posting
-  // Credit: Merchant Gross Proceeds
-  await db`
-    INSERT INTO pos_financial_ledger (
-      business_id, entry_type, debit_cents, credit_cents, balance_cents,
-      reference_type, reference_id, description
-    )
-    VALUES (
-      ${input.businessId}, 'sale_proceeds', 0, ${totalCents}, ${merchantNetCents},
-      'sale', ${sale.id}, ${`Sale Receipt #${receiptNumber} proceeds`}
-    )
-  `;
-
-  // Debit: 1% VerifiedBizLink Platform Fee
-  if (platformFeeCents > 0) {
-    await db`
-      INSERT INTO pos_financial_ledger (
-        business_id, entry_type, debit_cents, credit_cents, balance_cents,
-        reference_type, reference_id, description
-      )
-      VALUES (
-        ${input.businessId}, 'platform_fee', ${platformFeeCents}, 0, 0,
-        'sale', ${sale.id}, ${`VerifiedBizLink 1% platform fee for Receipt #${receiptNumber}`}
-      )
-    `;
+  // 8. Auditable Double-Entry Ledger Posting (Only for Completed Sales)
+  if (paymentStatus === 'completed') {
+    await postPosSaleLedgerEntries(
+      input.businessId,
+      sale.id,
+      payment.id,
+      totalCents,
+      platformFeeCents,
+      merchantNetCents,
+      input.paymentMethod,
+      receiptNumber
+    );
   }
 
   return {
@@ -678,6 +673,73 @@ export async function processPosSale(input: ProcessSaleInput) {
     payment,
     paymentResponse: payResult,
   };
+}
+
+export async function postPosSaleLedgerEntries(
+  businessId: string,
+  saleId: string,
+  paymentId: string,
+  totalCents: number,
+  platformFeeCents: number,
+  merchantNetCents: number,
+  paymentMethod: PaymentMethodType,
+  receiptNumber: string
+) {
+  const isCash = paymentMethod === 'cash';
+  const feeStatus = isCash ? 'accrued' : 'collected';
+
+  // Entry 1: Merchant Gross Proceeds (Revenue Account - Credit)
+  await db`
+    INSERT INTO pos_financial_ledger (
+      business_id, entry_type, account_name, debit_cents, credit_cents, balance_cents,
+      fee_status, reference_type, reference_id, description
+    )
+    VALUES (
+      ${businessId}, 'sale_proceeds', 'sales_revenue', 0, ${totalCents}, ${totalCents},
+      'none', 'sale', ${saleId}, ${`Gross sales proceeds for Receipt #${receiptNumber}`}
+    )
+  `;
+
+  // Entry 2: Payment Received / Asset (Asset Account - Debit)
+  const paymentAssetAccount = isCash ? 'cash_on_hand' : 'electronic_clearing';
+  await db`
+    INSERT INTO pos_financial_ledger (
+      business_id, entry_type, account_name, debit_cents, credit_cents, balance_cents,
+      fee_status, reference_type, reference_id, description
+    )
+    VALUES (
+      ${businessId}, 'payment_received', ${paymentAssetAccount}, ${totalCents}, 0, ${totalCents},
+      'none', 'sale', ${saleId}, ${`Payment received via ${paymentMethod} for Receipt #${receiptNumber}`}
+    )
+  `;
+
+  // Entry 3: Merchant Platform Fee Expense (Expense Account - Debit)
+  if (platformFeeCents > 0) {
+    await db`
+      INSERT INTO pos_financial_ledger (
+        business_id, entry_type, account_name, debit_cents, credit_cents, balance_cents,
+        fee_status, reference_type, reference_id, description
+      )
+      VALUES (
+        ${businessId}, 'platform_fee', 'platform_fee_expense', ${platformFeeCents}, 0, ${merchantNetCents},
+        ${feeStatus}, 'sale', ${saleId}, ${`1% platform fee expense for Receipt #${receiptNumber}`}
+      )
+    `;
+
+    // Entry 4: Platform Fee Payable / Revenue (Liability / Platform Revenue - Credit)
+    const platformAccount = isCash ? 'platform_fee_payable' : 'platform_revenue';
+    const entryType = isCash ? 'fee_accrued' : 'fee_collected';
+    await db`
+      INSERT INTO pos_financial_ledger (
+        business_id, entry_type, account_name, debit_cents, credit_cents, balance_cents,
+        fee_status, reference_type, reference_id, description
+      )
+      VALUES (
+        ${businessId}, ${entryType}, ${platformAccount}, 0, ${platformFeeCents}, ${platformFeeCents},
+        ${feeStatus}, 'sale', ${saleId}, ${`VerifiedBizLink 1% fee ${feeStatus} for Receipt #${receiptNumber}`}
+      )
+    `;
+  }
 }
 
 export async function refundPosSale(
@@ -741,17 +803,61 @@ export async function refundPosSale(
     RETURNING *
   `;
 
-  // Ledger deduction
+  // 1. Reversal of sale proceeds (Contra-Revenue - Debit)
   await db`
     INSERT INTO pos_financial_ledger (
-      business_id, entry_type, debit_cents, credit_cents, balance_cents,
-      reference_type, reference_id, description
+      business_id, entry_type, account_name, debit_cents, credit_cents, balance_cents,
+      fee_status, reference_type, reference_id, description
     )
     VALUES (
-      ${businessId}, 'refund_deduction', ${sale.total_cents}, 0, 0,
-      'refund', ${saleId}, ${`Refund deduction for Receipt #${sale.receipt_number}: ${reason}`}
+      ${businessId}, 'refund_deduction', 'sales_returns', ${sale.total_cents}, 0, 0,
+      'none', 'refund', ${saleId}, ${`Refund contra-revenue for Receipt #${sale.receipt_number}: ${reason}`}
     )
   `;
+
+  // 2. Reversal of payment asset / payout (Asset Account - Credit)
+  const isCash = sale.payment_method === 'cash';
+  const paymentAssetAccount = isCash ? 'cash_on_hand' : 'electronic_clearing';
+  await db`
+    INSERT INTO pos_financial_ledger (
+      business_id, entry_type, account_name, debit_cents, credit_cents, balance_cents,
+      fee_status, reference_type, reference_id, description
+    )
+    VALUES (
+      ${businessId}, 'refund_payout', ${paymentAssetAccount}, 0, ${sale.total_cents}, 0,
+      'none', 'refund', ${saleId}, ${`Refund payout returned to customer for Receipt #${sale.receipt_number}`}
+    )
+  `;
+
+  // 3. Reversal of platform fee if fee was applied
+  const feeCents = Number(sale.platform_fee_cents || 0);
+  if (feeCents > 0) {
+    const platformAccount = isCash ? 'platform_fee_payable' : 'platform_revenue';
+
+    // Debit: Platform Fee Payable / Revenue (Reverse Liability / Revenue)
+    await db`
+      INSERT INTO pos_financial_ledger (
+        business_id, entry_type, account_name, debit_cents, credit_cents, balance_cents,
+        fee_status, reference_type, reference_id, description
+      )
+      VALUES (
+        ${businessId}, 'fee_reversal', ${platformAccount}, ${feeCents}, 0, 0,
+        'reversed', 'refund', ${saleId}, ${`Reversal of platform fee for refunded Receipt #${sale.receipt_number}`}
+      )
+    `;
+
+    // Credit: Platform Fee Expense (Reverse Expense on Merchant side)
+    await db`
+      INSERT INTO pos_financial_ledger (
+        business_id, entry_type, account_name, debit_cents, credit_cents, balance_cents,
+        fee_status, reference_type, reference_id, description
+      )
+      VALUES (
+        ${businessId}, 'fee_reversal', 'platform_fee_expense', 0, ${feeCents}, 0,
+        'reversed', 'refund', ${saleId}, ${`Reversal of platform fee expense for Receipt #${sale.receipt_number}`}
+      )
+    `;
+  }
 
   return updatedSale;
 }
@@ -889,6 +995,18 @@ export async function assignPosStaffRole(
 
 export async function verifyPosStaffPin(businessId: string, pin: string) {
   await ensurePosSchema();
+
+  // 1. Check if business currently has active lockout from failed brute-force PIN attempts
+  const [lockedRole] = await db`
+    SELECT id, locked_until FROM pos_staff_roles
+    WHERE business_id = ${businessId} AND locked_until > NOW()
+    LIMIT 1
+  `;
+  if (lockedRole) {
+    const lockTime = new Date(lockedRole.locked_until).toLocaleTimeString();
+    throw new Error(`Till locked due to too many failed PIN attempts. Please wait until ${lockTime} or log in with your account password.`);
+  }
+
   const staffMembers = await db`
     SELECT sr.*, u.full_name, u.email
     FROM pos_staff_roles sr
@@ -899,6 +1017,12 @@ export async function verifyPosStaffPin(businessId: string, pin: string) {
   for (const staff of staffMembers) {
     const isMatch = await bcrypt.compare(pin, staff.pin_hash);
     if (isMatch) {
+      // Reset failed attempts on success
+      await db`
+        UPDATE pos_staff_roles
+        SET failed_pin_attempts = 0, locked_until = NULL, updated_at = NOW()
+        WHERE business_id = ${businessId}
+      `;
       return {
         id: staff.id,
         userId: staff.user_id,
@@ -908,6 +1032,16 @@ export async function verifyPosStaffPin(businessId: string, pin: string) {
       };
     }
   }
+
+  // Increment failed attempts on active staff roles for this business
+  await db`
+    UPDATE pos_staff_roles
+    SET
+      failed_pin_attempts = failed_pin_attempts + 1,
+      locked_until = CASE WHEN failed_pin_attempts + 1 >= 5 THEN NOW() + INTERVAL '15 minutes' ELSE NULL END,
+      updated_at = NOW()
+    WHERE business_id = ${businessId}
+  `;
 
   return null;
 }

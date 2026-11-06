@@ -7,7 +7,21 @@ import { fileURLToPath } from "node:url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export default defineConfig([{
+export default defineConfig([
+  {
+    ignores: [
+      "node_modules/**",
+      ".next/**",
+      "out/**",
+      "build/**",
+      "android/**",
+      "ios/**",
+      "ultimate-test-suite.js",
+      "scripts/**",
+      "coverage/**",
+    ],
+  },
+  {
     extends: [...nextCoreWebVitals, ...nextTypescript],
     rules: {
         // Underscore prefix = "intentionally unused", the standard
@@ -41,13 +55,4 @@ export default defineConfig([{
         // unoptimised image. Feed images use loading="lazy" instead.
         "@next/next/no-img-element": "off",
     },
-    ignores: [
-        "node_modules/**",
-        ".next/**",
-        "out/**",
-        "build/**",
-        "ultimate-test-suite.js",
-        "scripts/**",
-        "coverage/**",
-    ],
 }]);

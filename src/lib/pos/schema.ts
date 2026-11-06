@@ -265,16 +265,20 @@ export function ensurePosSchema(): Promise<void> {
           CREATE TABLE IF NOT EXISTS pos_financial_ledger (
             id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             business_id             UUID NOT NULL REFERENCES businesses(id) ON DELETE CASCADE,
-            entry_type              TEXT NOT NULL, -- 'sale_proceeds' | 'platform_fee' | 'provider_fee' | 'refund_deduction' | 'cash_payout'
+            entry_type              TEXT NOT NULL, -- 'sale_proceeds' | 'payment_received' | 'platform_fee' | 'fee_accrued' | 'fee_collected' | 'fee_reversal' | 'refund_deduction' | 'refund_payout'
+            account_name            TEXT NOT NULL DEFAULT 'sales_revenue', -- 'sales_revenue' | 'cash_on_hand' | 'electronic_clearing' | 'platform_fee_expense' | 'platform_fee_payable' | 'platform_revenue' | 'sales_returns'
             debit_cents             BIGINT NOT NULL DEFAULT 0,
             credit_cents            BIGINT NOT NULL DEFAULT 0,
             balance_cents           BIGINT NOT NULL DEFAULT 0,
+            fee_status              TEXT NOT NULL DEFAULT 'none', -- 'none' | 'accrued' | 'collected' | 'reversed'
             reference_type          TEXT NOT NULL, -- 'sale' | 'payment' | 'refund' | 'payout'
             reference_id            TEXT NOT NULL,
             description             TEXT NOT NULL,
             created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
           );
           CREATE INDEX IF NOT EXISTS idx_pos_ledger_business ON pos_financial_ledger (business_id, created_at DESC);
+          ALTER TABLE pos_financial_ledger ADD COLUMN IF NOT EXISTS account_name TEXT NOT NULL DEFAULT 'sales_revenue';
+          ALTER TABLE pos_financial_ledger ADD COLUMN IF NOT EXISTS fee_status TEXT NOT NULL DEFAULT 'none';
 
           -- 15. POS Staff & Role Assignments
           CREATE TABLE IF NOT EXISTS pos_staff_roles (
@@ -285,11 +289,15 @@ export function ensurePosSchema(): Promise<void> {
             pin_hash                TEXT, -- bcrypt of 4-digit PIN for quick till switch
             display_name            TEXT,
             is_active               BOOLEAN NOT NULL DEFAULT true,
+            failed_pin_attempts     INT NOT NULL DEFAULT 0,
+            locked_until            TIMESTAMPTZ,
             created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             UNIQUE (business_id, user_id)
           );
           CREATE INDEX IF NOT EXISTS idx_pos_staff_business ON pos_staff_roles (business_id);
+          ALTER TABLE pos_staff_roles ADD COLUMN IF NOT EXISTS failed_pin_attempts INT NOT NULL DEFAULT 0;
+          ALTER TABLE pos_staff_roles ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ;
         END $$;
       `;
     })().catch((err) => {

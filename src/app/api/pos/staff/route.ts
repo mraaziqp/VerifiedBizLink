@@ -20,11 +20,18 @@ export async function POST(req: NextRequest) {
   // 1. Quick PIN authentication for cashier switch at the terminal
   if (action === 'verify_pin') {
     if (!pin) return NextResponse.json({ error: 'PIN required' }, { status: 400 });
-    const verified = await verifyPosStaffPin(auth.businessId, pin);
-    if (!verified) {
-      return NextResponse.json({ error: 'Invalid staff PIN.' }, { status: 401 });
+    try {
+      const verified = await verifyPosStaffPin(auth.businessId, pin);
+      if (!verified) {
+        return NextResponse.json({ error: 'Invalid staff PIN.' }, { status: 401 });
+      }
+      return NextResponse.json({ success: true, staff: verified });
+    } catch (err) {
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : 'PIN verification locked.' },
+        { status: 429 }
+      );
     }
-    return NextResponse.json({ success: true, staff: verified });
   }
 
   // 2. Assign staff member (owner only)
