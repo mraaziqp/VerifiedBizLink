@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FileText, MessageSquare,
   X, Home, Users, MapPin, ShieldCheck, BarChart3,
-  Settings, Shield, LogOut, Building2, Megaphone, Zap, QrCode, Briefcase, PlusCircle, Sparkles
+  Settings, Shield, LogOut, Building2, Megaphone, Zap, QrCode, Briefcase, PlusCircle, Sparkles, CreditCard
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { useMobileMenu } from "@/contexts/mobile-menu-context";
@@ -28,6 +28,7 @@ const MENU_ITEMS = [
   { name: "Messages", href: "/dashboard/messages", icon: MessageSquare },
   { name: "Explore", href: "/explore", icon: MapPin },
   { name: "Jobs", href: "/jobs", icon: Briefcase },
+  { name: "Point of Sale (POS)", href: "/business/pos", icon: CreditCard },
   { name: "Vetting Hub", href: "/vetting", icon: ShieldCheck },
   { name: "Verify Certificate", href: "/verify", icon: QrCode },
   { name: "Pricing & Plans", href: "/pricing", icon: Zap },

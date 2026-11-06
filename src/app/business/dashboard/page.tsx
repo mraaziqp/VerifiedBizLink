@@ -10,7 +10,7 @@ import {
   Zap, Award, Globe, MessageSquare, ArrowRight, CheckCircle2,
   AlertTriangle, Activity, Clock, Star, Sparkles, Target,
   Lightbulb, CheckSquare, Flame, Radio,
-  BarChart, Bell, Home, Shield, ShoppingBag
+  BarChart, Bell, Home, Shield, ShoppingBag, CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -59,6 +59,14 @@ interface ActivityItem {
 }
 
 const QUICK_ACTIONS = [
+  {
+    href: '/business/pos',
+    icon: CreditCard,
+    title: 'Point of Sale (POS)',
+    description: 'Digital till & Tap to Pay',
+    iconBg: 'bg-emerald-500/10 border border-emerald-500/20',
+    textColor: 'text-emerald-400'
+  },
   {
     href: '/business/posts',
     icon: MessageSquare,

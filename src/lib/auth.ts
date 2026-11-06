@@ -146,9 +146,27 @@ export async function verifyToken(token: string): Promise<SessionUser | null> {
   }
 }
 
-export async function getSession(): Promise<SessionUser | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
+export async function getSession(req?: Request | NextRequest): Promise<SessionUser | null> {
+  let token: string | undefined;
+
+  // 1. Check Bearer Authorization header if request was provided
+  if (req) {
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7).trim();
+    }
+  }
+
+  // 2. Fallback to session cookie
+  if (!token) {
+    try {
+      const cookieStore = await cookies();
+      token = cookieStore.get(COOKIE_NAME)?.value;
+    } catch {
+      // In standalone non-Next context or static edge
+    }
+  }
+
   if (!token) return null;
   const user = await verifyToken(token);
   if (!user) return null;
@@ -163,6 +181,10 @@ export async function getSession(): Promise<SessionUser | null> {
   }
 
   return user;
+}
+
+export async function getSessionFromRequest(request: Request | NextRequest): Promise<SessionUser | null> {
+  return getSession(request);
 }
 
 export async function setSessionCookie(token: string) {

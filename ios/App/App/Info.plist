@@ -47,5 +47,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>VerifiedBizLink needs camera access to scan product barcodes and document uploads.</string>
+	<key>NFCReaderUsageDescription</key>
+	<string>VerifiedBizLink needs NFC access to process contactless cards and Tap to Pay transactions.</string>
 </dict>
 </plist>
