@@ -1,48 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPosAuth } from '@/lib/pos/auth-helper';
+import { requirePosAccess } from '@/lib/pos/auth-helper';
 import { getPosStaff, assignPosStaffRole, verifyPosStaffPin } from '@/lib/pos/pos-service';
+import { issueOperatorToken } from '@/lib/pos/operator';
+import { posErrorResponse, readJson, PosError } from '@/lib/pos/errors';
+import { enforceRateLimit } from '@/lib/pos/route-helpers';
+import { clientIp } from '@/lib/rate-limit';
+import { logPosAudit } from '@/lib/pos/audit';
 
 export async function GET(req: NextRequest) {
-  const auth = await getPosAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const staff = await getPosStaff(auth.businessId);
-  return NextResponse.json({ staff });
+  const guard = await requirePosAccess(req, 'staff.read');
+  if (!guard.ok) return guard.response;
+  try {
+    return NextResponse.json({ staff: await getPosStaff(guard.auth.businessId) });
+  } catch (err) {
+    return posErrorResponse(err);
+  }
 }
 
+/**
+ * { action: 'verify_pin', pin } — switches the till operator; returns an operator token.
+ * { email, role, pin?, displayName?, isActive? } — adds or updates a staff member.
+ */
 export async function POST(req: NextRequest) {
-  const auth = await getPosAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  let body: Record<string, unknown>;
+  try {
+    body = await readJson(req);
+  } catch (err) {
+    return posErrorResponse(err);
+  }
 
-  const body = await req.json().catch(() => ({}));
-  const { action, pin, userId, role, displayName } = body;
-
-  // 1. Quick PIN authentication for cashier switch at the terminal
-  if (action === 'verify_pin') {
-    if (!pin) return NextResponse.json({ error: 'PIN required' }, { status: 400 });
+  if (body.action === 'verify_pin') {
+    const guard = await requirePosAccess(req, 'till.operate');
+    if (!guard.ok) return guard.response;
+    const { auth } = guard;
     try {
-      const verified = await verifyPosStaffPin(auth.businessId, pin);
+      await enforceRateLimit(`pos_pin:${auth.businessId}:${clientIp(req.headers)}`, 10, 300);
+      const verified = await verifyPosStaffPin(auth.businessId, String(body.pin ?? ''));
       if (!verified) {
-        return NextResponse.json({ error: 'Invalid staff PIN.' }, { status: 401 });
+        await logPosAudit({ businessId: auth.businessId, actorUserId: auth.session.id, actorRole: auth.posRole, action: 'pin_failed' });
+        throw new PosError(401, 'BAD_PIN', 'Incorrect PIN.');
       }
-      return NextResponse.json({ success: true, staff: verified });
+      const operatorToken = await issueOperatorToken({ businessId: auth.businessId, userId: verified.userId, role: verified.role });
+      await logPosAudit({ businessId: auth.businessId, actorUserId: verified.userId, actorRole: verified.role, action: 'till_operator_switched' });
+      return NextResponse.json({ success: true, staff: verified, operatorToken });
     } catch (err) {
-      return NextResponse.json(
-        { error: err instanceof Error ? err.message : 'PIN verification locked.' },
-        { status: 429 }
-      );
+      return posErrorResponse(err);
     }
   }
 
-  // 2. Assign staff member (owner only)
-  if (auth.posRole !== 'owner') {
-    return NextResponse.json({ error: 'Only business owners can manage staff permissions.' }, { status: 403 });
+  const guard = await requirePosAccess(req, 'staff.manage');
+  if (!guard.ok) return guard.response;
+  const { auth } = guard;
+  try {
+    const staff = await assignPosStaffRole(auth.businessId, { userId: auth.session.id, role: auth.posRole }, body);
+    return NextResponse.json({ success: true, staff });
+  } catch (err) {
+    return posErrorResponse(err);
   }
-
-  if (!userId || !role) {
-    return NextResponse.json({ error: 'User ID and role are required.' }, { status: 400 });
-  }
-
-  const staff = await assignPosStaffRole(auth.businessId, userId, role, pin, displayName);
-  return NextResponse.json({ success: true, staff });
 }

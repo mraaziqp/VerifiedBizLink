@@ -19,6 +19,16 @@ export interface CreateCheckoutInput {
   resume?: boolean;
   /** Where PayFast sends the buyer back to (a path on this site); the ads payment pages by default. */
   returnPath?: string | null;
+  /** Extra PayFast custom fields for purchase types that need them (POS uses these). */
+  customStr1?: string | null;
+  customStr4?: string | null;
+  customInt1?: number | null;
+  /**
+   * Makes this a monthly PayFast subscription whose later charges are this
+   * amount (rand), while the first charge is `amount` — e.g. setup fee plus
+   * first month now, then the monthly price.
+   */
+  recurringAmount?: number | null;
 }
 
 export type CreateCheckoutResult =
@@ -33,7 +43,10 @@ export type CreateCheckoutResult =
  * payment with an unhelpful signature error if two copies ever drift.
  */
 export async function createPayfastCheckout(input: CreateCheckoutInput): Promise<CreateCheckoutResult> {
-  const { session, amount, description, purchaseType, adId = null, packId = null, resume = false, returnPath = null } = input;
+  const {
+    session, amount, description, purchaseType, adId = null, packId = null, resume = false, returnPath = null,
+    customStr1 = null, customStr4 = null, customInt1 = null, recurringAmount = null,
+  } = input;
 
   const paymentRef = `VBL-${Date.now()}-${session.id.substring(0, 8)}`;
   const amountCents = Math.round(amount * 100);
@@ -71,7 +84,7 @@ export async function createPayfastCheckout(input: CreateCheckoutInput): Promise
   // customer's card automatically every month until cancelled. Ad boosts
   // and ad-credit top-ups stay one-time (a boost/top-up isn't a recurring
   // commitment).
-  const isSubscription = purchaseType.startsWith('subscription_');
+  const isSubscription = purchaseType.startsWith('subscription_') || recurringAmount !== null;
 
   // item_description is only meaningful for ad campaigns — calling a tier
   // subscription "Ad Campaign" is what the customer sees on the PayFast
@@ -104,16 +117,17 @@ export async function createPayfastCheckout(input: CreateCheckoutInput): Promise
     amount: amount.toFixed(2),
     item_name: description,
     item_description: itemDescription,
-    custom_str1: adId || '',
+    custom_int1: customInt1 ?? undefined,
+    custom_str1: adId || customStr1 || '',
     custom_str2: session.id,
     custom_str3: purchaseType || 'ad_credits',
-    custom_str4: packId || undefined,
+    custom_str4: packId || customStr4 || undefined,
     custom_str5: resume ? 'resume' : undefined,
     ...(isSubscription
       ? {
           subscription_type: '1',
           billing_date: new Date().toISOString().slice(0, 10),
-          recurring_amount: amount.toFixed(2),
+          recurring_amount: (recurringAmount ?? amount).toFixed(2),
           frequency: '3', // PayFast frequency code: 3 = monthly
           cycles: '0', // 0 = bill indefinitely until cancelled
         }

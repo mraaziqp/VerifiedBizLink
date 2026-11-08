@@ -1,36 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPosAuth } from '@/lib/pos/auth-helper';
-import { refundPosSale } from '@/lib/pos/pos-service';
+import { requirePosAccess } from '@/lib/pos/auth-helper';
+import { refundPosSale } from '@/lib/pos/refunds';
+import { posErrorResponse, readJson } from '@/lib/pos/errors';
+import { enforceRateLimit, resolveActor } from '@/lib/pos/route-helpers';
+import { logPosAudit } from '@/lib/pos/audit';
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const auth = await getPosAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  // Cashiers cannot issue refunds without manager or owner role
-  if (auth.posRole === 'cashier') {
-    return NextResponse.json({ error: 'Cashiers are not authorized to process refunds. Please call a manager.' }, { status: 403 });
-  }
-
-  const { id } = await params;
-  const body = await req.json().catch(() => ({}));
-  const { restockItems, reason } = body;
+/**
+ * POST /api/pos/sales/:id/refund
+ * Body: { idempotencyKey, reason, restockItems?: boolean, items?: [{ saleItemId, quantity }] }
+ * Omitting items refunds everything not yet refunded.
+ */
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const guard = await requirePosAccess(req, 'sale.refund');
+  if (!guard.ok) return guard.response;
+  const { auth } = guard;
 
   try {
-    const refunded = await refundPosSale(
-      auth.businessId,
-      id,
-      restockItems !== false,
-      reason || 'Customer refund',
-      auth.session.id
-    );
-    return NextResponse.json({ success: true, sale: refunded });
+    const actor = await resolveActor(req, auth, 'sale.refund');
+    await enforceRateLimit(`pos_refund:${auth.businessId}:${actor.userId}`, 30, 300);
+    const { id } = await params;
+    const body = await readJson(req);
+    const items = Array.isArray(body.items)
+      ? (body.items as Record<string, unknown>[]).map((i) => ({ saleItemId: String(i.saleItemId ?? ''), quantity: Number(i.quantity) }))
+      : undefined;
+
+    const result = await refundPosSale({
+      businessId: auth.businessId,
+      saleId: id,
+      actorUserId: actor.userId,
+      reason: typeof body.reason === 'string' ? body.reason : '',
+      items,
+      restock: body.restockItems !== false,
+      idempotencyKey: String(body.idempotencyKey ?? ''),
+    });
+
+    if (!result.isDuplicate) {
+      await logPosAudit({
+        businessId: auth.businessId, actorUserId: actor.userId, actorRole: actor.role, action: 'sale_refunded',
+        targetType: 'sale', targetId: id,
+        detail: { refundId: result.refund.id, amountCents: Number(result.refund.amount_cents), feeReversalCents: Number(result.refund.fee_reversal_cents) },
+      });
+    }
+    return NextResponse.json({ success: true, ...result });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Could not process refund.' },
-      { status: 400 }
-    );
+    return posErrorResponse(err, 'Could not process the refund.');
   }
 }

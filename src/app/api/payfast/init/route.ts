@@ -18,6 +18,13 @@ export async function POST(request: NextRequest) {
     const { adId, purchaseType } = body;
     let { amount, description } = body;
 
+    // POS purchases are priced and started only by the POS routes
+    // (/api/pos/subscription, /api/pos/fees). Accepting them here would let a
+    // caller choose the amount and smuggle a business id in through adId.
+    if (typeof purchaseType === 'string' && purchaseType.startsWith('pos_')) {
+      return NextResponse.json({ error: 'Start POS payments from the POS section.' }, { status: 400 });
+    }
+
     // Credit packs are priced on the server. The browser only says WHICH pack;
     // what it costs and what it grants both come from AD_CREDIT_PACKS, so a
     // tampered amount cannot buy credits cheaply, and the webhook grants

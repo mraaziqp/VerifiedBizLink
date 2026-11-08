@@ -9,6 +9,7 @@ import {
   PaymentVerifyResponse,
 } from './types';
 
+/** Cash at the till. The cashier is the payment processor. */
 export class CashPaymentAdapter implements PaymentAdapter {
   providerName = 'cash' as const;
 
@@ -19,7 +20,7 @@ export class CashPaymentAdapter implements PaymentAdapter {
   async initiate(req: PaymentInitiateRequest): Promise<PaymentInitiateResponse> {
     const tender = req.tenderAmountCents ?? req.amountCents;
 
-    if (tender < req.amountCents) {
+    if (!Number.isInteger(tender) || tender < req.amountCents) {
       return {
         success: false,
         status: 'declined',
@@ -29,33 +30,28 @@ export class CashPaymentAdapter implements PaymentAdapter {
     }
 
     const change = tender - req.amountCents;
-    const providerTxId = `cash_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
     return {
       success: true,
       status: 'approved',
       provider: this.providerName,
-      providerTxId,
+      providerTxId: `cash_${req.saleId}`,
       changeAmountCents: change,
-      deviceInstructions: change > 0 ? `Please give customer R${(change / 100).toFixed(2)} change.` : 'Exact amount tendered.',
+      deviceInstructions: change > 0 ? `Give the customer R${(change / 100).toFixed(2)} change.` : 'Exact amount tendered.',
     };
   }
 
   async verify(req: PaymentVerifyRequest): Promise<PaymentVerifyResponse> {
-    return {
-      verified: true,
-      status: 'approved',
-      amountCents: 0,
-      providerTxId: req.providerTxId,
-    };
+    // A cash sale is confirmed by the cashier at the moment of sale.
+    return { verified: true, status: 'approved', amountCents: 0, providerTxId: req.providerTxId };
   }
 
   async refund(req: PaymentRefundRequest): Promise<PaymentRefundResponse> {
     return {
       success: true,
-      status: 'refunded',
+      status: 'manual',
       amountCents: req.amountCents,
-      refundTxId: `cash_ref_${Date.now()}`,
+      refundTxId: `cash_ref_${req.saleId}_${Date.now()}`,
+      instructions: `Give the customer R${(req.amountCents / 100).toFixed(2)} back from the cash drawer.`,
     };
   }
 }

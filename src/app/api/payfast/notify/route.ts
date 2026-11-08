@@ -133,92 +133,56 @@ export async function POST(request: NextRequest) {
     const paymentRef = payfastData.m_payment_id as string;
     const normalizedStatus = String(paymentStatus || '').trim().toUpperCase();
 
-    // POS Checkout ITN Handling (QR / Online Fallback)
+    // POS till sale paid by PayFast link / QR (only reachable when platform
+    // collection is approved, or against the sandbox in development).
+    //
+    // Completed only here, from a validated ITN, and only if the amount is
+    // exactly the sale total and the reference matches the sale. The status
+    // change is conditional, so a re-delivered ITN does nothing.
     if (payfastData.custom_str3 === 'pos_checkout') {
       const saleId = (payfastData.custom_str1 || '').trim();
       const businessId = (payfastData.custom_str2 || '').trim();
       const pfReference = String(payfastData.pf_payment_id || '').trim();
+      const uuidRe = /^[0-9a-f-]{36}$/i;
 
-      if (!saleId || !businessId) {
-        console.error('POS Checkout ITN missing saleId or businessId:', payfastData);
-        return NextResponse.json({ error: 'Missing POS sale metadata' }, { status: 400 });
+      if (!uuidRe.test(saleId) || !uuidRe.test(businessId) || paymentRef !== `POS-${saleId}`) {
+        console.error('POS ITN with malformed or mismatched sale reference', { paymentRef, saleId });
+        await logItn('rejected_pos_reference');
+        return NextResponse.json({ success: true }, { status: 200 });
       }
 
+      const { completePendingSale, failPendingSale } = await import('@/lib/pos/checkout');
       if (normalizedStatus === 'COMPLETE') {
-        const [sale] = await db`
-          SELECT * FROM pos_sales WHERE id = ${saleId} AND business_id = ${businessId} LIMIT 1
-        `;
-
-        if (sale && sale.payment_status !== 'completed') {
-          // 1. Mark sale as completed
-          await db`
-            UPDATE pos_sales
-            SET payment_status = 'completed', updated_at = NOW()
-            WHERE id = ${saleId}
-          `;
-
-          // 2. Mark payment as approved
-          await db`
-            UPDATE pos_payments
-            SET status = 'approved', provider_tx_id = ${pfReference}, auth_code = ${pfReference}
-            WHERE sale_id = ${saleId}
-          `;
-
-          // 3. Deduct stock for all line items
-          const items = await db`SELECT * FROM pos_sale_items WHERE sale_id = ${saleId}`;
-          const { adjustPosStock, postPosSaleLedgerEntries } = await import('@/lib/pos/pos-service');
-          for (const it of items) {
-            if (it.product_id) {
-              await adjustPosStock(
-                businessId,
-                it.product_id,
-                -Number(it.quantity),
-                'sale',
-                `Sold on Receipt #${sale.receipt_number} via PayFast`,
-                sale.cashier_id,
-                sale.id
-              ).catch(() => {});
-            }
-          }
-
-          // 4. Post double-entry financial ledger entries
-          const [payment] = await db`SELECT id FROM pos_payments WHERE sale_id = ${saleId} LIMIT 1`;
-          await postPosSaleLedgerEntries(
-            businessId,
-            sale.id,
-            payment?.id || sale.id,
-            Number(sale.total_cents),
-            Number(sale.platform_fee_cents),
-            Number(sale.merchant_net_cents),
-            'qr_online',
-            sale.receipt_number
-          );
-
+        const paidCents = Math.round(parseFloat(payfastData.amount_gross || '0') * 100);
+        const outcome = await completePendingSale({ businessId, saleId, paidCents, providerReference: pfReference || paymentRef });
+        if (outcome.outcome === 'amount_mismatch' || outcome.outcome === 'not_found') {
+          await logBillingEvent({
+            event: 'payment_unapplied',
+            severity: 'critical',
+            businessId: outcome.outcome === 'not_found' ? null : businessId,
+            amountCents: paidCents,
+            reference: pfReference || paymentRef,
+            detail: outcome.outcome === 'not_found'
+              ? `PayFast reported POS payment ${paymentRef} (R${payfastData.amount_gross}) for a sale that does not exist. Refund it.`
+              : `PayFast reported R${payfastData.amount_gross} for POS sale ${saleId}, which totals R${(Number(outcome.sale?.total_cents) / 100).toFixed(2)}. The sale was NOT completed — reconcile and refund the difference.`,
+            alertAdmins: true,
+            alertTitle: 'A POS payment did not match its sale',
+          });
+        } else if (outcome.outcome === 'completed') {
           await logBillingEvent({
             event: 'charge_succeeded',
             severity: 'info',
             businessId,
-            amountCents: Number(sale.total_cents),
-            reference: pfReference || sale.receipt_number,
-            detail: `POS Sale Receipt #${sale.receipt_number} paid via PayFast QR (R${(Number(sale.total_cents) / 100).toFixed(2)}).`,
+            amountCents: paidCents,
+            reference: pfReference || paymentRef,
+            detail: `POS sale ${outcome.sale?.receipt_number} paid via PayFast (R${payfastData.amount_gross}).`,
           });
         }
-
-        return NextResponse.json({ success: true }, { status: 200 });
-      } else if (normalizedStatus === 'FAILED' || normalizedStatus === 'CANCELLED') {
-        await db`
-          UPDATE pos_sales
-          SET payment_status = ${normalizedStatus.toLowerCase()}, updated_at = NOW()
-          WHERE id = ${saleId}
-        `;
-        await db`
-          UPDATE pos_payments
-          SET status = 'declined'
-          WHERE sale_id = ${saleId}
-        `;
         return NextResponse.json({ success: true }, { status: 200 });
       }
-
+      if (normalizedStatus === 'FAILED' || normalizedStatus === 'CANCELLED') {
+        await failPendingSale(businessId, saleId, normalizedStatus === 'FAILED' ? 'failed' : 'cancelled');
+      }
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
@@ -283,6 +247,12 @@ export async function POST(request: NextRequest) {
         SET auto_renew = FALSE, subscription_status = 'cancelled', updated_at = NOW()
         WHERE payfast_token = ${payfastData.token || null}
       `.catch((err) => console.log('Subscription cancellation note:', err.message));
+      if (payfastData.token) {
+        // A POS subscription token, if it is one: access runs to period end.
+        const { markPosSubscriptionCancelledAtProvider } = await import('@/lib/pos/pos-billing');
+        await markPosSubscriptionCancelledAtProvider(String(payfastData.token))
+          .catch((err) => console.log('POS subscription cancellation note:', err.message));
+      }
       return NextResponse.json({ success: true }, { status: 200 });
     } else {
       // Something PayFast added that this code has never seen. Recording it
@@ -418,7 +388,13 @@ export async function POST(request: NextRequest) {
 
       if (dbStatus === 'failed') {
         let businessId: string | null = null;
-        if (isRenewal && userId) {
+        if (isRenewal && purchaseType.startsWith('pos_subscription_')) {
+          // A POS renewal failing must not flag the business's membership tier.
+          const { markPosRenewalFailed } = await import('@/lib/pos/pos-billing');
+          await markPosRenewalFailed({ token, businessId: (payfastData.custom_str1 || '').trim() || null, reference: pfReference || paymentRef })
+            .catch((err) => console.error('POS failed-renewal flag note:', err.message));
+          businessId = (payfastData.custom_str1 || '').trim() || null;
+        } else if (isRenewal && userId) {
           const flagged = (await db`
             UPDATE businesses
             SET payment_failed_at = COALESCE(payment_failed_at, NOW()),
@@ -751,6 +727,79 @@ export async function POST(request: NextRequest) {
             amountCents: Math.round(paidAmount * 100),
           });
           grantMessage = `Your ${info.label} storefront is ready. Add your products and publish it from your storefront page.`;
+        }
+      } else if (purchaseType.startsWith('pos_subscription_')) {
+        // VerifiedBizLink POS: setup fee + first month, then monthly renewals.
+        // Held to the server-created checkout amount (first charge) or the
+        // amount the merchant signed up at (renewal).
+        const { applyPosSubscriptionCharge } = await import('@/lib/pos/pos-billing');
+        const planKey = (payfastData.custom_str4 || purchaseType.slice('pos_subscription_'.length)).trim();
+        const result = await applyPosSubscriptionCharge({
+          userId,
+          businessId: (payfastData.custom_str1 || '').trim() || null,
+          planKey,
+          paidCents: amountCents,
+          token,
+          pfReference: pfReference || paymentRef,
+          isRenewal,
+          checkoutAmountCents: original ? Number(original.amount) : null,
+          setupFeeCents: Number(payfastData.custom_int1 || 0),
+        });
+        if (!result.ok) {
+          grantMessage = 'Your POS payment was received, but it could not be applied automatically. Our team has been alerted and will sort it out.';
+          await logBillingEvent({
+            event: 'payment_unapplied',
+            severity: 'critical',
+            businessId: result.businessId ?? null,
+            userId,
+            amountCents,
+            reference: pfReference || paymentRef,
+            detail: `POS ${planKey} charge ${pfReference || paymentRef} (R${payfastData.amount_gross}) was not applied: ${result.reason}.`,
+            alertAdmins: true,
+            alertTitle: 'A POS subscription payment was not applied',
+          });
+        } else {
+          grantMessage = isRenewal
+            ? `Your VerifiedBizLink POS subscription has renewed — R${payfastData.amount_gross} received.`
+            : 'VerifiedBizLink POS is active — your till is ready.';
+          if (!result.duplicate) {
+            await issueInvoice({
+              userId,
+              businessId: result.businessId ?? null,
+              tierKey: `pos_${planKey}`,
+              tierName: `VerifiedBizLink POS (${planKey})`,
+              description: isRenewal ? 'POS subscription — renewal' : 'POS setup fee and first month',
+              amountCents,
+              renewalPriceCents: Math.round(parseFloat(payfastData.recurring_amount || '0') * 100) || undefined,
+              intervalMonths: 1,
+              paymentReference: pfReference || paymentRef,
+              baseUrl: appUrlFromRequest(request),
+            }).catch((err) => console.log('POS invoice note:', err.message));
+          }
+        }
+      } else if (purchaseType === 'pos_fee_statement') {
+        const { applyFeeStatementPayment } = await import('@/lib/pos/pos-billing');
+        const result = await applyFeeStatementPayment({
+          userId,
+          businessId: (payfastData.custom_str1 || '').trim(),
+          statementId: (payfastData.custom_str4 || '').trim(),
+          paidCents: amountCents,
+          pfReference: pfReference || paymentRef,
+        });
+        if (!result.ok) {
+          grantMessage = 'Your fee payment was received, but it could not be matched to a statement. Our team has been alerted.';
+          await logBillingEvent({
+            event: 'payment_unapplied',
+            severity: 'critical',
+            userId,
+            amountCents,
+            reference: pfReference || paymentRef,
+            detail: `POS fee-statement payment ${pfReference || paymentRef} (R${payfastData.amount_gross}) was not applied: ${result.reason}.`,
+            alertAdmins: true,
+            alertTitle: 'A POS fee payment was not applied',
+          });
+        } else {
+          grantMessage = `Thank you — your VerifiedBizLink POS fee statement is paid (R${payfastData.amount_gross}).`;
         }
       } else if (purchaseType === 'verification_fee') {
         const paidAmount = parseFloat(payfastData.amount_gross as string);

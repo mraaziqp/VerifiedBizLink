@@ -62,6 +62,34 @@ jobs:
             exit 1
           fi
 
+  pos-billing:
+    name: POS subscription & fee-statement sweep
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sweep POS billing
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "APP_URL or CRON_SECRET is not set in repository secrets."
+            exit 1
+          fi
+
+          response=$(curl -sS -w '\n%{http_code}' --max-time 90 \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/pos-billing")
+          status=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "HTTP $status"
+          echo "$body"
+
+          if [ "$status" != "200" ]; then
+            echo "POS billing sweep failed."
+            exit 1
+          fi
+
   abandoned-signups:
     name: Chase abandoned signups
     runs-on: ubuntu-latest

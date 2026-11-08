@@ -1,24 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPosAuth } from '@/lib/pos/auth-helper';
+import { requirePosAccess } from '@/lib/pos/auth-helper';
 import { getPosSuppliers, createPosSupplier } from '@/lib/pos/pos-service';
+import { posErrorResponse, readJson } from '@/lib/pos/errors';
 
 export async function GET(req: NextRequest) {
-  const auth = await getPosAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const suppliers = await getPosSuppliers(auth.businessId);
-  return NextResponse.json({ suppliers });
+  const guard = await requirePosAccess(req, 'purchasing.read');
+  if (!guard.ok) return guard.response;
+  try {
+    return NextResponse.json({ suppliers: await getPosSuppliers(guard.auth.businessId) });
+  } catch (err) {
+    return posErrorResponse(err);
+  }
 }
 
 export async function POST(req: NextRequest) {
-  const auth = await getPosAuth(req);
-  if (!auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const body = await req.json().catch(() => ({}));
-  if (!body.name) {
-    return NextResponse.json({ error: 'Supplier company name is required.' }, { status: 400 });
+  const guard = await requirePosAccess(req, 'purchasing.write');
+  if (!guard.ok) return guard.response;
+  try {
+    const body = await readJson(req);
+    return NextResponse.json({ success: true, supplier: await createPosSupplier(guard.auth.businessId, body) }, { status: 201 });
+  } catch (err) {
+    return posErrorResponse(err);
   }
-
-  const supplier = await createPosSupplier(auth.businessId, body);
-  return NextResponse.json({ success: true, supplier });
 }
