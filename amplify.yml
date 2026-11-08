@@ -56,6 +56,11 @@ frontend:
         - env | grep -e '^TITAN_EMAIL_ADDRESS=' -e '^TITAN_EMAIL_PASSWORD=' -e '^SMTP_HOST=' -e '^SMTP_PORT=' -e '^SMTP_USER=' -e '^SMTP_PASS=' -e '^SMTP_PASSWORD=' -e '^SUPPORT_EMAIL=' >> .env.production || true
         - env | grep -e '^GOOGLE_API_KEY=' -e '^GEMINI_API_KEY=' -e '^SUPABASE_SERVICE_ROLE_KEY=' >> .env.production || true
         - env | grep -e '^PAYFAST_' >> .env.production || true
+        # POS Decision Gate 1: set to "true" in the Amplify console ONLY after
+        # PayFast has approved in writing collecting POS sales on merchants'
+        # behalf. POS_ALLOW_SANDBOX is deliberately not passed — the sandbox
+        # never runs in production whatever it is set to.
+        - env | grep -e '^POS_PLATFORM_COLLECTION_APPROVED=' >> .env.production || true
         # Shared rate-limit store (optional; falls back to Postgres) and the
         # SMTP certificate escape hatch (see src/lib/email.ts).
         - env | grep -e '^UPSTASH_REDIS_REST_URL=' -e '^UPSTASH_REDIS_REST_TOKEN=' -e '^SMTP_ALLOW_INVALID_CERT=' >> .env.production || true

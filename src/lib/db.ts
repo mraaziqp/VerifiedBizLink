@@ -1,4 +1,12 @@
-import { neon, Pool } from '@neondatabase/serverless';
+import { neon, neonConfig, Pool } from '@neondatabase/serverless';
+import ws from 'ws';
+
+// The transaction Pool talks to Neon over WebSockets. Node 22+ has a global
+// WebSocket; older runtimes (the hosting runtime's Node version is not pinned
+// in this repo) need the `ws` package, as Neon's docs prescribe.
+if (typeof globalThis.WebSocket === 'undefined') {
+  neonConfig.webSocketConstructor = ws;
+}
 
 let _sql: ReturnType<typeof neon> | null = null;
 

@@ -2,6 +2,10 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // Neon's WebSocket Pool (POS transactions) uses `ws` on Node runtimes
+  // without a global WebSocket. Loaded from node_modules at runtime, not
+  // bundled, so its optional native add-ons don't break the build.
+  serverExternalPackages: ['ws'],
   typescript: {
     ignoreBuildErrors: false,
   },
