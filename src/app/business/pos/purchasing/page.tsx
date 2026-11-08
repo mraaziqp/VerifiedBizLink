@@ -1,376 +1,239 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import {
-  ArrowLeft, Plus, Truck, PackageCheck, Loader2,
-  Building2, Phone, Mail, CheckCircle2
-} from 'lucide-react';
+import { Plus, Loader2, Truck, PackageCheck, Trash2, Download, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { GlassBackground } from '@/components/shared/glass-ui';
 import { useToast } from '@/hooks/use-toast';
+import { posFetch, zar } from '@/lib/pos/client';
+import { PosHeader, usePosContext } from '@/components/pos/pos-header';
 import { cn } from '@/lib/utils';
 
-interface Supplier {
-  id: string;
-  name: string;
-  contact_person?: string;
-  email?: string;
-  phone?: string;
-  address?: string;
-}
+interface Supplier { id: string; name: string; contact_person?: string; phone?: string; email?: string; order_count: number; total_purchased_cents: number }
+interface POItem { id: string; product_id: string; product_name: string; unit: string; quantity_ordered: number; quantity_received: number; unit_cost_cents: number; total_cost_cents: number }
+interface PO { id: string; po_number: string; supplier_name: string; status: string; total_cost_cents: number; ordered_at: string; received_at?: string; notes?: string; items: POItem[] }
+interface Product { id: string; name: string; cost_price_cents: number; unit: string }
 
-interface PurchaseOrder {
-  id: string;
-  po_number: string;
-  supplier_name: string;
-  status: 'draft' | 'ordered' | 'received' | 'cancelled';
-  total_cost_cents: number;
-  ordered_at: string;
-  received_at?: string;
-  item_count: number;
-}
+const STATUS_CLS: Record<string, string> = {
+  ordered: 'bg-blue-100 text-blue-800', partially_received: 'bg-amber-100 text-amber-900',
+  received: 'bg-emerald-100 text-emerald-800', cancelled: 'bg-slate-200 text-slate-600',
+};
+const STATUS_LABEL: Record<string, string> = { ordered: 'Ordered', partially_received: 'Part received', received: 'Received', cancelled: 'Cancelled' };
 
 export default function PosPurchasingPage() {
   const { toast } = useToast();
+  const { ctx, can } = usePosContext();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [orders, setOrders] = useState<PO[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Supplier Modal
-  const [supplierModal, setSupplierModal] = useState(false);
-  const [newSupplier, setNewSupplier] = useState({
-    name: '',
-    contactPerson: '',
-    email: '',
-    phone: '',
-    address: '',
-  });
-  const [savingSupplier, setSavingSupplier] = useState(false);
+  const [supplierOpen, setSupplierOpen] = useState(false);
+  const [supplier, setSupplier] = useState({ name: '', contactPerson: '', phone: '', email: '', address: '' });
+  const [poOpen, setPoOpen] = useState(false);
+  const [poSupplier, setPoSupplier] = useState('');
+  const [poLines, setPoLines] = useState<{ productId: string; quantity: string; unitCost: string }[]>([]);
+  const [poNotes, setPoNotes] = useState('');
+  const [receiveFor, setReceiveFor] = useState<PO | null>(null);
+  const [receiveQty, setReceiveQty] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false);
 
-  // Receiving Action
-  const [receivingId, setReceivingId] = useState<string | null>(null);
+  const load = useCallback(async () => {
+    const [s, o, p] = await Promise.all([posFetch('/api/pos/suppliers'), posFetch('/api/pos/purchasing'), posFetch('/api/pos/products')]);
+    if (s.ok) setSuppliers((s.data.suppliers as Supplier[]) ?? []);
+    if (o.ok) setOrders((o.data.orders as PO[]) ?? []);
+    if (p.ok) setProducts((p.data.products as Product[]) ?? []);
+    setLoading(false);
+  }, []);
 
-  const loadData = useCallback(async () => {
-    try {
-      const [suppRes, poRes] = await Promise.all([
-        fetch('/api/pos/suppliers').catch(() => null),
-        fetch('/api/pos/purchasing').catch(() => null),
-      ]);
+  useEffect(() => { load(); }, [load]);
 
-      if (suppRes?.ok) {
-        const suppData = await suppRes.json();
-        setSuppliers(suppData.suppliers || []);
-      }
-      if (poRes?.ok) {
-        const poData = await poRes.json();
-        setOrders(poData.orders || []);
-      }
-    } catch {
-      toast({ title: 'Could not load purchasing data', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
+  const writable = can('purchasing.write') && ctx?.access.mode === 'full';
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const handleCreateSupplier = async () => {
-    if (!newSupplier.name.trim()) {
-      toast({ title: 'Supplier company name is required', variant: 'destructive' });
-      return;
-    }
-
-    setSavingSupplier(true);
-    try {
-      const res = await fetch('/api/pos/suppliers', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSupplier),
-      });
-
-      if (res.ok) {
-        toast({ title: 'Supplier added successfully' });
-        setSupplierModal(false);
-        setNewSupplier({ name: '', contactPerson: '', email: '', phone: '', address: '' });
-        loadData();
-      }
-    } catch {
-      toast({ title: 'Error adding supplier', variant: 'destructive' });
-    } finally {
-      setSavingSupplier(false);
-    }
+  const saveSupplier = async () => {
+    setBusy(true);
+    const r = await posFetch('/api/pos/suppliers', { method: 'POST', json: supplier });
+    setBusy(false);
+    if (!r.ok) return toast({ title: 'Supplier not saved', description: String(r.data.error ?? ''), variant: 'destructive' });
+    setSupplierOpen(false);
+    setSupplier({ name: '', contactPerson: '', phone: '', email: '', address: '' });
+    load();
   };
 
-  const handleReceiveStock = async (poId: string) => {
-    setReceivingId(poId);
-    try {
-      const res = await fetch('/api/pos/purchasing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'receive', poId }),
-      });
+  const openPo = () => {
+    setPoSupplier(suppliers[0]?.id ?? '');
+    setPoLines([{ productId: products[0]?.id ?? '', quantity: '1', unitCost: products[0] ? (Number(products[0].cost_price_cents) / 100).toFixed(2) : '' }]);
+    setPoNotes('');
+    setPoOpen(true);
+  };
 
-      if (res.ok) {
-        toast({
-          title: 'Stock received into inventory!',
-          description: 'Products updated and logged to the inventory audit trail.',
-        });
-        loadData();
-      } else {
-        toast({ title: 'Could not receive order', variant: 'destructive' });
-      }
-    } catch {
-      toast({ title: 'Network error', variant: 'destructive' });
-    } finally {
-      setReceivingId(null);
+  const poTotal = poLines.reduce((a, l) => a + Math.round((parseFloat(l.unitCost) || 0) * 100) * (parseFloat(l.quantity) || 0), 0);
+
+  const savePo = async () => {
+    const items = poLines.map((l) => ({ productId: l.productId, quantity: parseFloat(l.quantity), unitCostCents: Math.round(parseFloat(l.unitCost) * 100) }));
+    if (!poSupplier || items.some((i) => !i.productId || !(i.quantity > 0) || !(i.unitCostCents >= 0))) {
+      return toast({ title: 'Choose a supplier and fill in every line', variant: 'destructive' });
     }
+    setBusy(true);
+    const r = await posFetch('/api/pos/purchasing', { method: 'POST', json: { supplierId: poSupplier, items, notes: poNotes } });
+    setBusy(false);
+    if (!r.ok) return toast({ title: 'Order not saved', description: String(r.data.error ?? ''), variant: 'destructive' });
+    toast({ title: `Purchase order ${(r.data.order as PO).po_number} created` });
+    setPoOpen(false);
+    load();
+  };
+
+  const openReceive = (po: PO) => {
+    setReceiveFor(po);
+    setReceiveQty(Object.fromEntries(po.items.map((i) => [i.id, String(Number(i.quantity_ordered) - Number(i.quantity_received))])));
+  };
+
+  const receive = async () => {
+    if (!receiveFor) return;
+    const items = receiveFor.items.map((i) => ({ itemId: i.id, quantity: parseFloat(receiveQty[i.id] || '0') })).filter((i) => i.quantity > 0);
+    if (!items.length) return toast({ title: 'Enter what arrived', variant: 'destructive' });
+    setBusy(true);
+    const r = await posFetch('/api/pos/purchasing', { method: 'POST', json: { action: 'receive', poId: receiveFor.id, items } });
+    setBusy(false);
+    if (!r.ok) return toast({ title: 'Not received', description: String(r.data.error ?? ''), variant: 'destructive' });
+    toast({ title: 'Stock received', description: 'Stock levels and average cost prices are updated.' });
+    setReceiveFor(null);
+    load();
+  };
+
+  const cancelPo = async (po: PO) => {
+    const r = await posFetch('/api/pos/purchasing', { method: 'POST', json: { action: 'cancel', poId: po.id } });
+    if (!r.ok) return toast({ title: 'Not cancelled', description: String(r.data.error ?? ''), variant: 'destructive' });
+    load();
   };
 
   return (
     <GlassBackground>
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 space-y-6">
-        {/* Navigation & Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Button asChild variant="ghost" size="icon" className="rounded-xl">
-              <Link href="/business/pos">
-                <ArrowLeft className="h-5 w-5 text-slate-700" />
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-2xl font-black text-slate-900">Suppliers & Purchasing</h1>
-              <p className="text-xs text-slate-500">Procure inventory, manage vendor contacts, and receive goods into stock.</p>
-            </div>
-          </div>
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 space-y-6">
+        <PosHeader
+          title="Suppliers & purchases"
+          subtitle="Order stock, receive deliveries (in parts if needed) and keep supplier records."
+          ctx={ctx}
+          actions={writable ? (
+            <>
+              <Button variant="outline" onClick={() => setSupplierOpen(true)} className="rounded-xl text-xs"><Building2 className="h-4 w-4 mr-1" /> Add supplier</Button>
+              <Button onClick={openPo} disabled={!suppliers.length || !products.length} className="rounded-xl bg-amber-400 text-slate-950 font-black text-xs"><Plus className="h-4 w-4 mr-1" /> New order</Button>
+            </>
+          ) : null}
+        />
 
-          <div className="flex items-center gap-2">
-            <Button
-              onClick={() => setSupplierModal(true)}
-              className="rounded-xl bg-amber-400 font-extrabold text-slate-950 hover:bg-amber-300 text-xs shadow-xs"
-            >
-              <Plus className="h-4 w-4 mr-1.5" /> Add New Supplier
-            </Button>
-          </div>
-        </div>
-
-        {/* Suppliers Strip */}
-        <div className="bg-white rounded-3xl border border-slate-200 p-5 shadow-xs space-y-3">
-          <h2 className="text-sm font-black text-slate-900 flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-amber-500" /> Registered Suppliers ({suppliers.length})
-          </h2>
-
-          {suppliers.length === 0 ? (
-            <p className="text-xs text-slate-400">No suppliers registered yet. Tap &quot;Add New Supplier&quot; to begin.</p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {suppliers.map((s) => (
-                <div key={s.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3.5 space-y-1">
-                  <p className="font-bold text-slate-900 text-xs">{s.name}</p>
-                  {s.contact_person && (
-                    <p className="text-[11px] text-slate-500">Contact: {s.contact_person}</p>
-                  )}
-                  <div className="flex items-center gap-3 pt-1 text-[11px] text-slate-600">
-                    {s.phone && (
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3 w-3 text-slate-400" /> {s.phone}
-                      </span>
-                    )}
-                    {s.email && (
-                      <span className="flex items-center gap-1 truncate max-w-xs">
-                        <Mail className="h-3 w-3 text-slate-400" /> {s.email}
-                      </span>
-                    )}
+        {loading ? (
+          <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-amber-500" /></div>
+        ) : (
+          <div className="grid gap-6 lg:grid-cols-3">
+            <section className="lg:col-span-2 space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-black text-slate-900">Purchase orders</h2>
+                {can('export') && <a href="/api/pos/export?type=purchases" className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 hover:underline"><Download className="h-3.5 w-3.5" /> CSV</a>}
+              </div>
+              {orders.length === 0 ? (
+                <p className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">{suppliers.length ? 'No orders yet.' : 'Add a supplier first, then create an order.'}</p>
+              ) : orders.map((po) => (
+                <div key={po.id} className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="font-black text-slate-900">{po.po_number} · {po.supplier_name}</p>
+                      <p className="text-xs text-slate-500">{new Date(po.ordered_at).toLocaleDateString('en-ZA')} · {zar(po.total_cost_cents)}</p>
+                    </div>
+                    <span className={cn('rounded-full px-2 py-0.5 text-xs font-bold', STATUS_CLS[po.status])}>{STATUS_LABEL[po.status] ?? po.status}</span>
                   </div>
+                  <ul className="text-xs text-slate-600">
+                    {po.items.map((i) => <li key={i.id}>{i.product_name}: {i.quantity_received}/{i.quantity_ordered} {i.unit} @ {zar(i.unit_cost_cents)}</li>)}
+                  </ul>
+                  {writable && ['ordered', 'partially_received'].includes(po.status) && (
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => openReceive(po)} className="h-8 rounded-lg bg-emerald-600 text-white text-xs"><PackageCheck className="h-3.5 w-3.5 mr-1" /> Receive</Button>
+                      {po.status === 'ordered' && <Button size="sm" variant="outline" onClick={() => cancelPo(po)} className="h-8 rounded-lg text-xs">Cancel</Button>}
+                    </div>
+                  )}
                 </div>
               ))}
-            </div>
-          )}
-        </div>
+            </section>
 
-        {/* Purchase Orders List */}
-        <div className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-xs">
-          <div className="p-5 border-b border-slate-200 flex items-center justify-between">
-            <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-              <Truck className="h-5 w-5 text-indigo-600" /> Purchase Orders & Deliveries
-            </h2>
+            <section className="space-y-3">
+              <h2 className="text-base font-black text-slate-900">Suppliers</h2>
+              {suppliers.length === 0 ? <p className="rounded-2xl border border-slate-200 bg-white p-6 text-center text-xs text-slate-500">No suppliers yet.</p> : suppliers.map((s) => (
+                <div key={s.id} className="rounded-2xl border border-slate-200 bg-white p-4 text-xs">
+                  <p className="flex items-center gap-1.5 font-black text-slate-900"><Truck className="h-4 w-4 text-indigo-500" /> {s.name}</p>
+                  <p className="text-slate-500">{[s.contact_person, s.phone, s.email].filter(Boolean).join(' · ') || 'No contact details'}</p>
+                  <p className="mt-1 text-slate-600">{s.order_count} order{Number(s.order_count) === 1 ? '' : 's'} · {zar(s.total_purchased_cents)} purchased</p>
+                </div>
+              ))}
+            </section>
           </div>
-
-          {loading ? (
-            <div className="flex h-64 items-center justify-center">
-              <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
-            </div>
-          ) : orders.length === 0 ? (
-            <div className="p-12 text-center text-slate-500">
-              <Truck className="h-12 w-12 text-slate-300 mx-auto mb-2" />
-              <p className="text-base font-bold text-slate-900">No purchase orders found</p>
-              <p className="text-xs text-slate-400 mt-1">
-                Purchase orders record incoming supplier shipments and automatically restock items.
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-extrabold">
-                  <tr>
-                    <th className="py-3.5 px-4">PO Number</th>
-                    <th className="py-3.5 px-4">Supplier</th>
-                    <th className="py-3.5 px-4">Date Ordered</th>
-                    <th className="py-3.5 px-4 text-right">Total Cost</th>
-                    <th className="py-3.5 px-4 text-center">Status</th>
-                    <th className="py-3.5 px-4 text-right">Receiving Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {orders.map((po) => {
-                    const isReceived = po.status === 'received';
-
-                    return (
-                      <tr key={po.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-900">
-                          {po.po_number}
-                        </td>
-                        <td className="py-3.5 px-4 font-bold text-slate-800">
-                          {po.supplier_name}
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-500">
-                          {po.ordered_at ? new Date(po.ordered_at).toLocaleDateString('en-ZA') : '—'}
-                        </td>
-                        <td className="py-3.5 px-4 text-right font-black text-slate-900">
-                          R{(po.total_cost_cents / 100).toFixed(2)}
-                        </td>
-                        <td className="py-3.5 px-4 text-center">
-                          <span
-                            className={cn(
-                              'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black',
-                              isReceived
-                                ? 'bg-emerald-100 text-emerald-800'
-                                : 'bg-amber-100 text-amber-800'
-                            )}
-                          >
-                            {isReceived ? 'Received & Stocked' : 'Ordered / Pending'}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 text-right">
-                          {isReceived ? (
-                            <span className="text-[11px] font-bold text-slate-400 flex items-center justify-end gap-1">
-                              <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Completed
-                            </span>
-                          ) : (
-                            <Button
-                              size="sm"
-                              disabled={receivingId === po.id}
-                              onClick={() => handleReceiveStock(po.id)}
-                              className="rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-extrabold text-xs h-8 shadow-xs"
-                            >
-                              {receivingId === po.id ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <>
-                                  <PackageCheck className="h-3.5 w-3.5 mr-1" /> Receive Stock
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* ======================= ADD SUPPLIER MODAL ======================= */}
-        <Dialog open={supplierModal} onOpenChange={setSupplierModal}>
-          <DialogContent className="max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-black text-slate-900">Add Supplier</DialogTitle>
-              <DialogDescription className="text-xs text-slate-500">
-                Register vendor details for purchasing and goods receipts.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-3 py-2 text-xs">
-              <div>
-                <label className="font-bold text-slate-700">Company Name</label>
-                <Input
-                  value={newSupplier.name}
-                  onChange={(e) => setNewSupplier((s) => ({ ...s, name: e.target.value }))}
-                  placeholder="e.g. Cape Roasters Wholesale"
-                  className="mt-1 rounded-xl"
-                />
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700">Contact Person (Optional)</label>
-                <Input
-                  value={newSupplier.contactPerson}
-                  onChange={(e) => setNewSupplier((s) => ({ ...s, contactPerson: e.target.value }))}
-                  placeholder="e.g. John Smith"
-                  className="mt-1 rounded-xl"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-bold text-slate-700">Phone</label>
-                  <Input
-                    value={newSupplier.phone}
-                    onChange={(e) => setNewSupplier((s) => ({ ...s, phone: e.target.value }))}
-                    placeholder="082 123 4567"
-                    className="mt-1 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="font-bold text-slate-700">Email</label>
-                  <Input
-                    type="email"
-                    value={newSupplier.email}
-                    onChange={(e) => setNewSupplier((s) => ({ ...s, email: e.target.value }))}
-                    placeholder="orders@supplier.co.za"
-                    className="mt-1 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="font-bold text-slate-700">Physical Address / Notes</label>
-                <Input
-                  value={newSupplier.address}
-                  onChange={(e) => setNewSupplier((s) => ({ ...s, address: e.target.value }))}
-                  placeholder="e.g. Unit 4, Industrial Park, Johannesburg"
-                  className="mt-1 rounded-xl"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setSupplierModal(false)}
-                  className="rounded-xl text-xs"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleCreateSupplier}
-                  disabled={savingSupplier}
-                  className="rounded-xl bg-amber-400 font-extrabold text-slate-950 hover:bg-amber-300 text-xs shadow-xs"
-                >
-                  {savingSupplier ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Supplier'}
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+        )}
       </div>
+
+      <Dialog open={supplierOpen} onOpenChange={setSupplierOpen}>
+        <DialogContent className="max-w-md rounded-3xl bg-white p-6">
+          <DialogHeader><DialogTitle className="text-lg font-black">Add supplier</DialogTitle><DialogDescription className="text-xs">Only the name is required.</DialogDescription></DialogHeader>
+          <div className="space-y-2">
+            {([['name', 'Company name'], ['contactPerson', 'Contact person'], ['phone', 'Phone'], ['email', 'Email'], ['address', 'Address']] as const).map(([k, label]) => (
+              <Input key={k} value={supplier[k]} onChange={(e) => setSupplier((s) => ({ ...s, [k]: e.target.value }))} placeholder={label} aria-label={label} className="rounded-xl" />
+            ))}
+          </div>
+          <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setSupplierOpen(false)} className="rounded-xl text-xs">Cancel</Button><Button onClick={saveSupplier} disabled={busy || !supplier.name.trim()} className="rounded-xl bg-amber-400 text-slate-950 font-bold text-xs">Save</Button></div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={poOpen} onOpenChange={setPoOpen}>
+        <DialogContent className="max-w-lg rounded-3xl bg-white p-6">
+          <DialogHeader><DialogTitle className="text-lg font-black">New purchase order</DialogTitle><DialogDescription className="text-xs">Stock is added only when you receive the delivery.</DialogDescription></DialogHeader>
+          <div className="space-y-3 text-xs">
+            <label className="block font-bold text-slate-700">Supplier
+              <select value={poSupplier} onChange={(e) => setPoSupplier(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 p-2">
+                {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </label>
+            {poLines.map((l, idx) => (
+              <div key={idx} className="grid grid-cols-[1fr_4.5rem_5.5rem_auto] items-end gap-2">
+                <select value={l.productId} onChange={(e) => {
+                  const prod = products.find((p) => p.id === e.target.value);
+                  setPoLines((ls) => ls.map((x, i) => (i === idx ? { ...x, productId: e.target.value, unitCost: prod ? (Number(prod.cost_price_cents) / 100).toFixed(2) : x.unitCost } : x)));
+                }} className="rounded-xl border border-slate-200 p-2" aria-label="Product">
+                  {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <Input value={l.quantity} onChange={(e) => setPoLines((ls) => ls.map((x, i) => (i === idx ? { ...x, quantity: e.target.value } : x)))} type="number" inputMode="decimal" aria-label="Quantity" className="rounded-xl" />
+                <Input value={l.unitCost} onChange={(e) => setPoLines((ls) => ls.map((x, i) => (i === idx ? { ...x, unitCost: e.target.value } : x)))} type="number" inputMode="decimal" aria-label="Unit cost in rand" placeholder="R / unit" className="rounded-xl" />
+                <button onClick={() => setPoLines((ls) => ls.filter((_, i) => i !== idx))} disabled={poLines.length === 1} className="p-2 text-slate-400 hover:text-rose-600" aria-label="Remove line"><Trash2 className="h-4 w-4" /></button>
+              </div>
+            ))}
+            <Button variant="outline" size="sm" onClick={() => setPoLines((ls) => [...ls, { productId: products[0]?.id ?? '', quantity: '1', unitCost: '' }])} className="rounded-xl text-xs"><Plus className="h-3.5 w-3.5 mr-1" /> Add line</Button>
+            <Input value={poNotes} onChange={(e) => setPoNotes(e.target.value)} placeholder="Notes (optional)" className="rounded-xl" />
+            <p className="text-right text-sm font-black">Total {zar(poTotal)}</p>
+          </div>
+          <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setPoOpen(false)} className="rounded-xl text-xs">Cancel</Button><Button onClick={savePo} disabled={busy} className="rounded-xl bg-amber-400 text-slate-950 font-bold text-xs">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create order'}</Button></div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!receiveFor} onOpenChange={(o) => { if (!o) setReceiveFor(null); }}>
+        <DialogContent className="max-w-md rounded-3xl bg-white p-6">
+          {receiveFor && (
+            <>
+              <DialogHeader><DialogTitle className="text-lg font-black">Receive {receiveFor.po_number}</DialogTitle><DialogDescription className="text-xs">Enter what actually arrived. Anything left stays on order.</DialogDescription></DialogHeader>
+              <div className="space-y-2 text-xs">
+                {receiveFor.items.map((i) => {
+                  const left = Number(i.quantity_ordered) - Number(i.quantity_received);
+                  return (
+                    <div key={i.id} className="flex items-center justify-between gap-2">
+                      <span>{i.product_name} <span className="text-slate-500">({left} outstanding)</span></span>
+                      <Input type="number" inputMode="decimal" min={0} max={left} value={receiveQty[i.id] ?? ''} disabled={left <= 0} onChange={(e) => setReceiveQty((q) => ({ ...q, [i.id]: e.target.value }))} className="h-8 w-24 rounded-lg text-right" aria-label={`Received quantity for ${i.product_name}`} />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setReceiveFor(null)} className="rounded-xl text-xs">Cancel</Button><Button onClick={receive} disabled={busy} className="rounded-xl bg-emerald-600 text-white font-bold text-xs">{busy ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Receive into stock'}</Button></div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </GlassBackground>
   );
 }

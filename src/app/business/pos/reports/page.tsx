@@ -1,282 +1,158 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import {
-  ArrowLeft, BarChart3,
-  CreditCard, Banknote, QrCode, BookOpen, Loader2
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Loader2, Download, TrendingUp, TrendingDown } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { GlassBackground } from '@/components/shared/glass-ui';
-import { useToast } from '@/hooks/use-toast';
+import { zar, METHOD_LABELS } from '@/lib/pos/client';
+import { PosHeader, usePosContext } from '@/components/pos/pos-header';
 import { cn } from '@/lib/utils';
 
+interface Dashboard {
+  from: string;
+  to: string;
+  transactions: number;
+  grossSalesCents: number;
+  refundsCents: number;
+  netSalesCents: number;
+  vatCents: number;
+  costOfGoodsCents: number;
+  grossProfitCents: number;
+  platformFeesCents: number;
+  expensesCents: number;
+  netProfitCents: number;
+  averageSaleCents: number;
+  byMethod: { payment_method: string; count: number; net_cents: number }[];
+  daily: { day: string; transactions: number; net_sales_cents: number }[];
+  topProducts: { product_name: string; quantity: number; sales_cents: number; gross_profit_cents: number }[];
+  byCashier: { cashier: string; transactions: number; net_sales_cents: number }[];
+  previous: Dashboard | null;
+}
+
+const saToday = () => new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' })).toISOString().slice(0, 10);
+const shift = (iso: string, days: number) => new Date(Date.parse(iso) + days * 86400000).toISOString().slice(0, 10);
+
 export default function PosReportsPage() {
-  const { toast } = useToast();
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [activeTab, setActiveTab] = useState<'daily' | 'ledger'>('daily');
+  const { ctx, can } = usePosContext();
+  const today = saToday();
+  const [from, setFrom] = useState(today);
+  const [to, setTo] = useState(today);
+  const [data, setData] = useState<Dashboard | null>(null);
+  const [ledger, setLedger] = useState<{ account_name: string; debit_cents: number; credit_cents: number; balance_cents: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [dailyData, setDailyData] = useState<{
-    summary?: {
-      total_transactions: number;
-      gross_revenue_cents: number;
-      platform_fees_cents: number;
-      net_revenue_cents: number;
-      average_ticket_cents: number;
-      cash_total_cents: number;
-      card_tap_total_cents: number;
-      qr_total_cents: number;
-      cash_transactions: number;
-      card_tap_transactions: number;
-      qr_transactions: number;
-    };
-    topProducts?: Array<{ product_name: string; total_quantity: number; total_sales_cents: number }>;
-  } | null>(null);
-
-  const [ledgerEntries, setLedgerEntries] = useState<Array<{
-    id: string;
-    entry_type: string;
-    debit_cents: number;
-    credit_cents: number;
-    balance_cents: number;
-    description: string;
-    created_at: string;
-  }>>([]);
-
-  const loadReport = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
-    try {
-      if (activeTab === 'daily') {
-        const res = await fetch(`/api/pos/reports?type=daily&date=${selectedDate}`);
-        if (res.ok) {
-          const data = await res.json();
-          setDailyData(data);
-        }
-      } else {
-        const res = await fetch('/api/pos/reports?type=ledger');
-        if (res.ok) {
-          const data = await res.json();
-          setLedgerEntries(data.ledger || []);
-        }
-      }
-    } catch {
-      toast({ title: 'Error loading report', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  }, [activeTab, selectedDate, toast]);
+    const [d, l] = await Promise.all([
+      fetch(`/api/pos/reports?type=dashboard&from=${from}&to=${to}`).then((r) => (r.ok ? r.json() : null)),
+      fetch('/api/pos/reports?type=trial_balance').then((r) => (r.ok ? r.json() : null)),
+    ]);
+    setData(d);
+    setLedger(l?.accounts ?? []);
+    setLoading(false);
+  }, [from, to]);
+  useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    loadReport();
-  }, [loadReport]);
-
-  const s = dailyData?.summary;
-  const grossRand = s ? (Number(s.gross_revenue_cents) / 100).toFixed(2) : '0.00';
-  const netRand = s ? (Number(s.net_revenue_cents) / 100).toFixed(2) : '0.00';
-  const feeRand = s ? (Number(s.platform_fees_cents) / 100).toFixed(2) : '0.00';
-  const avgRand = s ? (Number(s.average_ticket_cents) / 100).toFixed(2) : '0.00';
+  const presets: [string, string, string][] = [
+    ['Today', today, today],
+    ['7 days', shift(today, -6), today],
+    ['This month', `${today.slice(0, 7)}-01`, today],
+    ['30 days', shift(today, -29), today],
+  ];
+  const maxDay = Math.max(1, ...(data?.daily ?? []).map((d) => Number(d.net_sales_cents)));
 
   return (
     <GlassBackground>
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 space-y-6">
-        {/* Navigation & Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Button asChild variant="ghost" size="icon" className="rounded-xl">
-              <Link href="/business/pos">
-                <ArrowLeft className="h-5 w-5 text-slate-700" />
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-2xl font-black text-slate-900">Reports & Financial Ledger</h1>
-              <p className="text-xs text-slate-500">Track daily sales, 1% platform fee transparency, and audit ledgers.</p>
-            </div>
-          </div>
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 space-y-6">
+        <PosHeader
+          title="Reports"
+          subtitle="Sales are not profit — each figure below is labelled for what it is."
+          ctx={ctx}
+          actions={can('export') ? <a href="/api/pos/export?type=ledger" className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 hover:underline"><Download className="h-3.5 w-3.5" /> Ledger CSV</a> : null}
+        />
 
-          <div className="flex items-center gap-2">
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="h-9 rounded-xl border-slate-300 bg-white text-xs font-bold w-40"
-            />
-          </div>
+        <div className="flex flex-wrap items-end gap-2">
+          {presets.map(([l, f, t]) => (
+            <button key={l} onClick={() => { setFrom(f); setTo(t); }} className={cn('rounded-xl px-3 py-2 text-xs font-bold', from === f && to === t ? 'bg-amber-400 text-slate-950' : 'bg-white border border-slate-200 text-slate-600')}>{l}</button>
+          ))}
+          <label className="text-xs font-bold text-slate-600">From <Input type="date" value={from} max={to} onChange={(e) => setFrom(e.target.value)} className="rounded-xl bg-white" /></label>
+          <label className="text-xs font-bold text-slate-600">To <Input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} className="rounded-xl bg-white" /></label>
         </div>
 
-        {/* Tab Toggle */}
-        <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
-          <button
-            onClick={() => setActiveTab('daily')}
-            className={cn(
-              'px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5',
-              activeTab === 'daily'
-                ? 'bg-amber-400 text-slate-950 shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            )}
-          >
-            <BarChart3 className="h-4 w-4" /> Daily Sales Performance
-          </button>
-          <button
-            onClick={() => setActiveTab('ledger')}
-            className={cn(
-              'px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5',
-              activeTab === 'ledger'
-                ? 'bg-amber-400 text-slate-950 shadow-xs'
-                : 'text-slate-600 hover:bg-slate-100'
-            )}
-          >
-            <BookOpen className="h-4 w-4" /> Double-Entry Audit Ledger
-          </button>
-        </div>
+        {loading || !data ? (
+          <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-amber-500" /></div>
+        ) : (
+          <>
+            <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <Kpi label="Net sales" value={data.netSalesCents} prev={data.previous?.netSalesCents} hint={`${zar(data.grossSalesCents)} sold − ${zar(data.refundsCents)} refunded`} />
+              <Kpi label="Gross profit" value={data.grossProfitCents} prev={data.previous?.grossProfitCents} hint={`after ${zar(data.costOfGoodsCents)} cost of goods${data.vatCents ? ` and ${zar(data.vatCents)} VAT` : ''}`} />
+              <Kpi label="Net profit" value={data.netProfitCents} prev={data.previous?.netProfitCents} hint={`after ${zar(data.expensesCents)} expenses and ${zar(data.platformFeesCents)} VerifiedBizLink fees`} />
+              <Kpi label="Sales" value={null} text={`${data.transactions}`} hint={`average ${zar(data.averageSaleCents)}`} />
+            </section>
+            <p className="text-xs text-slate-500">Gross profit uses each product&apos;s cost price at the time of sale; products with no cost price set will overstate it. Compared with the {data.previous ? `${data.previous.from} – ${data.previous.to}` : 'previous'} period.</p>
 
-        {loading ? (
-          <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
-          </div>
-        ) : activeTab === 'daily' ? (
-          <div className="space-y-6">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Gross Sales</p>
-                <p className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">R{grossRand}</p>
-                <p className="mt-1 text-xs text-slate-400">{s?.total_transactions ?? 0} transactions</p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Net Proceeds</p>
-                <p className="mt-2 text-2xl font-black text-emerald-600 sm:text-3xl">R{netRand}</p>
-                <p className="mt-1 text-xs text-slate-400">After platform fee</p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Platform Fee (1%)</p>
-                <p className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">R{feeRand}</p>
-                <p className="mt-1 text-xs text-slate-400">Transparent VerifiedBizLink fee</p>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Average Ticket</p>
-                <p className="mt-2 text-2xl font-black text-amber-600 sm:text-3xl">R{avgRand}</p>
-                <p className="mt-1 text-xs text-slate-400">Per transaction</p>
-              </div>
-            </div>
-
-            {/* Payment Method Breakdown */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
-                  <CreditCard className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-500">Tap to Pay (Card)</p>
-                  <p className="text-lg font-black text-slate-900">
-                    R{s ? (Number(s.card_tap_total_cents) / 100).toFixed(2) : '0.00'}
-                  </p>
-                  <p className="text-[11px] text-slate-400">{s?.card_tap_transactions ?? 0} transactions</p>
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
-                  <Banknote className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-500">Cash Payments</p>
-                  <p className="text-lg font-black text-slate-900">
-                    R{s ? (Number(s.cash_total_cents) / 100).toFixed(2) : '0.00'}
-                  </p>
-                  <p className="text-[11px] text-slate-400">{s?.cash_transactions ?? 0} transactions</p>
-                </div>
-              </div>
-
-              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-xs flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-blue-100 flex items-center justify-center text-blue-700 shrink-0">
-                  <QrCode className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-500">QR / Online Links</p>
-                  <p className="text-lg font-black text-slate-900">
-                    R{s ? (Number(s.qr_total_cents) / 100).toFixed(2) : '0.00'}
-                  </p>
-                  <p className="text-[11px] text-slate-400">{s?.qr_transactions ?? 0} transactions</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Top Products */}
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-              <h3 className="text-sm font-black text-slate-900">Top Selling Items</h3>
-              {!dailyData?.topProducts || dailyData.topProducts.length === 0 ? (
-                <p className="text-xs text-slate-400">No items sold on this date.</p>
-              ) : (
-                <div className="divide-y divide-slate-100">
-                  {dailyData.topProducts.map((p, idx) => (
-                    <div key={idx} className="py-2.5 flex items-center justify-between text-xs">
-                      <div>
-                        <p className="font-bold text-slate-900">{p.product_name}</p>
-                        <p className="text-[11px] text-slate-400">{p.total_quantity} sold</p>
-                      </div>
-                      <span className="font-black text-slate-900 text-sm">
-                        R{(Number(p.total_sales_cents) / 100).toFixed(2)}
-                      </span>
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 space-y-3">
+              <h2 className="text-sm font-black text-slate-900">Net sales by day</h2>
+              {data.daily.length === 0 ? <p className="text-xs text-slate-500">No sales in this period.</p> : (
+                <div className="flex h-40 items-end gap-1" role="img" aria-label="Bar chart of net sales per day">
+                  {data.daily.map((d) => (
+                    <div key={String(d.day)} className="group flex flex-1 flex-col items-center justify-end" title={`${String(d.day).slice(0, 10)}: ${zar(d.net_sales_cents)} (${d.transactions})`}>
+                      <div className="w-full rounded-t bg-amber-400" style={{ height: `${Math.max(2, (Number(d.net_sales_cents) / maxDay) * 100)}%` }} />
+                      <span className="mt-1 text-[9px] text-slate-500">{String(d.day).slice(8, 10)}</span>
                     </div>
                   ))}
                 </div>
               )}
+            </section>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              <Table title="Best sellers" rows={data.topProducts.map((p) => [p.product_name, `${Number(p.quantity)}`, zar(p.sales_cents), zar(p.gross_profit_cents)])} head={['Product', 'Qty', 'Sales', 'Gross profit']} />
+              <Table title="How customers paid" rows={data.byMethod.map((m) => [METHOD_LABELS[m.payment_method] ?? m.payment_method, `${m.count}`, zar(m.net_cents)])} head={['Method', 'Sales', 'Net']} />
+              <Table title="By cashier" rows={data.byCashier.map((c) => [c.cashier, `${c.transactions}`, zar(c.net_sales_cents)])} head={['Cashier', 'Sales', 'Net']} />
             </div>
-          </div>
-        ) : (
-          /* Ledger Table */
-          <div className="rounded-3xl border border-slate-200 bg-white overflow-hidden shadow-xs">
-            <div className="p-4 border-b border-slate-200">
-              <h3 className="text-sm font-black text-slate-900">Immutable Financial Audit Ledger</h3>
-            </div>
-            {ledgerEntries.length === 0 ? (
-              <div className="p-12 text-center text-slate-400 text-xs">No ledger entries recorded yet.</div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase tracking-wider font-extrabold">
-                    <tr>
-                      <th className="py-3 px-4">Date</th>
-                      <th className="py-3 px-4">Type</th>
-                      <th className="py-3 px-4">Description</th>
-                      <th className="py-3 px-4 text-right">Debit</th>
-                      <th className="py-3 px-4 text-right">Credit</th>
-                      <th className="py-3 px-4 text-right">Settled Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-mono">
-                    {ledgerEntries.map((l) => (
-                      <tr key={l.id} className="hover:bg-slate-50">
-                        <td className="py-3 px-4 text-slate-600">
-                          {new Date(l.created_at).toLocaleString('en-ZA', { dateStyle: 'short', timeStyle: 'short' })}
-                        </td>
-                        <td className="py-3 px-4 font-bold uppercase text-[10px] text-slate-700">
-                          {l.entry_type.replace('_', ' ')}
-                        </td>
-                        <td className="py-3 px-4 font-sans text-slate-900">{l.description}</td>
-                        <td className="py-3 px-4 text-right text-rose-600 font-bold">
-                          {l.debit_cents > 0 ? `R${(l.debit_cents / 100).toFixed(2)}` : '—'}
-                        </td>
-                        <td className="py-3 px-4 text-right text-emerald-600 font-bold">
-                          {l.credit_cents > 0 ? `R${(l.credit_cents / 100).toFixed(2)}` : '—'}
-                        </td>
-                        <td className="py-3 px-4 text-right font-black text-slate-900">
-                          R{(l.balance_cents / 100).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+
+            {ledger.length > 0 && (
+              <Table
+                title="Ledger balances (all time)"
+                head={['Account', 'Debits', 'Credits', 'Balance']}
+                rows={ledger.map((a) => [a.account_name.replace(/_/g, ' '), zar(a.debit_cents), zar(a.credit_cents), zar(a.balance_cents)])}
+                note="Double-entry: total debits always equal total credits. “platform fee payable” is what you currently owe VerifiedBizLink in fees."
+              />
             )}
-          </div>
+          </>
         )}
       </div>
     </GlassBackground>
+  );
+}
+
+function Kpi({ label, value, prev, text, hint }: { label: string; value: number | null; prev?: number; text?: string; hint?: string }) {
+  const delta = value !== null && prev !== undefined && prev !== 0 ? Math.round(((value - prev) / Math.abs(prev)) * 100) : null;
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+      <p className={cn('mt-1 text-xl font-black', value !== null && value < 0 ? 'text-rose-700' : 'text-slate-900')}>{text ?? zar(value)}</p>
+      {delta !== null && (
+        <p className={cn('flex items-center gap-1 text-[11px] font-bold', delta >= 0 ? 'text-emerald-700' : 'text-rose-700')}>
+          {delta >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />} {delta >= 0 ? '+' : ''}{delta}% vs previous
+        </p>
+      )}
+      {hint && <p className="mt-0.5 text-[11px] text-slate-500">{hint}</p>}
+    </div>
+  );
+}
+
+function Table({ title, head, rows, note }: { title: string; head: string[]; rows: string[][]; note?: string }) {
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 space-y-2 overflow-x-auto">
+      <h2 className="text-sm font-black text-slate-900">{title}</h2>
+      {rows.length === 0 ? <p className="text-xs text-slate-500">Nothing yet.</p> : (
+        <table className="w-full text-xs">
+          <thead className="text-slate-500"><tr>{head.map((h, i) => <th key={h} className={cn('py-1', i ? 'text-right' : 'text-left')}>{h}</th>)}</tr></thead>
+          <tbody className="divide-y divide-slate-100">{rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j} className={cn('py-1.5', j ? 'text-right' : '')}>{c}</td>)}</tr>)}</tbody>
+        </table>
+      )}
+      {note && <p className="text-[11px] text-slate-500">{note}</p>}
+    </section>
   );
 }

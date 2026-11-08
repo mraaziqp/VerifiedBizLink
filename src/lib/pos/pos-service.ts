@@ -833,7 +833,7 @@ export async function assignPosStaffRole(
       role = EXCLUDED.role,
       pin_hash = COALESCE(EXCLUDED.pin_hash, pos_staff_roles.pin_hash),
       display_name = COALESCE(EXCLUDED.display_name, pos_staff_roles.display_name),
-      is_active = EXCLUDED.is_active,
+      is_active = COALESCE(${data.isActive === undefined ? null : data.isActive !== false}, pos_staff_roles.is_active),
       failed_pin_attempts = CASE WHEN EXCLUDED.pin_hash IS NOT NULL THEN 0 ELSE pos_staff_roles.failed_pin_attempts END,
       locked_until = CASE WHEN EXCLUDED.pin_hash IS NOT NULL THEN NULL ELSE pos_staff_roles.locked_until END,
       updated_at = NOW()

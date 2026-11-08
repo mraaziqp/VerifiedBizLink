@@ -1,150 +1,146 @@
 'use client';
 
-export interface OfflineCartItem {
+/**
+ * Offline cash sales.
+ *
+ * When the till has no connection, a CASH sale is stored on the device with
+ * its idempotency key and the time it happened. When the connection returns,
+ * each is sent to the same checkout as any other sale; the server prices it
+ * from the catalogue, takes stock (recording any shortfall for review rather
+ * than refusing a sale whose cash is already in the drawer), and treats a
+ * repeat of the same key as the same sale — so syncing twice is harmless.
+ *
+ * Only network failures and server errors keep a sale queued. A sale the
+ * server refuses outright (e.g. a product deleted meanwhile) is moved to a
+ * "needs attention" list instead of being retried forever or silently lost.
+ */
+
+export interface OfflineLine {
   productId?: string;
+  custom?: { name: string; unitPriceCents: number };
   name: string;
   quantity: number;
+  /** Price shown on the till when the sale was made, for the receipt and mismatch check. */
   unitPriceCents: number;
-  costPriceCents?: number;
   discountCents?: number;
 }
 
 export interface OfflineQueuedSale {
-  businessId?: string;
   idempotencyKey: string;
-  items: OfflineCartItem[];
-  paymentMethod: 'cash';
+  businessId: string;
+  items: OfflineLine[];
   tenderAmountCents?: number;
-  customerName?: string;
-  customerPhone?: string;
-  notes?: string;
-  offlineCreatedAt: string;
   totalCents: number;
+  offlineCreatedAt: string;
+  operatorToken?: string;
+  lastError?: string;
+  attempts?: number;
 }
 
-const DEFAULT_PRODUCTS_PREFIX = 'vbl_pos_cached_products';
-const DEFAULT_QUEUE_PREFIX = 'vbl_pos_queued_sales';
+const PRODUCTS = 'vbl_pos_products_v2';
+const QUEUE = 'vbl_pos_queue_v2';
+const REJECTED = 'vbl_pos_rejected_v2';
+const LAST_SYNC = 'vbl_pos_last_sync_v2';
 
-function getProductsKey(businessId?: string): string {
-  return businessId ? `${DEFAULT_PRODUCTS_PREFIX}_${businessId}` : DEFAULT_PRODUCTS_PREFIX;
+const k = (base: string, businessId: string) => `${base}_${businessId}`;
+
+function read<T>(key: string, fallback: T): T {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
-function getQueueKey(businessId?: string): string {
-  return businessId ? `${DEFAULT_QUEUE_PREFIX}_${businessId}` : DEFAULT_QUEUE_PREFIX;
+function write(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* storage full or blocked */
+  }
 }
 
 export const offlineStore = {
-  // 1. Cache Products per Merchant
-  cacheProducts(products: unknown[], businessId?: string) {
-    if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(getProductsKey(businessId), JSON.stringify(products));
-    } catch {
-      /* ignore storage quota */
-    }
+  cacheProducts(businessId: string, products: unknown[]) {
+    write(k(PRODUCTS, businessId), { at: new Date().toISOString(), products });
   },
 
-  getCachedProducts(businessId?: string): unknown[] {
-    if (typeof window === 'undefined') return [];
-    try {
-      const data = localStorage.getItem(getProductsKey(businessId));
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
+  getCachedProducts(businessId: string): unknown[] {
+    return read<{ products: unknown[] }>(k(PRODUCTS, businessId), { products: [] }).products;
   },
 
-  // 2. Queue Offline Cash Sales per Merchant
-  queueSale(
-    sale: Omit<OfflineQueuedSale, 'idempotencyKey' | 'offlineCreatedAt'>,
-    businessId?: string
-  ): OfflineQueuedSale {
-    if (typeof window === 'undefined') {
-      throw new Error('Window storage unavailable');
-    }
-
-    const targetBizId = businessId || sale.businessId;
-    const queued: OfflineQueuedSale = {
-      ...sale,
-      businessId: targetBizId,
-      idempotencyKey: `off_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-      offlineCreatedAt: new Date().toISOString(),
-    };
-
-    try {
-      const current = this.getQueuedSales(targetBizId);
-      current.push(queued);
-      localStorage.setItem(getQueueKey(targetBizId), JSON.stringify(current));
-    } catch {
-      /* ignore */
-    }
-
-    return queued;
+  queueSale(sale: OfflineQueuedSale) {
+    const q = this.getQueuedSales(sale.businessId);
+    if (!q.some((s) => s.idempotencyKey === sale.idempotencyKey)) q.push(sale);
+    write(k(QUEUE, sale.businessId), q);
   },
 
-  getQueuedSales(businessId?: string): OfflineQueuedSale[] {
-    if (typeof window === 'undefined') return [];
-    try {
-      const data = localStorage.getItem(getQueueKey(businessId));
-      return data ? JSON.parse(data) : [];
-    } catch {
-      return [];
-    }
+  getQueuedSales(businessId: string): OfflineQueuedSale[] {
+    return read<OfflineQueuedSale[]>(k(QUEUE, businessId), []);
   },
 
-  clearQueue(businessId?: string) {
-    if (typeof window === 'undefined') return;
-    localStorage.removeItem(getQueueKey(businessId));
+  getRejectedSales(businessId: string): OfflineQueuedSale[] {
+    return read<OfflineQueuedSale[]>(k(REJECTED, businessId), []);
   },
 
-  removeSale(idempotencyKey: string, businessId?: string) {
-    if (typeof window === 'undefined') return;
-    const current = this.getQueuedSales(businessId).filter((s) => s.idempotencyKey !== idempotencyKey);
-    localStorage.setItem(getQueueKey(businessId), JSON.stringify(current));
+  dismissRejected(businessId: string, idempotencyKey: string) {
+    write(k(REJECTED, businessId), this.getRejectedSales(businessId).filter((s) => s.idempotencyKey !== idempotencyKey));
   },
 
-  // 3. Sync all queued sales when connection returns
-  async syncPendingSales(businessId?: string): Promise<{ synced: number; failed: number }> {
+  lastSyncedAt(businessId: string): string | null {
+    return read<string | null>(k(LAST_SYNC, businessId), null);
+  },
+
+  async syncPendingSales(businessId: string): Promise<{ synced: number; failed: number; rejected: number }> {
     const queue = this.getQueuedSales(businessId);
-    if (queue.length === 0) return { synced: 0, failed: 0 };
-
     let synced = 0;
     let failed = 0;
+    let rejected = 0;
+    const remaining: OfflineQueuedSale[] = [];
+    const newlyRejected: OfflineQueuedSale[] = [];
 
     for (const item of queue) {
       try {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (item.businessId) {
-          headers['x-business-id'] = item.businessId;
-        }
-
+        const headers: Record<string, string> = { 'Content-Type': 'application/json', 'x-business-id': businessId };
+        if (item.operatorToken) headers['x-pos-operator'] = item.operatorToken;
         const res = await fetch('/api/pos/checkout', {
           method: 'POST',
           headers,
           body: JSON.stringify({
-            items: item.items,
+            items: item.items.map((l) => (l.custom ? { custom: l.custom, quantity: l.quantity, discountCents: l.discountCents } : { productId: l.productId, quantity: l.quantity, discountCents: l.discountCents })),
             paymentMethod: 'cash',
             tenderAmountCents: item.tenderAmountCents,
-            customerName: item.customerName,
-            customerPhone: item.customerPhone,
-            notes: item.notes,
             idempotencyKey: item.idempotencyKey,
-            isOfflineSync: true,
-            offlineCreatedAt: item.offlineCreatedAt,
+            offline: { createdAt: item.offlineCreatedAt, clientTotalCents: item.totalCents },
           }),
         });
-
         if (res.ok) {
-          this.removeSale(item.idempotencyKey, businessId || item.businessId);
           synced++;
+          continue;
+        }
+        const data = await res.json().catch(() => ({}));
+        // An expired PIN session is not the sale's fault: retry under the device's own sign-in.
+        if (res.status === 401 && data.code === 'OPERATOR_EXPIRED') {
+          remaining.push({ ...item, operatorToken: undefined, lastError: 'PIN session expired — will sync as the signed-in user', attempts: (item.attempts ?? 0) + 1 });
+          failed++;
+        } else if (res.status >= 400 && res.status < 500 && res.status !== 401 && res.status !== 402 && res.status !== 408 && res.status !== 429) {
+          newlyRejected.push({ ...item, lastError: String(data.error || `HTTP ${res.status}`) });
+          rejected++;
         } else {
+          remaining.push({ ...item, lastError: String(data.error || `HTTP ${res.status}`), attempts: (item.attempts ?? 0) + 1 });
           failed++;
         }
-      } catch {
+      } catch (err) {
+        remaining.push({ ...item, lastError: err instanceof Error ? err.message : 'Network error', attempts: (item.attempts ?? 0) + 1 });
         failed++;
       }
     }
 
-    return { synced, failed };
+    write(k(QUEUE, businessId), remaining);
+    if (newlyRejected.length) write(k(REJECTED, businessId), [...this.getRejectedSales(businessId), ...newlyRejected]);
+    if (synced > 0 || (queue.length > 0 && failed === 0)) write(k(LAST_SYNC, businessId), new Date().toISOString());
+    return { synced, failed, rejected };
   },
 };

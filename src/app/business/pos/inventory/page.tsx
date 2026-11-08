@@ -1,15 +1,17 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+
 import {
-  ArrowLeft, Plus, Search, Package, Edit3, Loader2
+  Plus, Search, Package, Edit3, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { ImageUploader } from '@/components/media/image-uploader';
 import { GlassBackground } from '@/components/shared/glass-ui';
+import { PosHeader, usePosContext } from '@/components/pos/pos-header';
+import { zar } from '@/lib/pos/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
@@ -47,7 +49,10 @@ export default function PosInventoryPage() {
   const [adjustModal, setAdjustModal] = useState(false);
   const [adjustTarget, setAdjustTarget] = useState<Product | null>(null);
   const [adjustChange, setAdjustChange] = useState<string>('');
-  const [adjustReason, setAdjustReason] = useState<'purchase_receive' | 'manual_adjustment' | 'waste_damaged'>('manual_adjustment');
+  const [adjustReason, setAdjustReason] = useState<string>('stock_count');
+  const { ctx, can } = usePosContext();
+  const [summary, setSummary] = useState<Record<string, number | string> | null>(null);
+  const [conflicts, setConflicts] = useState<Array<{ id: string; product_name: string; receipt_number: string; requested_qty: number; available_qty: number; created_at: string }>>([]);
   const [adjustNotes, setAdjustNotes] = useState('');
   const [savingAdjust, setSavingAdjust] = useState(false);
 
@@ -66,6 +71,12 @@ export default function PosInventoryPage() {
         const catData = await catRes.json();
         setCategories(catData.categories || []);
       }
+      const [sumRes, confRes] = await Promise.all([
+        fetch('/api/pos/reports?type=inventory').catch(() => null),
+        fetch('/api/pos/stock-conflicts').catch(() => null),
+      ]);
+      if (sumRes?.ok) setSummary(await sumRes.json());
+      if (confRes?.ok) setConflicts((await confRes.json()).conflicts || []);
     } catch {
       toast({ title: 'Could not load inventory', variant: 'destructive' });
     } finally {
@@ -116,9 +127,11 @@ export default function PosInventoryPage() {
           }),
         });
         if (res.ok) {
-          toast({ title: 'Product updated successfully' });
+          toast({ title: 'Product updated' });
           setProductModal(false);
           loadData();
+        } else {
+          toast({ title: 'Not saved', description: (await res.json().catch(() => ({}))).error, variant: 'destructive' });
         }
       } else {
         // Create
@@ -139,9 +152,11 @@ export default function PosInventoryPage() {
           }),
         });
         if (res.ok) {
-          toast({ title: 'Product created successfully' });
+          toast({ title: 'Product added' });
           setProductModal(false);
           loadData();
+        } else {
+          toast({ title: 'Not saved', description: (await res.json().catch(() => ({}))).error, variant: 'destructive' });
         }
       }
     } catch {
@@ -154,8 +169,9 @@ export default function PosInventoryPage() {
   const handleExecuteAdjustment = async () => {
     if (!adjustTarget) return;
     const changeNum = parseFloat(adjustChange);
-    if (isNaN(changeNum) || changeNum === 0) {
-      toast({ title: 'Enter a valid positive or negative change', variant: 'destructive' });
+    const isCount = adjustReason === 'stock_count';
+    if (isNaN(changeNum) || (!isCount && changeNum === 0) || (isCount && changeNum < 0)) {
+      toast({ title: isCount ? 'Enter the quantity you counted' : 'Enter a positive or negative change', variant: 'destructive' });
       return;
     }
 
@@ -167,7 +183,7 @@ export default function PosInventoryPage() {
         body: JSON.stringify({
           action: 'adjust_stock',
           productId: adjustTarget.id,
-          change: changeNum,
+          ...(isCount ? { setTo: changeNum } : { change: changeNum }),
           reason: adjustReason,
           notes: adjustNotes,
         }),
@@ -178,7 +194,7 @@ export default function PosInventoryPage() {
         setAdjustModal(false);
         loadData();
       } else {
-        toast({ title: 'Adjustment failed', variant: 'destructive' });
+        toast({ title: 'Adjustment not saved', description: (await res.json().catch(() => ({}))).error, variant: 'destructive' });
       }
     } catch {
       toast({ title: 'Network error', variant: 'destructive' });
@@ -190,40 +206,55 @@ export default function PosInventoryPage() {
   return (
     <GlassBackground>
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 space-y-6">
-        {/* Navigation & Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Button asChild variant="ghost" size="icon" className="rounded-xl">
-              <Link href="/business/pos">
-                <ArrowLeft className="h-5 w-5 text-slate-700" />
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-2xl font-black text-slate-900">Products & Inventory</h1>
-              <p className="text-xs text-slate-500">Track stock levels, barcodes, cost prices, and movement audits.</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
+        <PosHeader
+          title="Products & inventory"
+          subtitle="Stock levels, prices and every stock movement."
+          ctx={ctx}
+          actions={can('catalog.write') ? (
             <Button
               onClick={() => {
-                setEditingProduct({
-                  name: '',
-                  selling_price_cents: 0,
-                  cost_price_cents: 0,
-                  stock_quantity: 0,
-                  min_stock_threshold: 5,
-                  unit: 'item',
-                  is_active: true,
-                });
+                setEditingProduct({ name: '', selling_price_cents: 0, cost_price_cents: 0, stock_quantity: 0, min_stock_threshold: 5, unit: 'item', is_active: true });
                 setProductModal(true);
               }}
-              className="rounded-xl bg-amber-400 font-extrabold text-slate-950 hover:bg-amber-300 text-xs shadow-xs"
+              className="rounded-xl bg-amber-400 font-extrabold text-slate-950 hover:bg-amber-300 text-xs"
             >
-              <Plus className="h-4 w-4 mr-1.5" /> Add New Product
+              <Plus className="h-4 w-4 mr-1.5" /> Add product
             </Button>
+          ) : null}
+        />
+
+        {summary && (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              ['Products', String(summary.active_products)],
+              ['Stock value at cost', zar(summary.cost_value_cents)],
+              ['Stock value at selling price', zar(summary.retail_value_cents)],
+              ['Low / out of stock', `${summary.low_stock} / ${summary.out_of_stock}`],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{label}</p>
+                <p className="mt-1 text-lg font-black text-slate-900">{value}</p>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
+
+        {conflicts.length > 0 && (
+          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 space-y-2 text-xs text-amber-950">
+            <p className="font-black">Sold more than was in stock — please recount these</p>
+            {conflicts.map((c) => (
+              <div key={c.id} className="flex flex-wrap items-center justify-between gap-2">
+                <span>{c.product_name}: receipt {c.receipt_number} sold {c.requested_qty} with {c.available_qty} on record ({new Date(c.created_at).toLocaleDateString('en-ZA')})</span>
+                {can('stock.adjust') && (
+                  <Button size="sm" variant="outline" className="h-7 rounded-lg text-xs" onClick={async () => {
+                    await fetch('/api/pos/stock-conflicts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ conflictId: c.id }) });
+                    loadData();
+                  }}>Mark checked</Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Filter & Search Bar */}
         <div className="flex flex-col sm:flex-row items-center gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
@@ -559,12 +590,12 @@ export default function PosInventoryPage() {
 
             <div className="space-y-4 py-2 text-xs">
               <div>
-                <label className="font-bold text-slate-700">Quantity Change (+ to add, - to subtract)</label>
+                <label className="font-bold text-slate-700">{adjustReason === 'stock_count' ? 'Quantity counted' : 'Change (+ to add, − to remove)'}</label>
                 <Input
                   type="number"
                   value={adjustChange}
                   onChange={(e) => setAdjustChange(e.target.value)}
-                  placeholder="e.g. +20 or -2"
+                  placeholder={adjustReason === 'stock_count' ? 'e.g. 24' : 'e.g. 20 or -2'}
                   className="mt-1 rounded-xl font-black text-base"
                 />
               </div>
@@ -573,12 +604,17 @@ export default function PosInventoryPage() {
                 <label className="font-bold text-slate-700">Reason for Adjustment</label>
                 <select
                   value={adjustReason}
-                  onChange={(e) => setAdjustReason(e.target.value as typeof adjustReason)}
+                  onChange={(e) => setAdjustReason(e.target.value)}
                   className="mt-1 w-full h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs"
                 >
-                  <option value="manual_adjustment">Manual Count / Audit Correction</option>
-                  <option value="purchase_receive">Restock / Direct Delivery</option>
-                  <option value="waste_damaged">Damaged / Expired / Waste</option>
+                  <option value="stock_count">Stock count (enter the quantity you counted)</option>
+                  <option value="manual_adjustment">Correction (+ or −)</option>
+                  <option value="purchase_receive">Delivery not on a purchase order (+)</option>
+                  <option value="customer_return">Customer return (+)</option>
+                  <option value="waste_damaged">Damaged / expired (−)</option>
+                  <option value="lost_stolen">Lost or stolen (−)</option>
+                  <option value="transfer_out">Moved to another location (−)</option>
+                  <option value="transfer_in">Moved in from another location (+)</option>
                 </select>
               </div>
 

@@ -1,354 +1,174 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import {
-  ArrowLeft, Check, CreditCard, Loader2, Store
-} from 'lucide-react';
+import { Loader2, Store, CreditCard, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { GlassBackground } from '@/components/shared/glass-ui';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { PosHeader, usePosContext, loadPosContext } from '@/components/pos/pos-header';
 
-interface PosPlan {
-  plan_key: string;
-  name: string;
-  monthly_price_rand: number;
-  setup_fee_rand: number;
-  transaction_fee_percent: number;
-  max_tills: number;
-  max_staff: number;
-  features: string[];
+interface FormState {
+  vat_registered: boolean;
+  vat_number: string;
+  tax_rate_percent: number;
+  receipt_header: string;
+  receipt_footer: string;
+  phone: string;
+  email: string;
+  address: string;
+  auto_print_receipt: boolean;
+  allow_offline_sales: boolean;
+  allow_custom_items: boolean;
+  max_cashier_discount_percent: number;
 }
 
 export default function PosSettingsPage() {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [savingSettings, setSavingSettings] = useState(false);
-  const [plans, setPlans] = useState<PosPlan[]>([]);
-  const [currentPlanKey, setCurrentPlanKey] = useState('starter');
-  const [subscribing, setSubscribing] = useState<string | null>(null);
-
-  const [settings, setSettings] = useState({
-    tax_rate_percent: 15,
-    vat_number: '',
-    receipt_header: 'Thank you for supporting local business!',
-    receipt_footer: 'Verified by VerifiedBizLink.co.za',
-    phone: '',
-    email: '',
-    address: '',
-    auto_print_receipt: false,
-    allow_offline_sales: true,
-  });
-
-  const loadData = useCallback(async () => {
-    try {
-      const [setRes, subRes] = await Promise.all([
-        fetch('/api/pos/settings').catch(() => null),
-        fetch('/api/pos/subscription').catch(() => null),
-      ]);
-
-      if (setRes?.ok) {
-        const data = await setRes.json();
-        if (data.settings) {
-          setSettings({
-            tax_rate_percent: Number(data.settings.tax_rate_percent) || 15,
-            vat_number: data.settings.vat_number || '',
-            receipt_header: data.settings.receipt_header || 'Thank you for supporting local business!',
-            receipt_footer: data.settings.receipt_footer || 'Verified by VerifiedBizLink.co.za',
-            phone: data.settings.phone || '',
-            email: data.settings.email || '',
-            address: data.settings.address || '',
-            auto_print_receipt: Boolean(data.settings.auto_print_receipt),
-            allow_offline_sales: data.settings.allow_offline_sales !== false,
-          });
-        }
-      }
-
-      if (subRes?.ok) {
-        const subData = await subRes.json();
-        setPlans(subData.plans || []);
-        if (subData.subscription?.plan_key) {
-          setCurrentPlanKey(subData.subscription.plan_key);
-        }
-      }
-    } catch {
-      toast({ title: 'Could not load POS settings', variant: 'destructive' });
-    } finally {
-      setLoading(false);
-    }
-  }, [toast]);
+  const { ctx, loaded, can } = usePosContext();
+  const [form, setForm] = useState<FormState | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!ctx) return;
+    const s = ctx.settings;
+    setForm({
+      vat_registered: Boolean(s.vat_registered),
+      vat_number: String(s.vat_number ?? ''),
+      tax_rate_percent: Number(s.tax_rate_percent ?? 15),
+      receipt_header: String(s.receipt_header ?? ''),
+      receipt_footer: String(s.receipt_footer ?? ''),
+      phone: String(s.phone ?? ''),
+      email: String(s.email ?? ''),
+      address: String(s.address ?? ''),
+      auto_print_receipt: Boolean(s.auto_print_receipt),
+      allow_offline_sales: s.allow_offline_sales !== false,
+      allow_custom_items: s.allow_custom_items !== false,
+      max_cashier_discount_percent: Number(s.max_cashier_discount_bps ?? 1000) / 100,
+    });
+  }, [ctx]);
 
-  const handleSaveSettings = async () => {
-    setSavingSettings(true);
-    try {
-      const res = await fetch('/api/pos/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
-      });
+  const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => (f ? { ...f, [k]: v } : f));
 
-      if (res.ok) {
-        toast({ title: 'Store settings saved successfully' });
-      } else {
-        toast({ title: 'Failed to update settings', variant: 'destructive' });
-      }
-    } catch {
-      toast({ title: 'Network error', variant: 'destructive' });
-    } finally {
-      setSavingSettings(false);
+  const save = async () => {
+    if (!form) return;
+    setSaving(true);
+    const { max_cashier_discount_percent, ...rest } = form;
+    const res = await fetch('/api/pos/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...rest, max_cashier_discount_bps: Math.round(max_cashier_discount_percent * 100) }),
+    });
+    const data = await res.json().catch(() => ({}));
+    setSaving(false);
+    if (res.ok) {
+      toast({ title: 'Settings saved' });
+      loadPosContext(true);
+    } else {
+      toast({ title: 'Not saved', description: data.error, variant: 'destructive' });
     }
   };
 
-  const handleSwitchPlan = async (planKey: string) => {
-    setSubscribing(planKey);
-    try {
-      const res = await fetch('/api/pos/subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planKey, setupFeePaid: true }),
-      });
-
-      if (res.ok) {
-        toast({ title: `Subscribed to ${planKey.toUpperCase()} plan!` });
-        setCurrentPlanKey(planKey);
-      } else {
-        toast({ title: 'Could not update plan', variant: 'destructive' });
-      }
-    } catch {
-      toast({ title: 'Network error', variant: 'destructive' });
-    } finally {
-      setSubscribing(null);
-    }
-  };
+  const editable = can('settings.write');
 
   return (
     <GlassBackground>
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 space-y-8">
-        {/* Navigation & Header */}
-        <div className="flex items-center gap-3">
-          <Button asChild variant="ghost" size="icon" className="rounded-xl">
-            <Link href="/business/pos">
-              <ArrowLeft className="h-5 w-5 text-slate-700" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-black text-slate-900">POS Settings & Subscription</h1>
-            <p className="text-xs text-slate-500">Configure till receipts, VAT details, and your POS subscription plan.</p>
-          </div>
-        </div>
+      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 space-y-6">
+        <PosHeader title="POS settings" subtitle="Receipts, VAT, cashier limits and how you take payment." ctx={ctx} />
 
-        {loading ? (
-          <div className="flex h-64 items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
-          </div>
+        {!loaded || !form ? (
+          <div className="flex h-48 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-amber-500" /></div>
         ) : (
-          <div className="space-y-8">
-            {/* 1. Subscription Plans Section */}
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-amber-500" /> POS Subscription & Pricing Plans
-                </h2>
-                <p className="text-xs text-slate-500">
-                  Affordable POS built for South African merchants. Transparent 1% platform fee.
-                </p>
+          <>
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 space-y-4">
+              <h2 className="flex items-center gap-2 text-base font-black text-slate-900"><CreditCard className="h-5 w-5 text-amber-500" /> Payment methods</h2>
+              <ul className="space-y-2 text-sm">
+                {ctx!.paymentMethods.map((m) => (
+                  <li key={m.method} className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-slate-50 p-3">
+                    <span className="font-bold text-slate-900">{m.label}</span>
+                    <span className={m.enabled ? 'text-xs font-bold text-emerald-700' : 'text-xs font-bold text-slate-500'}>
+                      {m.enabled ? (m.status === 'sandbox' ? 'On (test mode)' : 'On') : 'Coming soon'}
+                    </span>
+                    {m.note && <span className="w-full text-xs text-slate-500">{m.note}</span>}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-slate-500">Card payments are taken on your own card machine (for example Yoco or your bank&apos;s speedpoint), so the money goes straight to you. Your plan and fees are on <Link href="/business/pos/fees" className="font-bold underline">Payments & Fees</Link>.</p>
+            </section>
+
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 space-y-5">
+              <h2 className="flex items-center gap-2 text-base font-black text-slate-900"><Receipt className="h-5 w-5 text-amber-500" /> VAT</h2>
+              <Toggle
+                label="My business is registered for VAT with SARS"
+                hint="Only turn this on if you have a VAT number. Receipts then show VAT and say “Tax invoice”. If you are not registered, receipts show no VAT."
+                checked={form.vat_registered}
+                onChange={(v) => set('vat_registered', v)}
+                disabled={!editable}
+              />
+              {form.vat_registered && (
+                <div className="grid gap-4 sm:grid-cols-2 text-xs">
+                  <Field label="VAT number" value={form.vat_number} onChange={(v) => set('vat_number', v)} placeholder="4xxxxxxxxx" disabled={!editable} mono />
+                  <Field label="VAT rate (%)" value={String(form.tax_rate_percent)} onChange={(v) => set('tax_rate_percent', Number(v || 0))} type="number" disabled={!editable} />
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 space-y-5">
+              <h2 className="flex items-center gap-2 text-base font-black text-slate-900"><Store className="h-5 w-5 text-amber-500" /> Store & receipts</h2>
+              <div className="grid grid-cols-1 gap-4 text-xs sm:grid-cols-2">
+                <Field label="Receipt header" value={form.receipt_header} onChange={(v) => set('receipt_header', v)} disabled={!editable} />
+                <Field label="Receipt footer" value={form.receipt_footer} onChange={(v) => set('receipt_footer', v)} disabled={!editable} />
+                <Field label="Phone" value={form.phone} onChange={(v) => set('phone', v)} disabled={!editable} />
+                <Field label="Email" value={form.email} onChange={(v) => set('email', v)} disabled={!editable} />
+                <div className="sm:col-span-2"><Field label="Address" value={form.address} onChange={(v) => set('address', v)} disabled={!editable} /></div>
               </div>
+            </section>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {plans.map((p) => {
-                  const isCurrent = currentPlanKey === p.plan_key;
-                  const feats = Array.isArray(p.features) ? p.features : [];
-
-                  return (
-                    <div
-                      key={p.plan_key}
-                      className={cn(
-                        'relative flex flex-col justify-between rounded-3xl border bg-white p-6 shadow-xs transition-all',
-                        isCurrent
-                          ? 'border-amber-400 ring-2 ring-amber-400/40 shadow-md'
-                          : 'border-slate-200'
-                      )}
-                    >
-                      {isCurrent && (
-                        <span className="absolute -top-3 right-6 rounded-full bg-amber-400 px-3 py-0.5 text-[11px] font-black uppercase text-slate-950 shadow-xs">
-                          Current Plan
-                        </span>
-                      )}
-
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="text-lg font-black text-slate-900">{p.name}</h3>
-                          <div className="mt-2 flex items-baseline gap-1">
-                            <span className="text-3xl font-black text-slate-950">
-                              R{p.monthly_price_rand}
-                            </span>
-                            <span className="text-xs font-bold text-slate-400">/ month</span>
-                          </div>
-                          <p className="text-[11px] font-bold text-emerald-700 mt-1">
-                            + {p.transaction_fee_percent}% transaction fee
-                          </p>
-                        </div>
-
-                        <div className="border-t border-slate-100 pt-3 space-y-2">
-                          {feats.map((f, i) => (
-                            <div key={i} className="flex items-start gap-2 text-xs text-slate-600">
-                              <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0 mt-0.5" />
-                              <span>{f}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="pt-6 mt-4 border-t border-slate-100">
-                        {isCurrent ? (
-                          <Button disabled className="w-full rounded-xl bg-slate-100 text-slate-500 font-bold text-xs">
-                            Active Plan
-                          </Button>
-                        ) : (
-                          <Button
-                            onClick={() => handleSwitchPlan(p.plan_key)}
-                            disabled={subscribing === p.plan_key}
-                            className="w-full rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs shadow-xs"
-                          >
-                            {subscribing === p.plan_key ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              `Upgrade to ${p.name}`
-                            )}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+            <section className="rounded-3xl border border-slate-200 bg-white p-6 space-y-5">
+              <h2 className="text-base font-black text-slate-900">Till rules</h2>
+              <Toggle label="Allow offline cash sales" hint="Cash sales are saved on the device without internet and sync when the connection returns. Card sales always need a connection." checked={form.allow_offline_sales} onChange={(v) => set('allow_offline_sales', v)} disabled={!editable} />
+              <Toggle label="Allow custom items" hint="Lets the till sell something that is not in your product list, at a price typed in." checked={form.allow_custom_items} onChange={(v) => set('allow_custom_items', v)} disabled={!editable} />
+              <Toggle label="Print a receipt after every sale" checked={form.auto_print_receipt} onChange={(v) => set('auto_print_receipt', v)} disabled={!editable} />
+              <div className="max-w-xs text-xs">
+                <Field label="Largest discount a cashier can give (%)" value={String(form.max_cashier_discount_percent)} onChange={(v) => set('max_cashier_discount_percent', Math.max(0, Math.min(100, Number(v || 0))))} type="number" disabled={!editable} />
+                <p className="mt-1 text-slate-500">Bigger discounts need a manager or the owner to sign in with their PIN.</p>
               </div>
-            </div>
+            </section>
 
-            {/* 2. Till & Receipt Settings Form */}
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs space-y-6">
-              <h2 className="text-base font-black text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-                <Store className="h-5 w-5 text-amber-500" /> Store Profile & Receipt Customization
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
-                <div>
-                  <label className="font-bold text-slate-700">Receipt Header Banner</label>
-                  <Input
-                    value={settings.receipt_header}
-                    onChange={(e) => setSettings((s) => ({ ...s, receipt_header: e.target.value }))}
-                    className="mt-1 rounded-xl"
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">Printed at the top of digital and WhatsApp receipts.</p>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700">Receipt Footer Note</label>
-                  <Input
-                    value={settings.receipt_footer}
-                    onChange={(e) => setSettings((s) => ({ ...s, receipt_footer: e.target.value }))}
-                    className="mt-1 rounded-xl"
-                  />
-                  <p className="text-[11px] text-slate-400 mt-1">Printed at the bottom of digital receipts.</p>
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700">VAT / Tax Number</label>
-                  <Input
-                    value={settings.vat_number}
-                    onChange={(e) => setSettings((s) => ({ ...s, vat_number: e.target.value }))}
-                    placeholder="e.g. 4012345678"
-                    className="mt-1 rounded-xl font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700">Standard VAT Rate (%)</label>
-                  <Input
-                    type="number"
-                    value={settings.tax_rate_percent}
-                    onChange={(e) => setSettings((s) => ({ ...s, tax_rate_percent: parseFloat(e.target.value || '15') }))}
-                    className="mt-1 rounded-xl font-bold"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700">Store Contact Phone</label>
-                  <Input
-                    value={settings.phone}
-                    onChange={(e) => setSettings((s) => ({ ...s, phone: e.target.value }))}
-                    placeholder="082 123 4567"
-                    className="mt-1 rounded-xl"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-bold text-slate-700">Store Contact Email</label>
-                  <Input
-                    value={settings.email}
-                    onChange={(e) => setSettings((s) => ({ ...s, email: e.target.value }))}
-                    placeholder="store@verifiedbizlink.co.za"
-                    className="mt-1 rounded-xl"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="font-bold text-slate-700">Physical Store Address</label>
-                  <Input
-                    value={settings.address}
-                    onChange={(e) => setSettings((s) => ({ ...s, address: e.target.value }))}
-                    placeholder="e.g. 12 Long Street, Cape Town"
-                    className="mt-1 rounded-xl"
-                  />
-                </div>
-              </div>
-
-              {/* Toggles */}
-              <div className="border-t border-slate-100 pt-4 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-slate-900">Allow Offline Cash Sales</p>
-                    <p className="text-[11px] text-slate-500">
-                      Enables cash checkout without active internet connection; queues sales to sync when online.
-                    </p>
-                  </div>
-                  <Switch
-                    checked={settings.allow_offline_sales}
-                    onCheckedChange={(checked) => setSettings((s) => ({ ...s, allow_offline_sales: checked }))}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-slate-900">Auto-Print Thermal Receipt</p>
-                    <p className="text-[11px] text-slate-500">Automatically invokes printer dialog after each approved sale.</p>
-                  </div>
-                  <Switch
-                    checked={settings.auto_print_receipt}
-                    onCheckedChange={(checked) => setSettings((s) => ({ ...s, auto_print_receipt: checked }))}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end pt-3">
-                <Button
-                  onClick={handleSaveSettings}
-                  disabled={savingSettings}
-                  className="rounded-xl bg-amber-400 font-extrabold text-slate-950 hover:bg-amber-300 text-xs px-6 shadow-xs"
-                >
-                  {savingSettings ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save Store Settings'}
+            {editable && (
+              <div className="flex justify-end">
+                <Button onClick={save} disabled={saving} className="rounded-xl bg-amber-400 font-black text-slate-950 hover:bg-amber-300 px-6">
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Save settings'}
                 </Button>
               </div>
-            </div>
-          </div>
+            )}
+          </>
         )}
       </div>
     </GlassBackground>
+  );
+}
+
+function Field({ label, value, onChange, placeholder, type = 'text', disabled, mono }: { label: string; value: string; onChange: (v: string) => void; placeholder?: string; type?: string; disabled?: boolean; mono?: boolean }) {
+  const id = label.toLowerCase().replace(/\W+/g, '-');
+  return (
+    <div>
+      <label htmlFor={id} className="font-bold text-slate-700">{label}</label>
+      <Input id={id} type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} className={`mt-1 rounded-xl ${mono ? 'font-mono' : ''}`} />
+    </div>
+  );
+}
+
+function Toggle({ label, hint, checked, onChange, disabled }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <p className="text-sm font-bold text-slate-900">{label}</p>
+        {hint && <p className="text-xs text-slate-500">{hint}</p>}
+      </div>
+      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} aria-label={label} />
+    </div>
   );
 }
