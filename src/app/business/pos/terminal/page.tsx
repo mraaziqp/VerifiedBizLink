@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { offlineStore, type OfflineQueuedSale } from '@/lib/pos/offline-store';
 import { posFetch, newIdempotencyKey, zar, getOperator, setOperator, METHOD_LABELS, type TillOperatorSession } from '@/lib/pos/client';
 import { loadPosContext, PosAccessBanner, type PosContext } from '@/components/pos/pos-header';
+import { CameraScanner } from '@/components/pos/camera-scanner';
 import { cn } from '@/lib/utils';
 
 interface Product {
@@ -387,12 +388,13 @@ export default function PosTerminalPage() {
     setCustomOpen(false);
   };
 
-  const findBarcode = (e: React.FormEvent) => {
-    e.preventDefault();
-    const code = barcode.trim();
+  const findBarcode = (e: React.FormEvent | null, scanned?: string) => {
+    e?.preventDefault();
+    const code = (scanned ?? barcode).trim();
     const match = products.find((p) => p.barcode === code || p.sku === code);
     if (!match) {
-      toast({ title: 'No product with that barcode', variant: 'destructive' });
+      if (scanned) setBarcode(scanned);
+      toast({ title: `No product with barcode ${code}`, description: 'Add it under Products, with this barcode.', variant: 'destructive' });
       return;
     }
     addProduct(match);
@@ -733,7 +735,8 @@ export default function PosTerminalPage() {
       {/* Barcode */}
       <Dialog open={scanOpen} onOpenChange={setScanOpen}>
         <DialogContent className="max-w-sm rounded-3xl bg-white p-6">
-          <DialogHeader><DialogTitle className="text-lg font-black">Barcode lookup</DialogTitle><DialogDescription className="text-xs">Scan with a USB/Bluetooth scanner or type the number.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle className="text-lg font-black">Barcode lookup</DialogTitle><DialogDescription className="text-xs">Scan with the camera or a USB/Bluetooth scanner, or type the number.</DialogDescription></DialogHeader>
+          {scanOpen && <CameraScanner onCode={(code) => findBarcode(null, code)} />}
           <form onSubmit={findBarcode} className="space-y-3">
             <Input autoFocus value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="6001001234567" className="rounded-xl font-mono" inputMode="numeric" aria-label="Barcode" />
             <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={() => setScanOpen(false)} className="rounded-xl text-xs">Cancel</Button><Button type="submit" className="rounded-xl bg-amber-400 text-slate-950 font-bold text-xs">Find & add</Button></div>

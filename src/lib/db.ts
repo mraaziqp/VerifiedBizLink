@@ -100,7 +100,17 @@ export async function withTransaction<T>(fn: (tx: Sql) => Promise<T>): Promise<T
 
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL not set');
-  const pool = new Pool({ connectionString: url });
+  return neonPoolTransaction(url, fn);
+}
+
+/**
+ * The production transaction path: Neon's WebSocket Pool, one short-lived
+ * pool per transaction. Exported so the test suite can run every POS
+ * transaction through this exact code (against a local Postgres behind a
+ * WebSocket proxy) rather than through a stand-in driver.
+ */
+export async function neonPoolTransaction<T>(connectionString: string, fn: (tx: Sql) => Promise<T>): Promise<T> {
+  const pool = new Pool({ connectionString });
   const client = await pool.connect();
   try {
     await client.query('BEGIN');

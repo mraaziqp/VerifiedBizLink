@@ -13,7 +13,7 @@ import assert from 'node:assert/strict';
 import crypto from 'crypto';
 import {
   startDatabase, stopDatabase, sql, createMerchant, createProduct, createUser, addStaff, call, key,
-  installFetchStub, signedItn, makeRequest, setEnv, type TestMerchant, type TestUser, type Handler,
+  installFetchStub, signedItn, makeRequest, setEnv, TEST_DRIVER, proxyStats, type TestMerchant, type TestUser, type Handler,
 } from './harness';
 
 // Route handlers (imported after the harness has set the environment).
@@ -113,6 +113,8 @@ describe('schema migrations', () => {
     // The old random receipt numbers could collide.
     await sql`DROP INDEX uq_pos_sales_receipt`;
     await sql`INSERT INTO pos_sales (business_id, receipt_number, total_cents, payment_status) VALUES (${m.businessId}, 'VBL-20261101-1234', 100, 'completed'), (${m.businessId}, 'VBL-20261101-1234', 100, 'completed')`;
+    // A card sale the old till auto-approved, carrying the old hardcoded 1% fee.
+    await sql`INSERT INTO pos_sales (business_id, receipt_number, total_cents, platform_fee_cents, payment_method, payment_status) VALUES (${m.businessId}, 'VBL-20261101-5555', 10000, 100, 'card_tap', 'completed')`;
     // Re-apply the v2 SQL (it must be safe to run again over real data).
     const { withTransaction } = await import('../../src/lib/db');
     await withTransaction(async (tx) => { await tx([POS_MIGRATIONS[1].sql] as unknown as TemplateStringsArray); });
@@ -120,9 +122,15 @@ describe('schema migrations', () => {
     assert.equal(sub.status, 'inactive', 'free "active" subscription without a PayFast token is reset');
     assert.equal(sub.suspended_reason, 'activation_never_paid');
     const receipts = await sql`SELECT receipt_number FROM pos_sales WHERE business_id = ${m.businessId} ORDER BY receipt_number`;
-    assert.deepEqual(receipts.map((r) => r.receipt_number), ['VBL-20261101-1234', 'VBL-20261101-1234-2']);
+    assert.deepEqual(receipts.map((r) => r.receipt_number), ['VBL-20261101-1234', 'VBL-20261101-1234-2', 'VBL-20261101-5555']);
     const [idx] = await sql`SELECT 1 FROM pg_indexes WHERE indexname = 'uq_pos_sales_receipt'`;
     assert.ok(idx, 'unique receipt index re-created after de-duplication');
+    const legacy = await sql`SELECT DISTINCT fee_status FROM pos_sales WHERE business_id = ${m.businessId}`;
+    assert.deepEqual(legacy.map((r) => r.fee_status), ['not_billable'], 'sales from before paid terms are never billed');
+    const [fake] = await sql`SELECT review_reason FROM pos_sales WHERE business_id = ${m.businessId} AND payment_method = 'card_tap'`;
+    assert.match(fake.review_reason, /simulated/);
+    const { generateFeeStatement } = await import('../../src/lib/pos/pos-billing');
+    assert.equal(await generateFeeStatement(m.businessId, new Date().toISOString().slice(0, 7) + '-01'), null, 'nothing to bill');
   });
 });
 
@@ -962,6 +970,13 @@ describe('ledger integrity across everything above', () => {
       businessId: A.businessId, journalKey: key('bad'), kind: 'test', referenceType: 'test', referenceId: 'x',
       lines: [{ account: 'cash_on_hand', entryType: 'x', debitCents: 100, description: 'x' }, { account: 'sales_revenue', entryType: 'x', creditCents: 99, description: 'x' }],
     })), /unbalanced/);
+  });
+});
+
+describe('driver', () => {
+  it(`transactions ran through the ${TEST_DRIVER === 'neon' ? 'Neon serverless WebSocket Pool' : 'node-postgres'} driver`, () => {
+    if (TEST_DRIVER === 'neon') assert.ok(proxyStats.connections > 50, `only ${proxyStats.connections} Neon connections`);
+    else assert.equal(proxyStats.connections, 0);
   });
 });
 

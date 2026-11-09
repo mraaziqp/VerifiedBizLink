@@ -1,7 +1,7 @@
 # VerifiedBizLink POS: status
 
 **Branch:** `feat/pos-hardening`
-**Last updated:** 8 Nov 2026
+**Last updated:** 9 Nov 2026
 
 ## Done
 
@@ -37,7 +37,25 @@
 - Offline cash sales: queued on the device and synced idempotently. Shortfalls are flagged.
 - CSV exports for merchants and admins, guarded against spreadsheet formula injection.
 - Admin console: overview, merchants with audited actions, statements and waivers, collected revenue, plans and fee rules, audit log.
-- Versioned schema migrations. `npm run db:migrate:pos` applies them; `-- --check` only reports.
+- Versioned schema migrations. `npm run db:migrate:pos` applies them. `npm run db:migrate:pos -- --check` is strictly read-only and previews exactly what would change.
+- Camera barcode scanning on the till: on-device, Chrome/Android and the Android app. Typed and USB scanning still work everywhere.
+- Legacy data: sales recorded before paid POS terms existed are `not_billable` and are never put on a fee statement. Simulated card sales from the old till are flagged for review.
+- Drafts ready for you to send or have reviewed:
+  - [POS_PAYFAST_APPROVAL_REQUEST.md](POS_PAYFAST_APPROVAL_REQUEST.md)
+  - [POS_MERCHANT_TERMS_DRAFT.md](POS_MERCHANT_TERMS_DRAFT.md)
+
+## Production database preview (read-only, 9 Nov 2026)
+
+`npm run db:migrate:pos -- --check` against the database in `.env.local` (Neon, eu-west-2) found the old POS tables in place: no schema version table, migrations 1 and 2 pending.
+
+| Existing data | Count | What migration 2 does |
+|---|---|---|
+| POS subscriptions | 2, both `trial` | Kept. A trial runs to its `trial_ends_at`, then the till goes read-only until the merchant activates. |
+| Free "active" subscriptions | 0 | Nothing to reset. |
+| Sales | 8, across 3 businesses | All become `not_billable`. No fee is charged on them. |
+| Card/QR sales "approved" by the old sandbox | 2 | Flagged "simulated, not verified" in Sales. |
+| Duplicate receipt numbers | 0 | — |
+| Products | 15 (none negative) | — |
 
 ## Before deploying
 
@@ -64,7 +82,7 @@
 - **No live tap-on-phone or QR payments** (see the table above). Card sales are recorded from the merchant's own machine and confirmed by the merchant.
 - **Admin plan changes don't change the PayFast recurring amount.** A price change applies to new subscriptions only.
 - **One location per business.** Stock transfers are recorded as `transfer_in` / `transfer_out` adjustments. There's no per-location stock yet.
-- **No camera barcode scanning yet.** USB and Bluetooth scanners work, because they type into the field.
-- **Not tested on Neon:** the interactive transaction path. The suite runs the same `BEGIN`/`COMMIT` code through `pg` against a real Postgres. A Neon dev branch run is worth doing before go-live.
+- **Camera scanning needs the browser's BarcodeDetector.** It works in Chrome on Android and the Android app, not in iOS Safari. On iPhones, use a Bluetooth scanner or type the barcode.
+- **Neon's transaction driver** is tested against a local Postgres through a WebSocket proxy (`npm run test:pos:neon`), not against Neon's own servers. Neon's HTTP query path is already in production use across the whole app.
 - **Not exercised in a browser:** the UI. It passes typecheck, lint and `next build`, but running it locally would hit the production database. Click through it against a Neon dev branch before go-live.
 - **The `__tests__/*.test.ts` suite (not POS) has never run,** because Jest isn't installed.

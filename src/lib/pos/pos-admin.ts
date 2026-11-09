@@ -37,7 +37,7 @@ export async function getAdminPosOverview(fromIn?: string, toIn?: string) {
       COUNT(*) FILTER (WHERE completed_at IS NOT NULL) AS completed_count,
       COALESCE(SUM(total_cents) FILTER (WHERE completed_at IS NOT NULL), 0) AS gmv_cents,
       COALESCE(SUM(refunded_cents), 0) AS refunds_cents,
-      COALESCE(SUM(platform_fee_cents) FILTER (WHERE completed_at IS NOT NULL), 0) AS fees_accrued_cents,
+      COALESCE(SUM(platform_fee_cents) FILTER (WHERE completed_at IS NOT NULL AND fee_status NOT IN ('not_billable', 'none')), 0) AS fees_accrued_cents,
       COALESCE(SUM(fee_reversed_cents), 0) AS fees_reversed_cents,
       COUNT(*) FILTER (WHERE payment_status IN ('failed', 'cancelled')) AS failed_count
     FROM pos_sales
@@ -56,7 +56,7 @@ export async function getAdminPosOverview(fromIn?: string, toIn?: string) {
     SELECT
       COALESCE((SELECT SUM(net_due_cents) FROM pos_fee_statements WHERE status = 'open' OR (status = 'carried' AND carried_to IS NULL)), 0) AS outstanding_cents,
       COALESCE((SELECT SUM(net_due_cents) FROM pos_fee_statements WHERE status = 'open' AND due_at < NOW()), 0) AS overdue_cents,
-      COALESCE((SELECT SUM(platform_fee_cents) FROM pos_sales WHERE fee_statement_id IS NULL AND completed_at IS NOT NULL), 0)
+      COALESCE((SELECT SUM(platform_fee_cents) FROM pos_sales WHERE fee_statement_id IS NULL AND fee_status = 'accrued'), 0)
         - COALESCE((SELECT SUM(fee_reversal_cents) FROM pos_refunds WHERE fee_statement_id IS NULL), 0) AS unbilled_cents,
       COALESCE((SELECT SUM(net_due_cents) FROM pos_fee_statements WHERE status = 'waived'), 0) AS waived_cents
   `;
@@ -121,7 +121,7 @@ export async function getAdminMerchants(search?: string) {
         SUM(total_cents) FILTER (WHERE completed_at >= date_trunc('month', NOW())) AS month_sales_cents,
         SUM(total_cents) AS lifetime_sales_cents,
         COUNT(*) AS tx_count,
-        SUM(platform_fee_cents - fee_reversed_cents) AS fees_accrued_cents,
+        SUM(platform_fee_cents - fee_reversed_cents) FILTER (WHERE fee_status NOT IN ('not_billable', 'none')) AS fees_accrued_cents,
         MAX(completed_at) AS last_sale_at
       FROM pos_sales WHERE business_id = b.id AND completed_at IS NOT NULL
     ) x ON true

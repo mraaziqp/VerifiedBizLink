@@ -40,3 +40,4 @@ All of these were go-live blockers. Each one is fixed on `feat/pos-hardening`.
 | 24 | **Hub page and admin tile advertised "SoftPOS & Tap to Pay Enabled".** | Removed. Both now show the real status from the server. |
 | 25 | **The Neon WebSocket `Pool` needs a global `WebSocket`** (Node 22+), and the hosting runtime's Node version isn't pinned. | Falls back to `ws`. |
 | 26 | **The `__tests__/*.test.ts` files are Jest-style, but Jest isn't installed and no script runs them.** They have never executed. | Not changed (outside POS). Noted here so nobody counts them as coverage. |
+| 27 | **Found by the read-only production preview:** the first version of migration 2 would have billed the 1% fee on 8 sales made before any paid terms existed, 2 of them on simulated card approvals. | Existing sales become `not_billable`. Statements, fee totals and refund fee-reversals count only sales whose fee genuinely accrued. Simulated card sales are flagged for review. |

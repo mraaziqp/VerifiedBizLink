@@ -394,7 +394,7 @@ export async function generateFeeStatement(businessId: string, periodStart: stri
 
       const sales = await tx`
         UPDATE pos_sales SET fee_statement_id = ${stmt.id}, fee_status = 'billed'
-        WHERE business_id = ${businessId} AND fee_statement_id IS NULL AND platform_fee_cents > 0
+        WHERE business_id = ${businessId} AND fee_statement_id IS NULL AND platform_fee_cents > 0 AND fee_status = 'accrued'
           AND completed_at IS NOT NULL AND completed_at < ${end_ts}
         RETURNING total_cents, platform_fee_cents
       `;
@@ -448,7 +448,7 @@ export async function generateDueStatements(now: Date = new Date(), limit = 500)
   const [{ end_ts }] = await db`SELECT ((${period}::date + INTERVAL '1 month')::timestamp AT TIME ZONE ${SA_TZ}) AS end_ts`;
   const candidates = await db`
     SELECT DISTINCT business_id FROM (
-      SELECT business_id FROM pos_sales WHERE fee_statement_id IS NULL AND platform_fee_cents > 0 AND completed_at < ${end_ts}
+      SELECT business_id FROM pos_sales WHERE fee_statement_id IS NULL AND platform_fee_cents > 0 AND fee_status = 'accrued' AND completed_at < ${end_ts}
       UNION
       SELECT business_id FROM pos_refunds WHERE fee_statement_id IS NULL AND fee_reversal_cents > 0 AND created_at < ${end_ts}
     ) x
@@ -631,9 +631,9 @@ export async function getMerchantFeeSummary(businessId: string) {
     SELECT
       COALESCE(SUM(total_cents) FILTER (WHERE completed_at IS NOT NULL), 0) AS gross_sales_cents,
       COALESCE(SUM(refunded_cents), 0) AS refunds_cents,
-      COALESCE(SUM(platform_fee_cents), 0) AS fees_accrued_lifetime_cents,
+      COALESCE(SUM(platform_fee_cents) FILTER (WHERE fee_status NOT IN ('not_billable', 'none')), 0) AS fees_accrued_lifetime_cents,
       COALESCE(SUM(fee_reversed_cents), 0) AS fees_reversed_lifetime_cents,
-      COALESCE(SUM(platform_fee_cents) FILTER (WHERE fee_statement_id IS NULL AND completed_at IS NOT NULL), 0) AS unbilled_fees_cents,
+      COALESCE(SUM(platform_fee_cents) FILTER (WHERE fee_statement_id IS NULL AND fee_status = 'accrued'), 0) AS unbilled_fees_cents,
       COALESCE(SUM(provider_fee_cents), 0) AS provider_fees_cents
     FROM pos_sales WHERE business_id = ${businessId}
   `;

@@ -672,7 +672,7 @@ export async function getPosDashboard(businessId: string, from: string, to: stri
       COUNT(*) AS transactions,
       COALESCE(SUM(total_cents), 0) AS gross_sales_cents,
       COALESCE(SUM(refunded_cents), 0) AS refunds_cents,
-      COALESCE(SUM(platform_fee_cents - fee_reversed_cents), 0) AS platform_fees_cents,
+      COALESCE(SUM(platform_fee_cents - fee_reversed_cents) FILTER (WHERE fee_status NOT IN ('not_billable', 'waived', 'none')), 0) AS platform_fees_cents,
       COALESCE(SUM(tax_cents), 0) AS vat_cents,
       COALESCE(AVG(total_cents), 0) AS average_sale_cents
     FROM pos_sales

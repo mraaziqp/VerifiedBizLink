@@ -107,7 +107,8 @@ export async function refundPosSale(input: RefundInput): Promise<RefundResult> {
       if (amountCents <= 0) throw new PosError(400, 'ZERO_REFUND', 'The refund comes to R0.00.');
       if (alreadyRefunded + amountCents > saleTotal) throw new PosError(409, 'OVER_REFUND', 'Refund exceeds what was paid.');
 
-      const feeReversal = feeReversalFor({
+      const feeIsBillable = ['accrued', 'billed', 'collected'].includes(String(sale.fee_status));
+      const feeReversal = !feeIsBillable ? 0 : feeReversalFor({
         saleTotalCents: saleTotal,
         saleFeeCents: Number(sale.platform_fee_cents),
         alreadyRefundedCents: alreadyRefunded,

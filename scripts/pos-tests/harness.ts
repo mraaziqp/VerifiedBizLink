@@ -15,7 +15,14 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { NextRequest } from 'next/server';
-import { __setDbDriverForTests, sqlFor, type DbDriver, type Sql } from '../../src/lib/db';
+import net from 'net';
+import http from 'http';
+import { WebSocketServer } from 'ws';
+import { neonConfig } from '@neondatabase/serverless';
+import { __setDbDriverForTests, sqlFor, neonPoolTransaction, type DbDriver, type Sql } from '../../src/lib/db';
+
+/** 'pg' (default) or 'neon': run every transaction through Neon's real WebSocket Pool. */
+export const TEST_DRIVER = process.env.POS_TEST_DRIVER === 'neon' ? 'neon' : 'pg';
 
 process.env.DATABASE_URL = '';
 process.env.JWT_SECRET = process.env.JWT_SECRET_TEST || 'pos-test-secret-' + crypto.randomBytes(8).toString('hex');
@@ -31,6 +38,39 @@ delete process.env.UPSTASH_REDIS_REST_URL;
 let server: EmbeddedPostgres | null = null;
 let pool: pg.Pool | null = null;
 let dataDir = '';
+let wsProxy: http.Server | null = null;
+/** WebSocket connections opened through the proxy (neon mode). */
+export const proxyStats = { connections: 0 };
+
+/**
+ * A minimal stand-in for Neon's WebSocket proxy: each WebSocket carries the
+ * raw Postgres wire protocol, which is forwarded to the TCP address named in
+ * ?address=host:port. This lets @neondatabase/serverless's Pool talk to the
+ * local test server exactly as it talks to Neon.
+ */
+async function startWsProxy(): Promise<number> {
+  const server = http.createServer();
+  const wss = new WebSocketServer({ server });
+  wss.on('connection', (socket, req) => {
+    proxyStats.connections++;
+    const address = new URL(req.url ?? '', 'http://x').searchParams.get('address') ?? '';
+    const [host, port] = address.split(':');
+    const tcp = net.connect(Number(port), host);
+    const pending: Buffer[] = [];
+    let open = false;
+    tcp.on('connect', () => { open = true; for (const b of pending) tcp.write(b); pending.length = 0; });
+    socket.on('message', (data) => { const b = Buffer.from(data as Buffer); if (open) tcp.write(b); else pending.push(b); });
+    tcp.on('data', (b) => socket.readyState === socket.OPEN && socket.send(b));
+    const close = () => { try { socket.close(); } catch { /* closed */ } tcp.destroy(); };
+    tcp.on('error', close);
+    tcp.on('close', close);
+    socket.on('close', close);
+    socket.on('error', close);
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  wsProxy = server;
+  return (server.address() as net.AddressInfo).port;
+}
 
 export let sql: Sql;
 
@@ -100,10 +140,20 @@ export async function startDatabase() {
   pool = new pg.Pool({ connectionString: `postgres://postgres:postgres@localhost:${port}/pos_test`, max: 30 });
 
   const p = pool;
+  const connectionString = `postgres://postgres:postgres@localhost:${port}/pos_test`;
+  let neonTransaction: DbDriver['transaction'] | null = null;
+  if (TEST_DRIVER === 'neon') {
+    const proxyPort = await startWsProxy();
+    neonConfig.wsProxy = (host, pgPort) => `127.0.0.1:${proxyPort}/v1?address=${host}:${pgPort}`;
+    neonConfig.useSecureWebSocket = false;
+    neonConfig.pipelineTLS = false;
+    neonConfig.pipelineConnect = false;
+    neonTransaction = (fn) => neonPoolTransaction(connectionString, fn);
+  }
   const driver: DbDriver = {
     sql: sqlFor(p as never),
     raw: async (text) => (await p.query(text)).rows,
-    transaction: async (fn) => {
+    transaction: neonTransaction ?? (async (fn) => {
       const client = await p.connect();
       try {
         await client.query('BEGIN');
@@ -116,7 +166,7 @@ export async function startDatabase() {
       } finally {
         client.release();
       }
-    },
+    }),
   };
   __setDbDriverForTests(driver);
   sql = driver.sql;
@@ -130,6 +180,7 @@ export async function startDatabase() {
 export async function stopDatabase() {
   __setDbDriverForTests(null);
   await pool?.end().catch(() => {});
+  await new Promise((r) => (wsProxy ? wsProxy.close(r) : r(null)));
   await server?.stop().catch(() => {});
   try { fs.rmSync(dataDir, { recursive: true, force: true }); } catch { /* temp dir */ }
 }

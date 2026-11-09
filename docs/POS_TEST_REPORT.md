@@ -21,13 +21,27 @@
 
 ## Result
 
+Latest run, 9 Nov 2026. The suite runs twice, once per database driver.
+
+| Command | Transactions go through | Tests | Pass | Fail |
+|---|---|---|---|---|
+| `npm run test:pos` | node-postgres | 65 | 65 | 0 |
+| `npm run test:pos:neon` | `@neondatabase/serverless` WebSocket Pool, the production code path in `src/lib/db.ts`, via a local WebSocket proxy | 65 | 65 | 0 |
+
+In Neon mode the suite asserts that more than 50 WebSocket connections actually went through the proxy, so it can't pass by silently using the other driver.
+
+The legacy-data test now also proves:
+- pre-existing sales become `not_billable`
+- a simulated card sale is flagged
+- no fee statement is produced for legacy sales
+
+The original run, on 8 Nov 2026, was 64 tests:
+
 ```
 ℹ tests 64
 ℹ suites 16
 ℹ pass 64
 ℹ fail 0
-ℹ cancelled 0
-ℹ skipped 0
 ℹ duration_ms 13104
 ```
 
@@ -112,7 +126,8 @@ The first full run had 1 failure: "a retried refund request with the same key re
 
 ## Not tested
 
-- The Neon `Pool` transaction path against an actual Neon database. Same SQL and `BEGIN`/`COMMIT` code, different driver.
+- Neon's own servers. The Neon driver is tested against a local Postgres through a WebSocket proxy.
+- Camera barcode scanning on a real phone.
 - The UI in a browser. Running it locally would use the production database.
 - Live PayFast (sandbox or production). ITNs were signed and validated locally against a stubbed validation endpoint.
 - The `__tests__/*.test.ts` Jest files outside POS. Jest isn't installed, so they can't run.

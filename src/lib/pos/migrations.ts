@@ -400,8 +400,14 @@ ALTER TABLE pos_sales ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
 
 UPDATE pos_sales SET completed_at = created_at WHERE completed_at IS NULL AND payment_status IN ('completed', 'refunded', 'partially_refunded');
 UPDATE pos_sales SET fee_rate_bps = 100 WHERE fee_rate_bps IS NULL;
-UPDATE pos_sales SET fee_status = 'accrued'
-WHERE fee_status = 'none' AND platform_fee_cents > 0 AND payment_status IN ('completed', 'partially_refunded');
+-- Sales recorded before paid POS terms existed are never billed: nobody
+-- agreed to a fee, and the old till could record unverified payments.
+-- Every sale present when this migration runs is such a sale.
+UPDATE pos_sales SET fee_status = 'not_billable' WHERE fee_status = 'none';
+UPDATE pos_sales
+SET review_reason = 'recorded by the pre-hardening till: the card or QR approval was simulated, not verified'
+WHERE payment_method IN ('card_tap', 'qr_online') AND payment_status IN ('completed', 'partially_refunded', 'refunded')
+  AND review_reason IS NULL;
 
 -- Receipt numbers were 4 random digits a day and could collide.
 WITH d AS (
