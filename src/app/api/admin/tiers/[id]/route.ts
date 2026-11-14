@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
-
-const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
+import { mapTierRow } from '@/lib/tiers';
+import { STAFF_ROLES, FINANCE_ROLES, hasRole } from '@/lib/roles';
 
 // [id] here is the tier's `key` (e.g. 'standard'), not a UUID — tiers are
 // keyed by a short slug since that's what businesses.package_type stores.
 
 // GET /api/admin/tiers/[id] — single tier
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
-  if (!session || !STAFF_ROLES.includes(session.role)) {
+  if (!session || !hasRole(session.role, STAFF_ROLES)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   const { id } = await params;
   const [tier] = await db`SELECT * FROM tiers WHERE key = ${id}`;
   if (!tier) return NextResponse.json({ error: 'Tier not found' }, { status: 404 });
-  return NextResponse.json({ tier });
+  return NextResponse.json({ tier: mapTierRow(tier) });
 }
 
 // PUT /api/admin/tiers/[id] — update a tier's price, limits, features, or active state
@@ -28,7 +28,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
-  if (!session || !STAFF_ROLES.includes(session.role)) {
+  if (!session || !hasRole(session.role, FINANCE_ROLES)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -72,26 +72,37 @@ export async function PUT(
     VALUES (${session.id}, ${session.fullName}, ${'Updated tier: ' + tier.name}, 'tier', ${id})
   `.catch(() => {});
 
-  return NextResponse.json({ tier });
+  const [businessCount] = await db`
+    SELECT COUNT(*)::int AS n FROM businesses
+    WHERE COALESCE(
+      CASE WHEN trial_package IS NOT NULL AND trial_ends_at IS NOT NULL AND trial_ends_at > NOW() THEN trial_package ELSE package_type END,
+      'free'
+    ) = ${id}
+  `;
+
+  return NextResponse.json({ tier: { ...mapTierRow(tier), businessCount: Number(businessCount?.n ?? 0) } });
 }
 
 // DELETE /api/admin/tiers/[id] — soft-delete (deactivate) a tier.
 // Never hard-deletes: businesses may still have package_type set to this
 // key, and hard-deleting would break their ad-limit/price lookups.
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await getSession();
-  if (!session || !STAFF_ROLES.includes(session.role)) {
+  if (!session || !hasRole(session.role, FINANCE_ROLES)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const { id } = await params;
+  if (id === 'free') {
+    return NextResponse.json({ error: 'The Free Profile tier cannot be deactivated.' }, { status: 400 });
+  }
   const [businessCount] = await db`SELECT COUNT(*)::int AS n FROM businesses WHERE package_type = ${id}`;
 
   const [tier] = await db`
-    UPDATE tiers SET is_active = false, updated_at = NOW()
+    UPDATE tiers SET is_active = false, is_purchasable = false, updated_at = NOW()
     WHERE key = ${id}
     RETURNING *
   `;
@@ -104,7 +115,7 @@ export async function DELETE(
 
   return NextResponse.json({
     success: true,
-    tier,
+    tier: { ...mapTierRow(tier), businessCount: Number(businessCount?.n ?? 0) },
     warning: businessCount.n > 0
       ? `${businessCount.n} business${businessCount.n === 1 ? ' is' : 'es are'} currently on this tier. They'll keep their existing ad limit/price until moved to another tier.`
       : null,

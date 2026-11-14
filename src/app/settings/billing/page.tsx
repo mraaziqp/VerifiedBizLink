@@ -23,6 +23,9 @@ interface Subscription {
   downgradedFrom: string | null;
   canPayNow: boolean;
   payNowCents: number;
+  tierGrantType?: string | null;
+  tierGrantNote?: string | null;
+  trialEndsAt?: string | null;
   terms: string;
 }
 
@@ -146,6 +149,7 @@ export default function BillingSettingsPage() {
   };
 
   const isPaid = !!sub && sub.tierKey !== 'free';
+  const isComplimentary = !!sub && (sub.tierGrantType === 'complimentary' || sub.tierGrantType === 'timed_free');
 
   return (
     <GlassBackground>
@@ -241,15 +245,38 @@ export default function BillingSettingsPage() {
               <SectionTitle icon={CreditCard}>Your plan</SectionTitle>
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                  <p className="text-2xl font-extrabold text-gray-900">{sub.tierName}</p>
-                  {isPaid && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-2xl font-extrabold text-gray-900">{sub.tierName}</p>
+                    {isComplimentary && (
+                      <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                        Complimentary (Free)
+                      </span>
+                    )}
+                  </div>
+                  {isPaid && !isComplimentary && (
                     <p className="mt-1 text-sm text-gray-500">
                       {formatRand(sub.renewalPriceCents)}
                       {sub.intervalMonths > 1 ? ` every ${sub.intervalMonths} months` : ' per month'}
                     </p>
                   )}
+                  {isComplimentary && (
+                    <p className="mt-1 text-sm text-emerald-700">
+                      R0/month — complimentary access granted by VerifiedBizLink
+                    </p>
+                  )}
                 </div>
-                {isPaid ? (
+                {isPaid && isComplimentary ? (
+                  <div className="text-right">
+                    <p className="text-xs uppercase tracking-wide text-gray-500">
+                      {sub.tierGrantType === 'timed_free' ? 'Free access until' : 'Billing cycle'}
+                    </p>
+                    <p className="font-semibold text-gray-900">
+                      {sub.tierGrantType === 'timed_free' && sub.nextBillingAt
+                        ? formatDate(sub.nextBillingAt)
+                        : 'Complimentary (No renewal charge)'}
+                    </p>
+                  </div>
+                ) : isPaid ? (
                   <div className="text-right">
                     <p className="text-xs uppercase tracking-wide text-gray-500">Next billing date</p>
                     <p className="font-semibold text-gray-900">{formatDate(sub.nextBillingAt)}</p>
@@ -261,7 +288,11 @@ export default function BillingSettingsPage() {
                 )}
               </div>
 
-              {isPaid && (
+              {isPaid && isComplimentary && (
+                <p className="mt-4 text-sm leading-relaxed text-gray-500">{sub.terms}</p>
+              )}
+
+              {isPaid && !isComplimentary && (
                 <>
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
                     <div>

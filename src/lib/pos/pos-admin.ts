@@ -4,6 +4,8 @@ import { PosError, isUuid } from './errors';
 import { logPosAudit } from './audit';
 import { createFeeRule, type NewFeeRuleInput } from './fees';
 import { feeWaiverJournal, postJournal } from './ledger';
+import { cancelPayfastSubscription } from '@/lib/payfast-api';
+import { logBillingEvent } from '@/lib/billing-events';
 
 /**
  * VerifiedBizLink's view of the POS business.
@@ -17,7 +19,7 @@ const dateOr = (v: string | undefined, fallback: string) => (v && /^\d{4}-\d{2}-
 
 export async function getAdminPosOverview(fromIn?: string, toIn?: string) {
   await ensurePosSchema();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(new Date());
   const from = dateOr(fromIn, `${today.slice(0, 7)}-01`);
   const to = dateOr(toIn, today);
 
@@ -41,7 +43,7 @@ export async function getAdminPosOverview(fromIn?: string, toIn?: string) {
       COALESCE(SUM(fee_reversed_cents), 0) AS fees_reversed_cents,
       COUNT(*) FILTER (WHERE payment_status IN ('failed', 'cancelled')) AS failed_count
     FROM pos_sales
-    WHERE created_at >= ${from}::date AND created_at < ${to}::date + 1
+    WHERE created_at >= ${from}::date AND created_at < (${to}::date + INTERVAL '1 day')
   `;
   const [collected] = await db`
     SELECT
@@ -49,7 +51,7 @@ export async function getAdminPosOverview(fromIn?: string, toIn?: string) {
       COALESCE(SUM(amount_cents) FILTER (WHERE kind = 'setup_fee'), 0) AS setup_fee_cents,
       COALESCE(SUM(amount_cents) FILTER (WHERE kind = 'fee_statement'), 0) AS fee_statement_cents
     FROM pos_billing_charges
-    WHERE created_at >= ${from}::date AND created_at < ${to}::date + 1
+    WHERE created_at >= ${from}::date AND created_at < (${to}::date + INTERVAL '1 day')
   `;
   // Receivables are point-in-time, not period-bound.
   const [receivable] = await db`
@@ -102,7 +104,8 @@ export async function getAdminMerchants(search?: string) {
   return db`
     SELECT
       b.id AS business_id, b.company_name, b.status AS verification_status,
-      s.plan_key, s.status AS subscription_status, s.activated_at, s.renews_at, s.cancel_at_period_end,
+      s.plan_key, s.status AS subscription_status, s.activated_at, s.renews_at, s.trial_ends_at,
+      s.cancel_at_period_end, s.granted_free, s.granted_reason,
       s.suspended_reason, (s.payfast_token IS NOT NULL) AS has_payfast_subscription,
       (SELECT COUNT(*) FROM pos_tills t WHERE t.business_id = b.id) AS tills,
       COALESCE(x.month_sales_cents, 0) AS month_sales_cents,
@@ -182,10 +185,14 @@ export async function adminSetMerchantAccess(businessId: string, action: 'suspen
       `;
     } else {
       if (before.status !== 'suspended') throw new PosError(409, 'NOT_SUSPENDED', 'This merchant is not suspended.');
-      // Back to active only if the paid term is current; otherwise they must pay.
+      // Back to active if granted free (within window) or the paid term is current; otherwise they must pay.
       [after] = await tx`
         UPDATE pos_merchant_subscriptions
-        SET status = CASE WHEN renews_at > NOW() THEN 'active' ELSE 'inactive' END,
+        SET status = CASE
+              WHEN COALESCE(granted_free, false) IS TRUE AND (trial_ends_at IS NULL OR trial_ends_at > NOW()) THEN 'active'
+              WHEN renews_at > NOW() THEN 'active'
+              ELSE 'inactive'
+            END,
             suspended_at = NULL, suspended_reason = NULL, payment_failed_at = NULL, updated_at = NOW()
         WHERE business_id = ${businessId} RETURNING *
       `;
@@ -218,6 +225,226 @@ export async function adminChangePlan(businessId: string, planKey: unknown, acto
     }, tx);
     return after;
   });
+}
+
+export interface GrantFreePosPlanInput {
+  businessId: string;
+  planKey: unknown;
+  durationDays?: number | null;
+  expiresAt?: string | null;
+  exemptFees?: boolean;
+  actor: AdminActor;
+  reason: unknown;
+}
+
+/**
+ * Grants a complimentary or time-boxed free POS plan to any business — works
+ * even when the business has never started POS checkout or trial before.
+ */
+export async function adminGrantFreePosPlan(input: GrantFreePosPlanInput) {
+  await ensurePosSchema();
+  if (!isUuid(input.businessId)) throw new PosError(400, 'BAD_BUSINESS', 'Invalid business.');
+  const reason = reasonRequired(input.reason);
+  const planKey = String(input.planKey || '').trim();
+  const [plan] = await db`SELECT plan_key, name FROM pos_subscription_plans WHERE plan_key = ${planKey}`;
+  if (!plan) throw new PosError(404, 'PLAN_NOT_FOUND', 'Unknown POS plan.');
+
+  const [biz] = await db`SELECT id, user_id, company_name FROM businesses WHERE id = ${input.businessId}`;
+  if (!biz) throw new PosError(404, 'BUSINESS_NOT_FOUND', 'Business not found.');
+
+  let expiryIso: string | null = null;
+  if (input.expiresAt) {
+    const d = new Date(input.expiresAt);
+    if (Number.isNaN(d.getTime()) || d.getTime() <= Date.now()) {
+      throw new PosError(400, 'BAD_EXPIRY', 'POS expiry date must be in the future.');
+    }
+    expiryIso = d.toISOString();
+  } else if (input.durationDays !== undefined && input.durationDays !== null && Number(input.durationDays) > 0) {
+    const days = Math.trunc(Number(input.durationDays));
+    if (!Number.isFinite(days) || days < 1 || days > 3650) {
+      throw new PosError(400, 'BAD_DURATION', 'POS duration must be between 1 and 3650 days.');
+    }
+    const end = new Date();
+    end.setUTCDate(end.getUTCDate() + days);
+    expiryIso = end.toISOString();
+  }
+
+  const [existing] = await db`
+    SELECT id, payfast_token FROM pos_merchant_subscriptions WHERE business_id = ${input.businessId} LIMIT 1
+  `;
+  let payfastCancelled = false;
+  if (existing?.payfast_token) {
+    const cancelRes = await cancelPayfastSubscription(String(existing.payfast_token));
+    payfastCancelled = Boolean(cancelRes?.ok);
+    await logBillingEvent({
+      event: payfastCancelled ? 'old_subscription_cancelled' : 'old_subscription_cancel_failed',
+      severity: payfastCancelled ? 'info' : 'critical',
+      businessId: String(biz.id),
+      userId: String(biz.user_id),
+      reference: String(existing.payfast_token),
+      detail: payfastCancelled
+        ? `Admin granted complimentary POS (${String(plan.name)}) to ${String(biz.company_name)}. Existing PayFast subscription ${String(existing.payfast_token)} was cancelled.`
+        : `Admin granted complimentary POS (${String(plan.name)}) to ${String(biz.company_name)}, but PayFast subscription ${String(existing.payfast_token)} could not be cancelled automatically (${cancelRes?.detail}).`,
+      alertAdmins: !payfastCancelled,
+      alertTitle: `Cancel PayFast POS subscription manually: ${String(biz.company_name)}`,
+    });
+  }
+
+  const nextStatus = expiryIso ? 'trial' : 'active';
+
+  const sub = await withTransaction(async (tx) => {
+    const [row] = await tx`
+      INSERT INTO pos_merchant_subscriptions (
+        business_id, plan_key, status, setup_fee_paid, setup_fee_paid_at,
+        started_at, activated_at, trial_ends_at, renews_at, cancel_at_period_end,
+        payfast_token, recurring_amount_cents, suspended_at, suspended_reason,
+        payment_failed_at, cancelled_at, granted_free, granted_by, granted_at, granted_reason
+      )
+      VALUES (
+        ${input.businessId}, ${plan.plan_key}, ${nextStatus}, true, NOW(),
+        NOW(), NOW(), ${expiryIso}::timestamptz, NULL, false,
+        NULL, 0, NULL, NULL,
+        NULL, NULL, true, ${input.actor.userId}, NOW(), ${reason}
+      )
+      ON CONFLICT (business_id) DO UPDATE SET
+        plan_key = EXCLUDED.plan_key,
+        status = EXCLUDED.status,
+        setup_fee_paid = true,
+        setup_fee_paid_at = COALESCE(pos_merchant_subscriptions.setup_fee_paid_at, NOW()),
+        activated_at = COALESCE(pos_merchant_subscriptions.activated_at, NOW()),
+        trial_ends_at = EXCLUDED.trial_ends_at,
+        renews_at = NULL,
+        cancel_at_period_end = false,
+        payfast_token = CASE WHEN ${payfastCancelled} THEN NULL ELSE pos_merchant_subscriptions.payfast_token END,
+        recurring_amount_cents = 0,
+        suspended_at = NULL,
+        suspended_reason = NULL,
+        payment_failed_at = NULL,
+        cancelled_at = NULL,
+        granted_free = true,
+        granted_by = ${input.actor.userId},
+        granted_at = NOW(),
+        granted_reason = ${reason},
+        updated_at = NOW()
+      RETURNING *
+    `;
+
+    if (input.exemptFees) {
+      await createFeeRule(tx, {
+        scope: 'merchant',
+        businessId: input.businessId,
+        rateBps: 0,
+        exempt: true,
+        reason: `Complimentary POS plan (${String(plan.name)}): ${reason}`,
+        createdBy: input.actor.userId,
+      });
+    }
+
+    await logPosAudit({
+      businessId: input.businessId,
+      actorUserId: input.actor.userId,
+      actorRole: `platform:${input.actor.role}`,
+      action: 'admin_grant_free_pos',
+      targetType: 'subscription',
+      targetId: String(row.id),
+      detail: { planKey: plan.plan_key, status: nextStatus, expiresAt: expiryIso, exemptFees: Boolean(input.exemptFees), reason },
+    }, tx);
+
+    return row;
+  });
+
+  await db`
+    INSERT INTO notifications (user_id, type, title, content)
+    VALUES (
+      ${biz.user_id},
+      'pos_activated',
+      'Free POS plan activated',
+      ${expiryIso
+        ? `An administrator granted "${String(biz.company_name)}" complimentary access to VerifiedBizLink POS (${String(plan.name)}) until ${new Date(expiryIso).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}.`
+        : `An administrator granted "${String(biz.company_name)}" complimentary access to VerifiedBizLink POS (${String(plan.name)}) at no cost.`}
+    )
+  `.catch(() => {});
+
+  return sub;
+}
+
+/**
+ * Revokes complimentary or active POS access, moving the till cleanly back to
+ * cancelled/read-only without deleting any sales, products, or receipts.
+ */
+export async function adminRevokePosPlan(businessId: string, actor: AdminActor, reasonIn: unknown) {
+  await ensurePosSchema();
+  if (!isUuid(businessId)) throw new PosError(400, 'BAD_BUSINESS', 'Invalid business.');
+  const reason = reasonRequired(reasonIn);
+
+  const [before] = await db`
+    SELECT s.*, b.user_id, b.company_name
+    FROM pos_merchant_subscriptions s
+    JOIN businesses b ON b.id = s.business_id
+    WHERE s.business_id = ${businessId}
+    LIMIT 1
+  `;
+  if (!before) throw new PosError(404, 'NO_SUBSCRIPTION', 'This business has no POS subscription.');
+
+  let payfastCancelled = false;
+  if (before.payfast_token) {
+    const cancelRes = await cancelPayfastSubscription(String(before.payfast_token));
+    payfastCancelled = Boolean(cancelRes?.ok);
+    await logBillingEvent({
+      event: payfastCancelled ? 'old_subscription_cancelled' : 'old_subscription_cancel_failed',
+      severity: payfastCancelled ? 'info' : 'critical',
+      businessId,
+      userId: String(before.user_id),
+      reference: String(before.payfast_token),
+      detail: payfastCancelled
+        ? `Admin revoked POS plan for ${String(before.company_name)}. PayFast subscription ${String(before.payfast_token)} cancelled.`
+        : `Admin revoked POS plan for ${String(before.company_name)}, but PayFast subscription ${String(before.payfast_token)} could not be cancelled automatically (${cancelRes?.detail}).`,
+      alertAdmins: !payfastCancelled,
+      alertTitle: `Cancel PayFast POS subscription manually: ${String(before.company_name)}`,
+    });
+  }
+
+  const after = await withTransaction(async (tx) => {
+    const [row] = await tx`
+      UPDATE pos_merchant_subscriptions
+      SET
+        status = 'cancelled',
+        cancelled_at = NOW(),
+        trial_ends_at = NULL,
+        renews_at = NULL,
+        cancel_at_period_end = false,
+        granted_free = false,
+        payfast_token = CASE WHEN ${payfastCancelled} THEN NULL ELSE payfast_token END,
+        granted_reason = ${reason},
+        updated_at = NOW()
+      WHERE business_id = ${businessId}
+      RETURNING *
+    `;
+
+    await logPosAudit({
+      businessId,
+      actorUserId: actor.userId,
+      actorRole: `platform:${actor.role}`,
+      action: 'admin_revoke_pos_plan',
+      targetType: 'subscription',
+      targetId: String(before.id),
+      detail: { reason, fromStatus: before.status, fromPlan: before.plan_key },
+    }, tx);
+
+    return row;
+  });
+
+  await db`
+    INSERT INTO notifications (user_id, type, title, content)
+    VALUES (
+      ${before.user_id},
+      'pos_suspended',
+      'POS plan removed',
+      ${`Your POS plan for "${String(before.company_name)}" has been removed by an administrator (${reason}). All historical sales and exports remain intact.`}
+    )
+  `.catch(() => {});
+
+  return after;
 }
 
 export async function adminCreateFeeRule(input: Omit<NewFeeRuleInput, 'createdBy'>, actor: AdminActor) {

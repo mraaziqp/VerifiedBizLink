@@ -6,6 +6,7 @@ import {
   DOWNGRADE_TIER,
 } from '@/lib/billing';
 import { resumeAmountCents } from '@/lib/billing-notices';
+import { ensureBusinessTierColumns } from '@/lib/business-tiers';
 
 type Row = Record<string, unknown>;
 
@@ -14,16 +15,19 @@ type Row = Record<string, unknown>;
  * current tier, renewal state, the exact cancellation wording, available
  * terms, and the customer's invoice history.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getSession();
+    const session = await getSession(request);
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    await ensureBusinessTierColumns();
 
     const rows = (await db`
       SELECT
         b.id, b.company_name, b.package_type, b.auto_renew, b.billing_interval_months,
         b.next_billing_at, b.payment_failed_at, b.cancelled_at, b.subscription_status,
         b.downgraded_from, b.downgraded_at,
+        b.tier_grant_type, b.tier_grant_note, b.trial_ends_at,
         t.name AS tier_name, t.price AS tier_price
       FROM businesses b
       LEFT JOIN tiers t ON t.key = b.package_type
@@ -79,7 +83,15 @@ export async function GET() {
             canPayNow: Boolean(payNowTier) && payNowCents >= 500,
             payNowCents,
             downgradedAt: biz.downgraded_at ?? null,
-            terms: subscriptionTerms(renewalCents, (biz.next_billing_at as string) ?? null),
+            tierGrantType: biz.tier_grant_type ?? null,
+            tierGrantNote: biz.tier_grant_note ?? null,
+            trialEndsAt: biz.trial_ends_at ?? null,
+            terms:
+              biz.tier_grant_type === 'complimentary'
+                ? 'Complimentary plan granted by VerifiedBizLink — no recurring charges apply.'
+                : biz.tier_grant_type === 'timed_free'
+                  ? `Complimentary promotional access active until ${biz.next_billing_at ? new Date(String(biz.next_billing_at)).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' }) : 'end of term'}. After that your account returns to Free unless you choose a paid plan.`
+                  : subscriptionTerms(renewalCents, (biz.next_billing_at as string) ?? null),
           }
         : null,
       intervals: intervals.length

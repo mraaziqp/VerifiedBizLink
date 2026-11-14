@@ -946,6 +946,65 @@ describe('admin console', () => {
   it('non-staff cannot reach the admin API', async () => {
     assert.equal((await call(adminPos.GET, 'GET', '/api/admin/pos', { user: A.owner })).status, 403);
   });
+
+  it('admin can grant a complimentary free POS plan (with 0% fee exemption) to any business and later revoke it', async () => {
+    const freshOwner = await createUser('fresh-pos-comp@test.local', 'business');
+    const [freshBiz] = await sql`
+      INSERT INTO businesses (user_id, company_name, status) VALUES (${freshOwner.id}, 'Fresh Comp Cafe', 'pending') RETURNING id
+    `;
+    const bizId = String(freshBiz.id);
+    const freshMerchant = { owner: freshOwner, businessId: bizId, name: 'Fresh Comp Cafe' };
+
+    // Grant complimentary enterprise POS plan without any prior checkout or trial row
+    const grant = await call(adminPos.POST, 'POST', '/api/admin/pos', {
+      user: platformAdmin,
+      body: { action: 'grant_free_plan', businessId: bizId, planKey: 'enterprise', exemptFees: true, reason: 'VIP partner comp' },
+    });
+    assert.equal(grant.status, 200, JSON.stringify(grant.json));
+    assert.equal(grant.json.subscription.plan_key, 'enterprise');
+    assert.equal(grant.json.subscription.status, 'active');
+    assert.equal(grant.json.subscription.granted_free, true);
+
+    // Ensure schema re-run does NOT wipe granted_free active POS plan to 'inactive'
+    const { ensurePosSchema } = await import('../../src/lib/pos/schema');
+    await ensurePosSchema();
+    const [afterMig] = await sql`SELECT status, granted_free FROM pos_merchant_subscriptions WHERE business_id = ${bizId}`;
+    assert.equal(afterMig.status, 'active');
+    assert.equal(afterMig.granted_free, true);
+
+    // Create a sale via freshOwner and confirm fee is 0 (exempt)
+    const [till] = await sql`INSERT INTO pos_tills (business_id, name) VALUES (${bizId}, 'Main Till') RETURNING id`;
+    const prod = await createProduct(freshMerchant, 'Coffee', 3500, 10);
+    const sRes = await call(checkout.POST, 'POST', '/api/pos/checkout', {
+      user: freshOwner,
+      body: { idempotencyKey: key('comp-sale'), paymentMethod: 'cash', tillId: till.id, items: [{ productId: prod.id, quantity: 1 }] },
+    });
+    assert.equal(sRes.status, 201, JSON.stringify(sRes.json));
+    assert.equal(Number(sRes.json.sale.platform_fee_cents), 0);
+
+    // Non-finance compliance admin cannot grant or revoke
+    const denied = await call(adminPos.POST, 'POST', '/api/admin/pos', {
+      user: complianceAdmin,
+      body: { action: 'revoke_free_plan', businessId: bizId, reason: 'Unauthorized test' },
+    });
+    assert.equal(denied.status, 403);
+
+    // Revoke complimentary POS plan cleanly -> till becomes cancelled / read-only, sales preserved
+    const revoke = await call(adminPos.POST, 'POST', '/api/admin/pos', {
+      user: platformAdmin,
+      body: { action: 'revoke_free_plan', businessId: bizId, reason: 'Comp ended' },
+    });
+    assert.equal(revoke.status, 200, JSON.stringify(revoke.json));
+    assert.equal(revoke.json.subscription.status, 'cancelled');
+    assert.equal(revoke.json.subscription.granted_free, false);
+
+    // Till now refuses new sales (402)
+    const blockedSale = await call(checkout.POST, 'POST', '/api/pos/checkout', {
+      user: freshOwner,
+      body: { idempotencyKey: key('comp-blocked'), paymentMethod: 'cash', tillId: till.id, items: [{ productId: prod.id, quantity: 1 }] },
+    });
+    assert.equal(blockedSale.status, 402);
+  });
 });
 
 // ===========================================================================

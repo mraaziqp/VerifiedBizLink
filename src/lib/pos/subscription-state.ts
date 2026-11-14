@@ -31,6 +31,7 @@ type SubRow = {
   payment_failed_at?: string | Date | null;
   cancel_at_period_end?: boolean | null;
   suspended_reason?: string | null;
+  granted_free?: boolean | null;
 } | null;
 
 const t = (v: string | Date | null | undefined) => (v ? new Date(v).getTime() : NaN);
@@ -50,8 +51,22 @@ export function posAccessState(sub: SubRow, now: Date = new Date()): PosAccessSt
       return { mode: 'full', status, message: sub.cancel_at_period_end ? 'Your subscription is set to end at the close of this billing period.' : '' };
     }
     case 'trial': {
-      if (t(sub.trial_ends_at) > nowMs) return { mode: 'full', status, message: 'You are on a free trial.' };
-      return { mode: 'read_only', status, message: 'Your free trial has ended. Activate POS to keep selling — your records are safe.' };
+      if (t(sub.trial_ends_at) > nowMs) {
+        return {
+          mode: 'full',
+          status,
+          message: sub.granted_free
+            ? `Complimentary POS access is active until ${new Date(t(sub.trial_ends_at)).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })}.`
+            : 'You are on a free trial.',
+        };
+      }
+      return {
+        mode: 'read_only',
+        status,
+        message: sub.granted_free
+          ? 'Your complimentary POS access period has ended. Activate POS to keep selling — your records are safe.'
+          : 'Your free trial has ended. Activate POS to keep selling — your records are safe.',
+      };
     }
     case 'grace': {
       const ends = t(sub.payment_failed_at) + GRACE_PERIOD_HOURS * 3600_000;

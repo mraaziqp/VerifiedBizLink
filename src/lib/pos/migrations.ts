@@ -310,6 +310,10 @@ ALTER TABLE pos_merchant_subscriptions ADD COLUMN IF NOT EXISTS suspended_at TIM
 ALTER TABLE pos_merchant_subscriptions ADD COLUMN IF NOT EXISTS suspended_reason TEXT;
 ALTER TABLE pos_merchant_subscriptions ADD COLUMN IF NOT EXISTS last_payment_reference TEXT;
 ALTER TABLE pos_merchant_subscriptions ADD COLUMN IF NOT EXISTS pending_plan_key TEXT;
+ALTER TABLE pos_merchant_subscriptions ADD COLUMN IF NOT EXISTS granted_free BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE pos_merchant_subscriptions ADD COLUMN IF NOT EXISTS granted_by UUID;
+ALTER TABLE pos_merchant_subscriptions ADD COLUMN IF NOT EXISTS granted_at TIMESTAMPTZ;
+ALTER TABLE pos_merchant_subscriptions ADD COLUMN IF NOT EXISTS granted_reason TEXT;
 ALTER TABLE pos_merchant_subscriptions ALTER COLUMN status SET DEFAULT 'inactive';
 ALTER TABLE pos_merchant_subscriptions ALTER COLUMN trial_ends_at DROP DEFAULT;
 ALTER TABLE pos_merchant_subscriptions ALTER COLUMN renews_at DROP DEFAULT;
@@ -327,11 +331,11 @@ WHERE s.business_id = keep.business_id
 CREATE UNIQUE INDEX IF NOT EXISTS uq_pos_subs_business ON pos_merchant_subscriptions (business_id);
 
 -- Activation used to be granted from a browser flag with no payment. A row
--- that is 'active' with no PayFast token was never paid for: it goes back to
--- 'inactive' (data untouched) and the merchant activates properly.
+-- that is 'active' with no PayFast token and no admin comp grant was never paid for:
+-- it goes back to 'inactive' (data untouched) and the merchant activates properly.
 UPDATE pos_merchant_subscriptions
 SET status = 'inactive', suspended_reason = 'activation_never_paid', updated_at = NOW()
-WHERE status = 'active' AND payfast_token IS NULL;
+WHERE status = 'active' AND payfast_token IS NULL AND COALESCE(granted_free, false) = false;
 
 -- ---------------------------------------------------------------------------
 -- Per-business counters (receipt numbers, PO numbers, statements)

@@ -5,7 +5,7 @@ import { AccountSwitchButton } from '@/components/auth/account-switcher';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard, History, UserCheck, Trophy, ShieldAlert, Receipt, Link2, Megaphone, Mail, Loader2, MessageSquare, Smartphone, Sparkles } from 'lucide-react';
+import { ArrowRight, Building2, CheckCircle2, Clock, Users, BarChart3, Settings, Zap, FileText, CreditCard, History, UserCheck, Trophy, ShieldAlert, Receipt, Link2, Megaphone, Mail, Loader2, MessageSquare, Smartphone, Sparkles, Crown } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
@@ -152,6 +152,7 @@ export default function AdminDashboard() {
   const adminTools: AdminTool[] = [
     { id: 'company-hiring', name: 'VerifiedBizLink Applicants', description: 'Candidates who applied for our posted roles (e.g. Independent Marketers), review CVs, shortlist and message candidates', icon: UserCheck, href: '/admin/hiring', color: 'from-amber-400 to-yellow-500', badge: 'Company Hiring' },
     { id: 'business-vetting', name: 'Business Vetting Desk', description: 'Review and grade business documents, manage verification status', icon: FileText, href: '/admin/vetting', color: 'from-blue-500 to-cyan-500', badge: statsLoading ? undefined : `${stats?.pendingBusinesses ?? 0} pending` },
+    { id: 'business-tiers', name: 'Business Tiers & Free Plans', description: 'Grant free plans or complimentary tiers to businesses, remove tiers back to Free, manage free POS access & tier limits', icon: Crown, href: '/admin/tiers', color: 'from-amber-500 to-yellow-500', badge: 'Free & Paid Tiers' },
     { id: 'pos-oversight', name: 'VerifiedBizLink POS', description: 'Merchants, subscriptions, fees accrued vs collected, fee statements, plan pricing, fee overrides and the POS audit log', icon: Smartphone, href: '/admin/pos', color: 'from-emerald-500 to-teal-500', badge: 'POS Hub' },
     { id: 'payment-gateway', name: 'Payment Gateway', description: 'PayFast transactions, revenue, and payment status', icon: CreditCard, href: '/admin/payments', color: 'from-yellow-500 to-amber-500' },
     { id: 'user-management', name: 'User Management', description: 'Manage all users, roles, permissions, and access', icon: Users, href: '/admin/users', color: 'from-purple-500 to-pink-500', badge: statsLoading ? undefined : `${fmt(stats?.totalUsers)} users` },

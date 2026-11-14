@@ -28,7 +28,9 @@ export type BillingEvent =
   | 'old_subscription_cancel_failed'
   | 'charge_on_replaced_subscription'
   | 'payment_unrecorded'
-  | 'payment_unapplied';
+  | 'payment_unapplied'
+  | 'admin_tier_granted'
+  | 'admin_tier_removed';
 
 export interface BillingEventInput {
   event: BillingEvent;

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft, Search, Loader2, Mail, ShieldCheck, Ban, RotateCcw,
-  Trash2, Building2, User, Users, Briefcase, Shield, CheckCircle2
+  Trash2, Building2, User, Users, Briefcase, Shield, CheckCircle2, Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,10 @@ interface UserItem {
   created_at: string;
   email_verified: boolean;
   is_suspended: boolean;
+  business_id?: string | null;
+  company_name?: string | null;
+  package_type?: string | null;
+  tier_grant_type?: string | null;
 }
 
 const ROLE_STYLES: Record<string, string> = {
@@ -268,6 +272,16 @@ export default function AdminUsersPage() {
     <AdminBackground>
       <AdminPageHeader title="User &amp; Member Management" subtitle={`${users.length} registered accounts across all personas`}>
         <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 font-bold"
+          asChild
+        >
+          <Link href="/admin/tiers">
+            <Crown className="h-4 w-4 text-amber-600" /> Manage Business Tiers
+          </Link>
+        </Button>
+        <Button
           onClick={handleExportUsersEmail}
           disabled={exportingEmail}
           className="gap-2 bg-slate-900 hover:bg-slate-800 text-white font-bold"
@@ -341,6 +355,7 @@ export default function AdminUsersPage() {
                     <th className="px-5 py-3.5">Name</th>
                     <th className="px-5 py-3.5">Email</th>
                     <th className="px-5 py-3.5">Persona / Role</th>
+                    <th className="px-5 py-3.5">Business Tier</th>
                     <th className="px-5 py-3.5">Email Status</th>
                     <th className="px-5 py-3.5">Account State</th>
                     <th className="px-5 py-3.5">Joined</th>
@@ -376,6 +391,31 @@ export default function AdminUsersPage() {
                             </select>
                             {savingRoleId === u.id && <Loader2 className="h-4 w-4 animate-spin text-slate-500" />}
                           </div>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {u.business_id ? (
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="rounded-full bg-slate-100 border border-slate-200 px-2 py-0.5 text-[11px] font-bold uppercase text-slate-800">
+                                  {u.package_type || 'free'}
+                                </span>
+                                {(u.tier_grant_type === 'complimentary' || u.tier_grant_type === 'timed_free') && (
+                                  <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                                    Free Comp
+                                  </span>
+                                )}
+                              </div>
+                              <Link
+                                href={`/admin/tiers?q=${encodeURIComponent(u.email)}`}
+                                className="text-[11px] font-semibold text-amber-700 hover:text-amber-900 hover:underline truncate max-w-[160px]"
+                                title={u.company_name || u.email}
+                              >
+                                {u.company_name || 'Manage tier'} →
+                              </Link>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-slate-400">—</span>
+                          )}
                         </td>
                         <td className="px-5 py-3.5">
                           {isStaffUser ? (

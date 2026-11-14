@@ -4,6 +4,7 @@ import { DOWNGRADE_TIER, GRACE_PERIOD_HOURS, GRACE_PERIOD_DAYS, RENEWAL_GRACE_HO
 import { appUrlFromRequest } from '@/lib/email';
 import { sendFailureNotice } from '@/lib/billing-notices';
 import { logBillingEvent } from '@/lib/billing-events';
+import { cancelPayfastSubscription } from '@/lib/payfast-api';
 import { scanOverdueSubscriptions } from '@/db/queries/subscriptions';
 
 export const dynamic = 'force-dynamic';
@@ -157,13 +158,19 @@ export async function GET(request: NextRequest) {
     result.downgraded = expired.length;
 
     for (const row of expired) {
+      if (row.payfast_token) {
+        await cancelPayfastSubscription(String(row.payfast_token)).catch((err) =>
+          console.error('[cron/billing] PayFast cancellation on nonpayment failed:', err),
+        );
+      }
+
       await logBillingEvent({
         event: 'downgraded_nonpayment',
         severity: 'warning',
         businessId: String(row.id),
         userId: String(row.user_id),
         reference: row.payfast_token ? String(row.payfast_token) : null,
-        detail: `${String(row.company_name)} was moved from ${String(row.downgraded_from)} to Free after ${GRACE_PERIOD_DAYS} days without payment.${row.payfast_token ? ` Make sure PayFast subscription ${String(row.payfast_token)} is cancelled so it cannot charge later.` : ''}`,
+        detail: `${String(row.company_name)} was moved from ${String(row.downgraded_from)} to Free after ${GRACE_PERIOD_DAYS} days without payment.${row.payfast_token ? ' Active PayFast subscription cancelled automatically.' : ''}`,
         alertAdmins: true,
         alertTitle: `Subscription expired for non-payment: ${String(row.company_name)}`,
       });
@@ -176,6 +183,10 @@ export async function GET(request: NextRequest) {
           downgraded_at = NOW(),
           package_type = ${DOWNGRADE_TIER},
           subscription_status = 'cancelled',
+          next_billing_at = NULL,
+          trial_package = NULL,
+          trial_ends_at = NULL,
+          tier_grant_type = NULL,
           updated_at = NOW()
       WHERE auto_renew IS FALSE
         AND package_type IS NOT NULL

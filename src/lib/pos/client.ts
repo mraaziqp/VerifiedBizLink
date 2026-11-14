@@ -72,8 +72,24 @@ export const METHOD_LABELS: Record<string, string> = {
   cash: 'Cash',
   card_external: 'Card (own machine)',
   card_tap: 'Tap on phone',
-  qr_online: 'QR / payment link',
+  qr_online: 'QR / PayShap / SnapScan',
 };
+
+export function calcVat15(totalCents: number) {
+  const vat = Math.round(totalCents - totalCents / 1.15);
+  const excl = totalCents - vat;
+  return { vatCents: vat, subtotalExclCents: excl };
+}
+
+export function calcGrossMargin(sellingCents: number, costCents: number): number {
+  if (sellingCents <= 0) return 0;
+  return Math.round(((sellingCents - costCents) / sellingCents) * 1000) / 10;
+}
+
+export function calcMarkup(sellingCents: number, costCents: number): number {
+  if (costCents <= 0) return 0;
+  return Math.round(((sellingCents - costCents) / costCents) * 1000) / 10;
+}
 
 export interface PosAccess {
   mode: 'full' | 'read_only';

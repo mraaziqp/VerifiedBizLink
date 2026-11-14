@@ -607,7 +607,8 @@ export async function createPosExpense(businessId: string, data: Record<string, 
   const category = EXPENSE_CATEGORIES.includes(String(data.category) as (typeof EXPENSE_CATEGORIES)[number]) ? String(data.category) : null;
   if (!category) throw new PosError(400, 'BAD_CATEGORY', `Category must be one of: ${EXPENSE_CATEGORIES.join(', ')}.`);
   const amount = intCents(data.amountCents, 'Amount', { min: 1, max: 1_000_000_000 });
-  const date = typeof data.expenseDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.expenseDate) ? data.expenseDate : new Date().toISOString().slice(0, 10);
+  const todaySa = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(new Date());
+  const date = typeof data.expenseDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(data.expenseDate) ? data.expenseDate : todaySa;
   let supplierId: string | null = null;
   if (data.supplierId) {
     if (!isUuid(data.supplierId)) throw new PosError(400, 'BAD_SUPPLIER', 'Invalid supplier.');

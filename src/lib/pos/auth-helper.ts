@@ -90,7 +90,7 @@ export function roleCan(role: PosRole, capability: PosCapability): boolean {
 
 async function loadAccess(businessId: string): Promise<PosAccessState> {
   const [sub] = await db`
-    SELECT status, trial_ends_at, renews_at, payment_failed_at, cancel_at_period_end, suspended_reason
+    SELECT status, trial_ends_at, renews_at, payment_failed_at, cancel_at_period_end, suspended_reason, granted_free
     FROM pos_merchant_subscriptions WHERE business_id = ${businessId} LIMIT 1
   `;
   return posAccessState(sub ?? null);

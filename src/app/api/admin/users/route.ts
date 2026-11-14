@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession, isStaff } from '@/lib/auth';
 import { hash } from 'bcryptjs';
 import db from '@/lib/db';
+import { ensureBusinessTierColumns } from '@/lib/business-tiers';
 
 export async function GET() {
   try {
@@ -10,11 +11,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    await ensureBusinessTierColumns();
+
     const users = await db`
       SELECT
         u.id, u.email, u.full_name, u.role, u.headline, u.avatar_url,
         u.connections_count, u.vetting_score, u.created_at, u.email_verified, u.is_suspended,
-        b.id AS business_id, b.company_name, b.status AS business_status, b.package_type
+        b.id AS business_id, b.company_name, b.status AS business_status,
+        b.package_type, b.tier_grant_type, b.trial_package, b.trial_ends_at
       FROM users u
       LEFT JOIN businesses b ON b.user_id = u.id
       ORDER BY u.created_at DESC

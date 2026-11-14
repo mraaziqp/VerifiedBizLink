@@ -345,9 +345,15 @@ export async function POST(request: NextRequest) {
       ON certificates (business_id) WHERE revoked_at IS NULL
     `;
 
+    // --- v15: Admin complimentary & timed free business tier grants ---
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS tier_grant_type TEXT`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS tier_granted_by UUID`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS tier_granted_at TIMESTAMPTZ`;
+    await db`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS tier_grant_note TEXT`;
+
     return NextResponse.json({
       success: true,
-      message: 'Migration v14 applied: Certificates table, banking details, and all system migrations configured.',
+      message: 'Migration v15 applied: Admin tier grants, certificates, banking details, and all system migrations configured.',
       indexes,
     });
   } catch (error) {

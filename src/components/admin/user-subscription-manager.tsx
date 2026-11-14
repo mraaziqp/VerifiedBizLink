@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit2, Loader2, X, Save, Ban, RotateCcw, Trash2 } from "lucide-react";
+import { Edit2, Loader2, X, Save, Ban, RotateCcw, Trash2, Crown, ArrowRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const STAFF_ROLES = ["admin", "banker", "lawyer"];
@@ -17,6 +18,7 @@ interface User {
   business_id: string | null;
   business_status: string | null;
   package_type: string | null;
+  tier_grant_type?: string | null;
   created_at: string;
   is_suspended: boolean;
 }
@@ -55,8 +57,8 @@ export default function UserSubscriptionManager() {
 
   useEffect(() => {
     fetchUsers();
-    fetch("/api/tiers")
-      .then((res) => (res.ok ? res.json() : null))
+    fetch("/api/admin/tiers")
+      .then((res) => (res.ok ? res.json() : fetch("/api/tiers").then((r) => (r.ok ? r.json() : null))))
       .then((data) => { if (data?.tiers) setTiers(data.tiers); })
       .catch(() => {});
   }, [fetchUsers]);
@@ -76,15 +78,25 @@ export default function UserSubscriptionManager() {
     if (!user.business_id) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/admin/businesses/${user.business_id}`, {
-        method: "PUT",
+      const res = await fetch(`/api/admin/businesses/${user.business_id}/tier`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ packageType: editTier }),
+        body: JSON.stringify({
+          mode: editTier === "free" ? "remove" : "complimentary",
+          tierKey: editTier,
+          reason: "Admin plan update via Orchestrator Users & Plans",
+        }),
       });
       if (res.ok) {
-        setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, package_type: editTier } : u)));
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === user.id
+              ? { ...u, package_type: editTier, tier_grant_type: editTier === "free" ? null : "complimentary" }
+              : u,
+          ),
+        );
         setEditingId(null);
-        toast({ title: "Plan updated" });
+        toast({ title: editTier === "free" ? "Tier removed (moved to Free)" : "Complimentary plan updated" });
       } else {
         const data = await res.json().catch(() => ({}));
         toast({ title: "Could not update plan", description: data.error, variant: "destructive" });
@@ -167,12 +179,23 @@ export default function UserSubscriptionManager() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900">Users &amp; Plans</h2>
-        <p className="text-gray-500 text-sm mt-1">
-          {users.length} account{users.length === 1 ? "" : "s"}. Business accounts can have their plan
-          overridden here (e.g. for support/comp reasons) — takes effect immediately.
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+        <div className="flex items-start gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-slate-950">
+            <Crown className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Users &amp; Business Plans</h2>
+            <p className="text-xs text-slate-600">
+              Showing latest 100 accounts. For full business search, timed free trials, ad-credit grants, verification badges, and free POS plans, use the dedicated Business Tiers Workspace.
+            </p>
+          </div>
+        </div>
+        <Button asChild size="sm" className="bg-slate-900 text-white hover:bg-slate-800 gap-1.5 font-bold">
+          <Link href="/admin/tiers">
+            Open Business Tiers &amp; Free Plans <ArrowRight className="h-4 w-4" />
+          </Link>
+        </Button>
       </div>
 
       <Input

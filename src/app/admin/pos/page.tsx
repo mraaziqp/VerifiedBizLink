@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, RefreshCw, Loader2, Download, Search, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, RefreshCw, Loader2, Download, Search, ShieldAlert, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -41,6 +41,7 @@ export default function AdminPosPage() {
   const [action, setAction] = useState<{ kind: string; target: Row } | null>(null);
   const [form, setForm] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
+  const [allBusinesses, setAllBusinesses] = useState<Row[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -72,6 +73,19 @@ export default function AdminPosPage() {
       case 'change_plan':
         body = { action: 'change_plan', businessId: t.business_id, planKey: form.planKey, reason: form.reason };
         break;
+      case 'grant_free_plan':
+        body = {
+          action: 'grant_free_plan',
+          businessId: form.businessId || t.business_id,
+          planKey: form.planKey || 'starter',
+          durationDays: form.durationDays ? Number(form.durationDays) : null,
+          exemptFees: form.exempt === 'yes',
+          reason: form.reason,
+        };
+        break;
+      case 'revoke_free_plan':
+        body = { action: 'revoke_free_plan', businessId: t.business_id, reason: form.reason };
+        break;
       case 'fee_override':
         body = { action: 'fee_override', businessId: t.business_id, rateBps: Math.round(parseFloat(form.ratePercent || '0') * 100), exempt: form.exempt === 'yes', effectiveFrom: form.effectiveFrom || undefined, effectiveTo: form.effectiveTo || undefined, maxFeeCents: form.capRand ? Math.round(parseFloat(form.capRand) * 100) : undefined, reason: form.reason };
         break;
@@ -97,6 +111,13 @@ export default function AdminPosPage() {
   const startAction = (kind: string, target: Row, initial: Record<string, string> = {}) => {
     setForm({ reason: '', ...initial });
     setAction({ kind, target });
+    if (kind === 'grant_free_plan' && allBusinesses.length === 0) {
+      api('/api/admin/businesses?includeDocs=false').then((r) => {
+        if (r.ok && Array.isArray(r.data.businesses)) {
+          setAllBusinesses(r.data.businesses);
+        }
+      });
+    }
   };
 
   return (
@@ -168,9 +189,19 @@ export default function AdminPosPage() {
           </div>
         ) : tab === 'merchants' ? (
           <div className="space-y-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Business name" className="pl-9 rounded-xl bg-white" aria-label="Search merchants" /></div>
-              <a className="inline-flex items-center gap-1 text-xs font-bold underline" href="/api/admin/pos/export?type=merchants"><Download className="h-3.5 w-3.5" /> CSV</a>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" /><Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Business name" className="pl-9 rounded-xl bg-white" aria-label="Search merchants" /></div>
+                <a className="inline-flex items-center gap-1 text-xs font-bold underline" href="/api/admin/pos/export?type=merchants"><Download className="h-3.5 w-3.5" /> CSV</a>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" onClick={() => startAction('grant_free_plan', { company_name: 'Select any business' }, { planKey: 'starter', exempt: 'no' })} className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold gap-1">
+                  <Gift className="h-3.5 w-3.5" /> Grant Free POS Plan
+                </Button>
+                <Button asChild size="sm" variant="outline" className="rounded-xl text-xs font-bold">
+                  <Link href="/admin/tiers">All Business Tiers →</Link>
+                </Button>
+              </div>
             </div>
             <div className="overflow-x-auto rounded-3xl border border-slate-200 bg-white">
               <table className="w-full text-left text-xs">
@@ -181,7 +212,7 @@ export default function AdminPosPage() {
                       <td className="p-3"><button onClick={() => openMerchant(m.business_id)} className="font-black text-slate-900 hover:underline">{m.company_name}</button></td>
                       <td>{m.verification_status}</td>
                       <td>{m.plan_key}</td>
-                      <td><span className={cn('rounded-full px-2 py-0.5 font-bold', m.subscription_status === 'active' ? 'bg-emerald-100 text-emerald-800' : m.subscription_status === 'grace' ? 'bg-amber-100 text-amber-900' : 'bg-slate-200 text-slate-700')}>{m.subscription_status}{m.cancel_at_period_end ? ' (ending)' : ''}</span></td>
+                      <td><span className={cn('rounded-full px-2 py-0.5 font-bold', m.subscription_status === 'active' ? 'bg-emerald-100 text-emerald-800' : m.subscription_status === 'grace' ? 'bg-amber-100 text-amber-900' : 'bg-slate-200 text-slate-700')}>{m.subscription_status}{m.granted_free ? ' (Comp Free)' : ''}{m.cancel_at_period_end ? ' (ending)' : ''}</span></td>
                       <td>{m.tills}</td>
                       <td className="text-right">{zar(m.month_sales_cents)}</td>
                       <td className="text-right">{zar(m.lifetime_sales_cents)}</td>
@@ -192,6 +223,10 @@ export default function AdminPosPage() {
                       <td className="p-3 whitespace-nowrap space-x-1">
                         <Button size="sm" variant="outline" className="h-7 rounded-lg text-[11px]" onClick={() => startAction('fee_override', m, { ratePercent: '1', exempt: 'no' })}>Fee</Button>
                         <Button size="sm" variant="outline" className="h-7 rounded-lg text-[11px]" onClick={() => startAction('change_plan', m, { planKey: m.plan_key })}>Plan</Button>
+                        <Button size="sm" variant="outline" className="h-7 rounded-lg text-[11px] border-emerald-200 text-emerald-700" onClick={() => startAction('grant_free_plan', m, { businessId: m.business_id, planKey: m.plan_key || 'starter', exempt: 'no' })}>Free</Button>
+                        {m.subscription_status !== 'cancelled' && (
+                          <Button size="sm" variant="outline" className="h-7 rounded-lg text-[11px] text-rose-700" onClick={() => startAction('revoke_free_plan', m)}>Revoke</Button>
+                        )}
                         {m.subscription_status === 'suspended'
                           ? <Button size="sm" variant="outline" className="h-7 rounded-lg text-[11px]" onClick={() => startAction('reactivate', m)}>Reactivate</Button>
                           : <Button size="sm" variant="outline" className="h-7 rounded-lg text-[11px] text-rose-700" onClick={() => startAction('suspend', m)}>Suspend</Button>}
@@ -297,12 +332,59 @@ export default function AdminPosPage() {
           {action && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-lg font-black">{({ suspend: 'Suspend POS', reactivate: 'Reactivate POS', change_plan: 'Change plan (no charge)', fee_override: 'Set a negotiated fee', plan_fee: 'Change plan fee', update_plan: 'Edit plan pricing', waive: 'Waive statement' } as Record<string, string>)[action.kind]}</DialogTitle>
+                <DialogTitle className="text-lg font-black">{({ suspend: 'Suspend POS', reactivate: 'Reactivate POS', change_plan: 'Change plan (no charge)', grant_free_plan: 'Grant Free POS Plan', revoke_free_plan: 'Remove POS Plan', fee_override: 'Set a negotiated fee', plan_fee: 'Change plan fee', update_plan: 'Edit plan pricing', waive: 'Waive statement' } as Record<string, string>)[action.kind]}</DialogTitle>
                 <DialogDescription className="text-xs">{action.target.company_name ?? action.target.name ?? action.target.statement_number}. Finance administrators only; recorded in the audit log.</DialogDescription>
               </DialogHeader>
               <div className="space-y-2 text-xs">
                 {action.kind === 'change_plan' && (
                   <Input value={form.planKey ?? ''} onChange={(e) => setForm((f) => ({ ...f, planKey: e.target.value }))} placeholder="Plan key (starter, business, enterprise)" aria-label="Plan key" className="rounded-xl" />
+                )}
+                {action.kind === 'grant_free_plan' && (
+                  <>
+                    {!action.target.business_id && (
+                      <label className="block font-bold">
+                        Business
+                        <select
+                          value={form.businessId ?? ''}
+                          onChange={(e) => setForm((f) => ({ ...f, businessId: e.target.value }))}
+                          className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-900"
+                        >
+                          <option value="">Choose a business...</option>
+                          {allBusinesses.map((b) => (
+                            <option key={b.id} value={b.id}>{b.company_name} ({b.owner_email})</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                    <label className="block font-bold">
+                      POS Plan
+                      <select
+                        value={form.planKey ?? 'starter'}
+                        onChange={(e) => setForm((f) => ({ ...f, planKey: e.target.value }))}
+                        className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-900"
+                      >
+                        <option value="starter">Starter Till</option>
+                        <option value="business">Business Storefront</option>
+                        <option value="enterprise">Multi-Branch Enterprise</option>
+                      </select>
+                    </label>
+                    <label className="block font-bold">
+                      Free days (leave blank for indefinite complimentary)
+                      <Input
+                        type="number"
+                        min={1}
+                        max={3650}
+                        placeholder="Indefinite until removed"
+                        value={form.durationDays ?? ''}
+                        onChange={(e) => setForm((f) => ({ ...f, durationDays: e.target.value }))}
+                        className="rounded-xl mt-1"
+                      />
+                    </label>
+                    <label className="flex items-center gap-2 font-bold">
+                      <input type="checkbox" checked={form.exempt === 'yes'} onChange={(e) => setForm((f) => ({ ...f, exempt: e.target.checked ? 'yes' : 'no' }))} />
+                      Waive per-sale platform transaction fees (0%)
+                    </label>
+                  </>
                 )}
                 {(action.kind === 'fee_override' || action.kind === 'plan_fee') && (
                   <>

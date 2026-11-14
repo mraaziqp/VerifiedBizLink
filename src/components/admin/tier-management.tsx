@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Edit2, Save, X, Loader2, Plus, Megaphone } from "lucide-react";
+import { Edit2, Save, X, Loader2, Plus, Megaphone, Trash2, Building2 } from "lucide-react";
 
 interface Tier {
   key: string;
@@ -21,6 +21,7 @@ interface Tier {
   sortOrder: number;
   isActive: boolean;
   isPurchasable: boolean;
+  businessCount?: number;
 }
 
 type TierForm = {
@@ -28,10 +29,20 @@ type TierForm = {
   price: number;
   adLimit: number;
   monthlyAdCredits: number;
+  note: string;
+  sortOrder: number;
   features: string;
 };
 
-const emptyForm: TierForm = { name: "", price: 0, adLimit: 0, monthlyAdCredits: 0, features: "" };
+const emptyForm: TierForm = {
+  name: "",
+  price: 0,
+  adLimit: 0,
+  monthlyAdCredits: 0,
+  note: "",
+  sortOrder: 10,
+  features: "",
+};
 
 function toForm(tier: Tier): TierForm {
   return {
@@ -39,6 +50,8 @@ function toForm(tier: Tier): TierForm {
     price: tier.price,
     adLimit: tier.adLimit,
     monthlyAdCredits: tier.monthlyAdCredits,
+    note: tier.note || "",
+    sortOrder: tier.sortOrder ?? 99,
     features: tier.features.join("\n"),
   };
 }
@@ -89,6 +102,8 @@ export default function TierManagement() {
           price: Number(editForm.price),
           adLimit: Number(editForm.adLimit),
           monthlyAdCredits: Number(editForm.monthlyAdCredits),
+          note: editForm.note.trim() || null,
+          sortOrder: Number(editForm.sortOrder),
           features: editForm.features.split("\n").map((f) => f.trim()).filter(Boolean),
         }),
       });
@@ -105,6 +120,25 @@ export default function TierManagement() {
       toast({ title: "Could not update tier", variant: "destructive" });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeactivateTier = async (tier: Tier) => {
+    const countLabel = tier.businessCount
+      ? `\n\n${tier.businessCount} business${tier.businessCount === 1 ? " is" : "es are"} currently on this tier — they will keep access until moved to another tier.`
+      : "";
+    if (!window.confirm(`Deactivate & hide "${tier.name}" (${tier.key})?${countLabel}`)) return;
+    try {
+      const res = await fetch(`/api/admin/tiers/${tier.key}`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setTiers((prev) => prev.map((t) => (t.key === tier.key ? data.tier : t)));
+        toast({ title: "Tier deactivated", description: data.warning || undefined });
+      } else {
+        toast({ title: "Could not deactivate tier", description: data.error, variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Could not deactivate tier", variant: "destructive" });
     }
   };
 
@@ -153,8 +187,9 @@ export default function TierManagement() {
           price: Number(newForm.price),
           adLimit: Number(newForm.adLimit),
           monthlyAdCredits: Number(newForm.monthlyAdCredits),
+          note: newForm.note.trim() || null,
           features: newForm.features.split("\n").map((f) => f.trim()).filter(Boolean),
-          sortOrder: tiers.length + 1,
+          sortOrder: Number(newForm.sortOrder) || tiers.length + 1,
         }),
       });
       if (res.ok) {
@@ -188,10 +223,10 @@ export default function TierManagement() {
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Tier Management</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Tier Definitions &amp; Pricing</h2>
           <p className="text-gray-500 text-sm mt-1">
-            Prices, ad limits, and monthly ad-credit allowances — these blocks are enforced live: a business&apos;s
-            package_type determines exactly what they can do.
+            Configure global tier pricing, ad limits, and monthly ad-credit allowances. To grant an existing plan
+            for free to a specific business without changing public pricing, use the Business Tiers &amp; Free Plans view.
           </p>
         </div>
         <Button
@@ -205,17 +240,17 @@ export default function TierManagement() {
 
       {showNewForm && (
         <Card className="bg-white/80 border-cyan-500/30 p-6 space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-gray-500 block mb-1">Key (used internally, e.g. &ldquo;gold&rdquo;)</label>
-              <Input value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="gold" className="bg-white border-gray-300 text-gray-900" />
+              <Input value={newKey} onChange={(e) => setNewKey(e.target.value)} placeholder="vip_partner" className="bg-white border-gray-300 text-gray-900" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">Display Name</label>
-              <Input value={newForm.name} onChange={(e) => setNewForm({ ...newForm, name: e.target.value })} placeholder="Gold" className="bg-white border-gray-300 text-gray-900" />
+              <Input value={newForm.name} onChange={(e) => setNewForm({ ...newForm, name: e.target.value })} placeholder="VIP Partner" className="bg-white border-gray-300 text-gray-900" />
             </div>
             <div>
-              <label className="text-xs text-gray-500 block mb-1">Price (R/month)</label>
+              <label className="text-xs text-gray-500 block mb-1">Price (R/month — 0 for free tier)</label>
               <Input type="number" value={newForm.price} onChange={(e) => setNewForm({ ...newForm, price: Number(e.target.value) || 0 })} className="bg-white border-gray-300 text-gray-900" />
             </div>
             <div>
@@ -225,6 +260,10 @@ export default function TierManagement() {
             <div>
               <label className="text-xs text-gray-500 block mb-1">Monthly ad credits (ad-days)</label>
               <Input type="number" value={newForm.monthlyAdCredits} onChange={(e) => setNewForm({ ...newForm, monthlyAdCredits: Number(e.target.value) || 0 })} className="bg-white border-gray-300 text-gray-900" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Short note / subtitle</label>
+              <Input value={newForm.note} onChange={(e) => setNewForm({ ...newForm, note: e.target.value })} placeholder="e.g. Invitation-only comp tier" className="bg-white border-gray-300 text-gray-900" />
             </div>
           </div>
           <div>
@@ -249,88 +288,120 @@ export default function TierManagement() {
         {tiers.map((tier) => (
           <Card
             key={tier.key}
-            className={`bg-white/80 border-cyan-500/20 hover:border-cyan-500/40 transition-all p-6 shadow-md ${!tier.isActive ? "opacity-50" : ""}`}
+            className={`bg-white/80 border-cyan-500/20 hover:border-cyan-500/40 transition-all p-6 shadow-md flex flex-col justify-between ${!tier.isActive ? "opacity-60" : ""}`}
           >
-            <div className="flex items-start justify-between mb-2">
-              <h3 className="text-xl font-bold text-gray-900">{tier.name}</h3>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-gray-500 uppercase tracking-wide">Active</span>
-                <Switch checked={tier.isActive} onCheckedChange={() => handleToggleActive(tier)} />
+            <div>
+              <div className="flex items-start justify-between mb-2 gap-2">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">{tier.name}</h3>
+                  {typeof tier.businessCount === "number" && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-800 bg-cyan-50 border border-cyan-200 rounded-full px-2 py-0.5 mt-1">
+                      <Building2 className="h-3 w-3" /> {tier.businessCount} business{tier.businessCount === 1 ? "" : "es"}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wide">Active</span>
+                  <Switch checked={tier.isActive} disabled={tier.key === "free"} onCheckedChange={() => handleToggleActive(tier)} />
+                </div>
               </div>
-            </div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-gray-500 text-xs font-mono">{tier.key}</p>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] text-gray-500 uppercase tracking-wide">On pricing page</span>
-                <Switch checked={tier.isPurchasable} onCheckedChange={() => handleTogglePurchasable(tier)} />
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-gray-500 text-xs font-mono">{tier.key}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-gray-500 uppercase tracking-wide">On pricing page</span>
+                  <Switch checked={tier.isPurchasable} disabled={tier.key === "free"} onCheckedChange={() => handleTogglePurchasable(tier)} />
+                </div>
               </div>
-            </div>
-            {!tier.isPurchasable && (
-              <p className="text-[11px] text-amber-700 mb-2">Hidden from pricing/checkout — e.g. a trial state, not something someone manually buys.</p>
-            )}
+              {!tier.isPurchasable && (
+                <p className="text-[11px] text-amber-700 mb-2">Hidden from public checkout — assignable only by admins or system flows.</p>
+              )}
 
-            {editingKey === tier.key ? (
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-gray-500 block mb-1">Name</label>
-                  <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="bg-white border-gray-300 text-gray-900" />
+              {editingKey === tier.key ? (
+                <div className="space-y-3 mt-2">
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Name</label>
+                    <Input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="bg-white border-gray-300 text-gray-900" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Price (R/month)</label>
+                    <Input type="number" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: Number(e.target.value) || 0 })} className="bg-white border-gray-300 text-gray-900" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">Max ads</label>
+                      <Input type="number" value={editForm.adLimit} onChange={(e) => setEditForm({ ...editForm, adLimit: Number(e.target.value) || 0 })} className="bg-white border-gray-300 text-gray-900" />
+                    </div>
+                    <div>
+                      <label className="text-xs text-gray-500 block mb-1">Ad-days/mo</label>
+                      <Input type="number" value={editForm.monthlyAdCredits} onChange={(e) => setEditForm({ ...editForm, monthlyAdCredits: Number(e.target.value) || 0 })} className="bg-white border-gray-300 text-gray-900" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Short note</label>
+                    <Input value={editForm.note} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} className="bg-white border-gray-300 text-gray-900" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Features (one per line)</label>
+                    <textarea
+                      value={editForm.features}
+                      onChange={(e) => setEditForm({ ...editForm, features: e.target.value })}
+                      rows={4}
+                      className="w-full bg-white border border-gray-300 text-gray-900 rounded-md p-2 text-xs"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => handleSave(tier.key)} disabled={isSaving} className="flex-1 bg-green-600 text-white hover:bg-green-700 gap-1">
+                      {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Save
+                    </Button>
+                    <Button size="sm" onClick={() => setEditingKey(null)} variant="outline" className="flex-1 border-gray-200 text-gray-600 gap-1">
+                      <X className="h-3 w-3" /> Cancel
+                    </Button>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-xs text-gray-500 block mb-1">Price (R/month)</label>
-                  <Input type="number" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: Number(e.target.value) || 0 })} className="bg-white border-gray-300 text-gray-900" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 block mb-1">Max simultaneous ads</label>
-                  <Input type="number" value={editForm.adLimit} onChange={(e) => setEditForm({ ...editForm, adLimit: Number(e.target.value) || 0 })} className="bg-white border-gray-300 text-gray-900" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 block mb-1">Monthly ad credits (ad-days)</label>
-                  <Input type="number" value={editForm.monthlyAdCredits} onChange={(e) => setEditForm({ ...editForm, monthlyAdCredits: Number(e.target.value) || 0 })} className="bg-white border-gray-300 text-gray-900" />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 block mb-1">Features (one per line)</label>
-                  <textarea
-                    value={editForm.features}
-                    onChange={(e) => setEditForm({ ...editForm, features: e.target.value })}
-                    rows={4}
-                    className="w-full bg-white border border-gray-300 text-gray-900 rounded-md p-2 text-xs"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => handleSave(tier.key)} disabled={isSaving} className="flex-1 bg-green-600 text-white hover:bg-green-700 gap-1">
-                    {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />} Save
-                  </Button>
-                  <Button size="sm" onClick={() => setEditingKey(null)} variant="outline" className="flex-1 border-gray-200 text-gray-600 gap-1">
-                    <X className="h-3 w-3" /> Cancel
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="mb-4">
-                  <p className="text-3xl font-bold text-cyan-700">
-                    {formatRandAmount(tier.price, 0)}
-                    <span className="text-base font-medium text-gray-500">/month</span>
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  <Badge className="bg-gray-100 text-gray-600 border-gray-200 gap-1">
-                    <Megaphone className="h-3 w-3" /> {tier.adLimit} active ad{tier.adLimit === 1 ? "" : "s"}
-                  </Badge>
-                  <Badge className="bg-gray-100 text-gray-600 border-gray-200">
-                    {tier.monthlyAdCredits} ad-days/mo
-                  </Badge>
-                </div>
-                <ul className="space-y-1 mb-4 text-xs text-gray-500">
-                  {tier.features.slice(0, 4).map((f) => (
-                    <li key={f}>• {f}</li>
-                  ))}
-                  {tier.features.length > 4 && <li>+{tier.features.length - 4} more</li>}
-                </ul>
-                <Button size="sm" onClick={() => startEdit(tier)} className="w-full bg-yellow-500 text-gray-900 hover:bg-yellow-600 font-semibold gap-2">
+              ) : (
+                <>
+                  <div className="mb-3">
+                    <p className="text-3xl font-bold text-cyan-700">
+                      {formatRandAmount(tier.price, 0)}
+                      <span className="text-base font-medium text-gray-500">/month</span>
+                    </p>
+                    {tier.note && <p className="text-xs text-gray-500 mt-1">{tier.note}</p>}
+                  </div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <Badge className="bg-gray-100 text-gray-600 border-gray-200 gap-1">
+                      <Megaphone className="h-3 w-3" /> {tier.adLimit} active ad{tier.adLimit === 1 ? "" : "s"}
+                    </Badge>
+                    <Badge className="bg-gray-100 text-gray-600 border-gray-200">
+                      {tier.monthlyAdCredits} ad-days/mo
+                    </Badge>
+                  </div>
+                  <ul className="space-y-1 mb-4 text-xs text-gray-500">
+                    {tier.features.slice(0, 4).map((f) => (
+                      <li key={f}>• {f}</li>
+                    ))}
+                    {tier.features.length > 4 && <li>+{tier.features.length - 4} more</li>}
+                  </ul>
+                </>
+              )}
+            </div>
+
+            {editingKey !== tier.key && (
+              <div className="flex gap-2 mt-2">
+                <Button size="sm" onClick={() => startEdit(tier)} className="flex-1 bg-yellow-500 text-gray-900 hover:bg-yellow-600 font-semibold gap-2">
                   <Edit2 className="h-4 w-4" /> Edit Tier
                 </Button>
-              </>
+                {tier.key !== "free" && tier.isActive && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDeactivateTier(tier)}
+                    title="Deactivate tier"
+                    className="border-rose-200 text-rose-700 hover:bg-rose-50 px-2.5"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             )}
           </Card>
         ))}

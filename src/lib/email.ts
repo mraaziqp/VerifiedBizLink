@@ -47,6 +47,9 @@ export function appUrlFromRequest(request?: { headers: Headers }): string {
  * This guarantees dispatch works across all cloud environments (AWS Lambda/Amplify, local, VPS).
  */
 export async function sendWithFallback(mailOptions: SendMailOptions): Promise<SentMessageInfo> {
+  if (process.env.NODE_ENV === 'test' || process.env.TEST_EMAIL_STUB === 'true') {
+    return { messageId: 'test-stub' } as SentMessageInfo;
+  }
   const { default: nodemailer } = await import('nodemailer');
   const user = FROM_EMAIL;
   const pass = FROM_PASS;
@@ -242,6 +245,9 @@ export async function sendPaymentFailedEmail(
   },
   baseUrl?: string,
 ) {
+  if (process.env.NODE_ENV === 'test' || process.env.TEST_EMAIL_STUB === 'true') {
+    return { messageId: 'test-stub' } as unknown as SentMessageInfo;
+  }
   const html = await renderTemplate(() => import('@/emails/PaymentFailedEmail').then((m) => m.PaymentFailedEmail), {
     userFirstName: props.firstName,
     companyName: props.companyName,

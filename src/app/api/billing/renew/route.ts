@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 import { DOWNGRADE_TIER } from '@/lib/billing';
@@ -21,8 +21,8 @@ type Row = Record<string, unknown>;
  * Also offered after a downgrade for non-payment, to restore the plan they
  * lost.
  */
-export async function POST() {
-  const session = await getSession();
+export async function POST(request: NextRequest) {
+  const session = await getSession(request);
   if (!session) return NextResponse.json({ error: 'Please log in to pay.' }, { status: 401 });
 
   const rows = (await db`

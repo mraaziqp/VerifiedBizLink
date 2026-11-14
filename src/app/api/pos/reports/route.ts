@@ -6,7 +6,7 @@ import {
 import { posErrorResponse } from '@/lib/pos/errors';
 
 const isDate = (v: string | null): v is string => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v);
-const saToday = () => new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Johannesburg' })).toISOString().slice(0, 10);
+const saToday = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Johannesburg' }).format(new Date());
 
 /**
  * ?type=dashboard&from=YYYY-MM-DD&to=YYYY-MM-DD (default: today)

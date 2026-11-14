@@ -1,24 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
-import { getAllTiers } from '@/lib/tiers';
-
-const STAFF_ROLES = ['admin', 'banker', 'lawyer'];
+import { getAllTiers, mapTierRow } from '@/lib/tiers';
+import { STAFF_ROLES, FINANCE_ROLES, hasRole } from '@/lib/roles';
 
 // GET /api/admin/tiers — all tiers including inactive ones (admin management view)
 export async function GET() {
   const session = await getSession();
-  if (!session || !STAFF_ROLES.includes(session.role)) {
+  if (!session || !hasRole(session.role, STAFF_ROLES)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  const tiers = await getAllTiers(true);
-  return NextResponse.json({ tiers });
+  const [tiers, counts] = await Promise.all([
+    getAllTiers(true),
+    db`
+      SELECT
+        CASE
+          WHEN trial_package IS NOT NULL AND trial_ends_at IS NOT NULL AND trial_ends_at > NOW()
+          THEN trial_package
+          ELSE COALESCE(package_type, 'free')
+        END AS effective_key,
+        COUNT(*)::int AS business_count
+      FROM businesses
+      GROUP BY 1
+    `.catch(() => []),
+  ]);
+  const countMap = new Map<string, number>();
+  for (const row of counts as Array<{ effective_key: string; business_count: number }>) {
+    countMap.set(String(row.effective_key), Number(row.business_count || 0));
+  }
+  return NextResponse.json({
+    tiers: tiers.map((t) => ({ ...t, businessCount: countMap.get(t.key) ?? 0 })),
+  });
 }
 
 // POST /api/admin/tiers — create a new tier
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session || !STAFF_ROLES.includes(session.role)) {
+  if (!session || !hasRole(session.role, FINANCE_ROLES)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -56,5 +74,5 @@ export async function POST(request: NextRequest) {
     VALUES (${session.id}, ${session.fullName}, ${'Created tier: ' + name}, 'tier', ${key})
   `.catch(() => {});
 
-  return NextResponse.json({ tier }, { status: 201 });
+  return NextResponse.json({ tier: { ...mapTierRow(tier), businessCount: 0 } }, { status: 201 });
 }

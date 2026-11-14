@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import { isStaff, hasRole, FINANCE_ROLES } from '@/lib/roles';
 import {
   getAdminPosOverview, getAdminMerchants, getAdminMerchantDetail, adminSetMerchantAccess, adminChangePlan,
+  adminGrantFreePosPlan, adminRevokePosPlan,
   adminCreateFeeRule, adminWaiveStatement, adminUpdatePlan, getAdminAuditLog, getAdminStatements, getAdminCharges,
 } from '@/lib/pos/pos-admin';
 import { getPosPlans } from '@/lib/pos/pos-billing';
@@ -80,6 +81,24 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, subscription: await adminSetMerchantAccess(String(body.businessId ?? ''), body.action, actor, body.reason) });
       case 'change_plan':
         return NextResponse.json({ success: true, subscription: await adminChangePlan(String(body.businessId ?? ''), body.planKey, actor, body.reason) });
+      case 'grant_free_plan':
+        return NextResponse.json({
+          success: true,
+          subscription: await adminGrantFreePosPlan({
+            businessId: String(body.businessId ?? ''),
+            planKey: body.planKey,
+            durationDays: int(body.durationDays) ?? null,
+            expiresAt: typeof body.expiresAt === 'string' && body.expiresAt ? body.expiresAt : null,
+            exemptFees: Boolean(body.exemptFees),
+            actor,
+            reason: body.reason,
+          }),
+        });
+      case 'revoke_free_plan':
+        return NextResponse.json({
+          success: true,
+          subscription: await adminRevokePosPlan(String(body.businessId ?? ''), actor, body.reason),
+        });
       case 'fee_override':
       case 'plan_fee':
       case 'global_fee': {
