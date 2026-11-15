@@ -242,7 +242,7 @@ export default function AdminStudioPage() {
           <GlassCard>
             <SectionTitle icon={Plug}>Connect the studio</SectionTitle>
             <p className="text-sm text-gray-600">
-              Add <code className="rounded bg-gray-100 px-1">HUB_PARTNER_KEY</code> (from ARP&apos;s Admin → Partners) to this app&apos;s environment, then redeploy. Until then members see “being connected”.
+              This app is not receiving <code className="rounded bg-gray-100 px-1">HUB_PARTNER_KEY</code>, so websites and apps from ARP can&apos;t be listed or ordered. In AWS Amplify → Environment variables, add <code className="rounded bg-gray-100 px-1">HUB_PARTNER_KEY</code> (from ARP&apos;s Admin → Partners), then redeploy. The storefront templates still work in the meantime.
             </p>
           </GlassCard>
         ) : state.error ? (

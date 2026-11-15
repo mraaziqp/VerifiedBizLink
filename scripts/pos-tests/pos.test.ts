@@ -777,8 +777,20 @@ describe('activation & subscription billing', () => {
     assert.equal(sub.status, 'cancelled');
   });
 
-  it('the cron route needs its secret', async () => {
+  it('the cron route needs its secret, and says which side is misconfigured', async () => {
+    const wrong = await call(cronPos.GET, 'GET', '/api/cron/pos-billing', { headers: { authorization: 'Bearer wrong' } });
+    assert.equal(wrong.status, 401);
+    assert.match(String(wrong.json.error), /does not match/);
     assert.equal((await call(cronPos.GET, 'GET', '/api/cron/pos-billing')).status, 401);
+    const saved = process.env.CRON_SECRET;
+    setEnv('CRON_SECRET', undefined);
+    try {
+      const unset = await call(cronPos.GET, 'GET', '/api/cron/pos-billing', { headers: { authorization: 'Bearer anything' } });
+      assert.equal(unset.status, 503, 'no CRON_SECRET on the server is reported as 503, and the job still refuses to run');
+      assert.match(String(unset.json.error), /not configured/);
+    } finally {
+      setEnv('CRON_SECRET', saved);
+    }
   });
 });
 

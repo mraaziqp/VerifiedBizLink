@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cronAuthError } from '@/lib/cron-auth';
 import crypto from 'crypto';
 import db from '@/lib/db';
 import { hashOneTimeToken } from '@/lib/auth';
@@ -21,14 +22,6 @@ const BATCH_SIZE = 40;
 
 type Row = Record<string, unknown>;
 
-function authorized(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  // Vercel Cron signs its own requests with CRON_SECRET as a bearer token.
-  // With no secret configured we refuse rather than run open to the internet.
-  if (!secret) return false;
-  return request.headers.get('authorization') === `Bearer ${secret}`;
-}
-
 /**
  * GET /api/cron/abandoned-signups
  *
@@ -43,9 +36,8 @@ function authorized(request: NextRequest): boolean {
  * silently dropping them.
  */
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = cronAuthError(request);
+  if (denied) return denied;
 
   const baseUrl = appUrlFromRequest(request);
 

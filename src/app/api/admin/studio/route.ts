@@ -50,9 +50,12 @@ export async function GET(request: NextRequest) {
   const month = request.nextUrl.searchParams.get('month');
 
   if (!studioConfigured()) {
+    // Say so. This used to answer configured: true, so the admin page read
+    // "Live — members can order" while every member order to the hub failed
+    // with "being connected". The built-in templates below still work.
     return NextResponse.json({
-      configured: true,
-      ordersOpen: true,
+      configured: false,
+      ordersOpen: false,
       settings,
       sharePct: 20,
       allowBelowFloor: false,

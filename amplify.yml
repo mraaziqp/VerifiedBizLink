@@ -65,6 +65,13 @@ frontend:
         # SMTP certificate escape hatch (see src/lib/email.ts).
         - env | grep -e '^UPSTASH_REDIS_REST_URL=' -e '^UPSTASH_REDIS_REST_TOKEN=' -e '^SMTP_ALLOW_INVALID_CERT=' >> .env.production || true
         - env | grep -e '^NEXT_PUBLIC_' >> .env.production || true
+        # Build Studio (ARP partner hub), Jarvis, bot protection, account
+        # switching and house ad accounts. These were never listed here, so
+        # the live app ran without them even when set in the console: Build
+        # Studio could not reach the hub ("being connected") and the rest
+        # silently fell back to their off state.
+        - env | grep -e '^HUB_URL=' -e '^HUB_PARTNER_KEY=' -e '^JARVIS_API_KEY=' -e '^JARVIS_WEBHOOK_URL=' >> .env.production || true
+        - env | grep -e '^BOT_PROTECTION_SECRET=' -e '^ACCOUNT_SWITCH_OWNERS=' -e '^ACCOUNT_SWITCH_LINKED=' -e '^HOUSE_ACCOUNT_EMAILS=' >> .env.production || true
         # Names only — never the values — so a failure is diagnosable from the
         # build log without printing secrets into it.
         - echo "wrote .env.production with:" && cut -d= -f1 .env.production | sort

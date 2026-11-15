@@ -1,15 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cronAuthError } from '@/lib/cron-auth';
 import { grantMonthlyCredits } from '@/lib/studio';
 import { notifyJarvis } from '@/lib/jarvis';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-function authorized(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return request.headers.get('authorization') === `Bearer ${secret}`;
-}
 
 /**
  * GET /api/cron/studio-credits
@@ -20,7 +15,8 @@ function authorized(request: NextRequest): boolean {
  * that month skips them: a missed day only delays it.
  */
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const denied = cronAuthError(request);
+  if (denied) return denied;
   try {
     const result = await grantMonthlyCredits();
     if (result.granted || result.failed) {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cronAuthError } from '@/lib/cron-auth';
 import db from '@/lib/db';
 import { DOWNGRADE_TIER, GRACE_PERIOD_HOURS, GRACE_PERIOD_DAYS, RENEWAL_GRACE_HOURS, FINAL_NOTICE_HOURS, formatDate } from '@/lib/billing';
 import { appUrlFromRequest } from '@/lib/email';
@@ -11,12 +12,6 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 type Row = Record<string, unknown>;
-
-function authorized(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return false;
-  return request.headers.get('authorization') === `Bearer ${secret}`;
-}
 
 /**
  * GET /api/cron/billing — the subscription lifecycle sweep.
@@ -47,9 +42,8 @@ function authorized(request: NextRequest): boolean {
  * stays listed with restricted features, and is only removed on request.
  */
 export async function GET(request: NextRequest) {
-  if (!authorized(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const denied = cronAuthError(request);
+  if (denied) return denied;
 
   const baseUrl = appUrlFromRequest(request);
   const now = new Date();
