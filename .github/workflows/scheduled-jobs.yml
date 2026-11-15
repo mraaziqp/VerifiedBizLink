@@ -33,7 +33,7 @@ jobs:
     name: Subscription billing sweep
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           sparse-checkout: .github/scripts
       - name: Sweep subscriptions (warnings, 3-day downgrade to Free)
@@ -43,7 +43,7 @@ jobs:
     name: POS subscription & fee-statement sweep
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           sparse-checkout: .github/scripts
       - name: Sweep POS billing
@@ -55,7 +55,7 @@ jobs:
     # Only on the daily schedule, not the hourly one.
     if: github.event.schedule == '0 7 * * *' || github.event_name == 'workflow_dispatch'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           sparse-checkout: .github/scripts
       - name: Send abandoned-signup reminders
@@ -67,7 +67,7 @@ jobs:
     # Daily: the grants are keyed by month, so only the first run each month gives anything.
     if: github.event.schedule == '0 7 * * *' || github.event_name == 'workflow_dispatch'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           sparse-checkout: .github/scripts
       - name: Give this month's studio credit
