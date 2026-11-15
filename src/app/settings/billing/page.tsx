@@ -174,7 +174,7 @@ export default function BillingSettingsPage() {
           </GlassCard>
         ) : (
           <div className="space-y-5">
-            {/* Failed payment — the 5-day grace window */}
+            {/* Failed payment — the 3-day grace window (GRACE_PERIOD_DAYS) */}
             {sub.paymentFailedAt && sub.graceHoursRemaining > 0 && (
               <div
                 id="pay"

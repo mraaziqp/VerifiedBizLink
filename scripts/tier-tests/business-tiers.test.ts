@@ -394,3 +394,88 @@ describe('admin business tier grants & removal', () => {
     assert.ok(renewStart.json.payfastUrl);
   });
 });
+
+describe('non-payment downgrade timing and PayFast cancellation', () => {
+  const sweep = () => call(cronBilling.GET, 'GET', '/api/cron/billing', { headers: { authorization: 'Bearer pos-test-cron' } });
+  const hoursBetween = (a: unknown, b: unknown) => Math.abs(new Date(String(a)).getTime() - new Date(String(b)).getTime()) / 3600_000;
+
+  async function paidBusiness(name: string, token: string, nextBillingSql: string) {
+    const owner = await createUser(`${name.toLowerCase().replace(/\W+/g, '')}@test.local`, 'business');
+    const [b] = await sql`
+      INSERT INTO businesses (user_id, company_name, package_type, subscription_status, auto_renew, payfast_token, next_billing_at, last_billed_at)
+      VALUES (${owner.id}, ${name}, 'standard', 'active', true, ${token}, NOW() - ${nextBillingSql}::interval, NOW() - INTERVAL '31 days')
+      RETURNING id
+    `;
+    return { owner, id: String(b.id) };
+  }
+
+  it('the 3 days are counted from the payment due date, not from when the sweep noticed', async () => {
+    const { owner, id } = await paidBusiness('Due Date Deli', 'pf-due-date-1', '25 hours');
+    await sweep();
+    const [b] = await sql`SELECT payment_failed_at, next_billing_at, payment_failed_notified_at FROM businesses WHERE id = ${id}`;
+    assert.ok(hoursBetween(b.payment_failed_at, b.next_billing_at) < 0.01, 'grace starts at the due date');
+    assert.ok(b.payment_failed_notified_at, 'first warning sent');
+    const sub = await call(subRoute.GET, 'GET', '/api/billing/subscription', { user: owner });
+    const left = Number(sub.json.subscription.graceHoursRemaining);
+    assert.ok(left > 46 && left <= 47, `about 47 hours left (72 − 25), got ${left}`);
+    const [note] = await sql`SELECT content FROM notifications WHERE user_id = ${owner.id} AND type = 'payment_failed' ORDER BY id DESC LIMIT 1`;
+    assert.match(String(note.content), /expires in 2 days/, 'the in-app warning says how long is left');
+  });
+
+  it('downgrades exactly 3 days after the due date', async () => {
+    // Noticed by the hourly sweep 25 hours after the due date, as in production.
+    const { id } = await paidBusiness('Three Day Tavern', 'pf-three-day-1', '25 hours');
+    await sweep();
+    const shift = (h: number) => sql`UPDATE businesses SET payment_failed_at = payment_failed_at - (${h} * INTERVAL '1 hour'), next_billing_at = next_billing_at - (${h} * INTERVAL '1 hour') WHERE id = ${id}`;
+    await shift(46); // now 71 hours after the due date
+    await sweep();
+    let [b] = await sql`SELECT package_type FROM businesses WHERE id = ${id}`;
+    assert.equal(b.package_type, 'standard', 'still on the paid plan at 71 hours');
+    await shift(2); // 73 hours after the due date
+    await sweep();
+    [b] = await sql`SELECT package_type, subscription_status, downgraded_from FROM businesses WHERE id = ${id}`;
+    assert.equal(b.package_type, 'free', 'dropped to Free at 73 hours after the due date');
+    assert.equal(b.subscription_status, 'downgraded_nonpayment');
+    assert.equal(b.downgraded_from, 'standard');
+  });
+
+  it('if the sweep runs late, the business is still warned and gets at least a day before the downgrade', async () => {
+    const { owner, id } = await paidBusiness('Late Sweep Salon', 'pf-late-sweep-1', '10 days');
+    await sweep();
+    const [b] = await sql`SELECT package_type, payment_failed_notified_at FROM businesses WHERE id = ${id}`;
+    assert.equal(b.package_type, 'standard', 'not downgraded the moment the overdue renewal is discovered');
+    assert.ok(b.payment_failed_notified_at, 'warned first');
+    const sub = await call(subRoute.GET, 'GET', '/api/billing/subscription', { user: owner });
+    const left = Number(sub.json.subscription.graceHoursRemaining);
+    assert.ok(left > 23 && left <= 24, `24 hours of warning, got ${left}`);
+  });
+
+  it('on downgrade the PayFast subscription is cancelled and cleared, so Pay now cannot double-bill', async () => {
+    const { owner, id } = await paidBusiness('Cancel OK Cafe', 'pf-cancel-ok-1', '80 hours');
+    await sql`UPDATE businesses SET payment_failed_at = NOW() - INTERVAL '80 hours', payment_failed_notified_at = NOW() - INTERVAL '80 hours', grace_warned_at = NOW() - INTERVAL '30 hours' WHERE id = ${id}`;
+    await sweep();
+    const [b] = await sql`SELECT package_type, payfast_token FROM businesses WHERE id = ${id}`;
+    assert.equal(b.package_type, 'free');
+    assert.equal(b.payfast_token, null, 'cancelled token cleared');
+    const [ev] = await sql`SELECT severity, detail FROM billing_events WHERE business_id = ${id} AND event = 'downgraded_nonpayment'`;
+    assert.match(String(ev.detail), /was cancelled/);
+    const [note] = await sql`SELECT title FROM notifications WHERE user_id = ${owner.id} AND type = 'subscription_ended'`;
+    assert.equal(note.title, 'Your account moved to the Free tier');
+    const renew = await call(renewRoute.POST, 'POST', '/api/billing/renew', { user: owner });
+    assert.equal(renew.status, 200, 'can pay again to restore the plan');
+  });
+
+  it('a PayFast cancellation that fails is reported to admins, never claimed as done', async () => {
+    const { id } = await paidBusiness('Cancel Fails Florist', 'pf-cancel-fails-1', '80 hours');
+    await sql`UPDATE businesses SET payment_failed_at = NOW() - INTERVAL '80 hours', payment_failed_notified_at = NOW() - INTERVAL '80 hours', grace_warned_at = NOW() - INTERVAL '30 hours' WHERE id = ${id}`;
+    const r = await sweep();
+    const [b] = await sql`SELECT package_type, payfast_token FROM businesses WHERE id = ${id}`;
+    assert.equal(b.package_type, 'free', 'still downgraded');
+    assert.equal(b.payfast_token, 'pf-cancel-fails-1', 'token kept so a person can find and cancel it');
+    const [ev] = await sql`SELECT severity, detail FROM billing_events WHERE business_id = ${id} AND event = 'downgraded_nonpayment'`;
+    assert.equal(ev.severity, 'critical');
+    assert.match(String(ev.detail), /could NOT be cancelled/);
+    assert.doesNotMatch(String(ev.detail), /was cancelled\./);
+    assert.ok(Number(r.json.errors) >= 1, 'the sweep reports the problem');
+  });
+});

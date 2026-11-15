@@ -12,7 +12,8 @@
     "typecheck": "tsc --noEmit",
     "test:pos": "tsx --test --test-concurrency=1 scripts/pos-tests/pos.test.ts",
     "db:migrate:pos": "tsx scripts/migrate-pos.ts",
-    "test:pos:neon": "tsx --test --test-concurrency=1 scripts/pos-tests/pos.neon-driver.test.ts"
+    "test:pos:neon": "tsx --test --test-concurrency=1 scripts/pos-tests/pos.neon-driver.test.ts",
+    "test:tiers": "tsx --test --test-concurrency=1 scripts/tier-tests/business-tiers.test.ts"
   },
   "dependencies": {
     "@capacitor/cli": "^8.4.0",

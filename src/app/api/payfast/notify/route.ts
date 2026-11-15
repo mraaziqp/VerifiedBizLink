@@ -4,7 +4,7 @@ import { verifyItnSignature, payfastEnv } from '@/lib/payfast';
 import { getTier, AD_BOOST_PRICE, AD_BOOST_DURATION_DAYS, VERIFICATION_FEE_RAND } from '@/lib/tiers';
 import { changeCredits, findCreditPack, packForAmount } from '@/lib/ad-credits';
 import { grantTemplate, isStorefrontTemplate, TEMPLATE_INFO } from '@/lib/storefront';
-import { nextBillingDate } from '@/lib/billing';
+import { nextBillingDate, GRACE_PERIOD_DAYS } from '@/lib/billing';
 import { issueInvoice } from '@/lib/invoices';
 import { appUrlFromRequest } from '@/lib/email';
 import { logBillingEvent } from '@/lib/billing-events';
@@ -418,7 +418,7 @@ export async function POST(request: NextRequest) {
           amountCents,
           reference: pfReference || paymentRef,
           detail: isRenewal
-            ? `PayFast could not collect the R${payfastData.amount_gross} renewal (${purchaseType}) from ${payfastData.email_address || userId}. The customer has been emailed a Pay now link and has 5 days before the plan expires.`
+            ? `PayFast could not collect the R${payfastData.amount_gross} renewal (${purchaseType}) from ${payfastData.email_address || userId}. The customer has been emailed a Pay now link and has ${GRACE_PERIOD_DAYS} days before the plan drops to Free.`
             : `A R${payfastData.amount_gross} ${purchaseType} payment by ${payfastData.email_address || userId} failed at PayFast. Nothing was granted.`,
           alertAdmins: true,
           alertTitle: isRenewal ? 'A subscription renewal failed' : 'A payment failed',

@@ -29,7 +29,7 @@ function authorized(request: NextRequest): boolean {
  *
  * Jobs, in order:
  *
- *  0. Catch renewals that were due and never charged, and open the 5-day
+ *  0. Catch renewals that were due and never charged, and open the 3-day
  *     grace window on them. This is what makes a recurring subscription
  *     verifiable rather than assumed: if PayFast stops billing, somebody
  *     finds out.
@@ -71,9 +71,21 @@ export async function GET(request: NextRequest) {
      * on by hand has no PayFast token and no payment history, and carries a
      * next_billing_at only because the column has a default.
      */
+    /*
+     * The 3-day grace window counts from the DUE DATE, not from when this
+     * sweep noticed: "dropped to Free 3 days after no payment". The
+     * RENEWAL_GRACE_HOURS settle allowance sits inside those 3 days.
+     *
+     * Never so far back that the customer gets less than FINAL_NOTICE_HOURS
+     * of warning, though — if the sweep did not run for days, a business must
+     * still be told before it is downgraded, not downgraded on discovery.
+     */
     const overdue = (await db`
       UPDATE businesses
-      SET payment_failed_at = NOW(),
+      SET payment_failed_at = GREATEST(
+            next_billing_at,
+            NOW() - (${GRACE_PERIOD_HOURS - FINAL_NOTICE_HOURS} * INTERVAL '1 hour')
+          ),
           payment_failed_notified_at = NULL,
           grace_warned_at = NULL,
           payment_failed_reason = 'renewal_not_charged',
@@ -158,21 +170,40 @@ export async function GET(request: NextRequest) {
     result.downgraded = expired.length;
 
     for (const row of expired) {
+      /*
+       * Stop the old PayFast subscription so it cannot charge after the
+       * downgrade — and so a later Pay now (a NEW subscription) never runs
+       * alongside it. cancelPayfastSubscription reports failure in its
+       * result rather than throwing, so the result is what decides what the
+       * log says; a cancellation PayFast did not confirm goes to a person.
+       */
+      let payfastNote = '';
       if (row.payfast_token) {
-        await cancelPayfastSubscription(String(row.payfast_token)).catch((err) =>
-          console.error('[cron/billing] PayFast cancellation on nonpayment failed:', err),
-        );
+        const token = String(row.payfast_token);
+        const cancelled = await cancelPayfastSubscription(token).catch((err) => ({
+          ok: false, status: 0, detail: err instanceof Error ? err.message : String(err),
+        }));
+        if (cancelled.ok) {
+          await db`UPDATE businesses SET payfast_token = NULL WHERE id = ${row.id} AND payfast_token = ${token}`
+            .catch((e) => console.error('Clearing cancelled PayFast token failed:', e));
+          payfastNote = ` PayFast subscription ${token} was cancelled.`;
+        } else {
+          payfastNote = ` PayFast subscription ${token} could NOT be cancelled automatically (HTTP ${cancelled.status}: ${cancelled.detail}) — cancel it in the PayFast dashboard so it cannot charge again.`;
+          result.errors += 1;
+        }
       }
 
       await logBillingEvent({
         event: 'downgraded_nonpayment',
-        severity: 'warning',
+        severity: payfastNote.includes('could NOT') ? 'critical' : 'warning',
         businessId: String(row.id),
         userId: String(row.user_id),
         reference: row.payfast_token ? String(row.payfast_token) : null,
-        detail: `${String(row.company_name)} was moved from ${String(row.downgraded_from)} to Free after ${GRACE_PERIOD_DAYS} days without payment.${row.payfast_token ? ' Active PayFast subscription cancelled automatically.' : ''}`,
+        detail: `${String(row.company_name)} was moved from ${String(row.downgraded_from)} to Free after ${GRACE_PERIOD_DAYS} days without payment.${payfastNote}`,
         alertAdmins: true,
-        alertTitle: `Subscription expired for non-payment: ${String(row.company_name)}`,
+        alertTitle: payfastNote.includes('could NOT')
+          ? `Cancel a PayFast subscription by hand: ${String(row.company_name)}`
+          : `Subscription expired for non-payment: ${String(row.company_name)}`,
       });
     }
 

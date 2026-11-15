@@ -279,7 +279,12 @@ export function installFetchStub() {
     const url = String(input instanceof Request ? input.url : input);
     calls.push(url);
     if (url.includes('/eng/query/validate')) return new Response('VALID', { status: 200 });
-    if (url.includes('api.payfast.co.za') && url.includes('/cancel')) return new Response('{"code":200}', { status: 200 });
+    // A subscription token containing "cancel-fails" simulates PayFast refusing the cancellation.
+    if (url.includes('api.payfast.co.za') && url.includes('/cancel')) {
+      return url.includes('cancel-fails')
+        ? new Response('{"code":500,"status":"failed"}', { status: 500 })
+        : new Response('{"code":200}', { status: 200 });
+    }
     throw new Error(`Blocked outbound fetch in tests: ${url}`);
   }) as typeof fetch;
   return calls;
