@@ -128,6 +128,12 @@ export async function grantBusinessTier(input: GrantBusinessTierInput): Promise<
   if (!before) {
     throw new TierActionError(404, 'Business not found.');
   }
+  if (before.tier_grant_type === 'owner') {
+    throw new TierActionError(
+      409,
+      `${String(before.company_name)} is an owner account (permanent Premium). Remove its owner email from the Owner accounts list first if you really mean to change it.`,
+    );
+  }
 
   // Cancel any active PayFast subscription before DB updates so we never hold
   // locks across network I/O and never leave the merchant being auto-billed.
@@ -348,4 +354,80 @@ export async function grantBusinessTier(input: GrantBusinessTierInput): Promise<
     payfastCancelled,
     requiresManualPayfastCancellation,
   };
+}
+
+export interface SetGrantExpiryInput {
+  businessId: string;
+  /** New end date (must be in the future), or null with permanent: true. */
+  expiresAt?: string | null;
+  permanent?: boolean;
+  reason: string;
+  actor: TierGrantActor;
+}
+
+/**
+ * Changes when a free (complimentary or timed) grant ends, without re-granting:
+ * move the end date, or make it permanent. Paid subscriptions and owner
+ * accounts are not changed here.
+ */
+export async function setGrantExpiry(input: SetGrantExpiryInput) {
+  if (!UUID_RE.test(input.businessId)) throw new TierActionError(400, 'Invalid business ID.');
+  const reason = (input.reason || '').trim().slice(0, 500);
+  if (reason.length < 3) throw new TierActionError(400, 'Please enter a short reason (at least 3 characters) for the audit log.');
+  await ensureBusinessTierColumns();
+
+  const [b] = (await db`
+    SELECT id, user_id, company_name, package_type, tier_grant_type, next_billing_at
+    FROM businesses WHERE id = ${input.businessId} LIMIT 1
+  `) as DbRow[];
+  if (!b) throw new TierActionError(404, 'Business not found.');
+  if (b.tier_grant_type === 'owner') throw new TierActionError(409, 'Owner accounts are permanent already.');
+  if (b.tier_grant_type !== 'timed_free' && b.tier_grant_type !== 'complimentary') {
+    throw new TierActionError(409, `${String(b.company_name)} is not on a free grant, so there is no expiry to change.`);
+  }
+
+  let expiryIso: string | null = null;
+  if (!input.permanent) {
+    const d = new Date(String(input.expiresAt ?? ''));
+    if (Number.isNaN(d.getTime()) || d.getTime() <= Date.now()) throw new TierActionError(400, 'Choose an end date in the future.');
+    if (d.getTime() > Date.now() + 3650 * 86400_000) throw new TierActionError(400, 'End date must be within 10 years.');
+    expiryIso = d.toISOString();
+  }
+
+  const [after] = (await db`
+    UPDATE businesses SET
+      tier_grant_type = ${expiryIso ? 'timed_free' : 'complimentary'},
+      next_billing_at = ${expiryIso}::timestamptz,
+      trial_ends_at = ${expiryIso}::timestamptz,
+      trial_package = ${expiryIso ? String(b.package_type) : null},
+      auto_renew = FALSE,
+      tier_granted_by = ${input.actor.userId},
+      tier_granted_at = NOW(),
+      tier_grant_note = ${reason},
+      updated_at = NOW()
+    WHERE id = ${input.businessId}
+    RETURNING *
+  `) as DbRow[];
+
+  const when = expiryIso
+    ? new Date(expiryIso).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' })
+    : null;
+  const action = expiryIso ? `Free plan end date set to ${expiryIso.slice(0, 10)}: ${reason}` : `Free plan made permanent: ${reason}`;
+  await db`
+    INSERT INTO audit_logs (admin_id, admin_name, action, target_type, target_id, target_name)
+    VALUES (${input.actor.userId}, ${input.actor.fullName}, ${action.slice(0, 250)}, 'business', ${input.businessId}, ${String(b.company_name || '')})
+  `.catch((err) => console.error('[business-tiers] audit log failed:', err));
+  await logBillingEvent({
+    event: 'admin_tier_granted',
+    businessId: String(b.id),
+    userId: String(b.user_id),
+    detail: `${input.actor.fullName}: ${String(b.company_name)} — ${action}`,
+  });
+  await db`
+    INSERT INTO notifications (user_id, type, title, content)
+    VALUES (${b.user_id}, 'payment_success', 'Your complimentary plan was updated',
+            ${when ? `Your free ${String(b.package_type)} plan now runs until ${when}.` : `Your free ${String(b.package_type)} plan no longer expires.`})
+  `.catch(() => undefined);
+
+  return { business: after, expiresAt: expiryIso, permanent: !expiryIso };
 }

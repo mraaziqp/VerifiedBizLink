@@ -17,6 +17,7 @@ import { GlassBackground } from '@/components/shared/glass-ui';
 import { StageBadge, ProgressBar, rand } from '@/components/studio/studio-ui';
 import type { StudioCredits, StudioItem, StudioOrder } from '@/lib/studio';
 import { DB_PLATFORMS, dbPlatform } from '@/lib/db-platforms';
+import { PoweredByArp } from '@/components/arp/powered-by-arp';
 
 interface Access {
   allowed: boolean;
@@ -113,6 +114,7 @@ function BuildStudio() {
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl">
               Build Studio is Opening Soon
             </h1>
+            <PoweredByArp className="mx-auto" />
             <p className="mx-auto max-w-lg text-sm text-slate-600 leading-relaxed">
               Build Studio is currently undergoing final verification by platform administrators. Custom websites, mobile apps, and ready-made showcase templates will be unlocked for all members shortly.
             </p>
@@ -143,6 +145,7 @@ function BuildStudio() {
               <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-300">
                 <Sparkles className="h-3.5 w-3.5" /> Build Studio<span className="hidden sm:inline"> · for VerifiedBizLink members</span>
               </span>
+              <div><PoweredByArp tone="dark" /></div>
               <h1 className="text-[26px] font-black leading-[1.15] tracking-tight min-[400px]:text-3xl sm:text-5xl">
                 Your website, app or online shop,
                 <span className="block bg-gradient-to-r from-amber-300 via-amber-400 to-yellow-200 bg-clip-text text-transparent">built for you.</span>
@@ -323,7 +326,7 @@ function BuildStudio() {
         )}
 
         <p className="pb-4 text-center text-[11px] text-slate-400">
-          Build Studio is delivered by ARP Cloud Solutions for VerifiedBizLink members. Payments are processed securely by PayFast.
+          Build Studio is powered by ARP Cloud Solutions and offered to VerifiedBizLink members. Payments are processed securely by PayFast.
         </p>
       </div>
 

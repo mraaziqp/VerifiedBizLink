@@ -28,6 +28,7 @@ import { PosPurchasingGrv, type PurchaseOrder } from '@/components/pos/pos-purch
 import { PosTransactionsView } from '@/components/pos/pos-transactions-view';
 import { PosStaffView, type PosStaffMember } from '@/components/pos/pos-staff-view';
 import { PosThermalReceipt, type ThermalReceiptData } from '@/components/pos/pos-thermal-receipt';
+import { PoweredByArp } from '@/components/arp/powered-by-arp';
 
 interface PosTill {
   id: string;
@@ -586,7 +587,8 @@ export default function BusinessPosCommandHub() {
     return (
       <div className="mx-auto max-w-xl px-4 py-20 text-center space-y-4">
         <Store className="mx-auto h-12 w-12 text-amber-500" />
-        <h1 className="text-2xl font-black text-slate-900 dark:text-white">VerifiedBizLink POS Command Hub</h1>
+        <h1 className="text-2xl font-black text-slate-900 dark:text-white">POS Command Hub</h1>
+        <PoweredByArp className="mx-auto" />
         <p className="text-sm text-slate-600 dark:text-slate-400">
           Set up your verified business profile first, then activate your retail digital till.
         </p>
@@ -620,6 +622,10 @@ export default function BusinessPosCommandHub() {
           onExportZReport={() => setCloseShiftModal(true)}
           onLaunchTill={() => router.push('/business/pos/terminal')}
         />
+
+        <div className="flex justify-end">
+          <PoweredByArp />
+        </div>
 
         <PosAccessBanner access={ctx.access} canPay={ctx.capabilities.includes('billing.manage')} />
 

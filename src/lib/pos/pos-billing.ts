@@ -133,8 +133,8 @@ export async function startPosActivationCheckout(p: { session: CheckoutSession; 
     session: p.session,
     amount: firstChargeCents / 100,
     description: setupFeeCents > 0
-      ? `VerifiedBizLink POS ${plan.name} — setup fee ${formatZar(setupFeeCents)} + first month`
-      : `VerifiedBizLink POS ${plan.name} — monthly`,
+      ? `POS by ARP Cloud Solutions — ${plan.name}: setup fee ${formatZar(setupFeeCents)} + first month`
+      : `POS by ARP Cloud Solutions — ${plan.name}: monthly`,
     purchaseType: `${POS_PURCHASE_PREFIX}${p.planKey}`,
     customStr1: p.businessId,
     customStr4: p.planKey,
@@ -282,7 +282,7 @@ export async function applyPosSubscriptionCharge(c: PosSubscriptionCharge): Prom
   await notifyOwner(
     businessId,
     'pos_subscription',
-    c.isRenewal ? 'POS subscription renewed' : 'VerifiedBizLink POS is active',
+    c.isRenewal ? 'POS subscription renewed' : 'Your POS (powered by ARP Cloud Solutions) is active',
     c.isRenewal
       ? `${formatZar(c.paidCents)} received for ${plan.name}. Next billing ${nextBilling.toLocaleDateString('en-ZA')}.`
       : `${formatZar(c.paidCents)} received${setupCents ? ` (including the ${formatZar(setupCents)} setup fee)` : ''}. Your till is ready.`,
@@ -478,7 +478,7 @@ export async function startFeeStatementCheckout(p: { session: CheckoutSession; b
   const result = await createPayfastCheckout({
     session: p.session,
     amount: Number(s.net_due_cents) / 100,
-    description: `VerifiedBizLink POS fees — statement ${s.statement_number}`,
+    description: `POS by ARP Cloud Solutions — fees, statement ${s.statement_number}`,
     purchaseType: POS_FEE_STATEMENT_PURCHASE,
     customStr1: p.businessId,
     customStr4: p.statementId,

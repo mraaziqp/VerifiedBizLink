@@ -87,7 +87,9 @@ export async function GET(request: NextRequest) {
             tierGrantNote: biz.tier_grant_note ?? null,
             trialEndsAt: biz.trial_ends_at ?? null,
             terms:
-              biz.tier_grant_type === 'complimentary'
+              biz.tier_grant_type === 'owner'
+                ? 'Owner account — full Premium, permanently, with no charges.'
+                : biz.tier_grant_type === 'complimentary'
                 ? 'Complimentary plan granted by VerifiedBizLink — no recurring charges apply.'
                 : biz.tier_grant_type === 'timed_free'
                   ? `Complimentary promotional access active until ${biz.next_billing_at ? new Date(String(biz.next_billing_at)).toLocaleDateString('en-ZA', { day: 'numeric', month: 'long', year: 'numeric' }) : 'end of term'}. After that your account returns to Free unless you choose a paid plan.`

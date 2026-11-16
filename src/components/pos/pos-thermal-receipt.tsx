@@ -5,6 +5,7 @@ import { Printer, MessageSquare, Mail, X, CheckCircle2, ShieldCheck } from 'luci
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { zar } from '@/lib/pos/client';
+import { POWERED_BY_ARP } from '@/components/arp/powered-by-arp';
 
 export interface ThermalReceiptData {
   receiptNumber: string;
@@ -37,6 +38,8 @@ export interface ThermalReceiptData {
   changeCents?: number;
   authCode?: string;
   offline?: boolean;
+  /** The merchant's own receipt footer (Settings), e.g. their returns policy. */
+  footerNote?: string;
 }
 
 interface PosThermalReceiptProps {
@@ -65,19 +68,20 @@ export function PosThermalReceipt({ receipt, onClose, onNewSale }: PosThermalRec
       .join('\n');
 
     const msg = encodeURIComponent(
-      `*${receipt.businessName.toUpperCase()} - TAX INVOICE*\n` +
+      `*${receipt.businessName.toUpperCase()} - ${receipt.vatRegistered ? 'TAX INVOICE' : 'RECEIPT'}*\n` +
       `Receipt: ${receipt.receiptNumber}\n` +
       `Date: ${receipt.date}\n` +
       (receipt.cashierName ? `Cashier: ${receipt.cashierName}\n` : '') +
       `--------------------------------\n` +
       `${itemsList}\n` +
       `--------------------------------\n` +
-      `Subtotal (Excl. VAT): ${zar(receipt.subtotalCents - receipt.vatCents)}\n` +
-      `VAT (15%): ${zar(receipt.vatCents)}\n` +
+      (receipt.discountCents > 0 ? `Discount: -${zar(receipt.discountCents)}\n` : '') +
       `*TOTAL: ${zar(receipt.totalCents)}*\n` +
+      (receipt.vatRegistered ? `Incl. VAT (15%): ${zar(receipt.vatCents)}${receipt.vatNumber ? ` · VAT no. ${receipt.vatNumber}` : ''}\n` : '') +
       `Paid via: ${receipt.paymentMethod.toUpperCase()}` +
       (receipt.changeCents && receipt.changeCents > 0 ? `\nChange: ${zar(receipt.changeCents)}` : '') +
-      `\n\n_Verified by VerifiedBizLink.co.za_`
+      (receipt.footerNote ? `\n\n${receipt.footerNote}` : '') +
+      `\n\n_${POWERED_BY_ARP} · verified on VerifiedBizLink.co.za_`
     );
 
     window.open(`https://wa.me/${phoneWithCode}?text=${msg}`, '_blank');
@@ -236,11 +240,12 @@ export function PosThermalReceipt({ receipt, onClose, onNewSale }: PosThermalRec
           </table>
         </div>
 
-        {/* Totals & Tax Calculation (15% SARS VAT) */}
+        {/* Totals. VAT appears only for VAT-registered merchants, as the VAT
+            included in the total; a non-VAT vendor's receipt shows none. */}
         <div className="py-2.5 border-b border-dashed border-slate-300 space-y-1 text-[11px]">
           <div className="flex justify-between text-slate-600">
-            <span>Subtotal (Excl. VAT):</span>
-            <span>{zar(receipt.subtotalCents - receipt.vatCents)}</span>
+            <span>Subtotal:</span>
+            <span>{zar(receipt.subtotalCents)}</span>
           </div>
           {receipt.discountCents > 0 && (
             <div className="flex justify-between text-amber-600">
@@ -248,14 +253,16 @@ export function PosThermalReceipt({ receipt, onClose, onNewSale }: PosThermalRec
               <span>-{zar(receipt.discountCents)}</span>
             </div>
           )}
-          <div className="flex justify-between text-slate-600">
-            <span>Standard VAT (15%):</span>
-            <span>{zar(receipt.vatCents)}</span>
-          </div>
           <div className="flex justify-between text-sm font-black pt-1 border-t border-slate-200">
             <span>GRAND TOTAL:</span>
             <span>{zar(receipt.totalCents)}</span>
           </div>
+          {receipt.vatRegistered && (
+            <div className="flex justify-between text-slate-600">
+              <span>Incl. VAT (15%):</span>
+              <span>{zar(receipt.vatCents)}</span>
+            </div>
+          )}
         </div>
 
         {/* Tender & Payment Info */}
@@ -287,11 +294,12 @@ export function PosThermalReceipt({ receipt, onClose, onNewSale }: PosThermalRec
         {/* Footer */}
         <div className="pt-3 text-center space-y-1 text-[10px] text-slate-500">
           <p className="font-bold text-slate-700">Thank you for your business!</p>
-          <p>Goods may be returned within 14 days with this original receipt.</p>
+          {receipt.footerNote && <p>{receipt.footerNote}</p>}
           <div className="pt-2 flex items-center justify-center gap-1 text-[9px] text-slate-400">
             <ShieldCheck className="h-3 w-3 text-amber-600" />
-            <span>Verified by VerifiedBizLink.co.za</span>
+            <span>Verified on VerifiedBizLink.co.za</span>
           </div>
+          <p className="text-[9px] font-semibold text-slate-500">{POWERED_BY_ARP}</p>
         </div>
       </div>
     </div>

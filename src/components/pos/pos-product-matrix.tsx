@@ -398,7 +398,7 @@ export function PosProductMatrix({
                   {labelProduct?.barcode || labelProduct?.sku || '600123456789'}
                 </p>
               </div>
-              <p className="text-[9px] text-slate-400">VerifiedBizLink</p>
+              <p className="text-[9px] text-slate-400">ARP Cloud Solutions POS</p>
             </div>
 
             <div className="flex items-center justify-between text-xs">

@@ -401,6 +401,7 @@ export async function POST(request: NextRequest) {
                 payment_failed_reason = 'card_declined',
                 updated_at = NOW()
             WHERE user_id = ${userId} AND package_type IS NOT NULL AND package_type <> 'free'
+              AND COALESCE(tier_grant_type, '') NOT IN ('owner', 'complimentary')
             RETURNING id, company_name, payment_failed_notified_at
           `.catch((err) => { console.error('Failed-renewal flag note:', err.message); return []; })) as unknown as { id: string; company_name: string; payment_failed_notified_at: string | null }[];
           businessId = flagged[0]?.id ?? null;

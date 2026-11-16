@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { ensurePaymentVoidColumns } from '@/lib/payment-void';
 import { getSession } from '@/lib/auth';
 import db from '@/lib/db';
 
@@ -12,17 +13,19 @@ export const dynamic = 'force-dynamic';
 // `description` columns always fell back to a truncated UUID and a generic
 // "VBL Upgrade" label instead of the real PayFast reference and
 // description every payment actually has.
-export async function GET() {
-  const session = await getSession();
+export async function GET(request: NextRequest) {
+  const session = await getSession(request);
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
+    // Charges an admin removed as test charges are not shown to the customer.
+    await ensurePaymentVoidColumns();
     const payments = await db`
       SELECT id, plan_type, amount, status, reference, description, created_at, completed_at
       FROM payments
-      WHERE user_id = ${session.id}
+      WHERE user_id = ${session.id} AND voided_at IS NULL
       ORDER BY created_at DESC
       LIMIT 10
     `;

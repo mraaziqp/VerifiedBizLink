@@ -206,12 +206,13 @@ export default function PosTerminalPage() {
     setReceipt({
       receiptNumber: String(s.receipt_number),
       date: new Date(String(s.completed_at ?? s.created_at)).toLocaleString('en-ZA'),
-      businessName: ctx?.businessName || 'VerifiedBizLink Retail',
+      businessName: ctx?.businessName || 'Receipt',
       businessPhone: String(settings.phone || ''),
       businessEmail: String(settings.email || ''),
       businessAddress: String(settings.address || ''),
       vatNumber: String(settings.vat_number || ''),
       vatRegistered: Boolean(settings.vat_registered),
+      footerNote: settings.receipt_footer ? String(settings.receipt_footer) : undefined,
       customerName: attachedCustomer?.name || (s.customer_name as string) || undefined,
       customerVatNumber: attachedCustomer?.vatNumber || undefined,
       customerPhone: attachedCustomer?.phone || (s.customer_phone as string) || undefined,
@@ -494,7 +495,10 @@ export default function PosTerminalPage() {
     setReceipt({
       receiptNumber: `VBL-OFF-${saleKey.current.slice(-6).toUpperCase()}`,
       date: new Date().toLocaleString('en-ZA'),
-      businessName: ctx?.businessName || 'VerifiedBizLink Retail',
+      businessName: ctx?.businessName || 'Receipt',
+      vatNumber: String(settings.vat_number || ''),
+      vatRegistered: Boolean(settings.vat_registered),
+      footerNote: settings.receipt_footer ? String(settings.receipt_footer) : undefined,
       lines: cart.map((l) => ({
         name: l.name,
         quantity: l.quantity,

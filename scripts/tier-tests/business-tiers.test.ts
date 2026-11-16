@@ -479,3 +479,150 @@ describe('non-payment downgrade timing and PayFast cancellation', () => {
     assert.ok(Number(r.json.errors) >= 1, 'the sweep reports the problem');
   });
 });
+
+describe('owner accounts, adjustable grant expiry, and removing test charges', () => {
+  let ownersRoute: { GET: Handler; POST: Handler };
+  let paymentsRoute: { GET: Handler; POST: Handler };
+  let historyRoute: { GET: Handler };
+  const sweep = () => call(cronBilling.GET, 'GET', '/api/cron/billing', { headers: { authorization: 'Bearer pos-test-cron' } });
+
+  before(async () => {
+    await sql`
+      CREATE TABLE IF NOT EXISTS platform_settings (
+        key TEXT PRIMARY KEY, value JSONB, updated_at TIMESTAMPTZ DEFAULT NOW(), updated_by UUID, updated_by_name TEXT
+      )`;
+    await sql`
+      CREATE TABLE IF NOT EXISTS platform_settings_history (
+        id BIGSERIAL PRIMARY KEY, key TEXT, old_value JSONB, new_value JSONB, changed_by UUID, changed_by_name TEXT, changed_at TIMESTAMPTZ DEFAULT NOW()
+      )`;
+    // Columns production's payments table has that the shared test schema leaves out.
+    await sql`ALTER TABLE payments ADD COLUMN IF NOT EXISTS plan_type TEXT`;
+    await sql`ALTER TABLE payments ADD COLUMN IF NOT EXISTS currency TEXT DEFAULT 'ZAR'`;
+    ownersRoute = await import('../../src/app/api/admin/owner-accounts/route');
+    paymentsRoute = await import('../../src/app/api/admin/payments/route');
+    historyRoute = await import('../../src/app/api/payments/create-intent/route');
+  });
+
+  it('owner businesses get permanent Premium, their PayFast subscription is cancelled, and the sweep never touches them', async () => {
+    const owner = await createUser('house-owner@test.local', 'business');
+    const [b] = await sql`
+      INSERT INTO businesses (user_id, company_name, package_type, subscription_status, auto_renew, payfast_token, next_billing_at, payment_failed_at, payment_failed_notified_at)
+      VALUES (${owner.id}, 'House Account', 'free', 'downgraded_nonpayment', false, 'pf-house-1', NOW() - INTERVAL '10 days', NULL, NULL)
+      RETURNING id
+    `;
+    const denied = await call(ownersRoute.POST, 'POST', '/api/admin/owner-accounts', { user: financeUser, body: { emails: 'x@y.z' } });
+    assert.equal(denied.status, 403, 'only platform admins edit the owner list');
+
+    const saved = await call(ownersRoute.POST, 'POST', '/api/admin/owner-accounts', {
+      user: adminUser,
+      body: { emails: 'House-Owner@test.local\nnot-yet-a-business@test.local' },
+    });
+    assert.equal(saved.status, 200, JSON.stringify(saved.json));
+    assert.deepEqual(saved.json.ownersWithoutBusiness, ['not-yet-a-business@test.local']);
+
+    let [row] = await sql`SELECT package_type, tier_grant_type, payfast_token, subscription_status, auto_renew, next_billing_at FROM businesses WHERE id = ${b.id}`;
+    assert.equal(row.package_type, 'premium');
+    assert.equal(row.tier_grant_type, 'owner');
+    assert.equal(row.payfast_token, null, 'PayFast subscription cancelled and cleared');
+    assert.equal(row.auto_renew, false);
+    assert.equal(row.next_billing_at, null, 'nothing is ever due');
+
+    // Even with a failed payment on record, the sweep leaves an owner alone.
+    await sql`UPDATE businesses SET payment_failed_at = NOW() - INTERVAL '10 days' WHERE id = ${b.id}`;
+    await sweep();
+    [row] = await sql`SELECT package_type, tier_grant_type FROM businesses WHERE id = ${b.id}`;
+    assert.equal(row.package_type, 'premium');
+    assert.equal(row.tier_grant_type, 'owner');
+
+    const sub = await call(subRoute.GET, 'GET', '/api/billing/subscription', { user: owner });
+    assert.match(String(sub.json.subscription.terms), /Owner account/);
+
+    // The ordinary tier tools refuse to downgrade an owner.
+    const remove = await callTierPost(String(b.id), adminUser, { mode: 'remove', reason: 'should be refused', downgradeReasonCategory: 'non_payment' });
+    assert.equal(remove.status, 409);
+  });
+
+  it('an owner who creates a business later gets Premium on the next sweep', async () => {
+    const later = await createUser('not-yet-a-business@test.local', 'admin');
+    const [b] = await sql`INSERT INTO businesses (user_id, company_name, package_type) VALUES (${later.id}, 'Late Owner Biz', 'free') RETURNING id`;
+    const r = await sweep();
+    assert.ok(Number(r.json.ownersSynced) >= 1);
+    const [row] = await sql`SELECT package_type, tier_grant_type FROM businesses WHERE id = ${b.id}`;
+    assert.equal(row.package_type, 'premium');
+    assert.equal(row.tier_grant_type, 'owner');
+  });
+
+  it('removing an email from the owner list keeps the plan as an ordinary complimentary grant', async () => {
+    await call(ownersRoute.POST, 'POST', '/api/admin/owner-accounts', { user: adminUser, body: { emails: ['not-yet-a-business@test.local'] } });
+    const [row] = await sql`
+      SELECT b.package_type, b.tier_grant_type FROM businesses b JOIN users u ON u.id = b.user_id WHERE u.email = 'house-owner@test.local'`;
+    assert.equal(row.package_type, 'premium', 'never silently downgraded');
+    assert.equal(row.tier_grant_type, 'complimentary');
+  });
+
+  it('a free grant’s end date can be moved, or made permanent', async () => {
+    const owner = await createUser('timed-grant@test.local', 'business');
+    const [b] = await sql`INSERT INTO businesses (user_id, company_name, package_type) VALUES (${owner.id}, 'Timed Grant Co', 'free') RETURNING id`;
+    const id = String(b.id);
+    const grant = await callTierPost(id, adminUser, { mode: 'timed_free', tierKey: 'premium', durationDays: 30, reason: 'Promo month' });
+    assert.equal(grant.status, 200, JSON.stringify(grant.json));
+
+    const newEnd = new Date(Date.now() + 90 * 86400_000).toISOString();
+    const moved = await callTierPost(id, adminUser, { mode: 'set_expiry', expiresAt: newEnd, reason: 'Extended promo' });
+    assert.equal(moved.status, 200, JSON.stringify(moved.json));
+    let [row] = await sql`SELECT tier_grant_type, next_billing_at, trial_ends_at, package_type FROM businesses WHERE id = ${id}`;
+    assert.equal(row.tier_grant_type, 'timed_free');
+    assert.equal(new Date(row.next_billing_at).toISOString(), newEnd);
+    assert.equal(new Date(row.trial_ends_at).toISOString(), newEnd);
+
+    assert.equal((await callTierPost(id, adminUser, { mode: 'set_expiry', expiresAt: '2001-01-01', reason: 'past' })).status, 400);
+    assert.equal((await callTierPost(id, complianceUser, { mode: 'set_expiry', expiresAt: newEnd, reason: 'not finance' })).status, 403);
+
+    const forever = await callTierPost(id, adminUser, { mode: 'set_expiry', permanent: true, reason: 'Partner — free forever' });
+    assert.equal(forever.status, 200);
+    [row] = await sql`SELECT tier_grant_type, next_billing_at, package_type FROM businesses WHERE id = ${id}`;
+    assert.equal(row.tier_grant_type, 'complimentary');
+    assert.equal(row.next_billing_at, null);
+    assert.equal(row.package_type, 'premium');
+
+    const audit = await sql`SELECT action FROM audit_logs WHERE target_id = ${id} AND action ILIKE '%made permanent%'`;
+    assert.equal(audit.length, 1, 'the change is in the audit log');
+  });
+
+  it('a paid subscription has no grant expiry to adjust', async () => {
+    const r = await callTierPost(bizBId, adminUser, { mode: 'set_expiry', permanent: true, reason: 'not a grant' });
+    assert.equal(r.status, 409);
+  });
+
+  it('a test charge can be removed: hidden from the customer and from revenue, kept on record', async () => {
+    const customer = await createUser('tested-billing@test.local', 'business');
+    const [pending] = await sql`
+      INSERT INTO payments (user_id, amount, status, reference, description, purchase_type)
+      VALUES (${customer.id}, 29900, 'pending', 'VBL-test-pending', 'Standard Subscription (R299/month)', 'subscription_standard') RETURNING id`;
+    const [paid] = await sql`
+      INSERT INTO payments (user_id, amount, status, reference, description, purchase_type, completed_at)
+      VALUES (${customer.id}, 1000, 'completed', 'VBL-test-paid', 'Test tier R10', 'subscription_test', NOW()) RETURNING id`;
+
+    const before = await call(paymentsRoute.GET, 'GET', '/api/admin/payments', { user: adminUser });
+    const revenueBefore = Number(before.json.stats.revenueCents);
+
+    assert.equal((await call(paymentsRoute.POST, 'POST', '/api/admin/payments', { user: complianceUser, body: { action: 'void', paymentId: paid.id, reason: 'test' } })).status, 403);
+    for (const p of [pending, paid]) {
+      const r = await call(paymentsRoute.POST, 'POST', '/api/admin/payments', { user: financeUser, body: { action: 'void', paymentId: p.id, reason: 'Test charge' } });
+      assert.equal(r.status, 200, JSON.stringify(r.json));
+    }
+    assert.equal((await call(paymentsRoute.POST, 'POST', '/api/admin/payments', { user: financeUser, body: { action: 'void', paymentId: paid.id, reason: 'again' } })).status, 404);
+
+    const history = await call(historyRoute.GET, 'GET', '/api/payments/create-intent', { user: customer });
+    assert.equal(history.status, 200);
+    assert.equal(history.json.payments.length, 0, 'removed charges are not shown to the customer');
+
+    const after = await call(paymentsRoute.GET, 'GET', '/api/admin/payments', { user: adminUser });
+    assert.equal(Number(after.json.stats.revenueCents), revenueBefore - 1000, 'removed paid test charge no longer counts as revenue');
+    const removed = await call(paymentsRoute.GET, 'GET', '/api/admin/payments', { user: adminUser, query: { status: 'removed' } });
+    const ids = removed.json.payments.map((p: { id: string }) => p.id);
+    assert.ok(ids.includes(paid.id) && ids.includes(pending.id), 'still on record under Removed');
+    const [db] = await sql`SELECT COUNT(*)::int AS n FROM payments WHERE id IN (${pending.id}, ${paid.id})`;
+    assert.equal(db.n, 2, 'not deleted');
+  });
+});

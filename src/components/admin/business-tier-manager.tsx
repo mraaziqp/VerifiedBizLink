@@ -147,6 +147,10 @@ function effectiveTierOf(b: AdminBusinessRow, nowMs: number): string {
   return b.package_type || "free";
 }
 
+function isOwnerAccount(b: AdminBusinessRow): boolean {
+  return b.tier_grant_type === "owner";
+}
+
 function isComplimentaryGrant(b: AdminBusinessRow, nowMs: number): boolean {
   return (
     (b.tier_grant_type === "complimentary" || b.tier_grant_type === "timed_free") &&
@@ -197,6 +201,13 @@ export default function BusinessTierManager({ initialSearch = "" }: { initialSea
   const [posDurationMode, setPosDurationMode] = useState<"indefinite" | "timed">("indefinite");
   const [posDurationDays, setPosDurationDays] = useState<number>(30);
   const [posExemptFees, setPosExemptFees] = useState<boolean>(false);
+
+  // Adjust the end date of an existing free grant (or make it permanent).
+  const [expiryFor, setExpiryFor] = useState<AdminBusinessRow | null>(null);
+  const [expiryDate, setExpiryDate] = useState<string>("");
+  const [expiryPermanent, setExpiryPermanent] = useState<boolean>(false);
+  const [expiryReason, setExpiryReason] = useState<string>("");
+  const [expirySaving, setExpirySaving] = useState<boolean>(false);
 
   const [reason, setReason] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
@@ -656,6 +667,12 @@ export default function BusinessTierManager({ initialSearch = "" }: { initialSea
                             {tierInfo?.name || eff}
                           </Badge>
 
+                          {isOwnerAccount(b) && (
+                            <Badge className="bg-amber-100 text-amber-950 border border-amber-300 gap-1" title="Owner account: permanent Premium, never billed">
+                              <Crown className="h-3 w-3" /> Owner · forever
+                            </Badge>
+                          )}
+
                           {comp && (
                             <Badge className="bg-emerald-100 text-emerald-900 border border-emerald-200 gap-1">
                               <Gift className="h-3 w-3" />
@@ -679,6 +696,11 @@ export default function BusinessTierManager({ initialSearch = "" }: { initialSea
                             </Badge>
                           )}
                         </div>
+                        {b.tier_grant_type === "timed_free" && (b.next_billing_at || b.trial_ends_at) && (
+                          <p className="mt-1 text-[11px] text-slate-600">
+                            Free until {formatDateShort(b.next_billing_at || b.trial_ends_at)}
+                          </p>
+                        )}
                         {b.tier_grant_note && (
                           <p className="mt-1 max-w-xs truncate text-[11px] text-slate-500" title={b.tier_grant_note}>
                             Note: {b.tier_grant_note}
@@ -737,7 +759,25 @@ export default function BusinessTierManager({ initialSearch = "" }: { initialSea
                             {onPaidOrGranted ? "Manage Tier" : "Grant Free Tier"}
                           </Button>
 
-                          {(onPaidOrGranted || posActive) && (
+                          {(b.tier_grant_type === "timed_free" || b.tier_grant_type === "complimentary") && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setExpiryFor(b);
+                                const current = b.next_billing_at || b.trial_ends_at;
+                                setExpiryDate(current ? new Date(current).toISOString().slice(0, 10) : "");
+                                setExpiryPermanent(b.tier_grant_type === "complimentary");
+                                setExpiryReason("");
+                              }}
+                              className="h-8 rounded-lg text-xs font-semibold gap-1"
+                              title="Change when this free plan ends, or make it permanent"
+                            >
+                              <Calendar className="h-3.5 w-3.5" /> Adjust expiry
+                            </Button>
+                          )}
+
+                          {(onPaidOrGranted || posActive) && !isOwnerAccount(b) && (
                             <Button
                               size="sm"
                               variant="outline"
@@ -758,6 +798,82 @@ export default function BusinessTierManager({ initialSearch = "" }: { initialSea
           </div>
         )}
       </AdminCard>
+
+      {/* Adjust expiry of a free grant */}
+      <Dialog open={!!expiryFor} onOpenChange={(open) => { if (!open && !expirySaving) setExpiryFor(null); }}>
+        <DialogContent className="max-w-md rounded-3xl bg-white p-6">
+          {expiryFor && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-lg font-black">Adjust free plan end date</DialogTitle>
+                <DialogDescription className="text-xs">
+                  {expiryFor.company_name} — currently{" "}
+                  {expiryFor.tier_grant_type === "complimentary"
+                    ? "free with no end date"
+                    : `free until ${formatDateShort(expiryFor.next_billing_at || expiryFor.trial_ends_at)}`}
+                  . The owner is notified of the change.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-3 text-sm">
+                <label className="flex items-center gap-2 font-semibold">
+                  <input type="checkbox" checked={expiryPermanent} onChange={(e) => setExpiryPermanent(e.target.checked)} />
+                  No end date (free forever)
+                </label>
+                {!expiryPermanent && (
+                  <label className="block text-xs font-bold text-slate-700">
+                    Free until
+                    <Input
+                      type="date"
+                      value={expiryDate}
+                      min={nowMs ? new Date(nowMs + 86_400_000).toISOString().slice(0, 10) : undefined}
+                      onChange={(e) => setExpiryDate(e.target.value)}
+                      className="mt-1 rounded-xl"
+                    />
+                  </label>
+                )}
+                <Input
+                  value={expiryReason}
+                  onChange={(e) => setExpiryReason(e.target.value)}
+                  placeholder="Reason (for the audit log)"
+                  className="rounded-xl"
+                  aria-label="Reason"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setExpiryFor(null)} disabled={expirySaving} className="rounded-xl text-xs">Cancel</Button>
+                <Button
+                  disabled={expirySaving || (!expiryPermanent && !expiryDate) || expiryReason.trim().length < 3}
+                  className="rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs"
+                  onClick={async () => {
+                    setExpirySaving(true);
+                    const res = await fetch(`/api/admin/businesses/${expiryFor.id}/tier`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        mode: "set_expiry",
+                        permanent: expiryPermanent,
+                        expiresAt: expiryPermanent ? null : new Date(`${expiryDate}T23:59:59Z`).toISOString(),
+                        reason: expiryReason,
+                      }),
+                    });
+                    const data = await res.json().catch(() => ({}));
+                    setExpirySaving(false);
+                    if (!res.ok) {
+                      toast({ title: "Not changed", description: data.error, variant: "destructive" });
+                      return;
+                    }
+                    toast({ title: expiryPermanent ? "Free plan made permanent" : `Free until ${formatDateShort(data.expiresAt)}` });
+                    setExpiryFor(null);
+                    loadData();
+                  }}
+                >
+                  {expirySaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Grant / Manage / Remove Modal */}
       <Dialog open={!!selected} onOpenChange={(open) => { if (!open && !submitting) setSelected(null); }}>

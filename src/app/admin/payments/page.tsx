@@ -3,7 +3,7 @@
 import { formatRandCents } from '@/lib/format-number';
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, CreditCard, CheckCircle2, Clock, XCircle, TrendingUp, Loader2 } from 'lucide-react';
+import { ArrowLeft, CreditCard, CheckCircle2, Clock, XCircle, TrendingUp, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AdminBackground, AdminCard, AdminPageHeader, StatCard, SectionTitle } from '@/components/admin/ui';
@@ -24,6 +24,9 @@ interface Payment {
   completed_at: string | null;
   user_name: string | null;
   user_email: string | null;
+  voided_at?: string | null;
+  void_reason?: string | null;
+  voided_by_name?: string | null;
 }
 
 interface PaymentStats {
@@ -48,6 +51,7 @@ export default function AdminPaymentsPage() {
   const [stats, setStats] = useState<PaymentStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [removing, setRemoving] = useState<string | null>(null);
 
   const fetchPayments = useCallback(async (status: string) => {
     setLoading(true);
@@ -68,6 +72,31 @@ export default function AdminPaymentsPage() {
   useEffect(() => {
     fetchPayments(filter);
   }, [filter, fetchPayments]);
+
+  // Hides a test charge from the customer's history and from revenue.
+  // It stays in the database (marked removed) for the audit trail.
+  const removeTestCharge = async (p: Payment) => {
+    const reason = window.prompt(
+      `Remove this ${formatRand(p.amount)} charge for ${p.user_email || 'this customer'} as a test charge?
+
+It disappears from their Transaction History and from revenue, but is kept on record. Reason:`,
+      'Test charge',
+    );
+    if (!reason) return;
+    setRemoving(p.id);
+    try {
+      const res = await fetch('/api/admin/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'void', paymentId: p.id, reason }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) window.alert(data.error || 'Could not remove the charge.');
+      await fetchPayments(filter);
+    } finally {
+      setRemoving(null);
+    }
+  };
 
   const statCards = [
     { label: 'Revenue (Completed)', value: stats ? formatRand(stats.revenueCents) : '—', icon: TrendingUp, gradient: 'from-yellow-500 to-yellow-400' },
@@ -93,7 +122,7 @@ export default function AdminPaymentsPage() {
           <div className="flex flex-wrap items-center justify-between gap-3 p-5 sm:p-6 pb-0 sm:pb-0">
             <SectionTitle icon={CreditCard}>Transactions</SectionTitle>
             <div className="flex gap-2 pb-5 sm:pb-6">
-              {['all', 'completed', 'pending', 'failed'].map((s) => (
+              {['all', 'completed', 'pending', 'failed', 'removed'].map((s) => (
                 <button
                   key={s}
                   onClick={() => setFilter(s)}
@@ -127,6 +156,7 @@ export default function AdminPaymentsPage() {
                     <th className="px-5 py-3 font-medium">Status</th>
                     <th className="px-5 py-3 font-medium">Reference</th>
                     <th className="px-5 py-3 font-medium">Date</th>
+                    <th className="px-5 py-3 font-medium"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -149,6 +179,25 @@ export default function AdminPaymentsPage() {
                       <td className="px-5 py-3 text-slate-500 font-mono text-xs">{p.payfast_reference || p.reference || '—'}</td>
                       <td className="px-5 py-3 text-gray-500 text-xs">
                         {new Date(p.created_at).toLocaleDateString('en-ZA', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </td>
+                      <td className="px-5 py-3 text-right whitespace-nowrap">
+                        {p.voided_at ? (
+                          <span className="text-xs text-slate-500" title={p.void_reason || ''}>
+                            Removed by {p.voided_by_name || 'admin'}
+                          </span>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={removing === p.id}
+                            onClick={() => removeTestCharge(p)}
+                            className="h-7 gap-1 border-rose-200 text-xs text-rose-700 hover:bg-rose-50"
+                            title="Remove a test charge from the customer's history and from revenue"
+                          >
+                            {removing === p.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                            Remove test charge
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -7,6 +7,7 @@ import { ArrowLeft, AlertTriangle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { PosAccess } from '@/lib/pos/client';
+import { PoweredByArp } from '@/components/arp/powered-by-arp';
 
 export interface PosContext {
   businessId: string;
@@ -94,6 +95,7 @@ export function PosHeader({ title, subtitle, ctx, actions }: { title: string; su
           <div className="min-w-0">
             <h1 className="text-2xl font-black text-slate-900 truncate">{title}</h1>
             {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
+            <PoweredByArp size="xs" className="mt-1.5" />
           </div>
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

@@ -10,6 +10,7 @@ import { AnimatedTabs, type TabItem } from "@/components/ui/animated-tabs";
 import { Button } from "@/components/ui/button";
 import BusinessTierManager from "@/components/admin/business-tier-manager";
 import TierManagement from "@/components/admin/tier-management";
+import OwnerAccountsPanel from "@/components/admin/owner-accounts-panel";
 import { FINANCE_ROLES, hasRole } from "@/lib/roles";
 
 type TiersTab = "businesses" | "definitions";
@@ -115,7 +116,10 @@ export default function AdminTiersPage() {
         </div>
 
         {activeTab === "businesses" ? (
-          <BusinessTierManager initialSearch={initialSearch} />
+          <>
+            <OwnerAccountsPanel canEdit={user?.role === "admin"} />
+            <BusinessTierManager initialSearch={initialSearch} />
+          </>
         ) : (
           <TierManagement />
         )}

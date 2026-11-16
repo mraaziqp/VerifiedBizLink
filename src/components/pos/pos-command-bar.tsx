@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { PosContext } from '@/components/pos/pos-header';
+import { PoweredByArp } from '@/components/arp/powered-by-arp';
 
 interface PosCommandBarProps {
   ctx: PosContext | null;
@@ -60,10 +61,11 @@ export function PosCommandBar({
       {/* Upper Status Telemetry Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 shadow-sm">
         <div className="flex flex-wrap items-center gap-2">
+          <PoweredByArp tone="dark" size="xs" />
           {/* Business / Till Identifier */}
           <div className="flex items-center gap-1.5 font-bold text-white pr-2 border-r border-slate-700/80">
             <Store className="h-3.5 w-3.5 text-amber-400" />
-            <span className="truncate max-w-[180px] sm:max-w-[260px]">{ctx?.businessName || 'VerifiedBizLink Till'}</span>
+            <span className="truncate max-w-[180px] sm:max-w-[260px]">{ctx?.businessName || 'Till'}</span>
           </div>
 
           {/* Active Shift Status */}

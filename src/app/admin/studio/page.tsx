@@ -198,7 +198,7 @@ export default function AdminStudioPage() {
 
   return (
     <GlassBackground>
-      <GlassPageHeader title="Build Studio" subtitle={`Websites, apps and games by ARP Cloud Solutions, sold to members · VerifiedBizLink keeps ${sharePct}% of list`}>
+      <GlassPageHeader title="Build Studio" subtitle={`Powered by ARP Cloud Solutions · websites, apps and games sold to members · VerifiedBizLink keeps ${sharePct}% of list`}>
         <Button variant="outline" size="sm" className="gap-2 border-yellow-500/30 text-yellow-700 hover:bg-yellow-500/10" asChild>
           <Link href="/admin/dashboard"><ArrowLeft className="h-4 w-4" /> Back to Admin</Link>
         </Button>

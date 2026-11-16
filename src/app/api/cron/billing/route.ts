@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cronAuthError } from '@/lib/cron-auth';
+import { syncOwnerAccounts } from '@/lib/owner-accounts';
+import { ensureBusinessTierColumns } from '@/lib/business-tiers';
 import db from '@/lib/db';
 import { DOWNGRADE_TIER, GRACE_PERIOD_HOURS, GRACE_PERIOD_DAYS, RENEWAL_GRACE_HOURS, FINAL_NOTICE_HOURS, formatDate } from '@/lib/billing';
 import { appUrlFromRequest } from '@/lib/email';
@@ -47,7 +49,17 @@ export async function GET(request: NextRequest) {
 
   const baseUrl = appUrlFromRequest(request);
   const now = new Date();
-  const result = { overdue: 0, noticed: 0, finalNoticed: 0, downgraded: 0, lapsed: 0, errors: 0, overdueSubscriptions: 0 };
+  const result = { overdue: 0, noticed: 0, finalNoticed: 0, downgraded: 0, lapsed: 0, errors: 0, overdueSubscriptions: 0, ownersSynced: 0 };
+
+  // Owner accounts are permanent Premium: (re)apply the list first, and every
+  // step below skips owner and complimentary grants entirely.
+  try {
+    await ensureBusinessTierColumns();
+    result.ownersSynced = (await syncOwnerAccounts()).granted.length;
+  } catch (e) {
+    console.error('Owner-account sync failed:', e);
+    result.errors += 1;
+  }
 
   try {
     /* --- 0. A renewal that never charged ---------------------------------
@@ -88,6 +100,7 @@ export async function GET(request: NextRequest) {
       WHERE auto_renew IS TRUE
         AND package_type IS NOT NULL
         AND package_type <> ${DOWNGRADE_TIER}
+        AND COALESCE(tier_grant_type, '') NOT IN ('owner', 'complimentary')
         AND next_billing_at IS NOT NULL
         AND next_billing_at <= NOW() - (${RENEWAL_GRACE_HOURS} * INTERVAL '1 hour')
         AND (payfast_token IS NOT NULL OR last_billed_at IS NOT NULL)
@@ -116,6 +129,7 @@ export async function GET(request: NextRequest) {
         AND payment_failed_notified_at IS NULL
         AND package_type IS NOT NULL
         AND package_type <> ${DOWNGRADE_TIER}
+        AND COALESCE(tier_grant_type, '') NOT IN ('owner', 'complimentary')
         AND payment_failed_at > NOW() - (${GRACE_PERIOD_HOURS} * INTERVAL '1 hour')
       LIMIT 100
     `.catch((e) => { console.error('Notice scan failed:', e); result.errors += 1; return []; })) as unknown as Row[];
@@ -133,6 +147,7 @@ export async function GET(request: NextRequest) {
         AND grace_warned_at IS NULL
         AND package_type IS NOT NULL
         AND package_type <> ${DOWNGRADE_TIER}
+        AND COALESCE(tier_grant_type, '') NOT IN ('owner', 'complimentary')
         AND payment_failed_at <= NOW() - (${GRACE_PERIOD_HOURS - FINAL_NOTICE_HOURS} * INTERVAL '1 hour')
         AND payment_failed_at > NOW() - (${GRACE_PERIOD_HOURS} * INTERVAL '1 hour')
       LIMIT 100
@@ -158,6 +173,7 @@ export async function GET(request: NextRequest) {
       WHERE payment_failed_at IS NOT NULL
         AND package_type IS NOT NULL
         AND package_type <> ${DOWNGRADE_TIER}
+        AND COALESCE(tier_grant_type, '') NOT IN ('owner', 'complimentary')
         AND payment_failed_at <= NOW() - (${GRACE_PERIOD_HOURS} * INTERVAL '1 hour')
       RETURNING id, user_id, company_name, downgraded_from, payfast_token
     `.catch((e) => { console.error('Downgrade step failed:', e); result.errors += 1; return []; })) as unknown as Row[];
@@ -216,6 +232,7 @@ export async function GET(request: NextRequest) {
       WHERE auto_renew IS FALSE
         AND package_type IS NOT NULL
         AND package_type <> ${DOWNGRADE_TIER}
+        AND COALESCE(tier_grant_type, '') NOT IN ('owner', 'complimentary')
         AND next_billing_at IS NOT NULL
         AND next_billing_at <= NOW()
       RETURNING id, user_id, downgraded_from

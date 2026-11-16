@@ -10,6 +10,7 @@ import { AdminBackground } from '@/components/admin/ui';
 import { useToast } from '@/hooks/use-toast';
 import { zar, pct } from '@/lib/pos/client';
 import { cn } from '@/lib/utils';
+import { PoweredByArp } from '@/components/arp/powered-by-arp';
 
 type Row = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -127,7 +128,8 @@ export default function AdminPosPage() {
           <div className="flex items-center gap-3">
             <Button asChild variant="ghost" size="icon" className="rounded-xl"><Link href="/admin/dashboard" aria-label="Back"><ArrowLeft className="h-5 w-5" /></Link></Button>
             <div>
-              <h1 className="text-2xl font-black text-slate-900">VerifiedBizLink POS</h1>
+              <h1 className="text-2xl font-black text-slate-900">POS</h1>
+              <PoweredByArp size="xs" className="my-1" />
               <p className="text-xs text-slate-500">Platform revenue here is money actually collected. Merchants&apos; sales are theirs and are shown only for scale.</p>
             </div>
           </div>

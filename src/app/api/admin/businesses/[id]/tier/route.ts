@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth';
 import { FINANCE_ROLES, hasRole } from '@/lib/roles';
 import {
   grantBusinessTier,
+  setGrantExpiry,
   TierActionError,
   type TierGrantMode,
 } from '@/lib/business-tiers';
@@ -37,6 +38,19 @@ export async function POST(
     const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
 
     const modeRaw = body.mode;
+
+    // Move the end date of an existing free grant, or make it permanent.
+    if (modeRaw === 'set_expiry') {
+      const updated = await setGrantExpiry({
+        businessId: id,
+        expiresAt: typeof body.expiresAt === 'string' ? body.expiresAt : null,
+        permanent: body.permanent === true,
+        reason,
+        actor: { userId: session.id, fullName: session.fullName || session.email, role: session.role },
+      });
+      return NextResponse.json({ success: true, ...updated });
+    }
+
     const hasPlatformAction =
       modeRaw === 'complimentary' || modeRaw === 'timed_free' || modeRaw === 'remove';
 
