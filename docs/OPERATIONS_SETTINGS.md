@@ -29,6 +29,13 @@ A variable that's set in the Amplify console but missing from that list never re
 | `APP_URL` | `https://www.verifiedbizlink.co.za` |
 | `CRON_SECRET` | **Exactly** the same value as `CRON_SECRET` in Amplify |
 
+## Build Studio needs two things
+
+1. **`HUB_PARTNER_KEY`** in Amplify, as listed above.
+2. **The live switch**, in Admin → Build Studio. It is off until an admin turns it on. While it's off, members see "being connected" even if the key works.
+
+The monthly credit per plan is set on the same page. It's R0 until you set it, and the daily job gives nothing until then.
+
 ## Checking the scheduled jobs
 
 GitHub → Actions → **Scheduled jobs** → **Run workflow**. If it fails, the run shows the reason in one line:
