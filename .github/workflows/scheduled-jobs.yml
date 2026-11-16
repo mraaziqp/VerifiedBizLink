@@ -52,8 +52,8 @@ jobs:
   abandoned-signups:
     name: Chase abandoned signups
     runs-on: ubuntu-latest
-    # Only on the daily schedule, not the hourly one.
-    if: github.event.schedule == '0 7 * * *' || github.event_name == 'workflow_dispatch'
+    # Hourly: each run sends what fits in its time budget and the next run
+    # carries on. Everyone is emailed at most once, ever.
     steps:
       - uses: actions/checkout@v5
         with:

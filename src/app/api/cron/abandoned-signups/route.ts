@@ -20,6 +20,17 @@ const MAX_AGE_DAYS = 14;
 /** Cap per run so one invocation can't blow the SMTP rate limit or the timeout. */
 const BATCH_SIZE = 40;
 
+/**
+ * Stop starting new sends after this long. The hosting gateway cuts a request
+ * off at about 30 seconds (the first run, with a backlog, answered 504), so a
+ * run sends what fits and the next hourly run carries on. Each person is
+ * stamped as they are emailed, so nobody is ever sent two nudges.
+ */
+const TIME_BUDGET_MS = 18_000;
+
+/** Sends in flight at once: a few, to stay polite to the SMTP server. */
+const CONCURRENCY = 4;
+
 type Row = Record<string, unknown>;
 
 /**
@@ -63,8 +74,10 @@ export async function GET(request: NextRequest) {
 
     let sent = 0;
     const failures: string[] = [];
+    const startedAt = Date.now();
+    let next = 0;
 
-    for (const row of candidates) {
+    const nudge = async (row: Row) => {
       const unverified = row.email_verified !== true;
       const firstName = String(row.full_name || '').split(' ')[0];
 
@@ -99,13 +112,23 @@ export async function GET(request: NextRequest) {
         console.error('Abandoned-signup nudge failed for', row.email, error);
         failures.push(String(row.email));
       }
-    }
+    };
+
+    // A few workers pull from the list until it is empty or the time budget
+    // is spent; whoever is left goes out on the next run.
+    const worker = async () => {
+      while (next < candidates.length && Date.now() - startedAt < TIME_BUDGET_MS) {
+        await nudge(candidates[next++]);
+      }
+    };
+    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
 
     return NextResponse.json({
       ok: true,
       considered: candidates.length,
       sent,
       failed: failures.length,
+      deferred: candidates.length - next,
     });
   } catch (error) {
     console.error('Abandoned-signups cron error:', error);
